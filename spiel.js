@@ -36,6 +36,8 @@
       fahrzeuge: {},
       farben: C.farben.filter(function (f) { return f.preis === 0; }).map(function (f) { return f.id; }),
       muster: ["keins"],
+      outfit: C.outfits[0].id,
+      outfits: [C.outfits[0].id],
       level: {},
       endlos: {},
       einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false },
@@ -84,10 +86,29 @@
     for (var i = 0; i < C.farben.length; i++) if (C.farben[i].id === id) return C.farben[i];
     return C.farben[0];
   }
+  function outfitWert(id) {
+    for (var i = 0; i < C.outfits.length; i++) if (C.outfits[i].id === id) return C.outfits[i];
+    return C.outfits[0];
+  }
   function aussehenVon(fzId) {
     var fs = S.fahrzeuge[fzId] || {};
     var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
-    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins" };
+    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(S.outfit) };
+  }
+
+  /* Fiete als Bild (Brustbild oder nur Kopf) – gezeichnet mit denselben
+     Funktionen wie im Auto, damit er überall gleich aussieht. */
+  var bildCache = {};
+  function fieteBild(b, h, ausdruck, nurKopf, outfitId) {
+    var o = outfitWert(outfitId || S.outfit);
+    var key = [b, h, ausdruck, nurKopf, o.id].join("|");
+    if (bildCache[key]) return bildCache[key];
+    var c = document.createElement("canvas");
+    c.width = b * 2; c.height = h * 2;
+    var g = c.getContext("2d");
+    g.scale(2, 2);
+    FF.Grafik.zeichnePortrait(g, b, h, { outfit: o }, ausdruck, 0.4, nurKopf);
+    return (bildCache[key] = c.toDataURL());
   }
 
   /* =========================================================================
@@ -409,7 +430,7 @@
     $("hud-tank").classList.remove("knapp");
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
-    $("hud-fortschritt-auto").textContent = FF.fahrzeugDef(S.fahrzeug).emoji;
+    $("hud-fortschritt-auto").src = fieteBild(40, 40, "normal", true);
     FF.Klang.motorStart();
     var w = fahrt.welt;
     meldung(endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
@@ -524,6 +545,7 @@
     else { titel = "Tank leer – gut gefahren!"; icon = "⛽"; }
     $("ergebnis-titel").textContent = titel;
     $("ergebnis-icon").textContent = icon;
+    $("ergebnis-fiete").src = fieteBild(120, 130, e.ziel || rekord ? "freude" : "normal");
 
     var sterneEl = $("ergebnis-sterne");
     sterneEl.hidden = e.endlos;
@@ -631,7 +653,9 @@
 
   function baueFahrzeugLeiste() {
     var el = $("fahrzeug-leiste");
-    var html = '<span class="fahrzeug-leiste-titel">Fahrzeug:</span>';
+    var html = '<button type="button" class="fiete-chip" data-garage="1" aria-label="Fietes Outfit ändern">' +
+               '<img src="' + fieteBild(44, 44, "normal", true) + '" alt="Fiete"></button>' +
+               '<span class="fahrzeug-leiste-titel">Fahrzeug:</span>';
     C.fahrzeuge.forEach(function (f) {
       if (!S.fahrzeuge[f.id].gekauft) return;
       html += '<button type="button" class="fz-chip' + (S.fahrzeug === f.id ? " aktiv" : "") + '" data-fz="' + f.id + '">' +
@@ -639,7 +663,7 @@
     });
     html += '<button type="button" class="fz-chip" data-garage="1"><span class="fz-emoji">🔧</span>Garage</button>';
     el.innerHTML = html;
-    el.querySelectorAll(".fz-chip").forEach(function (b) {
+    el.querySelectorAll(".fz-chip, .fiete-chip").forEach(function (b) {
       b.addEventListener("click", function () {
         FF.Klang.spiele("klick");
         if (b.dataset.garage) { waehleTab("garage"); return; }
@@ -805,6 +829,27 @@
       });
     });
 
+    // Fietes Outfit (gilt für alle Fahrzeuge) – nur Bilder, keine Namen
+    var ol = $("outfit-liste");
+    ol.innerHTML = C.outfits.map(function (o, i) {
+      var hat = S.outfits.indexOf(o.id) >= 0;
+      return '<button type="button" class="outfit-knopf' + (S.outfit === o.id ? " aktiv" : "") + (hat ? "" : " gesperrt") +
+             '" data-outfit="' + o.id + '" aria-label="Outfit ' + (i + 1) + '">' +
+             '<img src="' + fieteBild(76, 84, "normal", false, o.id) + '" alt="">' +
+             (hat ? "" : '<span class="preis">🪙' + zahl(o.preis) + "</span>") + "</button>";
+    }).join("");
+    ol.querySelectorAll(".outfit-knopf").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var o = outfitWert(b.dataset.outfit);
+        if (S.outfits.indexOf(o.id) < 0) {
+          kaufe(o.preis, function () { S.outfits.push(o.id); S.outfit = o.id; }, b);
+          return;
+        }
+        FF.Klang.spiele("klick");
+        S.outfit = o.id; speichere(); baueGarage();
+      });
+    });
+
     // Muster
     var ml = $("muster-liste");
     ml.innerHTML = C.muster.map(function (m) {
@@ -917,7 +962,8 @@
 
   $("knopf-info").addEventListener("click", function () {
     FF.Klang.spiele("klick");
-    popover("🦸 <b>Fiete Flitzer</b><br>ein Spiel von JONFIE STUDIOS<small>Rechts Gas ➡️, links Bremse ⬅️. Sammle Münzen 🪙 und Benzin ⛽ – " +
+    popover('<img class="popover-fiete" src="' + fieteBild(110, 120, "freude") + '" alt="Fiete">' +
+            "<b>Fiete Flitzer</b><br>ein Spiel von JONFIE STUDIOS<small>Rechts Gas ➡️, links Bremse ⬅️. Sammle Münzen 🪙 und Benzin ⛽ – " +
             "und mach Fietes Auto in der Garage 🔧 immer besser!<br>Gefahren: " + zahl(S.statistik.meter) + " m · Saltos: " + S.statistik.salti + "</small>", 5000);
   });
   $("hud-muenzen").addEventListener("click", function () { popover("🪙 Münzen in dieser Fahrt<small>Die darfst du immer behalten!</small>", 2000); });

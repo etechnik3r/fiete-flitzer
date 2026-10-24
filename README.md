@@ -78,6 +78,14 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
 Federweg), ⛽ Tank. Bei manchen Fahrzeugen gibt es zusätzlich **4×4 Allrad**.
+**🦸 Fietes Outfit**: fünf Superhelden-Looks, die man nur an den Farben
+erkennt (ohne Namen, Buchstaben oder Logos): blau mit rotem Umhang, rot-blau
+mit Netz, grau mit gezacktem schwarzem Umhang, rot-gold mit leuchtendem Kreis,
+blau mit Stern, Streifen und Rundschild. Das Outfit gilt überall: in jedem
+Fahrzeug, in der Garage, auf dem Titelbild, in der Fortschrittsleiste, im
+Ergebnis und auf dem App-Icon. Fiete wird an allen Stellen mit denselben
+Zeichenfunktionen gemalt, damit man immer dieselbe Person sieht.
+
 **Optik**: 13 Lackfarben (darunter Gold und Regenbogen) und 6 Muster (Streifen,
 Punkte, Sterne, Flammen, Blitze, Karo). Farben und Muster kauft man einmal und
 kann sie dann für alle Fahrzeuge nutzen.
@@ -206,7 +214,7 @@ Sterne, Überschläge und den niedrigsten Tankstand.
 | `klang.js` | Motorsound und Effekte per WebAudio, Vorlesen per Sprachsynthese |
 | `spiel.js` | Menüs, Garage, Speicherstand (localStorage), Eingabe, Kamera, Spielschleife |
 | `index.html`, `style.css` | Bildschirme und Aussehen im JONFIE-STUDIOS-Stil |
-| `manifest.webmanifest`, `sw.js`, `icon.svg` | PWA. Bei Änderungen die Version in `sw.js` **und** die `?v=`-Nummern in `index.html` hochzählen! |
+| `manifest.webmanifest`, `sw.js`, `icon-*.png` | PWA. Die Icons erzeugt `node werkzeuge/icons.js` direkt aus der Spielgrafik. Bei Änderungen die Version in `sw.js` **und** die `?v=`-Nummern in `index.html` hochzählen! |
 | `fonts/` | Baloo 2 und Nunito, lokal eingebunden (SIL Open Font License) |
 | `werkzeuge/testfahrt.js` | Roboter-Testfahrer und Physik-Tests (Node) |
 

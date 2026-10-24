@@ -23,10 +23,9 @@ var FF = globalThis.FF = globalThis.FF || {};
   var TINTE = "#1e2c52";
   var REIFEN = "#2b2f3a";
   var FELGE = "#d9deea";
-  // Fiete: blond, braune Augen, helle Haut – Kleidung in Superhelden-Farben
+  // Fiete: blond, braune Augen, helle Haut (Kleidung: CONFIG.outfits)
   var HAUT = "#ffdcc4", HAUT_RAND = "#d99b78";
   var HAAR = "#f6d35e", HAAR_DUNKEL = "#d29f2a", AUGE_BRAUN = "#7b4a22";
-  var SUPER_BLAU = "#2f6fd6", SUPER_BLAU_DUNKEL = "#1d4fa8", SUPER_ROT = "#e8453c", SUPER_GELB = "#ffd23f";
 
   /* =========================================================================
      1) HELFER: Farben, Emoji-Sprites, Formen
@@ -669,63 +668,151 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
-  /* Superhelden-Outfit: roter Umhang (flattert im Fahrtwind), blauer Anzug mit
-     gelbem Stern. Ohne sichtbaren Körper (Bus, Monster, Renner) nur Schultern. */
-  function zeichneStern(ctx, x, y, r) {
-    stern(ctx, x, y, r, 5, 0.45);
-    ctx.fillStyle = SUPER_GELB; ctx.fill();
-    ctx.strokeStyle = SUPER_ROT; ctx.lineWidth = 0.016; ctx.stroke();
+  /* =========================================================================
+     FIETES OUTFIT (siehe CONFIG.outfits) – lokale Meter, y nach oben.
+     Dieselben Funktionen zeichnen Fiete im Auto, in der Garage, im Titel,
+     in der Fortschrittsleiste und im Ergebnis: überall dieselbe Person.
+     ========================================================================= */
+  var KOPF_R = 0.3;                  // Fiete ist überall gleich groß gezeichnet
+
+  function outfitVon(aussehen) {
+    return (aussehen && aussehen.outfit) || FF.CONFIG.outfits[0];
   }
 
-  function zeichneUmhang(ctx, teile, kp, zeit, tempo) {
-    var k = teile.fahrerKoerper;
-    var sx0 = k ? k[0] + k[2] * 0.35 : kp.x - kp.r * 0.25;
-    var sy0 = k ? k[1] + k[3] - 0.03 : kp.y - kp.r * 0.95;
+  function zeichneEmblem(ctx, o, x, y, r) {
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    if (o.emblem === "raute") {            // Wappen-Fünfeck: gelb mit rotem Rand
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.8, y + r * 0.62); ctx.lineTo(x + r * 0.8, y + r * 0.62);
+      ctx.lineTo(x + r * 1.05, y + r * 0.18); ctx.lineTo(x, y - r * 0.9); ctx.lineTo(x - r * 1.05, y + r * 0.18);
+      ctx.closePath();
+      ctx.fillStyle = "#ffd23f"; ctx.fill();
+      ctx.strokeStyle = "#e8453c"; ctx.lineWidth = r * 0.22; ctx.stroke();
+    } else if (o.emblem === "oval") {      // gelbes Oval
+      ctx.beginPath(); ctx.ellipse(x, y, r * 1.1, r * 0.66, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffd23f"; ctx.fill();
+      ctx.strokeStyle = "#262b3b"; ctx.lineWidth = r * 0.16; ctx.stroke();
+    } else if (o.emblem === "spinne") {    // kleine schwarze Spinne
+      ctx.strokeStyle = "#1a1a1a"; ctx.fillStyle = "#1a1a1a"; ctx.lineWidth = r * 0.12;
+      for (var sei = -1; sei <= 1; sei += 2) {
+        for (var i = 0; i < 4; i++) {
+          ctx.beginPath(); ctx.moveTo(x, y);
+          ctx.lineTo(x + sei * r * 0.6, y + r * (0.4 - i * 0.27));
+          ctx.lineTo(x + sei * r * 0.95, y + r * (0.6 - i * 0.45));
+          ctx.stroke();
+        }
+      }
+      ctx.beginPath(); ctx.ellipse(x, y - r * 0.15, r * 0.22, r * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y + r * 0.35, r * 0.16, 0, Math.PI * 2); ctx.fill();
+    } else if (o.emblem === "reaktor") {   // leuchtender Kreis
+      var gl = ctx.createRadialGradient(x, y, 0, x, y, r * 1.15);
+      gl.addColorStop(0, "#ffffff"); gl.addColorStop(0.45, "#9ff3ff"); gl.addColorStop(1, "rgba(120,230,255,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y, r * 1.15, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#8f98ad"; ctx.lineWidth = r * 0.14;
+      ctx.beginPath(); ctx.arc(x, y, r * 0.62, 0, Math.PI * 2); ctx.stroke();
+    } else {                               // weißer Stern
+      stern(ctx, x, y, r, 5, 0.45);
+      ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.strokeStyle = "rgba(30,44,82,0.5)"; ctx.lineWidth = r * 0.08; ctx.stroke();
+    }
+  }
 
-    // Umhang: hängt im Stand nach unten, weht bei Tempo nach hinten
+  function zeichneTorso(ctx, o, x, y, w, h) {
+    var rund = Math.min(0.13, w * 0.3);
+    ctx.save();
+    rundRechteck(ctx, x, y, w, h, rund);
+    ctx.fillStyle = o.anzug; ctx.fill();
+    ctx.clip();
+    if (o.seiten) {
+      ctx.fillStyle = o.seiten;
+      ctx.fillRect(x, y, w, h * 0.34); ctx.fillRect(x, y, w * 0.18, h);
+    }
+    if (o.streifen) {
+      for (var i = 0, q = w / 5; i < 5; i++) {
+        ctx.fillStyle = i % 2 ? "#ffffff" : "#d9363e";
+        ctx.fillRect(x + i * q, y, q, h * 0.34);
+      }
+    }
+    if (o.netz) {
+      var cx = x + w * 0.62, cy = y + h * 0.62, a, k;
+      ctx.strokeStyle = "rgba(20,20,20,0.55)"; ctx.lineWidth = 0.012;
+      for (k = 0; k < 8; k++) {
+        a = k * Math.PI / 4;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * w, cy + Math.sin(a) * w); ctx.stroke();
+      }
+      for (var rr = 0.09; rr < w; rr += 0.09) {
+        ctx.beginPath();
+        for (k = 0; k <= 8; k++) {
+          a = k * Math.PI / 4;
+          var px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr;
+          if (k === 0) ctx.moveTo(px, py);
+          else ctx.quadraticCurveTo(cx + Math.cos(a - Math.PI / 8) * rr * 0.8, cy + Math.sin(a - Math.PI / 8) * rr * 0.8, px, py);
+        }
+        ctx.stroke();
+      }
+    }
+    if (o.guertel) { ctx.fillStyle = o.guertel; ctx.fillRect(x, y + h * 0.3, w, Math.max(0.045, h * 0.12)); }
+    ctx.restore();
+    rundRechteck(ctx, x, y, w, h, rund);
+    ctx.strokeStyle = o.anzugRand; ctx.lineWidth = 0.03; ctx.stroke();
+    zeichneEmblem(ctx, o, x + w * 0.62, y + h * 0.62, Math.min(w, h) * 0.22);
+  }
+
+  /* Rücken: Umhang (hängt im Stand, weht bei Tempo nach hinten) oder Rundschild.
+     Wird immer HINTER der Karosserie gezeichnet. */
+  function zeichneRuecken(ctx, o, teile, kp, r, zeit, tempo) {
+    var k = teile.fahrerKoerper;
+    var sx0 = k ? k[0] + k[2] * 0.35 : kp.x - r * 0.25;
+    var sy0 = k ? k[1] + k[3] - 0.03 : kp.y - r * 0.95;
+    if (o.schild) {
+      var bx = sx0 - 0.1, by = sy0 - 0.2, R = 0.2;
+      [["#d9363e", 1], ["#ffffff", 0.78], ["#d9363e", 0.58], ["#2f5fbf", 0.4]].forEach(function (ring) {
+        ctx.fillStyle = ring[0]; ctx.beginPath(); ctx.arc(bx, by, R * ring[1], 0, Math.PI * 2); ctx.fill();
+      });
+      stern(ctx, bx, by, R * 0.34, 5, 0.45); ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.strokeStyle = "rgba(30,44,82,0.5)"; ctx.lineWidth = 0.015;
+      ctx.beginPath(); ctx.arc(bx, by, R, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (!o.umhang) return;
     var wind = Math.min(1, tempo / 12);
-    var w = (258 - 70 * wind) * Math.PI / 180;
+    var w = (258 - 70 * wind) * Math.PI / 180, cw = Math.cos(w), sw = Math.sin(w);
     var flatter = Math.sin(zeit * (5 + 9 * wind)) * (0.03 + 0.06 * wind);
     var L = 0.5 + 0.12 * wind;
-    var ex = sx0 + Math.cos(w) * L, ey = sy0 + Math.sin(w) * L;
-    var nx = -Math.sin(w), ny = Math.cos(w);            // quer zur Umhang-Richtung
+    var ex = sx0 + cw * L, ey = sy0 + sw * L;
+    var nx = -sw, ny = cw;                               // quer zur Umhang-Richtung
     var bE = 0.14, bS = 0.07;
-    ctx.fillStyle = SUPER_ROT; ctx.strokeStyle = "#b8302a"; ctx.lineWidth = 0.02;
+    ctx.fillStyle = o.umhang; ctx.strokeStyle = dunkel(o.umhang, 0.25); ctx.lineWidth = 0.02;
     ctx.beginPath();
     ctx.moveTo(sx0 + nx * bS, sy0 + ny * bS);
-    ctx.quadraticCurveTo(sx0 + Math.cos(w) * L * 0.5 + nx * (bE + flatter), sy0 + Math.sin(w) * L * 0.5 + ny * (bE + flatter),
-                         ex + nx * bE, ey + ny * bE);
-    ctx.quadraticCurveTo(ex + Math.cos(w) * 0.06 + nx * flatter, ey + Math.sin(w) * 0.06 + ny * flatter, ex - nx * bE, ey - ny * bE);
-    ctx.quadraticCurveTo(sx0 + Math.cos(w) * L * 0.5 - nx * (bE * 0.6 - flatter), sy0 + Math.sin(w) * L * 0.5 - ny * (bE * 0.6 - flatter),
+    ctx.quadraticCurveTo(sx0 + cw * L * 0.5 + nx * (bE + flatter), sy0 + sw * L * 0.5 + ny * (bE + flatter), ex + nx * bE, ey + ny * bE);
+    if (o.umhangZacken) {
+      // gezackter Saum wie Fledermaus-Flügel
+      for (var j = 1; j <= 3; j++) {
+        var t0 = (j - 1) / 3, t1 = j / 3;
+        var mx = ex + nx * bE * (1 - 2 * (t0 + t1) / 2), my = ey + ny * bE * (1 - 2 * (t0 + t1) / 2);
+        ctx.quadraticCurveTo(mx - cw * 0.09, my - sw * 0.09, ex + nx * bE * (1 - 2 * t1), ey + ny * bE * (1 - 2 * t1));
+      }
+    } else {
+      ctx.quadraticCurveTo(ex + cw * 0.06 + nx * flatter, ey + sw * 0.06 + ny * flatter, ex - nx * bE, ey - ny * bE);
+    }
+    ctx.quadraticCurveTo(sx0 + cw * L * 0.5 - nx * (bE * 0.6 - flatter), sy0 + sw * L * 0.5 - ny * (bE * 0.6 - flatter),
                          sx0 - nx * bS, sy0 - ny * bS);
     ctx.closePath(); ctx.fill(); ctx.stroke();
   }
 
-  function zeichneAnzug(ctx, teile, kp) {
+  function zeichneAnzug(ctx, o, teile, kp, r) {
     var k = teile.fahrerKoerper;
-    if (k) {
-      // Anzug + Stern auf der Brust + roter Gürtel
-      ctx.fillStyle = SUPER_BLAU;
-      rundRechteck(ctx, k[0], k[1], k[2], k[3], 0.13); ctx.fill();
-      ctx.strokeStyle = SUPER_BLAU_DUNKEL; ctx.lineWidth = 0.03; ctx.stroke();
-      ctx.fillStyle = SUPER_ROT; ctx.fillRect(k[0] + 0.02, k[1] + 0.05, k[2] - 0.04, 0.05);
-      zeichneStern(ctx, k[0] + k[2] * 0.62, k[1] + k[3] * 0.58, Math.min(k[2], k[3]) * 0.24);
-    } else {
-      ctx.fillStyle = SUPER_BLAU;
-      ctx.beginPath(); ctx.ellipse(kp.x - 0.03, kp.y - kp.r * 1.12, kp.r * 0.95, kp.r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
-      zeichneStern(ctx, kp.x + kp.r * 0.45, kp.y - kp.r * 1.08, kp.r * 0.22);
-    }
-    // Arme (blaue Ärmel, Hände)
+    if (k) zeichneTorso(ctx, o, k[0], k[1], k[2], k[3]);
+    else zeichneTorso(ctx, o, kp.x - r * 0.9, kp.y - r * 1.62, r * 1.75, r * 0.66);   // nur Schultern sichtbar
     if (teile.arme) {
       var ar = teile.arme;
-      ctx.strokeStyle = SUPER_BLAU; ctx.lineWidth = 0.09; ctx.lineCap = "round";
+      ctx.strokeStyle = o.aermel; ctx.lineWidth = 0.09; ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(ar[0], ar[1]); ctx.lineTo(ar[2], ar[3]); ctx.stroke();
-      ctx.fillStyle = HAUT; ctx.strokeStyle = HAUT_RAND; ctx.lineWidth = 0.015;
+      ctx.fillStyle = o.haende || HAUT; ctx.strokeStyle = o.haende ? dunkel(o.haende, 0.3) : HAUT_RAND; ctx.lineWidth = 0.015;
       ctx.beginPath(); ctx.arc(ar[2], ar[3], 0.055, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
-    // Hals
-    ctx.fillStyle = HAUT;
-    ctx.fillRect(kp.x - kp.r * 0.25, kp.y - kp.r * 1.05, kp.r * 0.45, kp.r * 0.3);
+    ctx.fillStyle = HAUT;                                 // Hals
+    ctx.fillRect(kp.x - r * 0.25, kp.y - r * 1.05, r * 0.45, r * 0.3);
   }
 
   function zeichneRad(ctx, R, lx, ly, art) {
@@ -1040,12 +1127,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.raeder.forEach(function (R) {
       zeichneFeder(ctx, R.ankerX, R.ankerY, R.lokalX, R.lokalY, Math.min(0.13, R.r * 0.3));
     });
+    var o = outfitVon(aussehen);
     var fahrer = function () {
-      zeichneAnzug(ctx, teile, kp);
-      zeichneFiete(ctx, kp.x, kp.y, kp.r, ausdruck, teile.raumhelm);
+      zeichneAnzug(ctx, o, teile, kp, KOPF_R);
+      zeichneFiete(ctx, kp.x, kp.y, KOPF_R, ausdruck, teile.raumhelm);
     };
     teile.hinten();
-    zeichneUmhang(ctx, teile, kp, zeit, tempo);       // immer hinter der Karosserie
+    zeichneRuecken(ctx, o, teile, kp, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
     teile.vorne();
     if (!teile.fahrerZuerst && !teile.fahrerVorDach && !teile.fahrerNachVorne) fahrer();
@@ -1312,7 +1400,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* Vorschau in der Garage: Fahrzeug auf kleinem Boden, leicht wippend */
   var vorschauCache = {};
-  function zeichneVorschau(ctx, b, h, def, aussehen, zeit) {
+  function zeichneVorschau(ctx, b, h, def, aussehen, zeit, ohneBuehne) {
     var c = vorschauCache[def.id];
     if (!c) {
       var w = FF.berechneWerte(def, {}, "normal");
@@ -1333,11 +1421,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     oben = Math.max(oben, def.kopf.y + def.kopf.r * (def.form === "mond" ? 1.6 : 1.15));
     var laenge = def.groesse.laenge + 0.8, hoehe = (oben - unten) * 1.12 + 0.3;
     var s = Math.min(b / laenge, h / hoehe) * 0.92;
-    ctx.clearRect(0, 0, b, h);
-    // Boden + Schatten
     var bodenY = h * 0.86;
-    ctx.fillStyle = "rgba(30,44,82,0.15)";
-    ctx.beginPath(); ctx.ellipse(b / 2, bodenY + 4, laenge * s * 0.45, 8, 0, 0, Math.PI * 2); ctx.fill();
+    if (!ohneBuehne) {
+      // Boden + Schatten
+      ctx.clearRect(0, 0, b, h);
+      ctx.fillStyle = "rgba(30,44,82,0.15)";
+      ctx.beginPath(); ctx.ellipse(b / 2, bodenY + 4, laenge * s * 0.45, 8, 0, 0, Math.PI * 2); ctx.fill();
+    }
     var rad0 = fz.raeder[0];
     var unterkante = rad0.k.y - rad0.r;
     fz.chassis.a = Math.sin(zeit * 2.2) * 0.012;
@@ -1350,9 +1440,32 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.chassis.y -= wippen;
   }
 
+  /* Fiete als Brustbild bzw. nur Kopf – mit exakt denselben Funktionen wie im
+     Auto (Garage-Outfits, Info, Fortschrittsleiste, Ergebnis). */
+  var PORTRAIT_TEILE = { fahrerKoerper: [-0.3, -0.8, 0.6, 0.52], arme: [0.14, -0.38, 0.44, -0.1] };
+  function zeichnePortrait(ctx, b, h, aussehen, ausdruck, zeit, nurKopf) {
+    var o = outfitVon(aussehen), kp = { x: 0, y: 0, r: KOPF_R }, s;
+    ctx.save();
+    if (nurKopf) {
+      s = Math.min(b, h) / 0.9;
+      ctx.translate(b / 2 + 0.05 * s, h / 2 + 0.07 * s);
+    } else {
+      s = Math.min(b / 1.2, h / 1.32);
+      ctx.translate(b / 2 + 0.08 * s, h / 2 - 0.18 * s);
+    }
+    ctx.scale(s, -s);
+    if (!nurKopf) {
+      zeichneRuecken(ctx, o, PORTRAIT_TEILE, kp, KOPF_R, zeit || 0, 6);
+      zeichneAnzug(ctx, o, PORTRAIT_TEILE, kp, KOPF_R);
+    }
+    zeichneFiete(ctx, 0, 0, KOPF_R, ausdruck || "normal", false);
+    ctx.restore();
+  }
+
   FF.Grafik = {
     zeichneSzene: zeichneSzene,
     zeichneVorschau: zeichneVorschau,
+    zeichnePortrait: zeichnePortrait,
     zeichneMuenze: zeichneMuenze,
     Partikel: Partikel,
     Wetter: Wetter,

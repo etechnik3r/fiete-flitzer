@@ -37,9 +37,9 @@
   <meta name="apple-mobile-web-app-title" content="Fiete Flitzer">
   <title>Fiete Flitzer</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 
 <body>
@@ -64,7 +64,7 @@
     <div class="hud-mitte">
       <div class="fortschritt" id="hud-fortschritt">
         <div class="fortschritt-balken" id="hud-fortschritt-balken"></div>
-        <span class="fortschritt-auto" id="hud-fortschritt-auto" aria-hidden="true">🚙</span>
+        <img class="fortschritt-auto" id="hud-fortschritt-auto" alt="" aria-hidden="true">
         <span class="fortschritt-ziel" aria-hidden="true">🏁</span>
       </div>
       <div class="chip strecke-chip" id="hud-strecke" hidden>
@@ -173,6 +173,8 @@
             <button type="button" class="aktion-knopf" id="fz-aktion">✅ Ausgewählt</button>
           </div>
           <div class="garage-werkstatt">
+            <h3 class="werkstatt-titel">🦸 Fietes Outfit</h3>
+            <div class="outfit-liste" id="outfit-liste"></div>
             <h3 class="werkstatt-titel">🔧 Tuning</h3>
             <div class="upgrade-liste" id="upgrade-liste"></div>
             <h3 class="werkstatt-titel">🎨 Farbe</h3>
@@ -205,7 +207,10 @@
        ======================================================================== -->
   <div class="modal-overlay" id="ergebnis" aria-hidden="true">
     <div class="karte ergebnis-karte" role="dialog" aria-modal="true" aria-labelledby="ergebnis-titel">
-      <span class="ergebnis-icon" id="ergebnis-icon" aria-hidden="true">🏆</span>
+      <div class="ergebnis-held" aria-hidden="true">
+        <img class="ergebnis-fiete" id="ergebnis-fiete" alt="">
+        <span class="ergebnis-icon" id="ergebnis-icon">🏆</span>
+      </div>
       <h2 class="karte-titel" id="ergebnis-titel">Ziel erreicht!</h2>
       <div class="ergebnis-sterne" id="ergebnis-sterne" aria-label="Sterne">
         <span class="stern-gross">★</span><span class="stern-gross">★</span><span class="stern-gross">★</span>
@@ -308,12 +313,12 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=2"></script>
-  <script src="gelaende.js?v=2"></script>
-  <script src="physik.js?v=2"></script>
-  <script src="fahrt.js?v=2"></script>
-  <script src="grafik.js?v=2"></script>
-  <script src="klang.js?v=2"></script>
-  <script src="spiel.js?v=2"></script>
+  <script src="config.js?v=3"></script>
+  <script src="gelaende.js?v=3"></script>
+  <script src="physik.js?v=3"></script>
+  <script src="fahrt.js?v=3"></script>
+  <script src="grafik.js?v=3"></script>
+  <script src="klang.js?v=3"></script>
+  <script src="spiel.js?v=3"></script>
 </body>
 </html>

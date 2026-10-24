@@ -274,6 +274,32 @@ FF.CONFIG = {
   ],
 
   /* -------------------------------------------------------------------------
+     6b) FIETES OUTFITS – fünf Superhelden-Looks
+     Bewusst OHNE Namen, Buchstaben oder Logos: Kinder erkennen sie allein an
+     den Farben und einfachen Formen. Einmal kaufen, dann gilt das Outfit
+     überall (alle Fahrzeuge, Garage, Titel, Fortschrittsleiste, Ergebnis).
+       anzug/anzugRand  Grundfarbe + Kontur        seiten   zweite Farbe unten
+       aermel, haende   Ärmel, Handschuhe (null = Haut)
+       guertel          Gürtelfarbe (null = keiner)
+       umhang           Umhangfarbe (null = keiner), umhangZacken = gezackter Saum
+       emblem           raute | oval | spinne | reaktor | stern
+       netz             Netz-Linien      streifen  rot-weiße Streifen
+       schild           runder Schild auf dem Rücken
+     ------------------------------------------------------------------------- */
+  outfits: [
+    { id: "himmel", preis: 0,    anzug: "#2f6fd6", anzugRand: "#1d4fa8", aermel: "#2f6fd6", haende: null,
+      guertel: "#ffd23f", umhang: "#e8453c", emblem: "raute" },
+    { id: "netz",   preis: 500,  anzug: "#e0302f", anzugRand: "#9e1f1f", seiten: "#2a5bd7", aermel: "#e0302f", haende: "#e0302f",
+      guertel: null, umhang: null, emblem: "spinne", netz: true },
+    { id: "nacht",  preis: 800,  anzug: "#646c80", anzugRand: "#2d3242", aermel: "#646c80", haende: "#262b3b",
+      guertel: "#ffd23f", umhang: "#262b3b", umhangZacken: true, emblem: "oval" },
+    { id: "panzer", preis: 1200, anzug: "#c8302c", anzugRand: "#7f1c1a", seiten: "#f3c44a", aermel: "#c8302c", haende: "#f3c44a",
+      guertel: "#f3c44a", umhang: null, emblem: "reaktor" },
+    { id: "schild", preis: 1600, anzug: "#2f5fbf", anzugRand: "#1c3c80", aermel: "#2f5fbf", haende: "#d9363e",
+      guertel: null, umhang: null, emblem: "stern", streifen: true, schild: true }
+  ],
+
+  /* -------------------------------------------------------------------------
      7) WELTEN + LEVEL
      Physik je Welt: schwerkraft [m/s²], grip (Faktor auf Reifen-µ),
      rollwiderstand c_rr, abprall (Stoßzahl Boden), luftdichte [kg/m³].
