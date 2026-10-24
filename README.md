@@ -1,4 +1,4 @@
-# 🐸🚙 Fiete Flitzer
+# 🦸🚙 Fiete Flitzer
 
 Ein kindgerechtes Berg-Rennspiel von **✨ JONFIE STUDIOS ✨** für Kinder ab
 ca. 6 Jahren, gebaut nach dem Vorbild von *Hill Climb Racing*:
@@ -6,8 +6,11 @@ ca. 6 Jahren, gebaut nach dem Vorbild von *Hill Climb Racing*:
 Garage verbessern. Läuft im Browser, ist als **PWA installierbar** und auch
 offline spielbar.
 
-Fiete, der Frosch, kann sich **nie wehtun**. Bei einem Überschlag gibt es kein
-„Game Over“ und kein ekliges Geräusch. Stattdessen ruft das Spiel
+**Fiete** ist ein blonder Junge mit braunen Augen, verstrubbelten Haaren und
+Kleidung in Superhelden-Farben: blauer Anzug mit gelbem Stern und roter
+Umhang, der im Fahrtwind flattert. Er kann sich **nie wehtun**. Bei einem
+Überschlag gibt es kein „Game Over“ und kein ekliges Geräusch. Stattdessen
+ruft das Spiel
 **„Hoppla!“**, ein Bündel Luftballons hebt das Auto hoch und stellt es wieder
 auf die Räder. Das kostet nur etwas Benzin. Schwierig bleibt es trotzdem:
 Wer zu oft Hilfe braucht oder zu wild Gas gibt, dem geht das Benzin aus.

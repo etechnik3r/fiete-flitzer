@@ -87,11 +87,7 @@
   function aussehenVon(fzId) {
     var fs = S.fahrzeuge[fzId] || {};
     var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
-    var basis = f.wert === "regenbogen" ? "#ff9e2c" : f.wert;
-    return {
-      farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins",
-      helm: f.id === "weiss" ? "#2f6fd6" : (f.id === "gold" ? "#ffffff" : FF.Grafik.hell(basis, 0.75))
-    };
+    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins" };
   }
 
   /* =========================================================================
@@ -921,7 +917,7 @@
 
   $("knopf-info").addEventListener("click", function () {
     FF.Klang.spiele("klick");
-    popover("🐸 <b>Fiete Flitzer</b><br>ein Spiel von JONFIE STUDIOS<small>Rechts Gas ➡️, links Bremse ⬅️. Sammle Münzen 🪙 und Benzin ⛽ – " +
+    popover("🦸 <b>Fiete Flitzer</b><br>ein Spiel von JONFIE STUDIOS<small>Rechts Gas ➡️, links Bremse ⬅️. Sammle Münzen 🪙 und Benzin ⛽ – " +
             "und mach Fietes Auto in der Garage 🔧 immer besser!<br>Gefahren: " + zahl(S.statistik.meter) + " m · Saltos: " + S.statistik.salti + "</small>", 5000);
   });
   $("hud-muenzen").addEventListener("click", function () { popover("🪙 Münzen in dieser Fahrt<small>Die darfst du immer behalten!</small>", 2000); });

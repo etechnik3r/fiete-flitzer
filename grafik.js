@@ -23,7 +23,10 @@ var FF = globalThis.FF = globalThis.FF || {};
   var TINTE = "#1e2c52";
   var REIFEN = "#2b2f3a";
   var FELGE = "#d9deea";
-  var FIETE_GRUEN = "#5cc65a";
+  // Fiete: blond, braune Augen, helle Haut – Kleidung in Superhelden-Farben
+  var HAUT = "#ffdcc4", HAUT_RAND = "#d99b78";
+  var HAAR = "#f6d35e", HAAR_DUNKEL = "#d29f2a", AUGE_BRAUN = "#7b4a22";
+  var SUPER_BLAU = "#2f6fd6", SUPER_BLAU_DUNKEL = "#1d4fa8", SUPER_ROT = "#e8453c", SUPER_GELB = "#ffd23f";
 
   /* =========================================================================
      1) HELFER: Farben, Emoji-Sprites, Formen
@@ -564,57 +567,99 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.restore();
   }
 
-  /* Fiete, der Frosch – mit Helm. ausdruck: normal | freude | staunen */
-  function zeichneFiete(ctx, x, y, r, helm, ausdruck, raumhelm) {
-    // Kopf
-    ctx.fillStyle = FIETE_GRUEN;
-    ctx.strokeStyle = "#2f7d3a"; ctx.lineWidth = 0.035;
-    ctx.beginPath(); ctx.ellipse(x, y, r * 1.05, r * 0.9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Helm (hinten/oben)
-    ctx.fillStyle = helm;
+  /* Fiete: blonder Junge mit ca. 7 cm langen, verstrubbelten Haaren, braunen
+     Augen und heller Haut. Er schaut nach vorn (+x).
+     ausdruck: normal | freude | staunen */
+  function zeichneHaare(ctx, x, y, r) {
+    var g = Math.PI / 180;
+    function p(w, rr) { return [x + Math.cos(w * g) * r * rr, y + Math.sin(w * g) * r * rr]; }
+    ctx.fillStyle = HAAR; ctx.strokeStyle = HAAR_DUNKEL; ctx.lineWidth = 0.022;
+    ctx.lineJoin = "round";
     ctx.beginPath();
-    ctx.arc(x - r * 0.15, y + r * 0.05, r * 0.98, Math.PI * 0.42, Math.PI * 1.02);
-    ctx.lineTo(x - r * 0.15, y + r * 0.05);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = "rgba(30,44,82,0.6)"; ctx.lineWidth = 0.03; ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.beginPath(); ctx.ellipse(x - r * 0.55, y + r * 0.62, r * 0.18, r * 0.08, 0.6, 0, Math.PI * 2); ctx.fill();
-    // Glupschaugen oben
-    var augen = [[x + r * 0.12, y + r * 0.78], [x + r * 0.62, y + r * 0.62]];
-    for (var i = 0; i < 2; i++) {
-      var ax = augen[i][0], ay = augen[i][1], ar = r * 0.36;
-      ctx.fillStyle = FIETE_GRUEN;
-      ctx.beginPath(); ctx.arc(ax, ay, ar * 1.15, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath(); ctx.arc(ax, ay, ar, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#2f7d3a"; ctx.lineWidth = 0.025; ctx.stroke();
-      if (ausdruck === "freude") {
-        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.05; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.arc(ax, ay - ar * 0.2, ar * 0.55, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
-      } else {
-        var pr = ausdruck === "staunen" ? ar * 0.6 : ar * 0.48;
-        ctx.fillStyle = TINTE;
-        ctx.beginPath(); ctx.arc(ax + ar * 0.3, ay, pr, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath(); ctx.arc(ax + ar * 0.42, ay + ar * 0.18, pr * 0.35, 0, Math.PI * 2); ctx.fill();
-      }
+    var s = p(34, 1.02);
+    ctx.moveTo(s[0], s[1]);
+    // Pony: weiche Strähnen hängen in die Stirn (Spitze unten, Mulde oben)
+    [[[0.74, 0.4], [0.66, 0.6]], [[0.54, 0.4], [0.44, 0.62]], [[0.3, 0.42], [0.16, 0.64]]].forEach(function (q) {
+      ctx.quadraticCurveTo(x + r * q[0][0], y + r * q[0][1], x + r * (q[0][0] - 0.02), y + r * (q[0][1] - 0.02));
+      ctx.quadraticCurveTo(x + r * (q[0][0] - 0.06), y + r * (q[0][1] + 0.02), x + r * q[1][0], y + r * q[1][1]);
+    });
+    // innen am Kopf entlang zum Nacken (Ohr bleibt frei)
+    ctx.lineTo(x - r * 0.3, y + r * 0.3);
+    ctx.lineTo(x - r * 0.48, y + r * 0.02);
+    ctx.lineTo(x - r * 0.6, y - r * 0.5);
+    // außen: weiche Strubbel-Büschel vom Nacken über den Hinterkopf bis zur Stirn
+    var mulden = [236, 212, 188, 164, 140, 116, 92, 68, 46];
+    var m0 = p(mulden[0], 1.08);
+    ctx.lineTo(m0[0], m0[1]);
+    for (var i = 1; i < mulden.length; i++) {
+      var spitze = p((mulden[i - 1] + mulden[i]) / 2, i % 2 ? 1.44 : 1.38);
+      var mulde = p(mulden[i], i === mulden.length - 1 ? 1.04 : 1.12);
+      ctx.quadraticCurveTo(spitze[0], spitze[1], mulde[0], mulde[1]);
     }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Strähnen + Glanz
+    ctx.strokeStyle = HAAR_DUNKEL; ctx.lineWidth = 0.018; ctx.lineCap = "round";
+    [[160, 0.62, 1.04], [128, 0.6, 1.08], [100, 0.62, 1.04]].forEach(function (q) {
+      var a = p(q[0], q[1]), b = p(q[0] + 9, q[2]);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    });
+    ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 0.03;
+    ctx.beginPath(); ctx.arc(x - r * 0.05, y + r * 0.1, r * 0.95, 102 * g, 138 * g); ctx.stroke();
+  }
+
+  function zeichneFiete(ctx, x, y, r, ausdruck, raumhelm) {
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    // Gesicht, Nase, Ohr
+    ctx.fillStyle = HAUT; ctx.strokeStyle = HAUT_RAND; ctx.lineWidth = 0.025;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + r * 0.93, y + r * 0.12);
+    ctx.quadraticCurveTo(x + r * 1.17, y - r * 0.02, x + r * 0.94, y - r * 0.15); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x - r * 0.14, y - r * 0.1, r * 0.17, r * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x - r * 0.14, y - r * 0.1, r * 0.08, -1.2, 1.2); ctx.stroke();
+    zeichneHaare(ctx, x, y, r);
+    // Braune Augen (das hintere etwas kleiner – Dreiviertel-Ansicht)
+    [[x + r * 0.36, y + r * 0.08, 1], [x + r * 0.74, y + r * 0.09, 0.8]].forEach(function (a) {
+      var ax = a[0], ay = a[1], f = a[2];
+      if (ausdruck === "freude") {
+        ctx.strokeStyle = AUGE_BRAUN; ctx.lineWidth = 0.035;
+        ctx.beginPath(); ctx.arc(ax, ay - r * 0.07, r * 0.12 * f, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+        return;
+      }
+      var gr = ausdruck === "staunen" ? 1.2 : 1;
+      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = HAUT_RAND; ctx.lineWidth = 0.014;
+      ctx.beginPath(); ctx.ellipse(ax, ay, r * 0.16 * f * gr, r * 0.21 * f * gr, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      var iris = ausdruck === "staunen" ? 0.1 : 0.125;
+      ctx.fillStyle = AUGE_BRAUN;
+      ctx.beginPath(); ctx.arc(ax + r * 0.04 * f, ay - r * 0.02, r * iris * f, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#2b1a0e";
+      ctx.beginPath(); ctx.arc(ax + r * 0.055 * f, ay - r * 0.02, r * 0.055 * f, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(ax + r * 0.09 * f, ay + r * 0.04, r * 0.035 * f, 0, Math.PI * 2); ctx.fill();
+    });
+    // Augenbrauen (dunkelblond) – beim Staunen hochgezogen
+    var hoch = ausdruck === "staunen" ? r * 0.07 : 0;
+    ctx.strokeStyle = HAAR_DUNKEL; ctx.lineWidth = 0.028;
+    ctx.beginPath(); ctx.moveTo(x + r * 0.27, y + r * 0.31 + hoch); ctx.quadraticCurveTo(x + r * 0.4, y + r * 0.37 + hoch, x + r * 0.52, y + r * 0.32 + hoch); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + r * 0.66, y + r * 0.32 + hoch); ctx.quadraticCurveTo(x + r * 0.76, y + r * 0.37 + hoch, x + r * 0.85, y + r * 0.31 + hoch); ctx.stroke();
     // Mund
-    ctx.strokeStyle = "#1f5a2a"; ctx.lineWidth = 0.045; ctx.lineCap = "round";
+    ctx.strokeStyle = "#b0563f"; ctx.lineWidth = 0.03;
     if (ausdruck === "staunen") {
-      ctx.fillStyle = "#7a2a2a";
-      ctx.beginPath(); ctx.ellipse(x + r * 0.62, y - r * 0.28, r * 0.13, r * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#b8323c";
+      ctx.beginPath(); ctx.ellipse(x + r * 0.66, y - r * 0.45, r * 0.08, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
     } else if (ausdruck === "freude") {
-      ctx.fillStyle = "#c2414b";
-      ctx.beginPath(); ctx.moveTo(x + r * 0.15, y - r * 0.12);
-      ctx.quadraticCurveTo(x + r * 0.62, y - r * 0.75, x + r * 1.0, y - r * 0.05); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#b8323c";
+      ctx.beginPath(); ctx.moveTo(x + r * 0.38, y - r * 0.32);
+      ctx.quadraticCurveTo(x + r * 0.64, y - r * 0.78, x + r * 0.9, y - r * 0.3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.moveTo(x + r * 0.44, y - r * 0.34); ctx.lineTo(x + r * 0.84, y - r * 0.32);
+      ctx.lineTo(x + r * 0.8, y - r * 0.4); ctx.lineTo(x + r * 0.48, y - r * 0.42); ctx.closePath(); ctx.fill();
     } else {
-      ctx.beginPath(); ctx.moveTo(x + r * 0.1, y - r * 0.15);
-      ctx.quadraticCurveTo(x + r * 0.6, y - r * 0.55, x + r * 0.98, y - r * 0.08); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + r * 0.42, y - r * 0.36);
+      ctx.quadraticCurveTo(x + r * 0.63, y - r * 0.56, x + r * 0.86, y - r * 0.34); ctx.stroke();
     }
     // Bäckchen
-    ctx.fillStyle = "rgba(255,120,140,0.5)";
-    ctx.beginPath(); ctx.arc(x + r * 0.3, y - r * 0.32, r * 0.14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255,120,120,0.35)";
+    ctx.beginPath(); ctx.arc(x + r * 0.3, y - r * 0.27, r * 0.12, 0, Math.PI * 2); ctx.fill();
     if (raumhelm) {
       ctx.fillStyle = "rgba(200,235,255,0.28)";
       ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 0.04;
@@ -622,6 +667,65 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 0.05;
       ctx.beginPath(); ctx.arc(x + r * 0.15, y + r * 0.15, r * 1.2, Math.PI * 0.55, Math.PI * 0.85); ctx.stroke();
     }
+  }
+
+  /* Superhelden-Outfit: roter Umhang (flattert im Fahrtwind), blauer Anzug mit
+     gelbem Stern. Ohne sichtbaren Körper (Bus, Monster, Renner) nur Schultern. */
+  function zeichneStern(ctx, x, y, r) {
+    stern(ctx, x, y, r, 5, 0.45);
+    ctx.fillStyle = SUPER_GELB; ctx.fill();
+    ctx.strokeStyle = SUPER_ROT; ctx.lineWidth = 0.016; ctx.stroke();
+  }
+
+  function zeichneUmhang(ctx, teile, kp, zeit, tempo) {
+    var k = teile.fahrerKoerper;
+    var sx0 = k ? k[0] + k[2] * 0.35 : kp.x - kp.r * 0.25;
+    var sy0 = k ? k[1] + k[3] - 0.03 : kp.y - kp.r * 0.95;
+
+    // Umhang: hängt im Stand nach unten, weht bei Tempo nach hinten
+    var wind = Math.min(1, tempo / 12);
+    var w = (258 - 70 * wind) * Math.PI / 180;
+    var flatter = Math.sin(zeit * (5 + 9 * wind)) * (0.03 + 0.06 * wind);
+    var L = 0.5 + 0.12 * wind;
+    var ex = sx0 + Math.cos(w) * L, ey = sy0 + Math.sin(w) * L;
+    var nx = -Math.sin(w), ny = Math.cos(w);            // quer zur Umhang-Richtung
+    var bE = 0.14, bS = 0.07;
+    ctx.fillStyle = SUPER_ROT; ctx.strokeStyle = "#b8302a"; ctx.lineWidth = 0.02;
+    ctx.beginPath();
+    ctx.moveTo(sx0 + nx * bS, sy0 + ny * bS);
+    ctx.quadraticCurveTo(sx0 + Math.cos(w) * L * 0.5 + nx * (bE + flatter), sy0 + Math.sin(w) * L * 0.5 + ny * (bE + flatter),
+                         ex + nx * bE, ey + ny * bE);
+    ctx.quadraticCurveTo(ex + Math.cos(w) * 0.06 + nx * flatter, ey + Math.sin(w) * 0.06 + ny * flatter, ex - nx * bE, ey - ny * bE);
+    ctx.quadraticCurveTo(sx0 + Math.cos(w) * L * 0.5 - nx * (bE * 0.6 - flatter), sy0 + Math.sin(w) * L * 0.5 - ny * (bE * 0.6 - flatter),
+                         sx0 - nx * bS, sy0 - ny * bS);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  function zeichneAnzug(ctx, teile, kp) {
+    var k = teile.fahrerKoerper;
+    if (k) {
+      // Anzug + Stern auf der Brust + roter Gürtel
+      ctx.fillStyle = SUPER_BLAU;
+      rundRechteck(ctx, k[0], k[1], k[2], k[3], 0.13); ctx.fill();
+      ctx.strokeStyle = SUPER_BLAU_DUNKEL; ctx.lineWidth = 0.03; ctx.stroke();
+      ctx.fillStyle = SUPER_ROT; ctx.fillRect(k[0] + 0.02, k[1] + 0.05, k[2] - 0.04, 0.05);
+      zeichneStern(ctx, k[0] + k[2] * 0.62, k[1] + k[3] * 0.58, Math.min(k[2], k[3]) * 0.24);
+    } else {
+      ctx.fillStyle = SUPER_BLAU;
+      ctx.beginPath(); ctx.ellipse(kp.x - 0.03, kp.y - kp.r * 1.12, kp.r * 0.95, kp.r * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      zeichneStern(ctx, kp.x + kp.r * 0.45, kp.y - kp.r * 1.08, kp.r * 0.22);
+    }
+    // Arme (blaue Ärmel, Hände)
+    if (teile.arme) {
+      var ar = teile.arme;
+      ctx.strokeStyle = SUPER_BLAU; ctx.lineWidth = 0.09; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(ar[0], ar[1]); ctx.lineTo(ar[2], ar[3]); ctx.stroke();
+      ctx.fillStyle = HAUT; ctx.strokeStyle = HAUT_RAND; ctx.lineWidth = 0.015;
+      ctx.beginPath(); ctx.arc(ar[2], ar[3], 0.055, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    // Hals
+    ctx.fillStyle = HAUT;
+    ctx.fillRect(kp.x - kp.r * 0.25, kp.y - kp.r * 1.05, kp.r * 0.45, kp.r * 0.3);
   }
 
   function zeichneRad(ctx, R, lx, ly, art) {
@@ -704,7 +808,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.strokeStyle = "#3b4566"; ctx.lineWidth = 0.06;
         ctx.beginPath(); ctx.moveTo(0.28, 0.3); ctx.lineTo(0.1, 0.56); ctx.stroke();
       };
-      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.62, 0.15, 0.4, 0.38] };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.62, 0.15, 0.4, 0.38], arme: [-0.34, 0.44, 0.13, 0.52] };
     },
 
     moped: function (ctx, a, z, fz) {
@@ -928,8 +1032,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {
     var form = KAROSSERIE[def.form] ? def.form : "buggy";
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
-    var helm = aussehen.helm || "#ffffff";
     var kp = fz.kopf;
+    var tempo = Math.hypot(fz.chassis.vx, fz.chassis.vy);
     var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : "normal";
 
     // Federn
@@ -937,22 +1041,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       zeichneFeder(ctx, R.ankerX, R.ankerY, R.lokalX, R.lokalY, Math.min(0.13, R.r * 0.3));
     });
     var fahrer = function () {
-      if (teile.fahrerKoerper) {
-        var k = teile.fahrerKoerper;
-        ctx.fillStyle = FIETE_GRUEN;
-        rundRechteck(ctx, k[0], k[1], k[2], k[3], 0.14); ctx.fill();
-        ctx.strokeStyle = "#2f7d3a"; ctx.lineWidth = 0.035; ctx.stroke();
-        // Rennanzug-Kragen in Helmfarbe
-        ctx.fillStyle = helm; rundRechteck(ctx, k[0] + 0.04, k[1] + k[3] - 0.12, k[2] - 0.08, 0.1, 0.05); ctx.fill();
-      }
-      if (teile.arme) {
-        var ar = teile.arme;
-        ctx.strokeStyle = FIETE_GRUEN; ctx.lineWidth = 0.09; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(ar[0], ar[1]); ctx.lineTo(ar[2], ar[3]); ctx.stroke();
-      }
-      zeichneFiete(ctx, kp.x, kp.y, kp.r, helm, ausdruck, teile.raumhelm);
+      zeichneAnzug(ctx, teile, kp);
+      zeichneFiete(ctx, kp.x, kp.y, kp.r, ausdruck, teile.raumhelm);
     };
     teile.hinten();
+    zeichneUmhang(ctx, teile, kp, zeit, tempo);       // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
     teile.vorne();
     if (!teile.fahrerZuerst && !teile.fahrerVorDach && !teile.fahrerNachVorne) fahrer();
@@ -1251,6 +1344,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.raeder.forEach(function (R) { R.k.a = -zeit * 2.5; });
     var K = { x: 0, y: unterkante, s: s, b: b, h: h, ankerX: 0.5, ankerY: bodenY / h };
     var wippen = Math.sin(zeit * 2.2) * 0.012;
+    fz.chassis.vx = 7;                                   // nur für den wehenden Umhang
     fz.chassis.y += wippen;
     zeichneFahrzeug(ctx, K, fz, def, aussehen, zeit, "normal");
     fz.chassis.y -= wippen;
