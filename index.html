@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  Fiete Flitzer
+  ----------------------------------------------------------------------------
+  Kindgerechtes Berg-Rennspiel (ca. 6 Jahre) nach dem Vorbild von
+  "Hill Climb Racing": rechts Gas, links Bremse, Münzen und Benzin sammeln,
+  das Auto in der Garage verbessern. Fiete, der Frosch, kann sich nie
+  wehtun – bei einem Überschlag hilft ein Ballon ("Hoppla!").
+
+  Design-Sprache wie alle JONFIE-STUDIOS-Spiele (Uhrzeit-Uhu, Fietes
+  Flipper, Entdeckerfisch): große Touch-Flächen, wenig Text, weiche
+  Schatten, Baloo 2 + Nunito, dunkles Titel-Schild mit Goldrahmen.
+
+  Struktur (dieses File) / Aussehen (style.css) / Logik (*.js) getrennt:
+    config.js   alle Stellschrauben (Physik, Fahrzeuge, Welten, Preise)
+    gelaende.js Strecken-Generator
+    physik.js   2D-Fahrzeugphysik (Federn, Reifen, Motor)
+    fahrt.js    Spielregeln einer Fahrt
+    grafik.js   Zeichnen auf dem Canvas
+    klang.js    Töne + Vorlesen
+    spiel.js    Menüs, Garage, Speicherstand, Spielschleife
+
+  Hinweis: ?v=NUMMER hinter den Dateien erzwingt frische Dateien. Bei jeder
+  Änderung die Nummer erhöhen UND die Cache-Version in sw.js anpassen.
+  ============================================================================
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Fiete Flitzer – kindgerechtes Berg-Rennspiel: Gas geben, Münzen sammeln, Auto tunen.">
+  <meta name="theme-color" content="#1d2c54">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Fiete Flitzer">
+  <title>Fiete Flitzer</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css?v=1">
+</head>
+
+<body>
+
+  <!-- DAS SPIELFELD: Himmel, Strecke, Fahrzeug – alles im Canvas (grafik.js) -->
+  <canvas id="spielfeld" aria-label="Spielfeld"></canvas>
+
+
+  <!-- ========================================================================
+       HUD: Anzeigen während der Fahrt
+       ======================================================================== -->
+  <div class="hud" id="hud" hidden>
+    <div class="hud-links">
+      <button type="button" class="chip" id="hud-muenzen" aria-label="Gesammelte Münzen">
+        <span class="chip-icon" aria-hidden="true">🪙</span><span class="chip-wert" id="hud-muenzen-wert">0</span>
+      </button>
+      <button type="button" class="chip tank-chip" id="hud-tank" aria-label="Tank">
+        <span class="chip-icon" aria-hidden="true">⛽</span>
+        <span class="tank-balken"><span class="tank-fuellung" id="hud-tank-fuellung"></span></span>
+      </button>
+    </div>
+    <div class="hud-mitte">
+      <div class="fortschritt" id="hud-fortschritt">
+        <div class="fortschritt-balken" id="hud-fortschritt-balken"></div>
+        <span class="fortschritt-auto" id="hud-fortschritt-auto" aria-hidden="true">🚙</span>
+        <span class="fortschritt-ziel" aria-hidden="true">🏁</span>
+      </div>
+      <div class="chip strecke-chip" id="hud-strecke" hidden>
+        <span class="chip-icon" aria-hidden="true">📏</span><span class="chip-wert" id="hud-strecke-wert">0 m</span>
+      </div>
+    </div>
+    <button type="button" class="rund-knopf" id="knopf-pause" aria-label="Pause">⏸️</button>
+  </div>
+
+  <!-- PEDALE: links Bremse (rot), rechts Gas (grün). Auch die ganze linke bzw.
+       rechte Bildschirmhälfte funktioniert als Pedal (siehe spiel.js). -->
+  <div class="pedale" id="pedale" hidden>
+    <button type="button" class="pedal pedal-bremse" id="pedal-bremse" aria-label="Bremse">
+      <span class="pedal-platte" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="pedal-text">Bremse</span>
+    </button>
+    <button type="button" class="pedal pedal-gas" id="pedal-gas" aria-label="Gas">
+      <span class="pedal-platte" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="pedal-text">Gas</span>
+    </button>
+  </div>
+
+  <!-- Große Meldung in der Mitte ("Los geht's!", "Salto!") + Tipps -->
+  <div class="meldung" id="meldung" aria-live="polite" hidden></div>
+  <div class="tipp" id="tipp" hidden></div>
+  <div class="hochkant-hinweis" id="hochkant-hinweis" hidden>📱↔️ Tipp: Handy quer halten!</div>
+
+
+  <!-- ========================================================================
+       TITELSCREEN (wie bei allen JONFIE-STUDIOS-Spielen)
+       ======================================================================== -->
+  <div class="titelscreen" id="titelscreen">
+    <span class="titel-funke titel-funke-1" aria-hidden="true">✦</span>
+    <span class="titel-funke titel-funke-2" aria-hidden="true">✦</span>
+    <span class="titel-funke titel-funke-3" aria-hidden="true">✦</span>
+    <span class="titel-funke titel-funke-4" aria-hidden="true">✦</span>
+    <span class="titel-funke titel-funke-5" aria-hidden="true">✦</span>
+    <div class="titel-rahmen">
+      <span class="titel-rahmen-glanz" aria-hidden="true"></span>
+      <canvas class="titel-auto" id="titel-auto" aria-hidden="true"></canvas>
+      <h1 class="titel-name">Fiete Flitzer</h1>
+      <p class="titel-unter">Gas geben, Berge rauf!</p>
+      <div class="titel-chips" aria-hidden="true">
+        <span class="titel-chip">🪙</span>
+        <span class="titel-chip">⛽</span>
+        <span class="titel-chip">⛰️</span>
+        <span class="titel-chip">🔧</span>
+        <span class="titel-chip">🏁</span>
+      </div>
+      <div class="titel-knoepfe">
+        <button type="button" class="titel-start" id="knopf-start" aria-label="Spiel starten">
+          <span class="titel-start-icon" aria-hidden="true">▶</span> Los geht's!
+        </button>
+        <button type="button" class="titel-optionen" id="knopf-titel-einstellungen" aria-label="Einstellungen öffnen">
+          ⚙️ Einstellungen
+        </button>
+      </div>
+    </div>
+    <p class="titel-studio">ein Spiel von JONFIE STUDIOS</p>
+  </div>
+
+
+  <!-- ========================================================================
+       MENÜ: Fahren (Welten + Level) und Garage (Fahrzeuge, Tuning, Farben)
+       ======================================================================== -->
+  <div class="menue" id="menue" hidden>
+    <header class="top-bar">
+      <button type="button" class="marke" id="knopf-info" aria-label="Über das Spiel">
+        <span class="marke-logo" aria-hidden="true"><span class="marke-logo-text"><span>F</span><span>F</span></span></span>
+        <span class="marke-text">Fiete Flitzer</span>
+      </button>
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab aktiv" id="tab-knopf-fahren" data-tab="fahren" role="tab">🏁 Fahren</button>
+        <button type="button" class="tab" id="tab-knopf-garage" data-tab="garage" role="tab">🔧 Garage</button>
+      </nav>
+      <div class="top-rechts">
+        <button type="button" class="chip konto-chip" id="konto" aria-label="Deine Münzen">
+          <span class="chip-icon" aria-hidden="true">🪙</span><span class="chip-wert" id="konto-wert">0</span>
+        </button>
+        <button type="button" class="rund-knopf klein" id="knopf-einstellungen" aria-label="Einstellungen">⚙️</button>
+      </div>
+    </header>
+
+    <main class="menue-inhalt">
+      <!-- Welten + Level -->
+      <section class="tab-seite" id="tab-fahren">
+        <div class="fahrzeug-leiste" id="fahrzeug-leiste"></div>
+        <div class="welten-liste" id="welten-liste"></div>
+      </section>
+
+      <!-- Garage -->
+      <section class="tab-seite" id="tab-garage" hidden>
+        <div class="garage">
+          <div class="garage-buehne">
+            <div class="buehne-kopf">
+              <button type="button" class="pfeil-knopf" id="fz-zurueck" aria-label="Vorheriges Fahrzeug">◀</button>
+              <div class="fz-titel">
+                <span class="fz-name" id="fz-name">Flitzer</span>
+                <span class="fz-nummer" id="fz-nummer">1 / 7</span>
+              </div>
+              <button type="button" class="pfeil-knopf" id="fz-vor" aria-label="Nächstes Fahrzeug">▶</button>
+            </div>
+            <canvas class="vorschau" id="vorschau" aria-label="Fahrzeug-Vorschau"></canvas>
+            <p class="fz-text" id="fz-text"></p>
+            <div class="fz-werte" id="fz-werte"></div>
+            <button type="button" class="aktion-knopf" id="fz-aktion">✅ Ausgewählt</button>
+          </div>
+          <div class="garage-werkstatt">
+            <h3 class="werkstatt-titel">🔧 Tuning</h3>
+            <div class="upgrade-liste" id="upgrade-liste"></div>
+            <h3 class="werkstatt-titel">🎨 Farbe</h3>
+            <div class="farb-liste" id="farb-liste"></div>
+            <h3 class="werkstatt-titel">✨ Muster</h3>
+            <div class="muster-liste" id="muster-liste"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+
+  <!-- ========================================================================
+       PAUSE
+       ======================================================================== -->
+  <div class="modal-overlay" id="pause" aria-hidden="true">
+    <div class="karte pause-karte" role="dialog" aria-modal="true" aria-label="Pause">
+      <h2 class="karte-titel">⏸️ Pause</h2>
+      <button type="button" class="gruen-knopf" id="knopf-weiter">▶️ Weiter</button>
+      <button type="button" class="zweit-knopf" id="knopf-nochmal">🔄 Nochmal von vorn</button>
+      <button type="button" class="zweit-knopf" id="knopf-menue">🏠 Zum Menü</button>
+      <p class="karte-hinweis">Gesammelte Münzen darfst du behalten!</p>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================
+       ERGEBNIS (kein "Game Over": immer Lob + Münzen)
+       ======================================================================== -->
+  <div class="modal-overlay" id="ergebnis" aria-hidden="true">
+    <div class="karte ergebnis-karte" role="dialog" aria-modal="true" aria-labelledby="ergebnis-titel">
+      <span class="ergebnis-icon" id="ergebnis-icon" aria-hidden="true">🏆</span>
+      <h2 class="karte-titel" id="ergebnis-titel">Ziel erreicht!</h2>
+      <div class="ergebnis-sterne" id="ergebnis-sterne" aria-label="Sterne">
+        <span class="stern-gross">★</span><span class="stern-gross">★</span><span class="stern-gross">★</span>
+      </div>
+      <ul class="ergebnis-liste" id="ergebnis-liste"></ul>
+      <div class="ergebnis-summe">
+        <span class="chip-icon" aria-hidden="true">🪙</span> +<b id="ergebnis-summe">0</b>
+      </div>
+      <p class="karte-hinweis" id="ergebnis-tipp"></p>
+      <div class="ergebnis-knoepfe">
+        <button type="button" class="gruen-knopf" id="knopf-ergebnis-weiter">▶️ Nächstes Level</button>
+        <button type="button" class="zweit-knopf" id="knopf-ergebnis-nochmal">🔄 Nochmal</button>
+        <button type="button" class="zweit-knopf" id="knopf-ergebnis-garage">🔧 Garage</button>
+        <button type="button" class="zweit-knopf" id="knopf-ergebnis-menue">🏠 Menü</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================
+       EINSTELLUNGEN
+       ======================================================================== -->
+  <div class="modal-overlay" id="einstellungen" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Einstellungen">
+      <header class="modal-kopf">
+        <h2 class="modal-titel">⚙️ Einstellungen</h2>
+        <button type="button" class="modal-schliessen" id="einstellungen-zu" aria-label="Schließen">✕</button>
+      </header>
+      <div class="modal-inhalt">
+        <section class="opt-gruppe">
+          <h3 class="opt-titel">🎚️ Schwierigkeit</h3>
+          <div class="opt-reihe">
+            <button type="button" class="opt-karte" data-setting="schwierigkeit" data-wert="leicht">
+              <span class="opt-icon">🐢</span><span class="opt-name">Leicht</span><span class="opt-text">Auto bleibt stabiler, größerer Tank</span>
+            </button>
+            <button type="button" class="opt-karte" data-setting="schwierigkeit" data-wert="normal">
+              <span class="opt-icon">🐇</span><span class="opt-name">Normal</span><span class="opt-text">Wie beim großen Vorbild</span>
+            </button>
+            <button type="button" class="opt-karte" data-setting="schwierigkeit" data-wert="profi">
+              <span class="opt-icon">🚀</span><span class="opt-name">Profi</span><span class="opt-text">Weniger Benzin, Hoppla kostet mehr</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="opt-gruppe">
+          <h3 class="opt-titel">🔊 Ton &amp; Anzeige</h3>
+          <div class="opt-reihe opt-reihe-vier">
+            <button type="button" class="opt-karte opt-schalter" data-schalter="ton">
+              <span class="opt-icon">🔊</span><span class="opt-name">Töne</span><span class="opt-schalter-status"></span>
+            </button>
+            <button type="button" class="opt-karte opt-schalter" data-schalter="sprache">
+              <span class="opt-icon">🗣️</span><span class="opt-name">Vorlesen</span><span class="opt-schalter-status"></span>
+            </button>
+            <button type="button" class="opt-karte opt-schalter" data-schalter="instrumente">
+              <span class="opt-icon">⏱️</span><span class="opt-name">Tacho</span><span class="opt-schalter-status"></span>
+            </button>
+            <button type="button" class="opt-karte opt-schalter" data-schalter="kraefte">
+              <span class="opt-icon">🔬</span><span class="opt-name">Kräfte</span><span class="opt-schalter-status"></span>
+            </button>
+          </div>
+          <p class="opt-untertitel">🔬 Kräfte: zeigt beim Fahren Gewichtskraft, Normalkraft und Reibung als Pfeile.</p>
+        </section>
+
+        <section class="opt-gruppe" id="install-gruppe" hidden>
+          <h3 class="opt-titel">📲 Als App</h3>
+          <button type="button" class="install-button" id="knopf-installieren">📲 App installieren</button>
+          <p class="install-hinweis" id="install-hinweis"></p>
+        </section>
+
+        <section class="opt-gruppe">
+          <h3 class="opt-titel">ℹ️ Für Große</h3>
+          <p class="opt-info">
+            Die Physik ist echt: Federn mit Eigenfrequenz und Dämpfung, Reifen mit
+            Haftreibung (µ), Rollwiderstand, Hangabtriebskraft und Drehimpuls in der
+            Luft. Auf dem Mond gilt g = 1,62 m/s², auf Schnee ist µ kleiner, im Sand der
+            Rollwiderstand größer. Details stehen in der README.
+          </p>
+        </section>
+
+        <section class="opt-gruppe">
+          <button type="button" class="reset-button" id="knopf-zuruecksetzen">♻️ Spielstand zurücksetzen</button>
+        </section>
+      </div>
+      <button type="button" class="modal-fertig" id="einstellungen-fertig">✅ Fertig</button>
+    </div>
+  </div>
+
+  <!-- ELTERN-DIALOG: Sicherung vor dem Zurücksetzen (kleine Rechenaufgabe) -->
+  <div class="modal-overlay" id="eltern" aria-hidden="true">
+    <div class="modal eltern-modal" role="dialog" aria-modal="true" aria-label="Frage für Erwachsene">
+      <h2 class="eltern-titel">🔒 Frage für Erwachsene</h2>
+      <p class="eltern-text">Wirklich alles löschen? Dann rechne:<br><b id="eltern-aufgabe">7 × 8</b></p>
+      <div class="eltern-antworten" id="eltern-antworten"></div>
+      <button type="button" class="eltern-abbrechen" id="eltern-abbrechen">Abbrechen</button>
+    </div>
+  </div>
+
+  <!-- Konfetti-Ebene + kleines Popover -->
+  <div class="konfetti-ebene" id="konfetti" aria-hidden="true"></div>
+  <div class="popover" id="popover" role="status" hidden></div>
+
+  <!-- Skripte in der richtigen Reihenfolge -->
+  <script src="config.js?v=1"></script>
+  <script src="gelaende.js?v=1"></script>
+  <script src="physik.js?v=1"></script>
+  <script src="fahrt.js?v=1"></script>
+  <script src="grafik.js?v=1"></script>
+  <script src="klang.js?v=1"></script>
+  <script src="spiel.js?v=1"></script>
+</body>
+</html>

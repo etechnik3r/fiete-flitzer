@@ -1,0 +1,16 @@
+{
+  "name": "Fiete Flitzer",
+  "short_name": "Fiete Flitzer",
+  "description": "Kindgerechtes Berg-Rennspiel: Gas geben, Münzen und Benzin sammeln, das Auto tunen. Ein Spiel von JONFIE STUDIOS.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1d2c54",
+  "theme_color": "#1d2c54",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
