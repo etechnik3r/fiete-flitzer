@@ -232,3 +232,9 @@ mit Länge und Seed.
 In `config.js` einen Eintrag an `fahrzeuge` anhängen (Masse, Räder,
 Federung, Motor, Umriss, Kopfposition). In `grafik.js` unter `KAROSSERIE`
 eine Zeichenfunktion mit dem Namen aus `form` ergänzen.
+
+## 👫 Ausblick: Mehrspieler
+
+Wie zwei Kinder gegeneinander fahren könnten (auf einem Gerät, im gleichen
+WLAN oder übers Internet): Möglichkeiten, Bewertung und Empfehlung stehen in
+[`docs/MEHRSPIELER.md`](docs/MEHRSPIELER.md).
