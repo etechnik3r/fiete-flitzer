@@ -92,7 +92,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.klemmZeit = 0; this.letzterTipp = -99;
     this.tankGewarnt = false; this.leerGemeldet = false; this.kopfGemeldet = false;
     this.hilfe = null;
-    this.zielZeit = 0;
+    this.zielZeit = null;            // Zeitpunkt der Zieldurchfahrt [s]
+    this.nachZielZeit = 0;           // wie lange schon hinter dem Ziel
     this.naechsterMeilenstein = 500;
   }
 
@@ -329,12 +330,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.zustand === "fahrt" && !this.endlos && C.x >= this.gelaende.ziel) {
       this.zustand = "ziel";
       this.grund = "ziel";
+      this.zielZeit = this.zeit;                       // exakter Zeitschritt der Zieldurchfahrt
       this.melde("ziel");
       return;
     }
     if (this.zustand === "ziel") {
-      this.zielZeit += h;
-      if (this.zielZeit > 2.2) { this.zustand = "ende"; this.melde("ende", { grund: "ziel" }); }
+      this.nachZielZeit += h;
+      if (this.nachZielZeit > 2.2) { this.zustand = "ende"; this.melde("ende", { grund: "ziel" }); }
       return;
     }
     if (this.zustand !== "fahrt") return;
@@ -420,7 +422,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       gesamt: this.muenzen + this.bonus + zielBonus,
       sterne: sterne, anteil: anteil,
       strecke: Math.max(0, Math.round(this.strecke)), zeit: this.zeit,
-      salti: this.salti, hoppla: this.hoppla, luftzeit: this.besteLuftzeit
+      salti: this.salti, hoppla: this.hoppla, luftzeit: this.besteLuftzeit,
+      zielZeit: ziel ? this.zielZeit : null
     };
   };
 

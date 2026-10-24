@@ -10,6 +10,7 @@
      node werkzeuge/testfahrt.js --upgrade 3     alle Upgrades auf Stufe 3
      node werkzeuge/testfahrt.js --fahrzeug monster --welt 3
      node werkzeuge/testfahrt.js --physik        Physik-Plausibilitätstests
+     node werkzeuge/testfahrt.js --geist         Geisterrennen: Aufnahme, Wiedergabe, Sieger
 
    Der Bot gibt Vollgas, nimmt Gas weg, wenn die Nase zu weit hochgeht, und
    richtet das Auto in der Luft gerade aus – ungefähr wie ein geübtes Kind.
@@ -21,7 +22,7 @@ var path = require("path");
 var vm = require("vm");
 
 var basis = path.join(__dirname, "..");
-["config.js", "gelaende.js", "physik.js", "fahrt.js"].forEach(function (datei) {
+["config.js", "gelaende.js", "physik.js", "fahrt.js", "geist.js"].forEach(function (datei) {
   vm.runInThisContext(fs.readFileSync(path.join(basis, datei), "utf8"), { filename: datei });
 });
 var FF = globalThis.FF;
@@ -172,8 +173,52 @@ function physikTests() {
               "Rad ω = " + fz4.raeder[0].k.w.toFixed(1) + " rad/s");
 }
 
+/* ---------- Geisterrennen: Aufnahme, Wiedergabe, Sieger ---------- */
+function geistTests() {
+  var fehler = 0;
+  function pruefe(bed, text) { console.log((bed ? "✓ " : "✗ ") + text); if (!bed) fehler++; }
+  // 1) Fahrt aufzeichnen
+  var f = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal" });
+  var auf = new FF.Geist.Aufnahme({ kind: "fiete", fahrzeugId: "flitzer", upgrades: {} });
+  var echt = [];
+  while (f.zustand !== "ende" && f.zeit < 200) {
+    f.aktualisiere(1 / 60, botEingabe(f));
+    auf.erfasse(f, "normal");
+    echt.push({ t: f.zeit, x: f.fz.chassis.x, y: f.fz.chassis.y });
+    f.ereignisse.length = 0;
+  }
+  auf.abschliessen(f, "freude");
+  var e0 = auf.ergebnis;
+  pruefe(auf.proben.length > 200, "Aufnahme hat " + auf.proben.length + " Proben (" + (auf.proben.length / auf.dauer()).toFixed(1) + " pro Sekunde)");
+  pruefe(e0.ziel && e0.zielZeit > 0, "Fahrt 1 im Ziel nach " + (e0.zielZeit || 0).toFixed(2) + " s");
+  // 2) Wiedergabe trifft die echte Bahn (max. Abweichung)
+  var g = new FF.Geist.Geist(auf, f.gelaende), maxAbw = 0;
+  echt.forEach(function (p, i) {
+    if (i % 7) return;
+    g.setzeZeit(p.t);
+    maxAbw = Math.max(maxAbw, Math.hypot(g.fz.chassis.x - p.x, g.fz.chassis.y - p.y));
+  });
+  pruefe(maxAbw < 0.5, "Geist folgt der echten Bahn (max. Abweichung " + maxAbw.toFixed(3) + " m)");
+  g.setzeZeit(0); var anfang = g.fz.chassis.x; g.setzeZeit(1e9);
+  pruefe(g.fertig && g.fz.chassis.x > f.gelaende.ziel, "Geist steht am Ende hinter dem Ziel (zurückspulen geht: Start x=" + anfang.toFixed(1) + ")");
+  // 3) Sieger-Regeln
+  var V = FF.Geist.vergleiche;
+  pruefe(V({ ziel: true, zielZeit: 40 }, { ziel: true, zielZeit: 42 }) === 0, "beide im Ziel: schnellere Zeit gewinnt");
+  pruefe(V({ ziel: true, zielZeit: 40 }, { ziel: true, zielZeit: 40.02 }) === -1, "fast gleiche Zeit: unentschieden");
+  pruefe(V({ ziel: false, strecke: 300 }, { ziel: true, zielZeit: 90 }) === 1, "nur einer im Ziel: der gewinnt");
+  pruefe(V({ ziel: false, strecke: 300, endlos: true }, { ziel: false, strecke: 280 }) === 0, "keiner im Ziel: weitere Strecke gewinnt");
+  pruefe(V({ ziel: false, strecke: 300 }, { ziel: false, strecke: 300.4 }) === -1, "gleiche Strecke: unentschieden");
+  // 4) Zweite Fahrt auf derselben Strecke (gleicher Seed → gleiche Höhen)
+  var f2 = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "traktor", upgrades: {}, schwierigkeit: "normal" });
+  var gleich = f2.gelaende.h.length === f.gelaende.h.length && f2.gelaende.h.every(function (h, i) { return h === f.gelaende.h[i]; });
+  pruefe(gleich, "zweite Fahrt hat exakt dieselbe Strecke");
+  console.log(fehler ? fehler + " Fehler" : "Alle Geist-Tests bestanden.");
+  return fehler;
+}
+
 /* ---------- Hauptprogramm ---------- */
 if (arg("physik", false)) { physikTests(); process.exit(0); }
+if (arg("geist", false)) { process.exit(geistTests() ? 1 : 0); }
 
 var upg = upgradesAlle(upgradeStufe);
 console.log("Fahrzeug: " + fahrzeugId + ", Upgrades: Stufe " + upgradeStufe + ", Schwierigkeit: " + schwierigkeit);

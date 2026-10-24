@@ -92,7 +92,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Inhalte
     this.muenzen = [];             // {x, y, wert, weg}
     this.tanks = [];               // {x, y, weg}
-    this.deko = [];                // {x, y, emoji, groesse, kipp}
+    this.deko = [];                // {x, y, emoji, groesse, spiegeln}
     this.schilder = [];            // {x, y, text}
     this.lippen = [];              // Schanzen-Kanten {x, hoehe, platziert}
     this.gipfel = [];              // Plateaus großer Hügel {x, platziert}
@@ -367,8 +367,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     while (this.naechsteDeko < bis) {
       var xd = this.naechsteDeko;
       var teile = welt.deko[Math.floor(r() * welt.deko.length)].split(":");
-      this.deko.push({ x: xd, y: this.hoeheBei(xd), emoji: teile[0], groesse: (+teile[1] || 1.2) * (0.8 + 0.4 * r()),
-                       kipp: (r() - 0.5) * 0.15, spiegeln: r() < 0.5 });
+      var groesse = (+teile[1] || 1.2) * (0.8 + 0.4 * r());
+      r();                         // ehemals Neigung – Zufallsfolge bleibt gleich, Strecken unverändert
+      this.deko.push({ x: xd, y: this.hoeheBei(xd), emoji: teile[0], groesse: groesse, spiegeln: r() < 0.5 });
       this.naechsteDeko += 3 + r() * 7;
     }
 

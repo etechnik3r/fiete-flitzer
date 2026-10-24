@@ -39,7 +39,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 
 <body>
@@ -64,11 +64,15 @@
     <div class="hud-mitte">
       <div class="fortschritt" id="hud-fortschritt">
         <div class="fortschritt-balken" id="hud-fortschritt-balken"></div>
+        <img class="fortschritt-auto fortschritt-geist" id="hud-fortschritt-geist" alt="" aria-hidden="true" hidden>
         <img class="fortschritt-auto" id="hud-fortschritt-auto" alt="" aria-hidden="true">
         <span class="fortschritt-ziel" aria-hidden="true">🏁</span>
       </div>
       <div class="chip strecke-chip" id="hud-strecke" hidden>
         <span class="chip-icon" aria-hidden="true">📏</span><span class="chip-wert" id="hud-strecke-wert">0 m</span>
+      </div>
+      <div class="chip strecke-chip geist-chip" id="hud-geist-strecke" hidden>
+        <span class="chip-icon" aria-hidden="true">👻</span><span class="chip-wert" id="hud-geist-strecke-wert">0 m</span>
       </div>
     </div>
     <button type="button" class="rund-knopf" id="knopf-pause" aria-label="Pause">⏸️</button>
@@ -128,6 +132,16 @@
 
 
   <!-- ========================================================================
+       WER FÄHRT? Fiete, Jonte oder beide zusammen (Geisterrennen)
+       ======================================================================== -->
+  <div class="spielerwahl" id="spielerwahl" hidden>
+    <h2 class="spielerwahl-titel">Wer fährt?</h2>
+    <div class="spielerwahl-karten" id="spielerwahl-karten"></div>
+    <button type="button" class="rund-knopf spielerwahl-zahnrad" id="knopf-spielerwahl-einstellungen" aria-label="Einstellungen">⚙️</button>
+  </div>
+
+
+  <!-- ========================================================================
        MENÜ: Fahren (Welten + Level) und Garage (Fahrzeuge, Tuning, Farben)
        ======================================================================== -->
   <div class="menue" id="menue" hidden>
@@ -153,10 +167,25 @@
       <section class="tab-seite" id="tab-fahren">
         <div class="fahrzeug-leiste" id="fahrzeug-leiste"></div>
         <div class="welten-liste" id="welten-liste"></div>
+        <!-- Zu zweit: Geisterrennen vorbereiten -->
+        <div class="duell" id="duell-lobby" hidden>
+          <div class="duell-kopf">
+            <button type="button" class="fiete-chip" id="duell-spielerwahl" aria-label="Wer fährt? (zurück)"></button>
+            <h2 class="duell-titel">👫 Geisterrennen zu zweit</h2>
+            <span class="duell-stand" id="duell-stand"></span>
+          </div>
+          <div class="duell-spieler" id="duell-spieler"></div>
+          <h3 class="duell-abschnitt">🗺️ Welche Strecke?</h3>
+          <div class="duell-welten" id="duell-welten"></div>
+          <div class="duell-level" id="duell-level"></div>
+          <h3 class="duell-abschnitt">🏁 Wer fährt zuerst?</h3>
+          <div class="duell-start" id="duell-start"></div>
+        </div>
       </section>
 
       <!-- Garage -->
       <section class="tab-seite" id="tab-garage" hidden>
+        <div class="garage-kinder" id="garage-kinder" hidden></div>
         <div class="garage">
           <div class="garage-buehne">
             <div class="buehne-kopf">
@@ -173,7 +202,7 @@
             <button type="button" class="aktion-knopf" id="fz-aktion">✅ Ausgewählt</button>
           </div>
           <div class="garage-werkstatt">
-            <h3 class="werkstatt-titel">🦸 Fietes Outfit</h3>
+            <h3 class="werkstatt-titel" id="outfit-titel">🦸 Fietes Outfit</h3>
             <div class="outfit-liste" id="outfit-liste"></div>
             <h3 class="werkstatt-titel">🔧 Tuning</h3>
             <div class="upgrade-liste" id="upgrade-liste"></div>
@@ -185,6 +214,43 @@
         </div>
       </section>
     </main>
+  </div>
+
+
+  <!-- ========================================================================
+       GEISTERRENNEN: Übergabe ("Jetzt ist Jonte dran!"), Würfeln, Siegerehrung
+       ======================================================================== -->
+  <div class="modal-overlay" id="uebergabe" aria-hidden="true">
+    <div class="karte uebergabe-karte" role="dialog" aria-modal="true" aria-labelledby="uebergabe-titel">
+      <p class="uebergabe-vorher" id="uebergabe-vorher" hidden></p>
+      <img class="uebergabe-bild" id="uebergabe-bild" alt="">
+      <h2 class="karte-titel" id="uebergabe-titel">Fiete ist dran!</h2>
+      <p class="karte-hinweis" id="uebergabe-text"></p>
+      <button type="button" class="gruen-knopf" id="knopf-uebergabe-los">▶️ Los!</button>
+      <button type="button" class="zweit-knopf" id="knopf-uebergabe-abbruch">🏠 Abbrechen</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="wuerfeln" aria-hidden="true">
+    <div class="karte wuerfel-karte" role="dialog" aria-modal="true" aria-label="Würfeln, wer zuerst fährt">
+      <h2 class="karte-titel">🎲 Wer fängt an?</h2>
+      <div class="wuerfel-reihe" id="wuerfel-reihe"></div>
+      <p class="wuerfel-text" id="wuerfel-text">Die Würfel rollen …</p>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="duell-ergebnis" aria-hidden="true">
+    <div class="karte duell-ergebnis-karte" role="dialog" aria-modal="true" aria-labelledby="duell-ergebnis-titel">
+      <h2 class="karte-titel" id="duell-ergebnis-titel">🏆 Jonte gewinnt!</h2>
+      <div class="podest" id="duell-podest"></div>
+      <p class="duell-stand gross" id="duell-ergebnis-stand"></p>
+      <div class="ergebnis-knoepfe">
+        <button type="button" class="gruen-knopf" id="knopf-revanche">🔄 Revanche!</button>
+        <button type="button" class="zweit-knopf" id="knopf-duell-strecke">🗺️ Strecke</button>
+        <button type="button" class="zweit-knopf" id="knopf-duell-garage">🔧 Garage</button>
+        <button type="button" class="zweit-knopf" id="knopf-duell-menue">👥 Wer fährt?</button>
+      </div>
+    </div>
   </div>
 
 
@@ -313,12 +379,13 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=3"></script>
-  <script src="gelaende.js?v=3"></script>
-  <script src="physik.js?v=3"></script>
-  <script src="fahrt.js?v=3"></script>
-  <script src="grafik.js?v=3"></script>
-  <script src="klang.js?v=3"></script>
-  <script src="spiel.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="gelaende.js?v=4"></script>
+  <script src="physik.js?v=4"></script>
+  <script src="fahrt.js?v=4"></script>
+  <script src="geist.js?v=4"></script>
+  <script src="grafik.js?v=4"></script>
+  <script src="klang.js?v=4"></script>
+  <script src="spiel.js?v=4"></script>
 </body>
 </html>

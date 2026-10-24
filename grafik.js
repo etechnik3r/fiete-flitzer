@@ -25,7 +25,6 @@ var FF = globalThis.FF = globalThis.FF || {};
   var FELGE = "#d9deea";
   // Fiete: blond, braune Augen, helle Haut (Kleidung: CONFIG.outfits)
   var HAUT = "#ffdcc4", HAUT_RAND = "#d99b78";
-  var HAAR = "#f6d35e", HAAR_DUNKEL = "#d29f2a", AUGE_BRAUN = "#7b4a22";
 
   /* =========================================================================
      1) HELFER: Farben, Emoji-Sprites, Formen
@@ -49,29 +48,32 @@ var FF = globalThis.FF = globalThis.FF || {};
   function hell(hex, f) { return mische(hex, "#ffffff", f); }
   function dunkel(hex, f) { return mische(hex, "#000000", f); }
 
-  // Emojis einmal in ein kleines Canvas rendern, danach nur kopieren (schnell!)
+  // Emojis einmal in ein kleines Canvas rendern, danach nur kopieren (schnell!).
+  // q = Gerätepixel je CSS-Pixel (Retina: 2) → scharfe Emojis.
   var spriteCache = {};
-  function emojiSprite(emoji, px) {
+  function emojiSprite(emoji, px, q) {
+    q = q || 1;
     px = Math.max(8, Math.round(px / 4) * 4);
-    var key = emoji + "|" + px;
+    var key = emoji + "|" + px + "|" + q;
     var c = spriteCache[key];
     if (c) return c;
     c = document.createElement("canvas");
-    c.width = c.height = Math.ceil(px * 1.3);
+    c.width = c.height = Math.ceil(px * q * 1.3);
     var g = c.getContext("2d");
-    g.font = px + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
+    g.font = px * q + "px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";
     g.textAlign = "center"; g.textBaseline = "middle";
-    g.fillText(emoji, c.width / 2, c.height / 2 + px * 0.06);
+    g.fillText(emoji, c.width / 2, c.height / 2 + px * q * 0.06);
     spriteCache[key] = c;
     return c;
   }
-  function zeichneEmoji(ctx, emoji, x, y, px, winkel, spiegeln) {
-    var c = emojiSprite(emoji, px);
+  /* Pixelgenau in Gerätepixeln kopieren: ohne Drehen und Skalieren nimmt der
+     Browser den schnellen Kopierweg (gemessen: spart bei langsamen Geräten
+     ein Sechstel der Bildzeit). Erwartet ctx nur mit q skaliert (zeichneSzene). */
+  function zeichneEmoji(ctx, emoji, x, y, px, spiegeln, q) {
+    var c = emojiSprite(emoji, px, q);
     ctx.save();
-    ctx.translate(x, y);
-    if (winkel) ctx.rotate(winkel);
-    if (spiegeln) ctx.scale(-1, 1);
-    ctx.drawImage(c, -c.width / 2, -c.height / 2);
+    ctx.setTransform(spiegeln ? -1 : 1, 0, 0, 1, Math.round(x * q), Math.round(y * q));
+    ctx.drawImage(c, -(c.width >> 1), -(c.height >> 1));
     ctx.restore();
   }
 
@@ -122,13 +124,22 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* =========================================================================
      3) HIMMEL, SONNE, WOLKEN, BERGE
      ========================================================================= */
-  function zeichneHimmel(ctx, K, welt, zeit) {
+  /* Himmelsverlauf: entweder hier gemalt oder – schneller – als CSS-Hintergrund
+     hinter dem durchsichtigen Canvas (himmelPerCss, siehe himmelCss()). */
+  function himmelCss(welt) {
+    return "linear-gradient(" + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
+  }
+  function zeichneHimmel(ctx, K, welt, zeit, perCss) {
     var f = welt.farben;
-    var gr = ctx.createLinearGradient(0, 0, 0, K.h);
-    gr.addColorStop(0, f.himmel[0]);
-    gr.addColorStop(1, f.himmel[1]);
-    ctx.fillStyle = gr;
-    ctx.fillRect(0, 0, K.b, K.h);
+    if (perCss) {
+      ctx.clearRect(0, 0, K.b, K.h);
+    } else {
+      var gr = ctx.createLinearGradient(0, 0, 0, K.h);
+      gr.addColorStop(0, f.himmel[0]);
+      gr.addColorStop(1, f.himmel[1]);
+      ctx.fillStyle = gr;
+      ctx.fillRect(0, 0, K.b, K.h);
+    }
 
     var r = Math.min(K.b, K.h) * 0.09;
     var x = K.b * 0.8, y = K.h * 0.3;
@@ -245,13 +256,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     return [i0, i1, x0, x1];
   }
 
-  function zeichneDeko(ctx, K, gel, x0, x1) {
+  function zeichneDeko(ctx, K, gel, x0, x1, q) {
     var D = gel.deko;
     for (var i = 0; i < D.length; i++) {
       var d = D[i];
       if (d.x < x0 - 3 || d.x > x1 + 3) continue;
       var px = d.groesse * K.s;
-      zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.y) - px * 0.42, px, d.kipp, d.spiegeln);
+      zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.y) - px * 0.42, px, d.spiegeln, q);
     }
   }
 
@@ -566,13 +577,21 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.restore();
   }
 
-  /* Fiete: blonder Junge mit ca. 7 cm langen, verstrubbelten Haaren, braunen
-     Augen und heller Haut. Er schaut nach vorn (+x).
-     ausdruck: normal | freude | staunen */
-  function zeichneHaare(ctx, x, y, r) {
+  /* =========================================================================
+     DIE KINDER (siehe CONFIG.kinder). Beide schauen nach vorn (+x).
+       Fiete: blond, kurze verstrubbelte Haare (ca. 7 cm), braune Augen
+       Jonte: größer und schlanker, lange braune Haare, braune Augen
+     ausdruck: normal | freude | staunen
+     ========================================================================= */
+  function kindVon(aussehen) {
+    return (aussehen && aussehen.kind) || FF.CONFIG.kinder[0];
+  }
+
+  /* Kurze Strubbelhaare (Fiete) */
+  function zeichneStrubbelHaare(ctx, x, y, r, kind) {
     var g = Math.PI / 180;
     function p(w, rr) { return [x + Math.cos(w * g) * r * rr, y + Math.sin(w * g) * r * rr]; }
-    ctx.fillStyle = HAAR; ctx.strokeStyle = HAAR_DUNKEL; ctx.lineWidth = 0.022;
+    ctx.fillStyle = kind.haar; ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.022;
     ctx.lineJoin = "round";
     ctx.beginPath();
     var s = p(34, 1.02);
@@ -597,7 +616,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     ctx.closePath(); ctx.fill(); ctx.stroke();
     // Strähnen + Glanz
-    ctx.strokeStyle = HAAR_DUNKEL; ctx.lineWidth = 0.018; ctx.lineCap = "round";
+    ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.018; ctx.lineCap = "round";
     [[160, 0.62, 1.04], [128, 0.6, 1.08], [100, 0.62, 1.04]].forEach(function (q) {
       var a = p(q[0], q[1]), b = p(q[0] + 9, q[2]);
       ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
@@ -606,38 +625,95 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.beginPath(); ctx.arc(x - r * 0.05, y + r * 0.1, r * 0.95, 102 * g, 138 * g); ctx.stroke();
   }
 
-  function zeichneFiete(ctx, x, y, r, ausdruck, raumhelm) {
+  /* Lange Haare (Jonte), Teil 1: fallen hinter dem Kopf bis auf die Schultern
+     und wehen bei Tempo nach hinten (wind 0..1). */
+  function zeichneLangeHaareHinten(ctx, x, y, r, kind, wind, zeit) {
+    var w = wind * 0.38 * r, u = wind * 0.3 * r, welle = Math.sin(zeit * 9) * 0.06 * r * wind;
+    ctx.fillStyle = kind.haar; ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.022;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x + r * 0.1, y + r * 1.08);
+    ctx.quadraticCurveTo(x - r * 0.9, y + r * 1.18, x - r * 1.12, y + r * 0.2);
+    ctx.quadraticCurveTo(x - r * 1.28 - w, y - r * 0.6 + u, x - r * 1.18 - w + welle, y - r * 1.36 + u);
+    ctx.lineTo(x - r * 0.98 - w * 0.8, y - r * 1.14 + u * 0.8);
+    ctx.lineTo(x - r * 0.8 - w * 0.6 + welle, y - r * 1.34 + u * 0.6);
+    ctx.lineTo(x - r * 0.62 - w * 0.4, y - r * 1.06 + u * 0.4);
+    ctx.lineTo(x - r * 0.44 - w * 0.2, y - r * 1.2 + u * 0.2);
+    ctx.lineTo(x - r * 0.1, y - r * 0.6);
+    ctx.lineTo(x + r * 0.1, y + r * 0.2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  /* Lange Haare (Jonte), Teil 2: Oberkopf, seitlicher Pony und Strähne über dem Ohr */
+  function zeichneLangeHaareVorne(ctx, x, y, r, kind) {
+    ctx.fillStyle = kind.haar; ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.022;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.16, y - r * 0.8);
+    ctx.quadraticCurveTo(x + r * 0.1, y - r * 0.2, x + r * 0.06, y + r * 0.36);
+    ctx.quadraticCurveTo(x + r * 0.46, y + r * 0.44, x + r * 0.94, y + r * 0.3);
+    ctx.lineTo(x + r * 0.8, y + r * 0.52);
+    ctx.quadraticCurveTo(x + r * 0.62, y + r * 0.64, x + r * 0.48, y + r * 0.56);
+    ctx.quadraticCurveTo(x + r * 0.78, y + r * 0.96, x + r * 0.14, y + r * 1.13);
+    ctx.quadraticCurveTo(x - r * 0.76, y + r * 1.16, x - r * 1.06, y + r * 0.36);
+    ctx.quadraticCurveTo(x - r * 0.76, y - r * 0.36, x - r * 0.44, y - r * 0.84);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Strähnen + Glanz
+    ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.018; ctx.lineCap = "round";
+    [[[-0.2, 0.95], [-0.62, 0.2]], [[0.05, 1.0], [-0.3, 0.1]], [[-0.55, 0.75], [-0.85, 0.05]]].forEach(function (q) {
+      ctx.beginPath(); ctx.moveTo(x + r * q[0][0], y + r * q[0][1]);
+      ctx.quadraticCurveTo(x + r * (q[0][0] - 0.25), y + r * (q[0][1] - 0.3), x + r * q[1][0], y + r * q[1][1]); ctx.stroke();
+    });
+    ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 0.03;
+    ctx.beginPath(); ctx.arc(x - r * 0.1, y + r * 0.15, r * 0.88, 100 * Math.PI / 180, 140 * Math.PI / 180); ctx.stroke();
+  }
+
+  function zeichneKind(ctx, x, y, r, ausdruck, raumhelm, kind, wind, zeit) {
+    kind = kind || FF.CONFIG.kinder[0];
+    var x0 = x, y0 = y;
+    var lang = kind.frisur === "lang";
+    var fb = 0.5 + 0.5 * kind.breite;                  // schlankeres Gesicht
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(fb, 1);
+    x = 0; y = 0;
     ctx.lineJoin = "round"; ctx.lineCap = "round";
+    if (lang) zeichneLangeHaareHinten(ctx, x, y, r, kind, wind || 0, zeit || 0);
     // Gesicht, Nase, Ohr
-    ctx.fillStyle = HAUT; ctx.strokeStyle = HAUT_RAND; ctx.lineWidth = 0.025;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = kind.haut; ctx.strokeStyle = kind.hautRand; ctx.lineWidth = 0.025;
+    ctx.beginPath(); ctx.ellipse(x, y, r, r * (lang ? 1.04 : 1), 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x + r * 0.93, y + r * 0.12);
     ctx.quadraticCurveTo(x + r * 1.17, y - r * 0.02, x + r * 0.94, y - r * 0.15); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.ellipse(x - r * 0.14, y - r * 0.1, r * 0.17, r * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x - r * 0.14, y - r * 0.1, r * 0.08, -1.2, 1.2); ctx.stroke();
-    zeichneHaare(ctx, x, y, r);
+    if (lang) {
+      zeichneLangeHaareVorne(ctx, x, y, r, kind);
+    } else {
+      ctx.fillStyle = kind.haut;
+      ctx.beginPath(); ctx.ellipse(x - r * 0.14, y - r * 0.1, r * 0.17, r * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x - r * 0.14, y - r * 0.1, r * 0.08, -1.2, 1.2); ctx.stroke();
+      zeichneStrubbelHaare(ctx, x, y, r, kind);
+    }
     // Braune Augen (das hintere etwas kleiner – Dreiviertel-Ansicht)
     [[x + r * 0.36, y + r * 0.08, 1], [x + r * 0.74, y + r * 0.09, 0.8]].forEach(function (a) {
       var ax = a[0], ay = a[1], f = a[2];
       if (ausdruck === "freude") {
-        ctx.strokeStyle = AUGE_BRAUN; ctx.lineWidth = 0.035;
+        ctx.strokeStyle = kind.augen; ctx.lineWidth = 0.035;
         ctx.beginPath(); ctx.arc(ax, ay - r * 0.07, r * 0.12 * f, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
         return;
       }
       var gr = ausdruck === "staunen" ? 1.2 : 1;
-      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = HAUT_RAND; ctx.lineWidth = 0.014;
+      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = kind.hautRand; ctx.lineWidth = 0.014;
       ctx.beginPath(); ctx.ellipse(ax, ay, r * 0.16 * f * gr, r * 0.21 * f * gr, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       var iris = ausdruck === "staunen" ? 0.1 : 0.125;
-      ctx.fillStyle = AUGE_BRAUN;
+      ctx.fillStyle = kind.augen;
       ctx.beginPath(); ctx.arc(ax + r * 0.04 * f, ay - r * 0.02, r * iris * f, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#2b1a0e";
       ctx.beginPath(); ctx.arc(ax + r * 0.055 * f, ay - r * 0.02, r * 0.055 * f, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#ffffff";
       ctx.beginPath(); ctx.arc(ax + r * 0.09 * f, ay + r * 0.04, r * 0.035 * f, 0, Math.PI * 2); ctx.fill();
     });
-    // Augenbrauen (dunkelblond) – beim Staunen hochgezogen
+    // Augenbrauen – beim Staunen hochgezogen
     var hoch = ausdruck === "staunen" ? r * 0.07 : 0;
-    ctx.strokeStyle = HAAR_DUNKEL; ctx.lineWidth = 0.028;
+    ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.028;
     ctx.beginPath(); ctx.moveTo(x + r * 0.27, y + r * 0.31 + hoch); ctx.quadraticCurveTo(x + r * 0.4, y + r * 0.37 + hoch, x + r * 0.52, y + r * 0.32 + hoch); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x + r * 0.66, y + r * 0.32 + hoch); ctx.quadraticCurveTo(x + r * 0.76, y + r * 0.37 + hoch, x + r * 0.85, y + r * 0.31 + hoch); ctx.stroke();
     // Mund
@@ -659,13 +735,28 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Bäckchen
     ctx.fillStyle = "rgba(255,120,120,0.35)";
     ctx.beginPath(); ctx.arc(x + r * 0.3, y - r * 0.27, r * 0.12, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
     if (raumhelm) {
+      x = x0; y = y0;
       ctx.fillStyle = "rgba(200,235,255,0.28)";
       ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 0.04;
-      ctx.beginPath(); ctx.arc(x + r * 0.15, y + r * 0.15, r * 1.45, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x + r * 0.1, y + r * 0.1, r * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 0.05;
-      ctx.beginPath(); ctx.arc(x + r * 0.15, y + r * 0.15, r * 1.2, Math.PI * 0.55, Math.PI * 0.85); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x + r * 0.1, y + r * 0.1, r * 1.25, Math.PI * 0.55, Math.PI * 0.85); ctx.stroke();
     }
+  }
+
+  /* Körpermaße des Kindes: schlanker = schmaler Oberkörper, größer = längerer
+     Oberkörper und Kopf weiter oben. */
+  function koerperFuer(teile, kind) {
+    var b = kind.breite, g = kind.groesse, k = teile.fahrerKoerper, ar = teile.arme;
+    return {
+      haut: kind.haut,
+      fahrerKoerper: k ? [k[0] + k[2] * (1 - b) / 2, k[1], k[2] * b, k[3] + g] : null,
+      arme: ar ? [ar[0], ar[1] + g * 0.8, ar[2], ar[3]] : null,
+      armDicke: 0.09 * (0.4 + 0.6 * b),
+      breite: b, groesse: g
+    };
   }
 
   /* =========================================================================
@@ -763,7 +854,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function zeichneRuecken(ctx, o, teile, kp, r, zeit, tempo) {
     var k = teile.fahrerKoerper;
     var sx0 = k ? k[0] + k[2] * 0.35 : kp.x - r * 0.25;
-    var sy0 = k ? k[1] + k[3] - 0.03 : kp.y - r * 0.95;
+    var sy0 = k ? k[1] + k[3] - 0.03 : kp.y - (teile.groesse || 0) - r * 0.95;
     if (o.schild) {
       var bx = sx0 - 0.1, by = sy0 - 0.2, R = 0.2;
       [["#d9363e", 1], ["#ffffff", 0.78], ["#d9363e", 0.58], ["#2f5fbf", 0.4]].forEach(function (ring) {
@@ -801,18 +892,18 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   function zeichneAnzug(ctx, o, teile, kp, r) {
-    var k = teile.fahrerKoerper;
+    var k = teile.fahrerKoerper, b = teile.breite || 1, g = teile.groesse || 0;
     if (k) zeichneTorso(ctx, o, k[0], k[1], k[2], k[3]);
-    else zeichneTorso(ctx, o, kp.x - r * 0.9, kp.y - r * 1.62, r * 1.75, r * 0.66);   // nur Schultern sichtbar
+    else zeichneTorso(ctx, o, kp.x - r * 0.9 * b, kp.y - g - r * 1.62, r * 1.75 * b, r * 0.66 + g);   // nur Schultern sichtbar
     if (teile.arme) {
       var ar = teile.arme;
-      ctx.strokeStyle = o.aermel; ctx.lineWidth = 0.09; ctx.lineCap = "round";
+      ctx.strokeStyle = o.aermel; ctx.lineWidth = teile.armDicke || 0.09; ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(ar[0], ar[1]); ctx.lineTo(ar[2], ar[3]); ctx.stroke();
-      ctx.fillStyle = o.haende || HAUT; ctx.strokeStyle = o.haende ? dunkel(o.haende, 0.3) : HAUT_RAND; ctx.lineWidth = 0.015;
+      ctx.fillStyle = o.haende || teile.haut || HAUT; ctx.strokeStyle = o.haende ? dunkel(o.haende, 0.3) : HAUT_RAND; ctx.lineWidth = 0.015;
       ctx.beginPath(); ctx.arc(ar[2], ar[3], 0.055, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
-    ctx.fillStyle = HAUT;                                 // Hals
-    ctx.fillRect(kp.x - r * 0.25, kp.y - r * 1.05, r * 0.45, r * 0.3);
+    ctx.fillStyle = teile.haut || HAUT;                   // Hals (beim größeren Kind länger)
+    ctx.fillRect(kp.x - r * 0.25 * b, kp.y - r * 1.05 - g, r * 0.45 * b, r * 0.3 + g);
   }
 
   function zeichneRad(ctx, R, lx, ly, art) {
@@ -890,7 +981,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "#7a8299"; rundRechteck(ctx, -1.62, -0.16, 0.2, 0.1, 0.04); ctx.fill();
         ctx.fillStyle = "rgba(255,255,255,0.3)"; rundRechteck(ctx, -1.2, 0.18, 1.0, 0.06, 0.03); ctx.fill();
         ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0.68, 0.02, 0.17, 0, Math.PI * 2); ctx.fill();
-        textLokal(ctx, "F", 0.68, 0.01, 0.26, TINTE, true);
+        textLokal(ctx, kindVon(a).name.charAt(0), 0.68, 0.01, 0.26, TINTE, true);   // Anfangsbuchstabe des Fahrers
         // Lenkrad
         ctx.strokeStyle = "#3b4566"; ctx.lineWidth = 0.06;
         ctx.beginPath(); ctx.moveTo(0.28, 0.3); ctx.lineTo(0.1, 0.56); ctx.stroke();
@@ -1127,13 +1218,15 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.raeder.forEach(function (R) {
       zeichneFeder(ctx, R.ankerX, R.ankerY, R.lokalX, R.lokalY, Math.min(0.13, R.r * 0.3));
     });
-    var o = outfitVon(aussehen);
+    var o = outfitVon(aussehen), kind = kindVon(aussehen);
+    var tk = koerperFuer(teile, kind);
+    var kopf = { x: kp.x, y: kp.y + kind.groesse, r: KOPF_R };
     var fahrer = function () {
-      zeichneAnzug(ctx, o, teile, kp, KOPF_R);
-      zeichneFiete(ctx, kp.x, kp.y, KOPF_R, ausdruck, teile.raumhelm);
+      zeichneAnzug(ctx, o, tk, kopf, KOPF_R);
+      zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm, kind, Math.min(1, tempo / 12), zeit);
     };
     teile.hinten();
-    zeichneRuecken(ctx, o, teile, kp, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
+    zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
     teile.vorne();
     if (!teile.fahrerZuerst && !teile.fahrerVorDach && !teile.fahrerNachVorne) fahrer();
@@ -1152,10 +1245,9 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* Ballon-Hilfe nach einem Überschlag */
-  function zeichneHilfe(ctx, K, fahrt, zeit) {
-    var hf = fahrt.hilfe;
+  function zeichneHilfe(ctx, K, hf, C, zeit) {
     if (!hf) return;
-    var C = fahrt.fz.chassis, s = K.s;
+    var s = K.s;
     var u = hf.t / hf.dauer;
     var ankerX = sx(K, C.x), ankerY = sy(K, C.y + 1.2);
     var zielY = ankerY - 3.2 * s;
@@ -1182,6 +1274,76 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     ctx.fillStyle = "#ffd23f";
     stern(ctx, bx, by + 1.6 * s, 0.18 * s, 5, 0.45); ctx.fill();
+  }
+
+  /* =========================================================================
+     5b) GEIST (Geisterrennen zu zweit)
+     Der Geist wird erst deckend in ein Hilfs-Canvas gezeichnet und dann
+     halbdurchsichtig übertragen – so scheinen Räder und Karosserie nicht
+     unschön durcheinander durch. g = { fz, def, aussehen, ausdruck, hilfe, name }
+     ========================================================================= */
+  var geistCanvas = null, geistCtx = null;
+
+  function zeichneGeist(ctx, K, g, zeit) {
+    var C = g.fz.chassis, s = K.s;
+    var X = sx(K, C.x), Y = sy(K, C.y);
+    // Kasten um das Fahrzeug (drehungsfest), bei Ballon-Hilfe nach oben verlängert –
+    // anfangs schweben die Ballons vom oberen Bildrand herein (siehe zeichneHilfe)
+    var R = (0.55 * g.def.groesse.laenge + 1.4) * s, nachOben = R;
+    if (g.hilfe) nachOben = Math.max(R, 6.4 * s, g.hilfe.t / g.hilfe.dauer < 0.28 ? Y : 0);
+    var links = X - R, oben = Y - nachOben, breite = 2 * R, hoehe = R + nachOben;
+    if (links > K.b || links + breite < 0 || oben > K.h || oben + hoehe < 0) return false;
+    // Eigene Ebene in CSS-Pixeln: auf Retina halbe Auflösung – für den
+    // durchsichtigen Geist reicht das und spart drei Viertel der Pixel.
+    var w = Math.ceil(breite), h = Math.ceil(hoehe);
+    if (!geistCanvas) { geistCanvas = document.createElement("canvas"); }
+    if (geistCanvas.width < w || geistCanvas.height < h) {
+      geistCanvas.width = Math.max(w, geistCanvas.width); geistCanvas.height = Math.max(h, geistCanvas.height);
+      geistCtx = null;
+    }
+    if (!geistCtx) geistCtx = geistCanvas.getContext("2d");
+    geistCtx.setTransform(1, 0, 0, 1, 0, 0);
+    geistCtx.clearRect(0, 0, w, h);
+    geistCtx.setTransform(1, 0, 0, 1, -links, -oben);
+    zeichneHilfe(geistCtx, K, g.hilfe, C, zeit);
+    zeichneFahrzeug(geistCtx, K, g.fz, g.def, g.aussehen, zeit, g.ausdruck);
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(geistCanvas, 0, 0, w, h, links, oben, w, h);
+    ctx.restore();
+    // Namensschild über dem Geist
+    var ty = Y - 2.3 * s - Math.sin(zeit * 2.5) * 0.08 * s;
+    namensSchild(ctx, X, ty, "👻 " + g.name, Math.max(12, Math.min(20, 0.42 * s)), 0.85);
+    return true;
+  }
+
+  function namensSchild(ctx, x, y, text, px, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = "800 " + Math.round(px) + "px 'Baloo 2', sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var w = ctx.measureText(text).width + px * 1.1, h = px * 1.6;
+    rundRechteck(ctx, x - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = "rgba(29,44,84,0.85)"; ctx.fill();
+    ctx.strokeStyle = "#f3c44a"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(text, x, y + px * 0.05);
+    ctx.restore();
+  }
+
+  /* Ist der Geist außerhalb des Bildes, zeigt ein Pfeil am Rand, wo er ist. */
+  function zeichneGeistPfeil(ctx, K, g, eigen) {
+    var gx = g.fz.chassis.x, abstand = Math.round(Math.abs(gx - eigen.x));
+    var rechts = gx > eigen.x;
+    var px = Math.max(14, Math.min(20, 0.42 * K.s));
+    var y = Math.max(90, Math.min(K.h * 0.45, sy(K, g.fz.chassis.y + 1)));
+    var text = rechts ? "👻 " + g.name + " " + abstand + " m ▶" : "◀ " + abstand + " m 👻 " + g.name;
+    ctx.save();
+    ctx.font = "800 " + Math.round(px) + "px 'Baloo 2', sans-serif";
+    var w = ctx.measureText(text).width + px * 1.1;
+    ctx.restore();
+    var x = rechts ? K.b - w / 2 - 10 : w / 2 + 10;
+    namensSchild(ctx, x, y, text, px, 0.92);
   }
 
   /* =========================================================================
@@ -1379,21 +1541,23 @@ var FF = globalThis.FF = globalThis.FF || {};
      ========================================================================= */
   function zeichneSzene(ctx, sz) {
     var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit;
-    zeichneHimmel(ctx, K, welt, z);
+    zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
     zeichneWolken(ctx, K, welt, z);
     sz.wetter.zeichne(ctx, K, sz.dt, z, true);
     zeichneBerge(ctx, K, welt);
     var b = sichtbereich(K, gel);
-    zeichneDeko(ctx, K, gel, b[2], b[3]);
+    zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1);
     zeichneGelaende(ctx, K, gel, welt, z);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneStartZiel(ctx, K, gel, z);
     zeichneItems(ctx, K, gel, z, b[2], b[3]);
-    zeichneHilfe(ctx, K, f, z);
+    var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
+    zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
     sz.partikel.zeichne(ctx, K);
     zeichneTexte(ctx, K, sz.texte);
     sz.wetter.zeichne(ctx, K, sz.dt, z, false);
+    if (sz.geist && !geistSichtbar) zeichneGeistPfeil(ctx, K, sz.geist, f.fz.chassis);
     if (sz.kraefte) zeichneKraefte(ctx, K, f);
     if (sz.instrumente) zeichneInstrumente(ctx, K, f);
   }
@@ -1444,21 +1608,23 @@ var FF = globalThis.FF = globalThis.FF || {};
      Auto (Garage-Outfits, Info, Fortschrittsleiste, Ergebnis). */
   var PORTRAIT_TEILE = { fahrerKoerper: [-0.3, -0.8, 0.6, 0.52], arme: [0.14, -0.38, 0.44, -0.1] };
   function zeichnePortrait(ctx, b, h, aussehen, ausdruck, zeit, nurKopf) {
-    var o = outfitVon(aussehen), kp = { x: 0, y: 0, r: KOPF_R }, s;
+    var o = outfitVon(aussehen), kind = kindVon(aussehen), g = kind.groesse;
+    var tk = koerperFuer(PORTRAIT_TEILE, kind), kp = { x: 0, y: g, r: KOPF_R }, s;
+    var lang = kind.frisur === "lang";
     ctx.save();
     if (nurKopf) {
-      s = Math.min(b, h) / 0.9;
-      ctx.translate(b / 2 + 0.05 * s, h / 2 + 0.07 * s);
+      s = Math.min(b, h) / (lang ? 0.98 : 0.9);
+      ctx.translate(b / 2 + 0.05 * s, h / 2 + (g + (lang ? -0.03 : 0.07)) * s);
     } else {
-      s = Math.min(b / 1.2, h / 1.32);
-      ctx.translate(b / 2 + 0.08 * s, h / 2 - 0.18 * s);
+      s = Math.min(b / 1.2, h / (1.32 + g));
+      ctx.translate(b / 2 + 0.08 * s, h / 2 - (0.18 - g / 2) * s);
     }
     ctx.scale(s, -s);
     if (!nurKopf) {
-      zeichneRuecken(ctx, o, PORTRAIT_TEILE, kp, KOPF_R, zeit || 0, 6);
-      zeichneAnzug(ctx, o, PORTRAIT_TEILE, kp, KOPF_R);
+      zeichneRuecken(ctx, o, tk, kp, KOPF_R, zeit || 0, 6);
+      zeichneAnzug(ctx, o, tk, kp, KOPF_R);
     }
-    zeichneFiete(ctx, 0, 0, KOPF_R, ausdruck || "normal", false);
+    zeichneKind(ctx, 0, g, KOPF_R, ausdruck || "normal", false, kind, nurKopf ? 0 : 0.5, zeit || 0);
     ctx.restore();
   }
 
@@ -1470,6 +1636,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     Partikel: Partikel,
     Wetter: Wetter,
     emojiSprite: emojiSprite,
+    himmelCss: himmelCss,
     hell: hell, dunkel: dunkel
   };
 })();

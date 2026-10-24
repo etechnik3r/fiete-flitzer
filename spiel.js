@@ -2,17 +2,22 @@
    Fiete Flitzer – spiel.js
    ---------------------------------------------------------------------------
    Klebt alles zusammen: Spielschleife, Eingabe (Pedale, Touch, Tastatur),
-   Kamera, Effekte, HUD, Menü mit Welten, Garage (Kaufen, Tuning, Farben),
+   Kamera, Effekte, HUD, Spielerwahl (Fiete / Jonte / zu zweit), Menü mit
+   Welten, Garage (Kaufen, Tuning, Farben, Outfits), Geisterrennen zu zweit,
    Ergebnis, Einstellungen, Speicherstand (localStorage) und PWA.
 
+   Jedes Kind hat ein EIGENES Profil (Münzen, Garage, Outfit, Fortschritt).
+   P zeigt immer auf das Profil des Kindes, das gerade dran ist.
+
    Gliederung:
-     1) Speicherstand          8) Ergebnis
-     2) Zustand + Canvas        9) Menü: Welten + Fahrzeug-Leiste
-     3) Eingabe                10) Garage
-     4) Kamera                 11) Einstellungen, Eltern-Dialog, Popover
-     5) Effekte (Partikel …)   12) Titel, PWA
-     6) Ereignisse der Fahrt   13) Spielschleife + Start
-     7) Fahrt starten/beenden
+     1) Speicherstand + Profile      9) Spielerwahl + Menü + Welten
+     2) Zustand + Canvas            10) Geisterrennen: Lobby, Würfeln,
+     3) Eingabe                         Übergabe, Siegerehrung
+     4) Kamera                      11) Garage
+     5) Effekte (Partikel …)        12) Einstellungen, Eltern-Dialog
+     6) Ereignisse der Fahrt        13) Titel, PWA
+     7) Fahrt starten/beenden, HUD  14) Spielschleife + Start
+     8) Ergebnis (allein)
    =========================================================================== */
 
 (function () {
@@ -22,15 +27,24 @@
   function $(id) { return document.getElementById(id); }
   function klemme(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function zahl(n) { return Math.round(n).toLocaleString("de-DE"); }
+  function sekunden(t) { return t.toFixed(1).replace(".", ",") + " s"; }
+
+  function kindDef(id) {
+    for (var i = 0; i < C.kinder.length; i++) if (C.kinder[i].id === id) return C.kinder[i];
+    return C.kinder[0];
+  }
+  function anderesKind(id) { return C.kinder[0].id === id ? C.kinder[1].id : C.kinder[0].id; }
+  function genitiv(name) { return /[sxzß]$/i.test(name) ? name + "’" : name + "s"; }
 
   /* =========================================================================
-     1) SPEICHERSTAND
+     1) SPEICHERSTAND + PROFILE
      ========================================================================= */
   var SCHLUESSEL = "fiete-flitzer-spielstand-v1";
 
-  function neuerSpielstand() {
-    var s = {
-      version: 1,
+  function neuesFahrzeug(f) { return { gekauft: f.preis === 0, upgrades: {}, farbe: f.farbe, muster: "keins" }; }
+
+  function neuesProfil() {
+    var p = {
       muenzen: C.startMuenzen,
       fahrzeug: "flitzer",
       fahrzeuge: {},
@@ -40,13 +54,39 @@
       outfits: [C.outfits[0].id],
       level: {},
       endlos: {},
-      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false },
       statistik: { fahrten: 0, meter: 0, salti: 0, muenzen: 0 }
     };
-    C.fahrzeuge.forEach(function (f) {
-      s.fahrzeuge[f.id] = { gekauft: f.preis === 0, upgrades: {}, farbe: f.farbe, muster: "keins" };
-    });
+    C.fahrzeuge.forEach(function (f) { p.fahrzeuge[f.id] = neuesFahrzeug(f); });
+    return p;
+  }
+
+  function neuerSpielstand() {
+    var s = {
+      version: 2,
+      aktiv: C.kinder[0].id,
+      spieler: {},
+      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false },
+      duell: { welt: 0, stufe: 0, endlos: false, siege: {} }
+    };
+    C.kinder.forEach(function (k) { s.spieler[k.id] = neuesProfil(); s.duell.siege[k.id] = 0; });
     return s;
+  }
+
+  /* Gespeicherte Daten vorsichtig in ein frisches Profil übernehmen */
+  function uebernimmProfil(ziel, d) {
+    if (!d || typeof d !== "object") return;
+    Object.keys(ziel).forEach(function (k) {
+      if (d[k] === undefined || d[k] === null) return;
+      if (k === "fahrzeuge" || k === "statistik") {
+        if (typeof d[k] === "object") Object.keys(d[k]).forEach(function (kk) { ziel[k][kk] = d[k][kk]; });
+      } else ziel[k] = d[k];
+    });
+    C.fahrzeuge.forEach(function (f) { if (!ziel.fahrzeuge[f.id]) ziel.fahrzeuge[f.id] = neuesFahrzeug(f); });
+    var frisch = neuesProfil();
+    ["farben", "muster", "outfits"].forEach(function (k) { if (!Array.isArray(ziel[k])) ziel[k] = frisch[k]; });
+    if (typeof ziel.muenzen !== "number" || !isFinite(ziel.muenzen) || ziel.muenzen < 0) ziel.muenzen = 0;
+    if (!ziel.fahrzeuge[ziel.fahrzeug] || !ziel.fahrzeuge[ziel.fahrzeug].gekauft) ziel.fahrzeug = "flitzer";
+    if (ziel.outfits.indexOf(ziel.outfit) < 0) ziel.outfit = C.outfits[0].id;
   }
 
   function lade() {
@@ -55,14 +95,18 @@
       var roh = window.localStorage.getItem(SCHLUESSEL);
       if (roh) {
         var d = JSON.parse(roh);
-        Object.keys(s).forEach(function (k) {
-          if (d[k] === undefined) return;
-          if (k === "fahrzeuge" || k === "einstellungen" || k === "statistik") {
-            Object.keys(d[k]).forEach(function (kk) { s[k][kk] = d[k][kk]; });
-          } else s[k] = d[k];
-        });
-        C.fahrzeuge.forEach(function (f) {
-          if (!s.fahrzeuge[f.id]) s.fahrzeuge[f.id] = { gekauft: f.preis === 0, upgrades: {}, farbe: f.farbe, muster: "keins" };
+        if (d && d.spieler) {
+          C.kinder.forEach(function (k) { uebernimmProfil(s.spieler[k.id], d.spieler[k.id]); });
+          if (s.spieler[d.aktiv]) s.aktiv = d.aktiv;
+          if (d.duell) {
+            ["welt", "stufe", "endlos"].forEach(function (k) { if (d.duell[k] !== undefined) s.duell[k] = d.duell[k]; });
+            if (d.duell.siege) C.kinder.forEach(function (k) { s.duell.siege[k.id] = +d.duell.siege[k.id] || 0; });
+          }
+        } else if (d) {
+          uebernimmProfil(s.spieler[C.kinder[0].id], d);       // alter Spielstand (v1) gehört Fiete
+        }
+        if (d && d.einstellungen) Object.keys(s.einstellungen).forEach(function (k) {
+          if (d.einstellungen[k] !== undefined) s.einstellungen[k] = d.einstellungen[k];
         });
       }
     } catch (e) { /* kaputter Speicher → frisch anfangen */ }
@@ -74,14 +118,19 @@
   }
 
   var S = lade();
+  var P = S.spieler[S.aktiv];                // Profil des Kindes, das gerade dran ist
+  function setzeAktiv(id) { S.aktiv = id; P = S.spieler[id]; }
 
   function levelSchluessel(wi, li) { return C.welten[wi].id + "-" + (li + 1); }
-  function levelStand(wi, li) { return S.level[levelSchluessel(wi, li)] || { geschafft: false, sterne: 0 }; }
-  function levelOffen(wi, li) {
+  function levelStand(wi, li, prof) { return (prof || P).level[levelSchluessel(wi, li)] || { geschafft: false, sterne: 0 }; }
+  function levelOffen(wi, li, prof) {
     if (wi === 0 && li === 0) return true;
-    return li > 0 ? levelStand(wi, li - 1).geschafft : levelStand(wi - 1, 2).geschafft;
+    return li > 0 ? levelStand(wi, li - 1, prof).geschafft : levelStand(wi - 1, 2, prof).geschafft;
   }
-  function endlosOffen(wi) { return levelStand(wi, 0).geschafft; }
+  function endlosOffen(wi, prof) { return levelStand(wi, 0, prof).geschafft; }
+  function sterneSumme(prof) {
+    return Object.keys(prof.level).reduce(function (s, k) { return s + (prof.level[k].sterne || 0); }, 0);
+  }
   function farbWert(id) {
     for (var i = 0; i < C.farben.length; i++) if (C.farben[i].id === id) return C.farben[i];
     return C.farben[0];
@@ -90,24 +139,27 @@
     for (var i = 0; i < C.outfits.length; i++) if (C.outfits[i].id === id) return C.outfits[i];
     return C.outfits[0];
   }
-  function aussehenVon(fzId) {
-    var fs = S.fahrzeuge[fzId] || {};
+  /* Wie sieht das Auto eines Kindes aus (Lack, Muster, Outfit, Kind)? */
+  function aussehenVon(kindId, fzId) {
+    var prof = S.spieler[kindId];
+    fzId = fzId || prof.fahrzeug;
+    var fs = prof.fahrzeuge[fzId] || {};
     var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
-    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(S.outfit) };
+    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindDef(kindId) };
   }
 
-  /* Fiete als Bild (Brustbild oder nur Kopf) – gezeichnet mit denselben
-     Funktionen wie im Auto, damit er überall gleich aussieht. */
+  /* Kind als Bild (Brustbild oder nur Kopf) – gezeichnet mit denselben
+     Funktionen wie im Auto, damit es überall gleich aussieht. */
   var bildCache = {};
-  function fieteBild(b, h, ausdruck, nurKopf, outfitId) {
-    var o = outfitWert(outfitId || S.outfit);
-    var key = [b, h, ausdruck, nurKopf, o.id].join("|");
+  function kindBild(kindId, b, h, ausdruck, nurKopf, outfitId) {
+    var o = outfitWert(outfitId || S.spieler[kindId].outfit);
+    var key = [kindId, b, h, ausdruck, nurKopf, o.id].join("|");
     if (bildCache[key]) return bildCache[key];
     var c = document.createElement("canvas");
     c.width = b * 2; c.height = h * 2;
     var g = c.getContext("2d");
     g.scale(2, 2);
-    FF.Grafik.zeichnePortrait(g, b, h, { outfit: o }, ausdruck, 0.4, nurKopf);
+    FF.Grafik.zeichnePortrait(g, b, h, { outfit: o, kind: kindDef(kindId) }, ausdruck, 0.4, nurKopf);
     return (bildCache[key] = c.toDataURL());
   }
 
@@ -115,9 +167,13 @@
      2) ZUSTAND + CANVAS
      ========================================================================= */
   var canvas = $("spielfeld"), ctx = canvas.getContext("2d");
+  var himmelWelt = null;          // Welt, deren Himmelsverlauf gerade als CSS hinter dem Canvas liegt
   var B = 0, H = 0, DPR = 1;
-  var modus = "titel";                 // titel | menue | fahrt
+  var modus = "titel";                 // titel | wahl | menue | fahrt
+  var spielModus = "solo";             // solo | duell
   var fahrt = null, fahrtInfo = null, pausiert = false, ergebnisOffen = false;
+  var duell = null;                    // laufendes Geisterrennen (siehe Abschnitt 10)
+  var aufnahme = null, geist = null;   // Aufzeichnung (1. Fahrt) bzw. Geist (2. Fahrt)
   var kamera = { x: 0, y: 0, s: 40, b: 0, h: 0, ankerX: 0.42, ankerY: 0.56, zoom: 1 };
   var partikel = new FF.Grafik.Partikel(), texte = [], wetter = new FF.Grafik.Wetter();
   var zeit = 0, letzteZeit = 0;
@@ -156,7 +212,7 @@
   }
 
   function zeigerRunter(e, pedal) {
-    if (modus !== "fahrt" || pausiert) return;
+    if (modus !== "fahrt" || pausiert || ergebnisOffen) return;
     e.preventDefault();
     FF.Klang.init();
     zeiger[e.pointerId] = pedal || (e.clientX < B / 2 ? "bremse" : "gas");
@@ -267,6 +323,7 @@
   $("popover").addEventListener("click", function () { $("popover").hidden = true; });
 
   function plopp(el) { el.classList.remove("plopp"); void el.offsetWidth; el.classList.add("plopp"); }
+  function wackeln(el) { if (!el) return; el.classList.remove("wackelt"); void el.offsetWidth; el.classList.add("wackelt"); }
 
   /* Staub an durchdrehenden Rädern, Auspuff-Wölkchen */
   function fahrEffekte(dt) {
@@ -401,11 +458,32 @@
           FF.Klang.sprich("Ziel erreicht! Super!");
           break;
         case "ende":
-          setTimeout(zeigeErgebnis, e.grund === "ziel" ? 200 : 600);
+          // nur diese Fahrt beenden – nicht eine inzwischen neu gestartete
+          setTimeout(function (f) { if (f === fahrt) fahrtZuEnde(); }.bind(null, fahrt), e.grund === "ziel" ? 200 : 600);
           break;
       }
     }
     E.length = 0;
+  }
+
+  /* Live-Vergleich mit dem Geist: Überholen und "Geist ist schon im Ziel" ansagen */
+  function geistVergleich() {
+    if (!geist) return;
+    var g = geist.obj, vorsprung = fahrt.strecke - g.strecke;
+    if (geist.vorne === null) geist.vorne = vorsprung > 0;
+    if (!geist.vorne && vorsprung > 1.5 && g.strecke > 15) {
+      geist.vorne = true;
+      meldung("Überholt! 🚀");
+      FF.Klang.spiele("meilenstein");
+      FF.Klang.sprich("Überholt!");
+    } else if (geist.vorne && vorsprung < -1.5) {
+      geist.vorne = false;
+    }
+    var eg = duell.aufnahme.ergebnis;
+    if (!geist.zielGemeldet && g.fertig && eg.ziel && fahrt.zustand === "fahrt") {
+      geist.zielGemeldet = true;
+      tipp("👻 " + geist.name + " ist schon im Ziel – gib Gas!", 3500);
+    }
   }
 
   /* =========================================================================
@@ -414,11 +492,25 @@
   function starteFahrt(wi, li, endlos) {
     FF.Klang.init();
     fahrtInfo = { weltIndex: wi, stufe: li, endlos: !!endlos };
-    var fs = S.fahrzeuge[S.fahrzeug];
+    var fs = P.fahrzeuge[P.fahrzeug];
     fahrt = new FF.Fahrt({
       weltIndex: wi, stufe: li, endlos: !!endlos,
-      fahrzeugId: S.fahrzeug, upgrades: fs.upgrades, schwierigkeit: S.einstellungen.schwierigkeit
+      fahrzeugId: P.fahrzeug, upgrades: fs.upgrades, schwierigkeit: S.einstellungen.schwierigkeit
     });
+    // Geisterrennen: 1. Fahrt wird aufgezeichnet, 2. Fahrt sieht den Geist
+    aufnahme = null; geist = null;
+    if (spielModus === "duell" && duell) {
+      if (duell.runde === 0) {
+        aufnahme = new FF.Geist.Aufnahme({
+          kind: S.aktiv, fahrzeugId: P.fahrzeug, upgrades: JSON.parse(JSON.stringify(fs.upgrades)),
+          aussehen: aussehenVon(S.aktiv)
+        });
+      } else {
+        var erster = duell.reihenfolge[0];
+        geist = { obj: new FF.Geist.Geist(duell.aufnahme, fahrt.gelaende), kind: erster,
+                  name: kindDef(erster).name, aussehen: duell.aufnahme.info.aussehen, vorne: null, zielGemeldet: false };
+      }
+    }
     partikel.liste.length = 0; texte.length = 0;
     wetter.setze(fahrt.welt.wetter, kamera);
     kameraNachfuehren(0, true);
@@ -430,12 +522,21 @@
     $("hud-tank").classList.remove("knapp");
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
-    $("hud-fortschritt-auto").src = fieteBild(40, 40, "normal", true);
+    $("hud-geist-strecke").hidden = !(endlos && geist);
+    $("hud-fortschritt-auto").src = kindBild(S.aktiv, 40, 40, "normal", true);
+    $("hud-fortschritt-geist").hidden = !geist || !!endlos;
+    if (geist) $("hud-fortschritt-geist").src = kindBild(geist.kind, 40, 40, "normal", true);
     FF.Klang.motorStart();
     var w = fahrt.welt;
-    meldung(endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
-    FF.Klang.sprich(endlos ? "Wie weit kommst du?" : "Los geht's!");
+    if (geist) {
+      meldung("👻 Gegen " + genitiv(geist.name) + " Geist!");
+      FF.Klang.sprich("Los, " + kindDef(S.aktiv).name + "! Fahr gegen " + genitiv(geist.name) + " Geist!");
+    } else {
+      meldung(endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
+      FF.Klang.sprich(spielModus === "duell" ? "Los, " + kindDef(S.aktiv).name + "!" : (endlos ? "Wie weit kommst du?" : "Los geht's!"));
+    }
     if (H > B) { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
+    hudCache = {};
     hudAktualisieren(true);
   }
 
@@ -452,12 +553,20 @@
     if (fahrt.endlos) {
       var s = Math.max(0, Math.round(fahrt.strecke));
       if (erzwingen || hudCache.s !== s) { $("hud-strecke-wert").textContent = zahl(s) + " m"; hudCache.s = s; }
+      if (geist) {
+        var gs = Math.max(0, Math.round(geist.obj.strecke));
+        if (erzwingen || hudCache.gs !== gs) { $("hud-geist-strecke-wert").textContent = geist.name + " " + zahl(gs) + " m"; hudCache.gs = gs; }
+      }
     } else {
       var p = Math.round(fahrt.fortschritt() * 1000) / 10;
       if (erzwingen || hudCache.p !== p) {
         $("hud-fortschritt-balken").style.width = p + "%";
         $("hud-fortschritt-auto").style.left = p + "%";
         hudCache.p = p;
+      }
+      if (geist) {
+        var gp = Math.round(klemme(geist.obj.fz.chassis.x / fahrt.gelaende.ziel, 0, 1) * 1000) / 10;
+        if (erzwingen || hudCache.gp !== gp) { $("hud-fortschritt-geist").style.left = gp + "%"; hudCache.gp = gp; }
       }
     }
   }
@@ -467,6 +576,7 @@
     pausiert = true;
     alleZeigerLos();
     FF.Klang.motorSetze(0, 0, false);
+    $("knopf-menue").textContent = spielModus === "duell" ? "🏠 Rennen abbrechen" : "🏠 Zum Menü";
     oeffneModal("pause");
   }
   function weiter() {
@@ -487,6 +597,7 @@
     FF.Klang.spiele("klick");
     schliesseModal("pause");
     var g = gutschreibenAbbruch();
+    duell = null;
     zeigeMenue("fahren");
     if (g > 0) popover("🪙 +" + zahl(g) + " Münzen gespeichert!");
   });
@@ -496,10 +607,40 @@
     if (!fahrt || fahrt.gutgeschrieben) return 0;
     var g = fahrt.muenzen + fahrt.bonus;
     fahrt.gutgeschrieben = true;
-    S.muenzen += g; S.statistik.muenzen += g;
-    if (fahrt.endlos) S.endlos[fahrt.welt.id] = Math.max(S.endlos[fahrt.welt.id] || 0, Math.round(fahrt.strecke));
+    P.muenzen += g; P.statistik.muenzen += g;
+    if (fahrt.endlos) P.endlos[fahrt.welt.id] = Math.max(P.endlos[fahrt.welt.id] || 0, Math.round(fahrt.strecke));
     speichere();
     return g;
+  }
+
+  /* Ergebnis einer Fahrt auf das Profil buchen. Rückgabe: neuer Endlos-Rekord? */
+  function verbucheFahrt(e, prof) {
+    var wi = fahrtInfo.weltIndex, li = fahrtInfo.stufe, welt = C.welten[wi];
+    prof.muenzen += e.gesamt;
+    prof.statistik.fahrten++; prof.statistik.meter += e.strecke; prof.statistik.salti += e.salti; prof.statistik.muenzen += e.gesamt;
+    var rekord = false;
+    if (e.endlos) {
+      rekord = e.strecke > (prof.endlos[welt.id] || 0);
+      prof.endlos[welt.id] = Math.max(prof.endlos[welt.id] || 0, e.strecke);
+    } else {
+      var k = levelSchluessel(wi, li), alt = prof.level[k] || { geschafft: false, sterne: 0, beste: 0 };
+      if (e.ziel) { alt.geschafft = true; alt.sterne = Math.max(alt.sterne, e.sterne); }
+      alt.beste = Math.max(alt.beste || 0, e.strecke);
+      prof.level[k] = alt;
+    }
+    speichere();
+    return rekord;
+  }
+
+  /* Eine Fahrt ist zu Ende (Ziel oder Tank leer) */
+  function fahrtZuEnde() {
+    if (!fahrt || ergebnisOffen) return;
+    if (pausiert) { schliesseModal("pause"); pausiert = false; }
+    ergebnisOffen = true;
+    alleZeigerLos();
+    FF.Klang.motorSetze(0, 0, false);
+    if (spielModus === "duell" && duell) duellRundeFertig();
+    else zeigeErgebnis();
   }
 
   document.addEventListener("visibilitychange", function () {
@@ -507,7 +648,7 @@
   });
 
   /* =========================================================================
-     8) ERGEBNIS
+     8) ERGEBNIS (allein)
      ========================================================================= */
   function naechstesLevel(wi, li) {
     if (li < 2) return [wi, li + 1];
@@ -516,36 +657,17 @@
   }
 
   function zeigeErgebnis() {
-    if (!fahrt || ergebnisOffen) return;
-    ergebnisOffen = true;
-    alleZeigerLos();
-    FF.Klang.motorSetze(0, 0, false);
     var e = fahrt.ergebnis(), wi = fahrtInfo.weltIndex, li = fahrtInfo.stufe, welt = fahrt.welt;
     fahrt.gutgeschrieben = true;
+    var rekord = verbucheFahrt(e, P);
 
-    // Konto + Fortschritt speichern
-    S.muenzen += e.gesamt;
-    S.statistik.fahrten++; S.statistik.meter += e.strecke; S.statistik.salti += e.salti; S.statistik.muenzen += e.gesamt;
-    var rekord = false;
-    if (e.endlos) {
-      rekord = e.strecke > (S.endlos[welt.id] || 0);
-      S.endlos[welt.id] = Math.max(S.endlos[welt.id] || 0, e.strecke);
-    } else {
-      var k = levelSchluessel(wi, li), alt = S.level[k] || { geschafft: false, sterne: 0, beste: 0 };
-      if (e.ziel) { alt.geschafft = true; alt.sterne = Math.max(alt.sterne, e.sterne); }
-      alt.beste = Math.max(alt.beste || 0, e.strecke);
-      S.level[k] = alt;
-    }
-    speichere();
-
-    // Anzeige
     var titel, icon;
     if (e.ziel) { titel = "Ziel erreicht!"; icon = "🏆"; }
     else if (e.endlos) { titel = rekord ? "Neuer Rekord!" : "Super gefahren!"; icon = rekord ? "🥇" : "📏"; }
     else { titel = "Tank leer – gut gefahren!"; icon = "⛽"; }
     $("ergebnis-titel").textContent = titel;
     $("ergebnis-icon").textContent = icon;
-    $("ergebnis-fiete").src = fieteBild(120, 130, e.ziel || rekord ? "freude" : "normal");
+    $("ergebnis-fiete").src = kindBild(S.aktiv, 120, 130, e.ziel || rekord ? "freude" : "normal");
 
     var sterneEl = $("ergebnis-sterne");
     sterneEl.hidden = e.endlos;
@@ -561,24 +683,19 @@
     if (e.bonus > 0) zeilen.push(["🤸 Trick-Bonus", "+" + zahl(e.bonus)]);
     if (e.zielBonus > 0) zeilen.push(["🏁 Ziel-Bonus", "+" + zahl(e.zielBonus)]);
     zeilen.push(["📏 Strecke", zahl(e.strecke) + " m"]);
+    if (e.ziel) zeilen.push(["⏱️ Zeit", sekunden(e.zielZeit)]);
     if (e.salti > 0) zeilen.push(["🔄 Saltos", e.salti]);
     if (e.hoppla > 0) zeilen.push(["🎈 Ballon-Hilfen", e.hoppla]);
     if (!e.endlos) zeilen.push(["⭐ Münzen-Anteil", Math.round(e.anteil * 100) + " %"]);
     $("ergebnis-liste").innerHTML = zeilen.map(function (z) { return "<li><span>" + z[0] + "</span><b>" + z[1] + "</b></li>"; }).join("");
 
-    // Summe hochzählen
-    var summeEl = $("ergebnis-summe"), ziel = e.gesamt, start = performance.now(), dauer = Math.min(1600, 300 + ziel * 0.6);
-    (function zaehle(t) {
-      var u = Math.min(1, (t - start) / dauer);
-      summeEl.textContent = zahl(ziel * (1 - Math.pow(1 - u, 3)));
-      if (u < 1) { if (Math.random() < 0.35) FF.Klang.spiele("zaehlen"); requestAnimationFrame(zaehle); }
-    })(start);
+    zaehleHoch($("ergebnis-summe"), e.gesamt);
 
     var tippText = "";
     if (!e.ziel && !e.endlos) tippText = "Tipp: In der Garage 🔧 den Tank ⛽ oder Motor verbessern – dann kommst du weiter!";
     else if (e.ziel && e.sterne < 3) tippText = "Sammle " + Math.round(C.regeln.sterne3 * 100) + " % der Münzen für alle 3 Sterne!";
     else if (e.ziel) tippText = "Perfekt! Alle Sterne! 🌟";
-    else if (e.endlos) tippText = "Bester Wert hier: " + zahl(S.endlos[welt.id]) + " m";
+    else if (e.endlos) tippText = "Bester Wert hier: " + zahl(P.endlos[welt.id]) + " m";
     $("ergebnis-tipp").textContent = tippText;
 
     var nl = naechstesLevel(wi, li);
@@ -597,6 +714,15 @@
     FF.Klang.sprich(e.ziel ? (e.sterne === 3 ? "Wow, drei Sterne!" : "Geschafft!") : titel);
   }
 
+  function zaehleHoch(el, ziel) {
+    var start = performance.now(), dauer = Math.min(1600, 300 + ziel * 0.6);
+    (function zaehle(t) {
+      var u = Math.min(1, (t - start) / dauer);
+      el.textContent = zahl(ziel * (1 - Math.pow(1 - u, 3)));
+      if (u < 1) { if (Math.random() < 0.35) FF.Klang.spiele("zaehlen"); requestAnimationFrame(zaehle); }
+    })(start);
+  }
+
   $("knopf-ergebnis-weiter").addEventListener("click", function () {
     FF.Klang.spiele("klick");
     schliesseModal("ergebnis");
@@ -613,21 +739,63 @@
   $("knopf-ergebnis-menue").addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseModal("ergebnis"); zeigeMenue("fahren"); });
 
   /* =========================================================================
-     9) MENÜ: Bildschirme, Tabs, Welten + Fahrzeug-Leiste
+     9) SPIELERWAHL, MENÜ, WELTEN
      ========================================================================= */
   function zeigeBildschirm(name) {
     $("titelscreen").hidden = name !== "titel";
+    $("spielerwahl").hidden = name !== "wahl";
     $("menue").hidden = name !== "menue";
     $("hud").hidden = name !== "fahrt";
     $("pedale").hidden = name !== "fahrt";
-    if (name !== "fahrt") { $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true; FF.Klang.motorStopp(); }
+    if (name !== "fahrt") {
+      $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true;
+      FF.Klang.motorStopp();
+      fahrt = null; aufnahme = null; geist = null;
+    }
+  }
+
+  /* "Wer fährt?" – Fiete, Jonte oder zu zweit */
+  function zeigeSpielerwahl() {
+    modus = "wahl";
+    duell = null;
+    zeigeBildschirm("wahl");
+    var html = "";
+    C.kinder.forEach(function (k) {
+      var prof = S.spieler[k.id];
+      html += '<button type="button" class="wahl-karte" data-kind="' + k.id + '">' +
+              '<img class="wahl-bild" src="' + kindBild(k.id, 130, 140, "freude") + '" alt="">' +
+              '<span class="wahl-name">' + k.name + "</span>" +
+              '<span class="wahl-info">🪙 ' + zahl(prof.muenzen) + " · ⭐ " + sterneSumme(prof) + "</span></button>";
+    });
+    html += '<button type="button" class="wahl-karte zu-zweit" data-zuzweit="1">' +
+            '<span class="wahl-paar">' + C.kinder.map(function (k) {
+              return '<img src="' + kindBild(k.id, 70, 70, "freude", true) + '" alt="">';
+            }).join("") + "</span>" +
+            '<span class="wahl-name">Zu zweit</span><span class="wahl-info">👻 Geisterrennen</span></button>';
+    var el = $("spielerwahl-karten");
+    el.innerHTML = html;
+    el.querySelectorAll(".wahl-karte").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.init(); FF.Klang.spiele("klick");
+        if (b.dataset.zuzweit) {
+          spielModus = "duell";
+          FF.Klang.sprich("Geisterrennen zu zweit!");
+        } else {
+          spielModus = "solo";
+          setzeAktiv(b.dataset.kind);
+          speichere();
+          FF.Klang.sprich("Hallo " + kindDef(b.dataset.kind).name + "!");
+        }
+        zeigeMenue("fahren");
+      });
+    });
   }
 
   var aktiverTab = "fahren";
   function zeigeMenue(tab) {
     modus = "menue";
-    fahrt = null;
     zeigeBildschirm("menue");
+    $("tab-knopf-fahren").textContent = spielModus === "duell" ? "👫 Rennen" : "🏁 Fahren";
     waehleTab(tab || aktiverTab);
     kontoAktualisieren();
   }
@@ -638,27 +806,35 @@
       $("tab-" + t).hidden = t !== tab;
       $("tab-knopf-" + t).classList.toggle("aktiv", t === tab);
     });
-    if (tab === "fahren") baueWelten();
-    else { garageIndex = indexVon(S.fahrzeug); baueGarage(); }
+    var duo = spielModus === "duell";
+    $("fahrzeug-leiste").hidden = duo;
+    $("welten-liste").hidden = duo;
+    $("duell-lobby").hidden = !duo;
+    $("garage-kinder").hidden = !duo;
+    $("konto").hidden = duo && tab === "fahren";       // in der Lobby zeigt jedes Kind seine Münzen selbst
+    if (tab === "fahren") { if (duo) baueLobby(); else baueWelten(); }
+    else { garageIndex = indexVon(P.fahrzeug); baueGarage(); }
+    kontoAktualisieren();
     groesseAnpassen();
   }
   document.querySelectorAll(".tab").forEach(function (t) {
     t.addEventListener("click", function () { FF.Klang.spiele("klick"); waehleTab(t.dataset.tab); });
   });
 
-  function kontoAktualisieren() { $("konto-wert").textContent = zahl(S.muenzen); }
+  function kontoAktualisieren() { $("konto-wert").textContent = zahl(P.muenzen); }
   $("konto").addEventListener("click", function () {
-    popover("🪙 " + zahl(S.muenzen) + " Münzen<small>Damit kaufst du in der Garage neue Teile, Farben und Fahrzeuge.</small>");
+    popover("🪙 " + zahl(P.muenzen) + " Münzen von " + kindDef(S.aktiv).name +
+            "<small>Damit kaufst du in der Garage neue Teile, Farben, Outfits und Fahrzeuge.</small>");
   });
 
   function baueFahrzeugLeiste() {
     var el = $("fahrzeug-leiste");
-    var html = '<button type="button" class="fiete-chip" data-garage="1" aria-label="Fietes Outfit ändern">' +
-               '<img src="' + fieteBild(44, 44, "normal", true) + '" alt="Fiete"></button>' +
-               '<span class="fahrzeug-leiste-titel">Fahrzeug:</span>';
+    var html = '<button type="button" class="fiete-chip wechsel" data-wahl="1" aria-label="Wer fährt? Kind wechseln">' +
+               '<img src="' + kindBild(S.aktiv, 44, 44, "normal", true) + '" alt="' + kindDef(S.aktiv).name + '"></button>' +
+               '<span class="fahrzeug-leiste-titel">' + kindDef(S.aktiv).name + " fährt:</span>";
     C.fahrzeuge.forEach(function (f) {
-      if (!S.fahrzeuge[f.id].gekauft) return;
-      html += '<button type="button" class="fz-chip' + (S.fahrzeug === f.id ? " aktiv" : "") + '" data-fz="' + f.id + '">' +
+      if (!P.fahrzeuge[f.id].gekauft) return;
+      html += '<button type="button" class="fz-chip' + (P.fahrzeug === f.id ? " aktiv" : "") + '" data-fz="' + f.id + '">' +
               '<span class="fz-emoji">' + f.emoji + "</span>" + f.name + "</button>";
     });
     html += '<button type="button" class="fz-chip" data-garage="1"><span class="fz-emoji">🔧</span>Garage</button>';
@@ -666,8 +842,9 @@
     el.querySelectorAll(".fz-chip, .fiete-chip").forEach(function (b) {
       b.addEventListener("click", function () {
         FF.Klang.spiele("klick");
+        if (b.dataset.wahl) { zeigeSpielerwahl(); return; }
         if (b.dataset.garage) { waehleTab("garage"); return; }
-        S.fahrzeug = b.dataset.fz; speichere(); baueFahrzeugLeiste();
+        P.fahrzeug = b.dataset.fz; speichere(); baueFahrzeugLeiste();
       });
     });
   }
@@ -697,7 +874,7 @@
         html += '<button type="button" class="' + kl + '" data-welt="' + wi + '" data-level="' + li + '" aria-label="Level ' + (li + 1) + '">' +
                 (o ? li + 1 : "🔒") + '<span class="level-sterne">' + st + "</span></button>";
       }
-      var eo = endlosOffen(wi), best = S.endlos[w.id] || 0;
+      var eo = endlosOffen(wi), best = P.endlos[w.id] || 0;
       html += '<button type="button" class="level-knopf endlos' + (eo ? "" : " gesperrt") + '" data-welt="' + wi + '" data-endlos="1" aria-label="Endlos fahren">' +
               (eo ? "♾️" : "🔒") + "<small>" + (eo ? (best ? zahl(best) + " m" : "Endlos") : "Endlos") + "</small></button>";
       html += "</div></div>";
@@ -708,7 +885,7 @@
         var wi = +b.dataset.welt, li = +(b.dataset.level || 0), endlos = !!b.dataset.endlos;
         if (endlos ? !endlosOffen(wi) : !levelOffen(wi, li)) {
           FF.Klang.spiele("fehler");
-          b.classList.remove("wackelt"); void b.offsetWidth; b.classList.add("wackelt");
+          wackeln(b);
           popover(endlos ? "🔒 Schaffe zuerst Level 1 dieser Welt!" : "🔒 Schaffe zuerst das Level davor!");
           return;
         }
@@ -719,7 +896,290 @@
   }
 
   /* =========================================================================
-     10) GARAGE: Fahrzeuge, Tuning, Farben, Muster
+     10) GEISTERRENNEN ZU ZWEIT
+     Ablauf: Lobby (Autos + Strecke) → wer fängt an (wählen oder würfeln) →
+     Übergabe → Fahrt 1 (wird aufgezeichnet) → Übergabe → Fahrt 2 gegen den
+     Geist → Siegerehrung → Revanche (andere Reihenfolge).
+     ========================================================================= */
+  function stueckOffen(wi, li, endlos) {
+    return C.kinder.some(function (k) {
+      var p = S.spieler[k.id];
+      return endlos ? endlosOffen(wi, p) : levelOffen(wi, li, p);
+    });
+  }
+
+  function siegStand() {
+    var a = C.kinder[0], b = C.kinder[1];
+    return "🏆 " + a.name + " " + (S.duell.siege[a.id] || 0) + " : " + (S.duell.siege[b.id] || 0) + " " + b.name;
+  }
+
+  function baueLobby() {
+    var D = S.duell;
+    if (!stueckOffen(D.welt, D.stufe, D.endlos)) { D.welt = 0; D.stufe = 0; D.endlos = false; }
+    $("duell-spielerwahl").innerHTML = C.kinder.map(function (k) {
+      return '<img src="' + kindBild(k.id, 40, 40, "normal", true) + '" alt="">';
+    }).join("");
+    $("duell-stand").textContent = siegStand();
+
+    // Die beiden Kinder mit ihren Autos
+    $("duell-spieler").innerHTML = C.kinder.map(function (k) {
+      var prof = S.spieler[k.id];
+      var autos = C.fahrzeuge.filter(function (f) { return prof.fahrzeuge[f.id].gekauft; }).map(function (f) {
+        return '<button type="button" class="fz-chip' + (prof.fahrzeug === f.id ? " aktiv" : "") + '" data-kind="' + k.id + '" data-fz="' + f.id + '">' +
+               '<span class="fz-emoji">' + f.emoji + "</span>" + f.name + "</button>";
+      }).join("");
+      return '<div class="duell-kind">' +
+             '<img class="duell-kind-bild" src="' + kindBild(k.id, 80, 88, "normal") + '" alt="">' +
+             '<div class="duell-kind-info"><b>' + k.name + '</b><span>🪙 ' + zahl(prof.muenzen) + "</span>" +
+             '<button type="button" class="klein-knopf" data-garage-kind="' + k.id + '">🔧 ' + genitiv(k.name) + " Garage</button></div>" +
+             '<div class="duell-autos">' + autos + "</div></div>";
+    }).join("");
+    $("duell-spieler").querySelectorAll("[data-fz]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick");
+        S.spieler[b.dataset.kind].fahrzeug = b.dataset.fz; speichere(); baueLobby();
+      });
+    });
+    $("duell-spieler").querySelectorAll("[data-garage-kind]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick");
+        setzeAktiv(b.dataset.garageKind);
+        waehleTab("garage");
+      });
+    });
+
+    // Strecke: Welt + Level (offen, wenn EINES der Kinder es freigespielt hat)
+    $("duell-welten").innerHTML = C.welten.map(function (w, wi) {
+      var offen = stueckOffen(wi, 0, false);
+      return '<button type="button" class="welt-chip' + (D.welt === wi ? " aktiv" : "") + (offen ? "" : " gesperrt") +
+             '" data-welt="' + wi + '" style="--welt-farbe:' + w.farben.himmel[0] + '">' + w.emoji + " " + (offen ? w.name : "🔒") + "</button>";
+    }).join("");
+    $("duell-welten").querySelectorAll(".welt-chip").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var wi = +b.dataset.welt;
+        if (!stueckOffen(wi, 0, false)) { FF.Klang.spiele("fehler"); wackeln(b); popover("🔒 Diese Welt hat noch keiner von euch erreicht!"); return; }
+        FF.Klang.spiele("klick");
+        D.welt = wi; D.stufe = 0; D.endlos = false; speichere(); baueLobby();
+      });
+    });
+    var lv = "";
+    for (var li = 0; li < 3; li++) {
+      var o = stueckOffen(D.welt, li, false);
+      lv += '<button type="button" class="level-knopf' + (!D.endlos && D.stufe === li ? " gewaehlt" : "") + (o ? "" : " gesperrt") +
+            '" data-level="' + li + '">' + (o ? li + 1 : "🔒") + "</button>";
+    }
+    var eo = stueckOffen(D.welt, 0, true);
+    lv += '<button type="button" class="level-knopf endlos' + (D.endlos ? " gewaehlt" : "") + (eo ? "" : " gesperrt") +
+          '" data-endlos="1">' + (eo ? "♾️" : "🔒") + "<small>Wer kommt weiter?</small></button>";
+    $("duell-level").innerHTML = lv;
+    $("duell-level").querySelectorAll(".level-knopf").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var endlos = !!b.dataset.endlos, li = +(b.dataset.level || 0);
+        if (!stueckOffen(D.welt, li, endlos)) {
+          FF.Klang.spiele("fehler"); wackeln(b);
+          popover(endlos ? "🔒 Schafft zuerst Level 1 dieser Welt!" : "🔒 Dieses Level hat noch keiner von euch geschafft!");
+          return;
+        }
+        FF.Klang.spiele("klick");
+        D.endlos = endlos; D.stufe = endlos ? 0 : li; speichere(); baueLobby();
+      });
+    });
+
+    // Wer fährt zuerst? Selbst wählen oder würfeln
+    $("duell-start").innerHTML = C.kinder.map(function (k) {
+      return '<button type="button" class="start-knopf" data-erster="' + k.id + '">' +
+             '<img src="' + kindBild(k.id, 52, 52, "freude", true) + '" alt=""><span>' + k.name + "</span></button>";
+    }).join("") + '<button type="button" class="start-knopf wuerfel-knopf" data-wuerfeln="1"><span class="wuerfel-icon">🎲</span><span>Würfeln</span></button>';
+    $("duell-start").querySelectorAll(".start-knopf").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.init(); FF.Klang.spiele("klick");
+        if (b.dataset.wuerfeln) wuerfeln();
+        else starteDuell(b.dataset.erster);
+      });
+    });
+  }
+  $("duell-spielerwahl").addEventListener("click", function () { FF.Klang.spiele("klick"); zeigeSpielerwahl(); });
+
+  /* Garage im Duell: zwischen den Kindern umschalten */
+  function baueGarageKinder() {
+    var el = $("garage-kinder");
+    el.innerHTML = '<span class="garage-kinder-titel">Wessen Garage?</span>' + C.kinder.map(function (k) {
+      return '<button type="button" class="garage-kind' + (S.aktiv === k.id ? " aktiv" : "") + '" data-kind="' + k.id + '">' +
+             '<img src="' + kindBild(k.id, 40, 40, "normal", true) + '" alt="">' + k.name + "</button>";
+    }).join("") + '<button type="button" class="garage-kind zurueck" data-zurueck="1">👫 Zum Rennen</button>';
+    el.querySelectorAll(".garage-kind").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick");
+        if (b.dataset.zurueck) { waehleTab("fahren"); return; }
+        setzeAktiv(b.dataset.kind);
+        garageIndex = indexVon(P.fahrzeug);
+        baueGarage(); kontoAktualisieren();
+      });
+    });
+  }
+
+  /* Würfeln: Jedes Kind würfelt, die höhere Zahl fängt an (bei Gleichstand nochmal) */
+  var AUGEN = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  function wuerfelHtml(wert) {
+    var s = "";
+    for (var i = 0; i < 9; i++) s += '<span class="' + (AUGEN[wert].indexOf(i) >= 0 ? "an" : "") + '"></span>';
+    return s;
+  }
+  var wuerfelLaeuft = false;
+  function wuerfeln() {
+    if (wuerfelLaeuft) return;
+    wuerfelLaeuft = true;
+    $("wuerfel-reihe").innerHTML = C.kinder.map(function (k) {
+      return '<div class="wuerfel-spalte"><img src="' + kindBild(k.id, 60, 60, "normal", true) + '" alt="">' +
+             '<span class="wuerfel-name">' + k.name + '</span><div class="wuerfel rollt" id="wuerfel-' + k.id + '">' + wuerfelHtml(1) + "</div></div>";
+    }).join("");
+    $("wuerfel-text").textContent = "Die Würfel rollen …";
+    oeffneModal("wuerfeln");
+    FF.Klang.sprich("Wer fängt an?");
+    var runde = function () {
+      var t0 = performance.now(), werte = {};
+      var tick = setInterval(function () {
+        C.kinder.forEach(function (k) {
+          werte[k.id] = 1 + Math.floor(Math.random() * 6);
+          var w = $("wuerfel-" + k.id);
+          w.innerHTML = wuerfelHtml(werte[k.id]);
+          w.classList.add("rollt");
+        });
+        FF.Klang.spiele("zaehlen");
+        if (performance.now() - t0 > 1300) {
+          clearInterval(tick);
+          C.kinder.forEach(function (k) { $("wuerfel-" + k.id).classList.remove("rollt"); });
+          FF.Klang.spiele("stern", 1);
+          var a = C.kinder[0], b = C.kinder[1];
+          if (werte[a.id] === werte[b.id]) {
+            $("wuerfel-text").textContent = "Beide " + werte[a.id] + " – nochmal! 🎲";
+            setTimeout(runde, 1100);
+            return;
+          }
+          var erster = werte[a.id] > werte[b.id] ? a : b;
+          $("wuerfel-text").innerHTML = "<b>" + erster.name + "</b> würfelt die " + werte[erster.id] + " und fängt an! 🎉";
+          FF.Klang.sprich(erster.name + " fängt an!");
+          setTimeout(function () {
+            schliesseModal("wuerfeln");
+            wuerfelLaeuft = false;
+            starteDuell(erster.id);
+          }, 1900);
+        }
+      }, 90);
+    };
+    runde();
+  }
+
+  function starteDuell(erster) {
+    var D = S.duell;
+    duell = { welt: D.welt, stufe: D.stufe, endlos: D.endlos, reihenfolge: [erster, anderesKind(erster)],
+              runde: 0, aufnahme: null, ergebnisse: [] };
+    zeigeUebergabe();
+  }
+
+  function ergebnisText(e) {
+    return e.ziel ? "🏁 " + sekunden(e.zielZeit) : "📏 " + zahl(e.strecke) + " m";
+  }
+
+  /* "Jetzt ist … dran!" – damit das Gerät in Ruhe weitergegeben werden kann */
+  function zeigeUebergabe() {
+    var kid = duell.reihenfolge[duell.runde], name = kindDef(kid).name;
+    var erster = kindDef(duell.reihenfolge[0]).name, zweiter = kindDef(duell.reihenfolge[1]).name;
+    var vorher = $("uebergabe-vorher");
+    if (duell.runde === 1) {
+      var e0 = duell.ergebnisse[0];
+      vorher.innerHTML = "<b>" + erster + "</b> ist fertig: " + ergebnisText(e0) + " · 🪙 +" + zahl(e0.gesamt);
+      vorher.hidden = false;
+    } else vorher.hidden = true;
+    $("uebergabe-bild").src = kindBild(kid, 140, 150, "freude");
+    $("uebergabe-titel").textContent = "👉 " + name + " ist dran!";
+    $("uebergabe-text").textContent = duell.runde === 0
+      ? "Danach fährt " + zweiter + " gegen deinen Geist 👻"
+      : "Fahr gegen " + genitiv(erster) + " Geist 👻 – " + (duell.endlos ? "wer kommt weiter?" : "wer ist schneller?");
+    $("knopf-uebergabe-los").textContent = "▶️ Los, " + name + "!";
+    oeffneModal("uebergabe");
+    FF.Klang.sprich(name + " ist dran!");
+  }
+  $("knopf-uebergabe-los").addEventListener("click", function () {
+    if (!duell) return;
+    FF.Klang.init(); FF.Klang.spiele("klick");
+    schliesseModal("uebergabe");
+    setzeAktiv(duell.reihenfolge[duell.runde]);
+    starteFahrt(duell.welt, duell.stufe, duell.endlos);
+  });
+  $("knopf-uebergabe-abbruch").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    schliesseModal("uebergabe");
+    duell = null;
+    zeigeMenue("fahren");
+  });
+
+  function duellRundeFertig() {
+    var e = fahrt.ergebnis();
+    fahrt.gutgeschrieben = true;
+    verbucheFahrt(e, P);
+    duell.ergebnisse[duell.runde] = e;
+    if (duell.runde === 0) {
+      aufnahme.abschliessen(fahrt, ausdruck);
+      duell.aufnahme = aufnahme;
+      duell.runde = 1;
+      FF.Klang.motorStopp();
+      zeigeUebergabe();
+    } else {
+      FF.Klang.motorStopp();
+      zeigeDuellErgebnis();
+    }
+  }
+
+  function zeigeDuellErgebnis() {
+    var r = duell.reihenfolge, e = duell.ergebnisse;
+    var sieger = FF.Geist.vergleiche(e[0], e[1]);           // 0, 1 oder -1 (unentschieden)
+    var bonus = C.regeln.siegBonus, plus = [e[0].gesamt, e[1].gesamt];
+    if (sieger >= 0) {
+      S.spieler[r[sieger]].muenzen += bonus; plus[sieger] += bonus;
+      S.duell.siege[r[sieger]] = (S.duell.siege[r[sieger]] || 0) + 1;
+    } else {
+      [0, 1].forEach(function (i) { S.spieler[r[i]].muenzen += Math.round(bonus / 2); plus[i] += Math.round(bonus / 2); });
+    }
+    speichere();
+
+    var titel = sieger < 0 ? "🤝 Unentschieden!" : "🏆 " + kindDef(r[sieger]).name + " gewinnt!";
+    $("duell-ergebnis-titel").textContent = titel;
+    var reihe = sieger === 1 ? [1, 0] : [0, 1];               // Sieger links
+    $("duell-podest").innerHTML = reihe.map(function (i) {
+      var gewonnen = sieger === i || sieger < 0, k = kindDef(r[i]);
+      return '<div class="podest-platz' + (sieger === i ? " sieger" : "") + '">' +
+             (sieger === i ? '<span class="podest-krone">👑</span>' : "") +
+             '<img src="' + kindBild(k.id, 110, 120, gewonnen ? "freude" : "normal") + '" alt="">' +
+             '<b class="podest-name">' + k.name + "</b>" +
+             '<span class="podest-wert">' + ergebnisText(e[i]) + "</span>" +
+             '<span class="podest-muenzen">🪙 +' + zahl(plus[i]) + "</span>" +
+             '<span class="podest-lob">' + (sieger === i ? "Sieger! 🎉" : (sieger < 0 ? "Gleich gut! 🤝" : "Super gekämpft! 💪")) + "</span></div>";
+    }).join("");
+    $("duell-ergebnis-stand").textContent = siegStand();
+    oeffneModal("duell-ergebnis");
+    FF.Klang.spiele("ziel");
+    konfetti(80);
+    FF.Klang.sprich(sieger < 0 ? "Unentschieden! Ihr seid beide super!" : kindDef(r[sieger]).name + " gewinnt! Super gemacht, ihr beiden!");
+  }
+
+  $("knopf-revanche").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    schliesseModal("duell-ergebnis");
+    starteDuell(duell.reihenfolge[1]);                        // diesmal fängt das andere Kind an
+  });
+  $("knopf-duell-strecke").addEventListener("click", function () {
+    FF.Klang.spiele("klick"); schliesseModal("duell-ergebnis"); duell = null; zeigeMenue("fahren");
+  });
+  $("knopf-duell-garage").addEventListener("click", function () {
+    FF.Klang.spiele("klick"); schliesseModal("duell-ergebnis"); duell = null; zeigeMenue("garage");
+  });
+  $("knopf-duell-menue").addEventListener("click", function () {
+    FF.Klang.spiele("klick"); schliesseModal("duell-ergebnis"); zeigeSpielerwahl();
+  });
+
+  /* =========================================================================
+     11) GARAGE: Fahrzeuge, Tuning, Outfit, Farben, Muster (je Kind)
      ========================================================================= */
   var garageIndex = 0;
   function indexVon(id) { for (var i = 0; i < C.fahrzeuge.length; i++) if (C.fahrzeuge[i].id === id) return i; return 0; }
@@ -731,8 +1191,8 @@
   }
 
   function kaufe(preis, aktion, el) {
-    if (S.muenzen >= preis) {
-      S.muenzen -= preis;
+    if (P.muenzen >= preis) {
+      P.muenzen -= preis;
       aktion();
       speichere();
       FF.Klang.spiele("kauf");
@@ -742,9 +1202,9 @@
       return true;
     }
     FF.Klang.spiele("fehler");
-    if (el) { el.classList.remove("wackelt"); void el.offsetWidth; el.classList.add("wackelt"); }
-    popover("Dir fehlen noch 🪙 " + zahl(preis - S.muenzen) + "<small>Fahr los und sammle Münzen! 🏁</small>");
-    FF.Klang.sprich("Dir fehlen noch " + Math.ceil(preis - S.muenzen) + " Münzen.");
+    wackeln(el);
+    popover("Dir fehlen noch 🪙 " + zahl(preis - P.muenzen) + "<small>Fahr los und sammle Münzen! 🏁</small>");
+    FF.Klang.sprich("Dir fehlen noch " + Math.ceil(preis - P.muenzen) + " Münzen.");
     return false;
   }
 
@@ -765,7 +1225,8 @@
   }
 
   function baueGarage() {
-    var def = C.fahrzeuge[garageIndex], fs = S.fahrzeuge[def.id];
+    if (spielModus === "duell") baueGarageKinder();
+    var def = C.fahrzeuge[garageIndex], fs = P.fahrzeuge[def.id], name = kindDef(S.aktiv).name;
     $("fz-name").textContent = def.emoji + " " + def.name;
     $("fz-nummer").textContent = (garageIndex + 1) + " / " + C.fahrzeuge.length;
     $("fz-text").textContent = def.text;
@@ -777,11 +1238,11 @@
     var aktion = $("fz-aktion");
     aktion.className = "aktion-knopf";
     if (fs.gekauft) {
-      if (S.fahrzeug === def.id) { aktion.textContent = "✅ Ausgewählt"; aktion.classList.add("ausgewaehlt"); }
+      if (P.fahrzeug === def.id) { aktion.textContent = "✅ Ausgewählt"; aktion.classList.add("ausgewaehlt"); }
       else aktion.textContent = "👉 Damit fahren";
     } else {
       aktion.textContent = "🪙 " + zahl(def.preis) + " – Kaufen";
-      aktion.classList.add(S.muenzen >= def.preis ? "kaufen" : "zu-teuer");
+      aktion.classList.add(P.muenzen >= def.preis ? "kaufen" : "zu-teuer");
     }
 
     // Tuning
@@ -791,7 +1252,7 @@
       var preis = voll ? 0 : upgradePreis(def, key, stufe);
       var punkte = "";
       for (var i = 0; i < U.stufen; i++) punkte += '<span class="' + (i < stufe ? "an" : "") + '"></span>';
-      var knopfKlasse = "upgrade-kaufen" + (voll ? " voll" : (S.muenzen < preis ? " zu-teuer" : ""));
+      var knopfKlasse = "upgrade-kaufen" + (voll ? " voll" : (P.muenzen < preis ? " zu-teuer" : ""));
       var knopfText = !fs.gekauft ? "🔒" : (voll ? "MAX ✓" : "🪙 " + zahl(preis));
       html += '<div class="upgrade-karte' + (fs.gekauft ? "" : " gesperrt") + '">' +
               '<span class="upgrade-icon">' + U.icon + '</span><span class="upgrade-name">' + U.name + "</span>" +
@@ -811,7 +1272,7 @@
     // Farben
     var fl = $("farb-liste");
     fl.innerHTML = C.farben.map(function (f) {
-      var hat = S.farben.indexOf(f.id) >= 0;
+      var hat = P.farben.indexOf(f.id) >= 0;
       var bg = f.wert === "regenbogen" ? "conic-gradient(#ff5b5b,#ffd23f,#3cc35a,#2f6fd6,#8e5bd8,#ff5b5b)"
              : f.glanz ? "linear-gradient(135deg,#c9962a,#fff6c8,#d9a83a)" : f.wert;
       return '<button type="button" class="farb-knopf' + (fs.farbe === f.id ? " aktiv" : "") + (hat ? "" : " gesperrt") +
@@ -820,8 +1281,8 @@
     fl.querySelectorAll(".farb-knopf").forEach(function (b) {
       b.addEventListener("click", function () {
         var f = farbWert(b.dataset.farbe);
-        if (S.farben.indexOf(f.id) < 0) {
-          kaufe(f.preis, function () { S.farben.push(f.id); fs.farbe = f.id; }, b);
+        if (P.farben.indexOf(f.id) < 0) {
+          kaufe(f.preis, function () { P.farben.push(f.id); fs.farbe = f.id; }, b);
           return;
         }
         FF.Klang.spiele("klick");
@@ -829,39 +1290,40 @@
       });
     });
 
-    // Fietes Outfit (gilt für alle Fahrzeuge) – nur Bilder, keine Namen
+    // Outfit (gilt für alle Fahrzeuge) – nur Bilder, keine Namen
+    $("outfit-titel").textContent = "🦸 " + genitiv(name) + " Outfit";
     var ol = $("outfit-liste");
     ol.innerHTML = C.outfits.map(function (o, i) {
-      var hat = S.outfits.indexOf(o.id) >= 0;
-      return '<button type="button" class="outfit-knopf' + (S.outfit === o.id ? " aktiv" : "") + (hat ? "" : " gesperrt") +
+      var hat = P.outfits.indexOf(o.id) >= 0;
+      return '<button type="button" class="outfit-knopf' + (P.outfit === o.id ? " aktiv" : "") + (hat ? "" : " gesperrt") +
              '" data-outfit="' + o.id + '" aria-label="Outfit ' + (i + 1) + '">' +
-             '<img src="' + fieteBild(76, 84, "normal", false, o.id) + '" alt="">' +
+             '<img src="' + kindBild(S.aktiv, 76, 84, "normal", false, o.id) + '" alt="">' +
              (hat ? "" : '<span class="preis">🪙' + zahl(o.preis) + "</span>") + "</button>";
     }).join("");
     ol.querySelectorAll(".outfit-knopf").forEach(function (b) {
       b.addEventListener("click", function () {
         var o = outfitWert(b.dataset.outfit);
-        if (S.outfits.indexOf(o.id) < 0) {
-          kaufe(o.preis, function () { S.outfits.push(o.id); S.outfit = o.id; }, b);
+        if (P.outfits.indexOf(o.id) < 0) {
+          kaufe(o.preis, function () { P.outfits.push(o.id); P.outfit = o.id; }, b);
           return;
         }
         FF.Klang.spiele("klick");
-        S.outfit = o.id; speichere(); baueGarage();
+        P.outfit = o.id; speichere(); baueGarage();
       });
     });
 
     // Muster
     var ml = $("muster-liste");
     ml.innerHTML = C.muster.map(function (m) {
-      var hat = S.muster.indexOf(m.id) >= 0;
+      var hat = P.muster.indexOf(m.id) >= 0;
       return '<button type="button" class="muster-knopf' + (fs.muster === m.id ? " aktiv" : "") + '" data-muster="' + m.id + '">' +
              m.icon + " " + m.name + (hat ? "" : ' <span class="preis">🪙' + zahl(m.preis) + "</span>") + "</button>";
     }).join("");
     ml.querySelectorAll(".muster-knopf").forEach(function (b) {
       b.addEventListener("click", function () {
         var id = b.dataset.muster, m = C.muster.filter(function (x) { return x.id === id; })[0];
-        if (S.muster.indexOf(id) < 0) {
-          kaufe(m.preis, function () { S.muster.push(id); fs.muster = id; }, b);
+        if (P.muster.indexOf(id) < 0) {
+          kaufe(m.preis, function () { P.muster.push(id); fs.muster = id; }, b);
           return;
         }
         FF.Klang.spiele("klick");
@@ -879,18 +1341,18 @@
     garageIndex = (garageIndex + 1) % C.fahrzeuge.length; baueGarage();
   });
   $("fz-aktion").addEventListener("click", function () {
-    var def = C.fahrzeuge[garageIndex], fs = S.fahrzeuge[def.id];
+    var def = C.fahrzeuge[garageIndex], fs = P.fahrzeuge[def.id];
     if (fs.gekauft) {
       FF.Klang.spiele("klick");
-      S.fahrzeug = def.id; speichere(); baueGarage();
-      popover(def.emoji + " Du fährst jetzt mit dem " + def.name + "!", 1800);
+      P.fahrzeug = def.id; speichere(); baueGarage();
+      popover(def.emoji + " " + kindDef(S.aktiv).name + " fährt jetzt mit dem " + def.name + "!", 1800);
       return;
     }
-    kaufe(def.preis, function () { fs.gekauft = true; S.fahrzeug = def.id; }, $("fz-aktion"));
+    kaufe(def.preis, function () { fs.gekauft = true; P.fahrzeug = def.id; }, $("fz-aktion"));
   });
 
   /* =========================================================================
-     11) EINSTELLUNGEN, ELTERN-DIALOG, MODALS
+     12) EINSTELLUNGEN, ELTERN-DIALOG, MODALS
      ========================================================================= */
   function oeffneModal(id) { var m = $(id); m.classList.add("offen"); m.setAttribute("aria-hidden", "false"); }
   function schliesseModal(id) { var m = $(id); m.classList.remove("offen"); m.setAttribute("aria-hidden", "true"); }
@@ -926,10 +1388,11 @@
   function oeffneEinstellungen() { FF.Klang.init(); FF.Klang.spiele("klick"); einstellungenAnzeigen(); oeffneModal("einstellungen"); }
   $("knopf-einstellungen").addEventListener("click", oeffneEinstellungen);
   $("knopf-titel-einstellungen").addEventListener("click", oeffneEinstellungen);
+  $("knopf-spielerwahl-einstellungen").addEventListener("click", oeffneEinstellungen);
   ["einstellungen-zu", "einstellungen-fertig"].forEach(function (id) {
     $(id).addEventListener("click", function () {
       FF.Klang.spiele("klick"); schliesseModal("einstellungen");
-      if (modus === "menue") { baueWelten(); if (aktiverTab === "garage") baueGarage(); }
+      if (modus === "menue") waehleTab(aktiverTab);
     });
   });
 
@@ -944,14 +1407,14 @@
     $("eltern-antworten").querySelectorAll("button").forEach(function (knopf) {
       knopf.addEventListener("click", function () {
         if (+knopf.dataset.wert === loesung) {
-          S = neuerSpielstand(); speichere();
+          S = neuerSpielstand(); P = S.spieler[S.aktiv]; speichere();
+          bildCache = {};
           schliesseModal("eltern"); schliesseModal("einstellungen");
           einstellungenAnwenden();
-          popover("♻️ Alles zurückgesetzt – viel Spaß beim neuen Start!");
-          if (modus === "menue") zeigeMenue("fahren");
+          popover("♻️ Alles zurückgesetzt (beide Kinder) – viel Spaß beim neuen Start!");
+          if (modus === "menue" || modus === "wahl") zeigeSpielerwahl();
         } else {
-          var m = document.querySelector(".eltern-modal");
-          m.classList.remove("wackelt"); void m.offsetWidth; m.classList.add("wackelt");
+          wackeln(document.querySelector(".eltern-modal"));
           FF.Klang.spiele("fehler");
         }
       });
@@ -962,21 +1425,26 @@
 
   $("knopf-info").addEventListener("click", function () {
     FF.Klang.spiele("klick");
-    popover('<img class="popover-fiete" src="' + fieteBild(110, 120, "freude") + '" alt="Fiete">' +
+    var st = P.statistik;
+    popover('<img class="popover-fiete" src="' + kindBild(S.aktiv, 110, 120, "freude") + '" alt="">' +
             "<b>Fiete Flitzer</b><br>ein Spiel von JONFIE STUDIOS<small>Rechts Gas ➡️, links Bremse ⬅️. Sammle Münzen 🪙 und Benzin ⛽ – " +
-            "und mach Fietes Auto in der Garage 🔧 immer besser!<br>Gefahren: " + zahl(S.statistik.meter) + " m · Saltos: " + S.statistik.salti + "</small>", 5000);
+            "und mach dein Auto in der Garage 🔧 immer besser!<br>" + kindDef(S.aktiv).name + ": " + zahl(st.meter) +
+            " m gefahren · " + st.salti + " Saltos</small>", 5000);
   });
   $("hud-muenzen").addEventListener("click", function () { popover("🪙 Münzen in dieser Fahrt<small>Die darfst du immer behalten!</small>", 2000); });
   $("hud-tank").addEventListener("click", function () { popover("⛽ Dein Benzin<small>Sammle die roten Kanister, sonst bleibt das Auto stehen.</small>", 2400); });
 
   /* =========================================================================
-     12) TITEL + PWA
+     13) TITEL + PWA
      ========================================================================= */
+  var startGedrueckt = false;
   $("knopf-start").addEventListener("click", function () {
+    if (startGedrueckt) return;
+    startGedrueckt = true;
     FF.Klang.init(); einstellungenAnwenden(); FF.Klang.spiele("klick");
     var t = $("titelscreen");
     t.classList.add("aus");
-    setTimeout(function () { t.classList.remove("aus"); zeigeMenue("fahren"); }, 380);
+    setTimeout(function () { t.classList.remove("aus"); startGedrueckt = false; zeigeSpielerwahl(); }, 380);
   });
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
@@ -1005,16 +1473,16 @@
   })();
 
   /* =========================================================================
-     13) SPIELSCHLEIFE + START
+     14) SPIELSCHLEIFE + START
      ========================================================================= */
   function zeichneKleinCanvas(id) {
     var c = $(id);
     if (!c || !c.width) return;
     var g = c.getContext("2d");
     g.setTransform(1, 0, 0, 1, 0, 0);
-    var def = id === "vorschau" ? C.fahrzeuge[garageIndex] : FF.fahrzeugDef(S.fahrzeug);
+    var def = id === "vorschau" ? C.fahrzeuge[garageIndex] : FF.fahrzeugDef(P.fahrzeug);
     g.save(); g.scale(DPR, DPR);
-    FF.Grafik.zeichneVorschau(g, c.width / DPR, c.height / DPR, def, aussehenVon(def.id), zeit);
+    FF.Grafik.zeichneVorschau(g, c.width / DPR, c.height / DPR, def, aussehenVon(S.aktiv, def.id), zeit);
     g.restore();
   }
 
@@ -1027,6 +1495,8 @@
     if (modus === "fahrt" && fahrt) {
       if (!pausiert && !ergebnisOffen) {
         fahrt.aktualisiere(dt, eingabe);
+        if (aufnahme) aufnahme.erfasse(fahrt, ausdruck);
+        if (geist) { geist.obj.setzeZeit(fahrt.zeit); geistVergleich(); }
         verarbeiteEreignisse();
         if (!fahrt) return;
         fahrEffekte(dt);
@@ -1041,11 +1511,14 @@
       }
       partikel.aktualisiere(pausiert ? 0 : dt, fahrt.welt.schwerkraft);
       texteAktualisieren(pausiert ? 0 : dt);
+      if (himmelWelt !== fahrt.welt) { himmelWelt = fahrt.welt; canvas.style.background = FF.Grafik.himmelCss(himmelWelt); }
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       FF.Grafik.zeichneSzene(ctx, {
-        fahrt: fahrt, kamera: kamera, zeit: zeit, dt: pausiert ? 0 : dt,
+        fahrt: fahrt, kamera: kamera, zeit: zeit, dt: pausiert ? 0 : dt, dpr: DPR, himmelPerCss: true,
         partikel: partikel, texte: texte, wetter: wetter,
-        aussehen: aussehenVon(S.fahrzeug), ausdruck: ausdruck,
+        aussehen: aussehenVon(S.aktiv), ausdruck: ausdruck,
+        geist: geist ? { fz: geist.obj.fz, def: geist.obj.def, aussehen: geist.aussehen, ausdruck: geist.obj.ausdruck,
+                         hilfe: geist.obj.hilfe, name: geist.name } : null,
         kraefte: S.einstellungen.kraefte, instrumente: S.einstellungen.instrumente
       });
     } else if (modus === "menue" && aktiverTab === "garage") {
@@ -1057,17 +1530,24 @@
 
   einstellungenAnwenden();
   zeigeBildschirm("titel");
+  modus = "titel";
   groesseAnpassen();
   // Schriften laden, dann Canvas-Größen neu bestimmen (Layout kann sich ändern)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(groesseAnpassen);
   requestAnimationFrame(schleife);
 
-  // Für Tests in der Konsole
+  // Für Tests in der Konsole / Playwright
   FF.spiel = {
     get spielstand() { return S; },
-    starteFahrt: starteFahrt,
+    get profil() { return P; },
     get fahrt() { return fahrt; },
+    get duell() { return duell; },
+    get geist() { return geist; },
+    get modus() { return modus; },
+    starteFahrt: starteFahrt,
     zeigeMenue: zeigeMenue,
+    zeigeSpielerwahl: zeigeSpielerwahl,
+    setzeAktiv: setzeAktiv,
     setzeEingabe: function (g, b) { tasten.gas = !!g; tasten.bremse = !!b; eingabeAktualisieren(); }
   };
 })();

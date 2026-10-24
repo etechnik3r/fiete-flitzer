@@ -74,7 +74,9 @@ FF.CONFIG = {
     sterne2: 0.6,              // ab 60 % der Münzen (Wert) gibt es 2 Sterne
     sterne3: 0.9,              // ab 90 % 3 Sterne
     zielBonusBasis: 100,       // Ziel-Bonus = (Basis + Welt-Nr · Zuschlag) · Sterne
-    zielBonusZuschlag: 60
+    zielBonusZuschlag: 60,
+    siegBonus: 100,            // Geisterrennen zu zweit: Extra-Münzen für den Sieg (Unentschieden: die Hälfte für beide)
+    geistTakt: 1 / 20          // so oft [s] wird die Fahrt für den Geist aufgezeichnet
   },
 
   /* Schwierigkeit (Einstellungen): wirkt auf Hilfe, Tank und Luftsteuerung */
@@ -104,7 +106,7 @@ FF.CONFIG = {
   fahrzeuge: [
     {
       id: "flitzer", name: "Flitzer", emoji: "🚙", preis: 0, preisBasis: 120,
-      text: "Fietes flinker Buggy – kann von allem ein bisschen.",
+      text: "Der flinke Buggy – kann von allem ein bisschen.",
       masse: 240, groesse: { laenge: 2.9, hoehe: 1.0 },
       raeder: [
         { x: -1.05, y: -0.05, r: 0.42, masse: 18, antrieb: true },
@@ -271,6 +273,22 @@ FF.CONFIG = {
     { id: "flammen", name: "Flammen",   icon: "🔥", preis: 500 },
     { id: "blitze",  name: "Blitze",    icon: "⚡", preis: 600 },
     { id: "zielflagge", name: "Karo",   icon: "🏁", preis: 400 }
+  ],
+
+  /* -------------------------------------------------------------------------
+     6a) DIE KINDER – jedes hat ein eigenes Profil (Münzen, Garage, Outfit,
+     Fortschritt). Aussehen:
+       haut/hautRand, haar/haarDunkel, augen   Farben
+       frisur      "strubbel" (kurz, verwuschelt) | "lang" (bis zur Schulter)
+       groesse     so viel [m] sitzt der Kopf höher (größeres Kind)
+       breite      Faktor für Oberkörper, Arme und Gesicht (schlanker < 1)
+     Die Physik ist für beide gleich – nur das Aussehen unterscheidet sich.
+     ------------------------------------------------------------------------- */
+  kinder: [
+    { id: "fiete", name: "Fiete", haut: "#ffdcc4", hautRand: "#d99b78", haar: "#f6d35e", haarDunkel: "#d29f2a",
+      augen: "#7b4a22", frisur: "strubbel", groesse: 0, breite: 1 },
+    { id: "jonte", name: "Jonte", haut: "#ffd9c0", hautRand: "#d69a7a", haar: "#8a5a32", haarDunkel: "#5c381b",
+      augen: "#6b3f1d", frisur: "lang", groesse: 0.09, breite: 0.86 }
   ],
 
   /* -------------------------------------------------------------------------

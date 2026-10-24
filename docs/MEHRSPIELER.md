@@ -2,7 +2,13 @@
 
 Ziel: Zwei Kinder fahren **gegeneinander** – am selben Gerät, im **gleichen
 WLAN** oder **übers Internet**. Dieses Dokument sammelt die Möglichkeiten,
-bewertet sie und schlägt einen Weg vor. Noch nichts davon ist umgesetzt.
+bewertet sie und schlägt einen Weg vor.
+
+> **Stand:** Umgesetzt ist das **Geisterrennen zu zweit auf einem Gerät**
+> (Teil von Stufe 1, siehe Abschnitt 4): `geist.js` zeichnet die erste Fahrt
+> auf und spielt sie in der zweiten als Geist ab. Dazu kommen Spielerwahl
+> (Fiete/Jonte), Lobby, Würfeln und Siegerehrung. Split-Screen und alles mit
+> Netz (Stufe 2 und 3) sind noch offen.
 
 ---
 
@@ -54,7 +60,7 @@ Beide Geräte verbinden sich mit einem kleinen Server, der die Nachrichten eines
 „Raums“ weiterreicht. Der Server rechnet keine Physik.
 - **Gleiches WLAN ohne Eintippen:** Der Server gruppiert Geräte mit derselben
   öffentlichen IP-Adresse (dasselbe Heimnetz). Im Spiel erscheint dann
-  „Mia ist in deinem WLAN – mitfahren?“. PairDrop/Snapdrop arbeiten nach
+  „Jonte ist in deinem WLAN – mitfahren?“. PairDrop/Snapdrop arbeiten nach
   diesem Prinzip.
 - **Übers Internet:** Raumcode aus **3 Bildern** (z. B. 🐶🍎🚗) statt Zahlen,
   damit Kinder ihn vorlesen bzw. antippen können. Bei 16 Bildern ergibt das
@@ -128,7 +134,7 @@ Sterne bewerten den Aufwand: mehr Sterne = weniger Aufwand.
 
 **Stufe 1 – ohne Netz (≈ 4–5 Tage):** **B + A**
 1. Geister-Rennen: gegen die eigene Bestzeit oder das Geschwisterkind
-   („Schlag Mias Zeit!“).
+   („Schlag Jontes Zeit!“).
 2. Split-Screen auf dem Tablet.
 
 Das ist sofort spielbar, braucht keine Infrastruktur und baut die Teile, die
@@ -155,7 +161,7 @@ erwarten: ≈ 1 kB/s pro Spieler.
 | `geist.js` (neu) | Fahrt aufzeichnen und abspielen. Kompaktes Format pro Abtastwert: `x`,`y` (Float32), Winkel (Int16), je Rad Federweg und Drehwinkel (je 1 Byte), Flags (Gesicht, Ballon-Hilfe). Interpolation zwischen den Abtastwerten. |
 | `netz.js` (neu) | Transport-Schicht mit einheitlicher Schnittstelle `verbinde(raum)`, `sende(nachricht)`, `beiNachricht(fn)`, `trenne()`. Umsetzungen: **BroadcastChannel** (zwei Browser-Tabs, ideal zum Testen am PC), **WebSocket**, später **WebRTC**. |
 | `mehrspieler.js` (neu) | Ablauf: Lobby → beide „Bereit“ → Countdown → Rennen → Ergebnis → „Nochmal?“ |
-| `grafik.js` | `zeichneSzene` zeichnet zusätzlich eine Liste von Geistern (halbdurchsichtig, eigenes Outfit und Fahrzeug), dazu einen Pfeil am Bildrand mit „Mia: 35 m vor dir“. Für Split-Screen wird zweimal in zwei Bildhälften gezeichnet. |
+| `grafik.js` | `zeichneSzene` zeichnet zusätzlich eine Liste von Geistern (halbdurchsichtig, eigenes Outfit und Fahrzeug), dazu einen Pfeil am Bildrand mit „Jonte: 35 m vor dir“. Für Split-Screen wird zweimal in zwei Bildhälften gezeichnet. |
 | `spiel.js` | Menüpunkt „👫 Zu zweit“, Lobby-Bildschirme, zweite Pedal-Gruppe für Split-Screen, Ergebnis mit beiden Zeiten. Die Fortschrittsleiste zeigt beide Fiete-Köpfe. |
 | `server/` (neu, Stufe 2) | ≈ 200 Zeilen: Räume, Bildercodes, Weiterleiten, „gleiches WLAN“ über die öffentliche IP, Raum-Ablauf nach 10 Minuten, max. 2 (oder 4) Spieler pro Raum. |
 
