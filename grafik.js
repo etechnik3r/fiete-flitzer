@@ -70,10 +70,11 @@ var FF = globalThis.FF = globalThis.FF || {};
      Browser den schnellen Kopierweg (gemessen: spart bei langsamen Geräten
      ein Sechstel der Bildzeit). Erwartet ctx nur mit q skaliert (zeichneSzene). */
   function zeichneEmoji(ctx, emoji, x, y, px, spiegeln, q) {
-    var c = emojiSprite(emoji, px, q);
+    // in Stufen vorgemalt, stufenlos verkleinert gezeichnet (kein Größensprung beim Zoomen)
+    var st = FF.Requisiten.stufe(px), c = emojiSprite(emoji, st, q), f = px / st;
     ctx.save();
-    ctx.setTransform(spiegeln ? -1 : 1, 0, 0, 1, Math.round(x * q), Math.round(y * q));
-    ctx.drawImage(c, -(c.width >> 1), -(c.height >> 1));
+    ctx.setTransform(spiegeln ? -f : f, 0, 0, f, x * q, y * q);
+    ctx.drawImage(c, -c.width / 2, -c.height / 2);
     ctx.restore();
   }
 
@@ -360,9 +361,11 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
   function zeichneBerge(ctx, K, welt, zeit, gel) {
     var f = welt.farben, ku = welt.kulisse || [], dunst = f.himmel[1];
-    var ebenen = [[0.06, mische(f.berge[0], dunst, 0.5), 0.47, 170, 5, 0.1, 0.2],
-                  [0.12, f.berge[0], 0.53, 120, 11, 0.12, 0.17],
-                  [0.28, f.berge[1], 0.64, 70, 23, 0.11, 0.13]];
+    // [Parallaxe, Farbe, Grundlinie, Wellenlänge, Zufall, Höhe, Silhouetten-Größe]
+    // Deutlich verschieden schnell: hinten ein Zwölftel, vorn fast halb so schnell wie die Strecke
+    var ebenen = [[0.08, mische(f.berge[0], dunst, 0.55), 0.46, 170, 5, 0.1, 0.2],
+                  [0.2, mische(f.berge[0], dunst, 0.15), 0.54, 120, 11, 0.12, 0.17],
+                  [0.42, dunkel(f.berge[1], 0.06), 0.65, 70, 23, 0.11, 0.13]];
     // Erst alle Umrisse berechnen: Jede Ebene wird nur bis knapp unter den tiefsten
     // Punkt der Ebene davor gemalt – sonst würden große Flächen doppelt gemalt
     var SCHRITT = 24, linien = [], tiefste = [], bodenTiefst = K.h;
@@ -508,8 +511,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       var d = D[i];
       if (d.x < x0 - 3 || d.x > x1 + 3) continue;
       var px = d.groesse * K.s;
-      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, d.y), px, d.spiegeln, q);
-      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.y) - px * 0.42, px, d.spiegeln, q);
+      // Am Hang: auf den tiefsten Bodenpunkt unter der ganzen Breite stellen – der Rest
+      // steckt im Boden (der danach drübergemalt wird), nichts hängt in der Luft
+      if (d.fuss === undefined) {
+        var hb = d.groesse * (d.typ ? FF.Requisiten.breite(d.typ) : 0.8) * 0.45;
+        d.fuss = Math.min(gel.hoeheBei(d.x - hb), gel.hoeheBei(d.x), gel.hoeheBei(d.x + hb), gel.hoeheBei(d.x - hb / 2), gel.hoeheBei(d.x + hb / 2));
+      }
+      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, d.fuss), px, d.spiegeln, q);
+      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.fuss) - px * 0.42, px, d.spiegeln, q);
     }
   }
 
@@ -1864,7 +1873,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   Wetter.prototype.setze = function (art, K) {
     this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
     if (!art) return;
-    var n = art === "sterne" ? 70 : art === "funken" ? 30 : art === "feuerwerk" ? 40 : art === "staub" ? 34 : 46;
+    // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
+    var n = art === "sterne" ? 70 : art === "feuerwerk" ? 40 : art === "schnee" ? 20 : art === "glitzer" ? 18 : 14;
     for (var i = 0; i < n; i++) {
       this.teile.push({ x: Math.random() * (K.b || 800), y: Math.random() * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }

@@ -516,8 +516,6 @@
   function sprite(typ, variante, px, q) {
     var M = MALER[typ];
     q = q || 1;
-    // Größen in Stufen von ~7 %: Beim Zoomen (Tempo) muss so fast nie neu gemalt werden
-    px = Math.max(8, Math.round(Math.pow(1.07, Math.round(Math.log(px) / Math.log(1.07)))));
     var nV = VARIANTEN[typ] || 4, v = variante % nV;
     var key = typ + "|" + v + "|" + px + "|" + q, c = cache[key];
     if (c) return c;
@@ -534,14 +532,21 @@
   }
 
   /* An Weltposition zeichnen: x/y = Bildschirmpunkt am Boden (CSS-Pixel), px = Höhe */
+  /* Größenstufe zum Vormalen: die nächste Stufe (×1,25) ÜBER der gewünschten Höhe.
+     Gezeichnet wird dann stufenlos verkleinert – so springt beim Zoomen (Tempo)
+     nichts, und es muss trotzdem kaum je neu gemalt werden. */
+  function stufe(px) { return Math.max(8, Math.ceil(Math.pow(1.25, Math.ceil(Math.log(Math.max(1, px)) / Math.log(1.25))) / 4) * 4); }
+
   function zeichne(ctx, typ, variante, x, y, px, spiegeln, q) {
-    var c = sprite(typ, variante, px, q);
-    var unten = Math.round((y + px * c.sinken) * q);
+    var st = stufe(px), c = sprite(typ, variante, st, q), f = px / st;
     ctx.save();
-    ctx.setTransform(spiegeln ? -1 : 1, 0, 0, 1, Math.round(x * q), unten);
-    ctx.drawImage(c, -(c.width >> 1), -c.height + 2);
+    ctx.setTransform(spiegeln ? -f : f, 0, 0, f, x * q, (y + px * c.sinken) * q);
+    ctx.drawImage(c, -c.width / 2, -c.height + 2);
     ctx.restore();
   }
 
-  FF.Requisiten = { zeichne: zeichne, sprite: sprite, arten: Object.keys(MALER), varianten: function (t) { return VARIANTEN[t] || 4; } };
+  /* Breite einer Requisite im Verhältnis zur Höhe (für den Stand am Hang) */
+  function breite(typ) { var M = MALER[typ]; return M ? M.breite : 1; }
+
+  FF.Requisiten = { zeichne: zeichne, sprite: sprite, breite: breite, stufe: stufe, arten: Object.keys(MALER), varianten: function (t) { return VARIANTEN[t] || 4; } };
 })();

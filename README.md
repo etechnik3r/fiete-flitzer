@@ -115,9 +115,13 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
   Der Hintergrund hat drei Ebenen (die hinterste im Dunst) mit Silhouetten je
   Welt (`welt.kulisse`: wald, tannen, tafelberg, stadt, kran, gipfel, vulkan,
   dschungel, brachio, riesenrad, bonbon, wolkenberg, stalagmiten).
-  **Rechenzeit**: Jede Variante wird einmal in ein kleines Bild gemalt und
-  danach nur kopiert. Größen sind in Stufen von 7 % gestaffelt, damit beim
-  Zoomen nicht neu gemalt werden muss. Jede Hintergrund-Ebene wird nur bis
+  Jede Requisite steht auf dem tiefsten Bodenpunkt unter ihrer Breite (am
+  Hang steckt der Rest im Boden, nichts schwebt). Die Ebenen ziehen
+  verschieden schnell vorbei (Parallaxe 0,08 / 0,2 / 0,42).
+  **Rechenzeit**: Jede Variante wird einmal in ein kleines Bild gemalt (in
+  Größenstufen ×1,25) und stufenlos verkleinert gezeichnet – beim Zoomen mit
+  dem Tempo springt so keine Größe, und es muss kaum neu gemalt werden.
+  Wetter-Teilchen (Schnee, Blätter, Funken …) sind bewusst wenige (14–20). Jede Hintergrund-Ebene wird nur bis
   knapp unter die Ebene davor gemalt (weniger Fläche), das Glühen der
   Vulkaninsel liegt im CSS-Hintergrund. Im direkten Vergleich bei 4×
   gedrosselter CPU ist das Spiel damit eher etwas schneller als vorher.

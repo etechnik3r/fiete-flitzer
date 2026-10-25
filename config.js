@@ -640,6 +640,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "12", titel: "Ruhiger und schöner", punkte: [
+      "🌵 Bäume, Kakteen und Felsen wackeln nicht mehr in der Größe, wenn das Auto schneller oder langsamer wird",
+      "⛰️ Am Hang hängt nichts mehr in der Luft: alles steht fest auf dem Boden",
+      "🏞️ Echte Tiefe: die Berge hinten ziehen langsam, die vorderen schneller vorbei",
+      "❄️ Weniger Schneeflocken, Blätter und Funken in der Luft – man sieht das Auto besser" ] },
     { version: "11", titel: "Urzeit und schönere Landschaften", punkte: [
       "🦕 Neue Welt Urzeit: Dinosaurier (Brachiosaurus, Stegosaurus, Triceratops, T-Rex) in vielen Farben, Farne und Dino-Nester",
       "🌋 Vulkaninsel neu: rauchende Vulkane im Hintergrund, Lavasteine mit glühenden Rissen, kleine Vulkankegel",
