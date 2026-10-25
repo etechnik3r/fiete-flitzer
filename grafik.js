@@ -613,172 +613,17 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* =========================================================================
-     DIE KINDER (siehe CONFIG.kinder). Beide schauen nach vorn (+x).
-       Fiete: blond, kurze verstrubbelte Haare (ca. 7 cm), braune Augen
-       Jonte: größer und schlanker, lange braune Haare, braune Augen
+     DIE KINDER: Gesicht, Haare, Brille und Varianten (Cap, Dutt …) zeichnet
+     kinder.js (FF.Kinder, nach einem Foto der echten Fiete und Jonte), die
+     Körpermaße stehen in CONFIG.kinder. Beide schauen nach vorn (+x).
      ausdruck: normal | freude | staunen
      ========================================================================= */
   function kindVon(aussehen) {
     return (aussehen && aussehen.kind) || FF.CONFIG.kinder[0];
   }
 
-  /* Kurze Strubbelhaare (Fiete) */
-  function zeichneStrubbelHaare(ctx, x, y, r, kind) {
-    var g = Math.PI / 180;
-    function p(w, rr) { return [x + Math.cos(w * g) * r * rr, y + Math.sin(w * g) * r * rr]; }
-    ctx.fillStyle = kind.haar; ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.022;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    var s = p(34, 1.02);
-    ctx.moveTo(s[0], s[1]);
-    // Pony: weiche Strähnen hängen in die Stirn (Spitze unten, Mulde oben)
-    [[[0.74, 0.4], [0.66, 0.6]], [[0.54, 0.4], [0.44, 0.62]], [[0.3, 0.42], [0.16, 0.64]]].forEach(function (q) {
-      ctx.quadraticCurveTo(x + r * q[0][0], y + r * q[0][1], x + r * (q[0][0] - 0.02), y + r * (q[0][1] - 0.02));
-      ctx.quadraticCurveTo(x + r * (q[0][0] - 0.06), y + r * (q[0][1] + 0.02), x + r * q[1][0], y + r * q[1][1]);
-    });
-    // innen am Kopf entlang zum Nacken (Ohr bleibt frei)
-    ctx.lineTo(x - r * 0.3, y + r * 0.3);
-    ctx.lineTo(x - r * 0.48, y + r * 0.02);
-    ctx.lineTo(x - r * 0.6, y - r * 0.5);
-    // außen: weiche Strubbel-Büschel vom Nacken über den Hinterkopf bis zur Stirn
-    var mulden = [236, 212, 188, 164, 140, 116, 92, 68, 46];
-    var m0 = p(mulden[0], 1.08);
-    ctx.lineTo(m0[0], m0[1]);
-    for (var i = 1; i < mulden.length; i++) {
-      var spitze = p((mulden[i - 1] + mulden[i]) / 2, i % 2 ? 1.44 : 1.38);
-      var mulde = p(mulden[i], i === mulden.length - 1 ? 1.04 : 1.12);
-      ctx.quadraticCurveTo(spitze[0], spitze[1], mulde[0], mulde[1]);
-    }
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Strähnen + Glanz
-    ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.018; ctx.lineCap = "round";
-    [[160, 0.62, 1.04], [128, 0.6, 1.08], [100, 0.62, 1.04]].forEach(function (q) {
-      var a = p(q[0], q[1]), b = p(q[0] + 9, q[2]);
-      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-    });
-    ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 0.03;
-    ctx.beginPath(); ctx.arc(x - r * 0.05, y + r * 0.1, r * 0.95, 102 * g, 138 * g); ctx.stroke();
-  }
-
-  /* Lange Haare (Jonte), Teil 1: fallen hinter dem Kopf bis auf die Schultern
-     und wehen bei Tempo nach hinten (wind 0..1). */
-  function zeichneLangeHaareHinten(ctx, x, y, r, kind, wind, zeit) {
-    var w = wind * 0.38 * r, u = wind * 0.3 * r, welle = Math.sin(zeit * 9) * 0.06 * r * wind;
-    ctx.fillStyle = kind.haar; ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.022;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(x + r * 0.1, y + r * 1.08);
-    ctx.quadraticCurveTo(x - r * 0.9, y + r * 1.18, x - r * 1.12, y + r * 0.2);
-    ctx.quadraticCurveTo(x - r * 1.28 - w, y - r * 0.6 + u, x - r * 1.18 - w + welle, y - r * 1.36 + u);
-    ctx.lineTo(x - r * 0.98 - w * 0.8, y - r * 1.14 + u * 0.8);
-    ctx.lineTo(x - r * 0.8 - w * 0.6 + welle, y - r * 1.34 + u * 0.6);
-    ctx.lineTo(x - r * 0.62 - w * 0.4, y - r * 1.06 + u * 0.4);
-    ctx.lineTo(x - r * 0.44 - w * 0.2, y - r * 1.2 + u * 0.2);
-    ctx.lineTo(x - r * 0.1, y - r * 0.6);
-    ctx.lineTo(x + r * 0.1, y + r * 0.2);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
-
-  /* Lange Haare (Jonte), Teil 2: Oberkopf, seitlicher Pony und Strähne über dem Ohr */
-  function zeichneLangeHaareVorne(ctx, x, y, r, kind) {
-    ctx.fillStyle = kind.haar; ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.022;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(x - r * 0.16, y - r * 0.8);
-    ctx.quadraticCurveTo(x + r * 0.1, y - r * 0.2, x + r * 0.06, y + r * 0.36);
-    ctx.quadraticCurveTo(x + r * 0.46, y + r * 0.44, x + r * 0.94, y + r * 0.3);
-    ctx.lineTo(x + r * 0.8, y + r * 0.52);
-    ctx.quadraticCurveTo(x + r * 0.62, y + r * 0.64, x + r * 0.48, y + r * 0.56);
-    ctx.quadraticCurveTo(x + r * 0.78, y + r * 0.96, x + r * 0.14, y + r * 1.13);
-    ctx.quadraticCurveTo(x - r * 0.76, y + r * 1.16, x - r * 1.06, y + r * 0.36);
-    ctx.quadraticCurveTo(x - r * 0.76, y - r * 0.36, x - r * 0.44, y - r * 0.84);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Strähnen + Glanz
-    ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.018; ctx.lineCap = "round";
-    [[[-0.2, 0.95], [-0.62, 0.2]], [[0.05, 1.0], [-0.3, 0.1]], [[-0.55, 0.75], [-0.85, 0.05]]].forEach(function (q) {
-      ctx.beginPath(); ctx.moveTo(x + r * q[0][0], y + r * q[0][1]);
-      ctx.quadraticCurveTo(x + r * (q[0][0] - 0.25), y + r * (q[0][1] - 0.3), x + r * q[1][0], y + r * q[1][1]); ctx.stroke();
-    });
-    ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 0.03;
-    ctx.beginPath(); ctx.arc(x - r * 0.1, y + r * 0.15, r * 0.88, 100 * Math.PI / 180, 140 * Math.PI / 180); ctx.stroke();
-  }
-
   function zeichneKind(ctx, x, y, r, ausdruck, raumhelm, kind, wind, zeit) {
-    kind = kind || FF.CONFIG.kinder[0];
-    var x0 = x, y0 = y;
-    var lang = kind.frisur === "lang";
-    var fb = 0.5 + 0.5 * kind.breite;                  // schlankeres Gesicht
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(fb, 1);
-    x = 0; y = 0;
-    ctx.lineJoin = "round"; ctx.lineCap = "round";
-    if (lang) zeichneLangeHaareHinten(ctx, x, y, r, kind, wind || 0, zeit || 0);
-    // Gesicht, Nase, Ohr
-    ctx.fillStyle = kind.haut; ctx.strokeStyle = kind.hautRand; ctx.lineWidth = 0.025;
-    ctx.beginPath(); ctx.ellipse(x, y, r, r * (lang ? 1.04 : 1), 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x + r * 0.93, y + r * 0.12);
-    ctx.quadraticCurveTo(x + r * 1.17, y - r * 0.02, x + r * 0.94, y - r * 0.15); ctx.fill(); ctx.stroke();
-    if (lang) {
-      zeichneLangeHaareVorne(ctx, x, y, r, kind);
-    } else {
-      ctx.fillStyle = kind.haut;
-      ctx.beginPath(); ctx.ellipse(x - r * 0.14, y - r * 0.1, r * 0.17, r * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x - r * 0.14, y - r * 0.1, r * 0.08, -1.2, 1.2); ctx.stroke();
-      zeichneStrubbelHaare(ctx, x, y, r, kind);
-    }
-    // Braune Augen (das hintere etwas kleiner – Dreiviertel-Ansicht)
-    [[x + r * 0.36, y + r * 0.08, 1], [x + r * 0.74, y + r * 0.09, 0.8]].forEach(function (a) {
-      var ax = a[0], ay = a[1], f = a[2];
-      if (ausdruck === "freude") {
-        ctx.strokeStyle = kind.augen; ctx.lineWidth = 0.035;
-        ctx.beginPath(); ctx.arc(ax, ay - r * 0.07, r * 0.12 * f, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
-        return;
-      }
-      var gr = ausdruck === "staunen" ? 1.2 : 1;
-      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = kind.hautRand; ctx.lineWidth = 0.014;
-      ctx.beginPath(); ctx.ellipse(ax, ay, r * 0.16 * f * gr, r * 0.21 * f * gr, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      var iris = ausdruck === "staunen" ? 0.1 : 0.125;
-      ctx.fillStyle = kind.augen;
-      ctx.beginPath(); ctx.arc(ax + r * 0.04 * f, ay - r * 0.02, r * iris * f, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#2b1a0e";
-      ctx.beginPath(); ctx.arc(ax + r * 0.055 * f, ay - r * 0.02, r * 0.055 * f, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath(); ctx.arc(ax + r * 0.09 * f, ay + r * 0.04, r * 0.035 * f, 0, Math.PI * 2); ctx.fill();
-    });
-    // Augenbrauen – beim Staunen hochgezogen
-    var hoch = ausdruck === "staunen" ? r * 0.07 : 0;
-    ctx.strokeStyle = kind.haarDunkel; ctx.lineWidth = 0.028;
-    ctx.beginPath(); ctx.moveTo(x + r * 0.27, y + r * 0.31 + hoch); ctx.quadraticCurveTo(x + r * 0.4, y + r * 0.37 + hoch, x + r * 0.52, y + r * 0.32 + hoch); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x + r * 0.66, y + r * 0.32 + hoch); ctx.quadraticCurveTo(x + r * 0.76, y + r * 0.37 + hoch, x + r * 0.85, y + r * 0.31 + hoch); ctx.stroke();
-    // Mund
-    ctx.strokeStyle = "#b0563f"; ctx.lineWidth = 0.03;
-    if (ausdruck === "staunen") {
-      ctx.fillStyle = "#b8323c";
-      ctx.beginPath(); ctx.ellipse(x + r * 0.66, y - r * 0.45, r * 0.08, r * 0.11, 0, 0, Math.PI * 2); ctx.fill();
-    } else if (ausdruck === "freude") {
-      ctx.fillStyle = "#b8323c";
-      ctx.beginPath(); ctx.moveTo(x + r * 0.38, y - r * 0.32);
-      ctx.quadraticCurveTo(x + r * 0.64, y - r * 0.78, x + r * 0.9, y - r * 0.3); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath(); ctx.moveTo(x + r * 0.44, y - r * 0.34); ctx.lineTo(x + r * 0.84, y - r * 0.32);
-      ctx.lineTo(x + r * 0.8, y - r * 0.4); ctx.lineTo(x + r * 0.48, y - r * 0.42); ctx.closePath(); ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.moveTo(x + r * 0.42, y - r * 0.36);
-      ctx.quadraticCurveTo(x + r * 0.63, y - r * 0.56, x + r * 0.86, y - r * 0.34); ctx.stroke();
-    }
-    // Bäckchen
-    ctx.fillStyle = "rgba(255,120,120,0.35)";
-    ctx.beginPath(); ctx.arc(x + r * 0.3, y - r * 0.27, r * 0.12, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    if (raumhelm) {
-      x = x0; y = y0;
-      ctx.fillStyle = "rgba(200,235,255,0.28)";
-      ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 0.04;
-      ctx.beginPath(); ctx.arc(x + r * 0.1, y + r * 0.1, r * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 0.05;
-      ctx.beginPath(); ctx.arc(x + r * 0.1, y + r * 0.1, r * 1.25, Math.PI * 0.55, Math.PI * 0.85); ctx.stroke();
-    }
+    FF.Kinder.zeichneKopf(ctx, x, y, r, ausdruck, raumhelm, kind || FF.CONFIG.kinder[0], wind || 0, zeit || 0);
   }
 
   /* Körpermaße des Kindes: schlanker = schmaler Oberkörper, größer = längerer
@@ -786,7 +631,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function koerperFuer(teile, kind) {
     var b = kind.breite, g = kind.groesse, k = teile.fahrerKoerper, ar = teile.arme;
     return {
-      haut: kind.haut,
+      haut: FF.Kinder.aussehenVon(kind).haut,
       fahrerKoerper: k ? [k[0] + k[2] * (1 - b) / 2, k[1], k[2] * b, k[3] + g] : null,
       arme: ar ? [ar[0], ar[1] + g * 0.8, ar[2], ar[3]] : null,
       armDicke: 0.09 * (0.4 + 0.6 * b),
@@ -1735,22 +1580,17 @@ var FF = globalThis.FF = globalThis.FF || {};
   var PORTRAIT_TEILE = { fahrerKoerper: [-0.3, -0.8, 0.6, 0.52], arme: [0.14, -0.38, 0.44, -0.1] };
   function zeichnePortrait(ctx, b, h, aussehen, ausdruck, zeit, nurKopf) {
     var o = outfitVon(aussehen), kind = kindVon(aussehen), g = kind.groesse;
-    var tk = koerperFuer(PORTRAIT_TEILE, kind), kp = { x: 0, y: g, r: KOPF_R }, s;
-    var lang = kind.frisur === "lang";
+    // Nur-Kopf-Bild (Fortschrittsleiste, Spielerwahl, Lobby): fester Rahmen aus kinder.js,
+    // beide Kinder gleich groß, Dutt und Cap passen hinein
+    if (nurKopf) { FF.Kinder.zeichneKopfbild(ctx, b, h, kind, ausdruck || "normal", zeit || 0); return; }
+    var tk = koerperFuer(PORTRAIT_TEILE, kind), kp = { x: 0, y: g, r: KOPF_R };
+    var s = Math.min(b / 1.2, h / (1.32 + g));
     ctx.save();
-    if (nurKopf) {
-      s = Math.min(b, h) / (lang ? 0.98 : 0.9);
-      ctx.translate(b / 2 + 0.05 * s, h / 2 + (g + (lang ? -0.03 : 0.07)) * s);
-    } else {
-      s = Math.min(b / 1.2, h / (1.32 + g));
-      ctx.translate(b / 2 + 0.08 * s, h / 2 - (0.18 - g / 2) * s);
-    }
+    ctx.translate(b / 2 + 0.08 * s, h / 2 - (0.18 - g / 2) * s);
     ctx.scale(s, -s);
-    if (!nurKopf) {
-      zeichneRuecken(ctx, o, tk, kp, KOPF_R, zeit || 0, 6);
-      zeichneAnzug(ctx, o, tk, kp, KOPF_R);
-    }
-    zeichneKind(ctx, 0, g, KOPF_R, ausdruck || "normal", false, kind, nurKopf ? 0 : 0.5, zeit || 0);
+    zeichneRuecken(ctx, o, tk, kp, KOPF_R, zeit || 0, 6);
+    zeichneAnzug(ctx, o, tk, kp, KOPF_R);
+    zeichneKind(ctx, 0, g, KOPF_R, ausdruck || "normal", false, kind, 0.5, zeit || 0);
     ctx.restore();
   }
 

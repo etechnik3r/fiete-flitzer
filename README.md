@@ -6,11 +6,13 @@ ca. 6 Jahren, gebaut nach dem Vorbild von *Hill Climb Racing*:
 Garage verbessern. Läuft im Browser, ist als **PWA installierbar** und auch
 offline spielbar.
 
-**Fiete** ist ein blonder Junge mit braunen Augen, verstrubbelten Haaren und
-Kleidung in Superhelden-Farben: blauer Anzug mit gelbem Stern und roter
-Umhang, der im Fahrtwind flattert. **Jonte** ist größer und etwas schmaler,
-hat braune Augen und lange braune Haare. Beide spielen allein oder
-**zu zweit im Geisterrennen** gegeneinander. Niemand kann sich **wehtun**. Bei einem
+**Fiete** ist ein rotblonder Junge mit braunen Augen und seitlich in die
+Stirn gekämmtem Pony, auf Wunsch mit schwarzer Baseball-Cap. **Jonte** ist
+größer und schlanker, hat hellbraune lange Haare (zum Dutt gebunden oder
+offen), braune Augen und eine runde schwarze Brille. Beide tragen Kleidung in
+Superhelden-Farben, zum Beispiel einen blauen Anzug mit gelbem Stern und einen
+roten Umhang, der im Fahrtwind flattert. Sie spielen allein oder **zu zweit
+im Geisterrennen** gegeneinander. Niemand kann sich **wehtun**. Bei einem
 Überschlag gibt es kein „Game Over“ und kein ekliges Geräusch. Stattdessen
 ruft das Spiel
 **„Hoppla!“**, ein Bündel Luftballons hebt das Auto hoch und stellt es wieder
@@ -38,8 +40,8 @@ Am schönsten spielt es sich im **Querformat**.
 |---|---|
 | Rechte Bildschirmhälfte / grünes Pedal / → ↑ D W | **Gas** |
 | Linke Bildschirmhälfte / rotes Pedal / ← ↓ A S | **Bremse**, im Stand **rückwärts** |
-| Gas in der Luft | Nase hoch (Rückwärts-Salto) |
-| Bremse in der Luft | Nase runter (Vorwärts-Salto) |
+| Gas in der Luft | Nase hoch (Rückwärts-Salto), auf dem Pedal erscheint ⤴ |
+| Bremse in der Luft | Nase runter (Vorwärts-Salto), auf dem Pedal erscheint ⤵ |
 | ⏸️ / Esc / P | Pause |
 | K (Tastatur) | Kräfte-Pfeile an/aus |
 
@@ -52,28 +54,54 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland.
-  Level 4 ist ein freiwilliges **🔥 Profi-Level**; die nächste Welt öffnet
-  sich schon nach Level 3.
+  Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
+  sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
+  Das Profi-Level gibt es als zweiten Knopf.
 - **Gelände, das Gefühl verlangt.** Ab Level 2 kommen große Bau-Elemente
   dazu, in späteren Welten auch schon früher:
-  - **Berge**, die so steil sind, dass das Auto bei Vollgas vorne abhebt und
-    sich nach hinten überschlägt.
+  - **Berge**, so steil, wie die Reifen in der Welt gerade noch halten:
+    Mit Vollgas hebt das Auto vorne ab und überschlägt sich nach hinten.
+  - **Steilrampen** (bis 50°, auf rutschigem Boden flacher) mit runder
+    Einfahrt: Wer mit Schwung hinauffährt, fliegt oben mit erhobener Nase ab
+    und muss in der Luft bremsen.
+  - **Scharfe Kuppen** vor einem steilen Abhang: Bei Tempo hebt das Auto ab
+    und landet zu flach auf dem Hang. Also vorher bremsen.
   - **Sprungschanzen** mit Abbruchkante und langem Landehang: In der Luft
     stellt man mit Gas (Nase hoch) und Bremse (Nase runter) den Winkel
     passend zum Hang ein.
-  - **Große Wellen**, auf denen das Auto bei Tempo hüpft.
-  - **Klippen**: Plateau, dann geht es senkrecht hinunter.
+  - **Stufen**, die das Vorderrad hochschlagen, **große Wellen**, auf denen
+    das Auto bei Tempo hüpft, und **Klippen** (Plateau, dann geht es
+    senkrecht hinunter: Nase mit Gas hochhalten).
+- **Bruchlandung 💥**: Landet das Auto nach einem Sprung viel zu schief zum
+  Hang (Normal: mehr als 40°, Profi: 38°), halten Achsen und Federbeine das
+  nicht aus. Dann hilft der Ballon, und das Spiel sagt, was geholfen hätte:
+  „Nase zu hoch, in der Luft bremsen!“ oder „Nase zu tief, in der Luft Gas
+  geben!“. Im Modus **Leicht** gibt es keine Bruchlandung.
+- **Hinweise zum Zuhören** für Kinder, die noch nicht lesen: beim ersten
+  Sprung „Gas hebt die Nase, Bremse senkt sie“, nach einem Überschlag am
+  Berg „Weniger Gas am Berg!“, auf dem Mond „nur sanft Gas geben“.
 
-  Wer einfach Vollgas hält, überschlägt sich oft (siehe Messung unten).
-- **Ballon-Hilfe** bei einem Überschlag: Der Ballon setzt das Auto auf die
-  nächste flachere Stelle, nicht mitten in einen Steilhang. Wer lange
-  festhängt, bekommt erst den Tipp „Fahr ein Stück zurück“ und dann ebenfalls
-  den Ballon. Beides kostet Benzin, aber kein Kind bleibt für immer stecken.
+  Wer einfach Vollgas hält oder in der Luft nur loslässt, kommt in den
+  meisten Leveln nicht ins Ziel (siehe Messung unten).
+- **Ballon-Hilfe** bei einem Überschlag oder einer Bruchlandung: Der Ballon
+  setzt das Auto auf eine flache Stelle in der Nähe, nie mitten in einen
+  Steilhang. Gibt es vorn keine, kommt es zurück an den Fuß des Hangs, damit
+  man Anlauf nehmen kann. Der Ballon ist also keine Abkürzung.
+- **Festgefahren?** Das Spiel misst den Fortschritt: Kommt das Auto trotz
+  Pedal nicht über seinen weitesten Punkt hinaus (zum Beispiel weil es immer
+  wieder den Hang hinunterrutscht), gibt es nach 3,5 s den Tipp „Nimm
+  Anlauf!“ und nach 8 s (Leicht: 6 s) trägt der Ballon das Auto über das
+  Hindernis. Hilfe kostet Benzin (Normal 20 %, Leicht 5 %, Profi 26 %), aber
+  kein Kind bleibt für immer stecken.
 - Jede Welt hat **eigene Physik**: Auf dem Mond gilt g = 1,62 m/s² (riesige
   Sprünge, keine Luft), auf Schnee ist der Reibwert klein, im Sand der
   Rollwiderstand groß, und im Bonbon-Land federt der Wackelpudding-Boden.
 - **Benzin ⛽** wird verbraucht. Rote Kanister füllen den Tank wieder auf.
-  Ist er leer, rollt das Auto aus, und die Fahrt endet.
+  Ist er leer, rollt das Auto aus, und die Fahrt endet. Die Kanister liegen
+  nach **Aufwand** verteilt: Bergauf kostet jeder Meter mehr Benzin, darum
+  liegen sie dort dichter. Und sie liegen nie dort, wo man drüberfliegt
+  (auf Kuppen oder hinter Schanzen), sondern in Mulden und auf flachen
+  Stücken.
 - **Münzen 🪙**: 5er am Boden, 10er als Bogen über Kuppen (nur mit Schwung
   erreichbar), 25er-Sterne-Münzen und **💎 100er-Diamanten** hinter Schanzen
   und auf Gipfeln.
@@ -122,19 +150,22 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | Fahrzeug | Preis | Charakter |
 |---|---|---|
 | 🚙 Flitzer | gratis | der flinke Buggy, kann von allem ein bisschen |
-| 🚜 Trecker | 2.000 | Bärenkraft (0→50 km/h in 2,9 s statt 4,2 s), etwas schneller als der Flitzer, aber mit Vollgas am Berg hebt er vorne ab und überschlägt sich, wie ein echter Traktor |
+| 🚜 Trecker | 2.000 | Bärenkraft (0→50 km/h in 3,0 s statt 4,3 s), etwas schneller als der Flitzer, aber mit Vollgas am Berg hebt er vorne ab und überschlägt sich, wie ein echter Traktor |
 | 🛵 Hüpf-Moped | 3.500 | federleicht, tolle Saltos, kippt schnell |
-| ⚡ E-Auto | 5.000 | leise und spritzig: volles Drehmoment aus dem Stand, schwerer Akku ganz unten, **Bremsen lädt den Akku** (Rekuperation), im Stand kein Verbrauch; sammelt grüne Batterien statt Kanister |
+| ⚡ E-Auto | 5.000 | leise und spritzig (0→50 km/h in 2,3 s): volles Drehmoment aus dem Stand, schwerer Akku ganz unten. **Bremsen und Rollen laden den Akku** (Rekuperation, beim Profi-Fahrer etwa 6–16 % Akku je Level), im Stand kein Verbrauch; sammelt grüne Batterien statt Kanister |
 | 🚌 Bummel-Bus | 7.000 | lang und schwer, kaum umzuwerfen, dreht sich in der Luft nur langsam (mit Tierkindern an Bord) |
 | 🛻 Monster-Max | 10.000 | gigantische Räder, Allrad, hoher Schwerpunkt |
 | 🏎️ Blitz-Rakete | 15.000 | superschnell, Heckflügel mit echtem Abtrieb |
-| 🚀 Mondmobil | 22.000 | sechs angetriebene Räder, superweiche Federn |
+| 🚀 Mondmobil | 22.000 | sechs angetriebene Räder, superweiche Federn, fährt mit Akku wie die echten Mondautos |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
 Federweg), ⛽ Tank (beim E-Auto 🔋 Akku). Bei manchen Fahrzeugen gibt es
 zusätzlich **4×4 Allrad**. In der Garage spielt **🔊 Motor anhören** den
 Klang jedes Fahrzeugs ab.
+**💇 Look** (gratis, jedes Kind hat seinen eigenen): Fiete ohne oder mit
+schwarzer Baseball-Cap, Jonte mit Dutt oder mit offenen Haaren. Der Look gilt
+überall, auch beim Geist im Duell.
 **🦸 Outfit** (jedes Kind hat sein eigenes): fünf Superhelden-Looks, die man nur an den Farben
 erkennt (ohne Namen, Buchstaben oder Logos): blau mit rotem Umhang, rot-blau
 mit Netz, grau mit gezacktem schwarzem Umhang, rot-gold mit leuchtendem Kreis,
@@ -153,16 +184,18 @@ kann sie dann für alle Fahrzeuge nutzen.
 - **Schwierigkeit**: 🐢 Leicht (sanfter Stabilisator, größerer Tank),
   🐇 Normal, 🚀 Profi (weniger Benzin, Hoppla kostet mehr)
 - 🔊 Töne · 🗣️ Vorlesen (für Kinder, die noch nicht lesen) · ⏱️ Tacho und
-  Drehzahlmesser
+  Drehzahlmesser (zeigt die Motordrehzahl und den Gang, wie man sie hört)
 - 🔬 **Kräfte**: zeigt beim Fahren Gewichtskraft (lila), Normalkräfte (grün) und
   Reibung/Antrieb (orange) als Pfeile
 - 📲 App installieren · ♻️ Spielstand zurücksetzen (mit einer Rechenaufgabe
   für Erwachsene gesichert)
 - 🛠️ **Versteckter Entwickler-Bereich** zum Testen: In den Einstellungen
-  unten **7× auf „Fiete Flitzer · Version …“ tippen**. Dann gibt es
-  „🪙 +10.000“ für beide Kinder und den Schalter „🔓 Alle Level“, der jede
-  Welt öffnet, ohne den Fortschritt zu verändern. „🙈 Verstecken“ blendet den
-  Bereich wieder aus.
+  unten **7× schnell auf „Fiete Flitzer · Version …“ tippen** und die
+  Rechenaufgabe für Erwachsene lösen. Es zählt nichts sichtbar mit, damit
+  Kinder ihn nicht zufällig finden. Dann gibt es „🪙 +10.000“ für beide
+  Kinder und den Schalter „🔓 Alle Level“, der jede Welt öffnet, ohne den
+  Fortschritt zu verändern. Solange er an ist, steht über den Welten ein
+  Hinweis mit „Ausschalten“. „🙈 Verstecken“ blendet den Bereich wieder aus.
 
 ## 🔊 Motorklang
 
@@ -182,11 +215,17 @@ Fahrzeug hat in `config.js` ein eigenes Klang-Profil.
   Sättigung und ein Tiefpass dazu, der mit der Drehzahl öffnet.
 - **Verbrennungsrauschen** im Takt der Druckstöße. Beim Diesel ist es kräftig
   („Nageln“).
-- Kleine **Unruhe** von Arbeitsspiel zu Arbeitsspiel, im Leerlauf mehr.
-- **Virtuelles Getriebe**: Der Gang richtet sich nach dem Fahrtempo, die
-  Drehzahl nach der Raddrehzahl. Man hört das Schalten. In der Luft dreht der
-  Motor in den Begrenzer („brrrap“), beim Gaswegnehmen wird er leiser. Beim
-  Start hört man den Anlasser.
+- Kleine **Unruhe** von Arbeitsspiel zu Arbeitsspiel, im Leerlauf mehr. Neu
+  ausgewürfelt wird je Arbeitsspiel, nicht je Bild, damit es auf 60-Hz- und
+  120-Hz-Bildschirmen gleich klingt.
+- **Virtuelles Getriebe** (`FF.Getriebe` in `fahrt.js`): Der Gang richtet
+  sich nach dem Fahrtempo, die Drehzahl nach der Raddrehzahl. Man hört das
+  Schalten, und der Drehzahlmesser zeigt genau diese Drehzahl und den Gang.
+  In der Luft dreht der Motor in den Begrenzer („brrrap“), beim Gaswegnehmen
+  wird er leiser, rückwärts zieht er wie vorwärts. Beim Start hört man den
+  Anlasser.
+- **🔊 Motor anhören** in der Garage: Der Motor läuft im Leerlauf, ohne Gang,
+  und man gibt zweimal kurz Gas.
 
 | Fahrzeug | Motor |
 |---|---|
@@ -198,17 +237,26 @@ Fahrzeug hat in `config.js` ein eigenes Klang-Profil.
 | Blitz-Rakete | hochdrehender 10-Zylinder, 6 Gänge |
 | E-Auto, Mondmobil | Elektromotor |
 
-**Elektro**:
+**Elektro** (leise, wie echte E-Autos):
 
-- Motor-Surren, dessen Ton mit der Drehzahl steigt.
+- Motor-Surren, dessen Ton mit der Drehzahl steigt und mit der Trägheit des
+  Rotors gleitet, statt zu springen.
 - Getriebe-Heulen.
 - Leises Umrichter-Pfeifen, das beim Anfahren in Stufen springt.
 - Unter 20 km/h ein weicher **Fußgänger-Warnklang (AVAS)**, wie ihn die
   EU-Verordnung 540/2014 für E-Autos vorschreibt.
 - Beim Mondmobil klingt es etwas „weltraumiger“.
 
-**Fahrgeräusche** für alle: Abrollen (nur mit Bodenkontakt) und Fahrtwind
-(∝ v²). Auf dem Mond gibt es keine Luft, also auch keinen Wind.
+**Fahrgeräusche** für alle: Abrollen und Reifenrauschen (nur mit
+Bodenkontakt) und Fahrtwind (∝ v²). Auf dem Mond gibt es keine Luft, also auch
+keinen Wind.
+
+Gemessen an einer echten Fahrt (Baustelle 2, Profi-Fahrer, 40 s, offline
+gerendert, A-bewertet): E-Auto −42,5 und Mondmobil −43,9 dB(A) sind zusammen
+mit dem Trecker (−42,6) die leisesten Fahrzeuge, der Flitzer liegt bei −38,6,
+Monster-Max mit −34,8 am lautesten. Mit einem einfachen Tablet-Lautsprecher-
+Modell (Hochpass 250 Hz) bleibt die Reihenfolge erhalten: E-Auto −42,5,
+Flitzer −40,1 dB(A).
 
 ## 🔬 Die Physik (für Große)
 
@@ -272,10 +320,14 @@ bleibt):
 
 **Strecke.** `gelaende.js` erzeugt das Höhenprofil so:
 
-1. Rauschen und Bau-Elemente (Schanzen, Buckel, Steilhänge, Täler) ergeben die
-   Rohhöhe.
+1. Rauschen und Bau-Elemente ergeben die Rohhöhe: Schanzen, Buckel,
+   Steilhänge, Täler, Berge, Sprünge, Wellen, Klippen, Steilrampen, Kuppen und
+   Stufen. Ab Level 2 kommen die großen Elemente häufiger und werden größer
+   (`wild` je Level, `wildBasis` je Welt).
 2. Ein **Slew-Rate-Begrenzer** stellt sicher, dass keine Steigung steiler als
-   `maxAuf` ist.
+   `maxAuf` ist. `maxAuf` hängt vom Level ab und ist nie steiler, als die
+   Reifen in der Welt halten (µ·0,85, plus 3° für Schwung). Nur Rampen,
+   Stufen und Abbruchkanten dürfen kurz steiler sein (bis 68°).
 3. Ein zweifacher **Tiefpass 1. Ordnung** (wie ein RC-Glied) rundet die Kanten
    ab.
 
@@ -300,7 +352,7 @@ Motorklang:
 - AVAS: Verordnung (EU) Nr. 540/2014, Anhang VIII (Warnklang bis ca.
   20 km/h), geändert durch (EU) 2017/1576
 - E-Antriebe: Umrichter-Taktfrequenz und Motor-Ordnungen, z. B. SAE 2020-01-1269
-  (8. Ordnung eines PMSM) und MATEC Web of Conf. 309, 03033 (2020)
+  (8. Ordnung eines PMSM, [saemobilus.sae.org](https://saemobilus.sae.org/content/2020-01-1269))
 
 Physik:
 
@@ -319,18 +371,21 @@ Physik:
 ## 🤖 Balancing ohne Browser
 
 `werkzeuge/testfahrt.js` lässt Roboter-Fahrer alle Level abfahren. Es gibt
-drei Fahrer:
+vier Fahrer:
 
 - **Profi** sagt in der Luft den Landepunkt voraus und stellt die Nase mit
   Gas/Bremse passend zum Hang. Er dosiert am Berg das Gas, bremst vor steilen
   Abhängen und nimmt Anlauf, wenn er festhängt.
 - **Kind** hält am Boden immer Vollgas und korrigiert in der Luft nur grob.
+- **Loslassen** hält am Boden Vollgas und lässt in der Luft alles los, bremst
+  also nie. Das ist die naheliegendste Strategie ohne Bremse.
 - **Vollgas** lässt das Gas nie los.
 
 ```bash
 node werkzeuge/testfahrt.js                       # Flitzer ohne Upgrades, Fahrer Profi
-node werkzeuge/testfahrt.js --vergleich --upgrade auto   # alle drei Fahrer je Level
+node werkzeuge/testfahrt.js --vergleich --upgrade auto   # alle vier Fahrer je Level
 node werkzeuge/testfahrt.js --kind                # Fahrer "Kind"
+node werkzeuge/testfahrt.js --loslassen           # Fahrer "Loslassen"
 node werkzeuge/testfahrt.js --vollgas             # Fahrer "Vollgas"
 node werkzeuge/testfahrt.js --upgrade 3           # alle Upgrades auf Stufe 3
 node werkzeuge/testfahrt.js --upgrade auto        # so viele Upgrades, wie man bis zur Welt etwa hat
@@ -341,34 +396,43 @@ node werkzeuge/testfahrt.js --geist               # Geisterrennen: Aufnahme, Wie
 ```
 
 Die Ausgabe zeigt je Level: Ziel erreicht oder Tank leer, Strecke, Münzen,
-Sterne, Überschläge und den niedrigsten Tankstand. Im Vergleich steht beim
+Sterne, Ballon-Hilfen und den niedrigsten Tankstand. Im Vergleich steht beim
 Profi außerdem, wie oft er abgehoben ist und wie viel Zeit er am Boden Gas
 weggenommen oder gebremst hat.
 
-**Messung** (Schwierigkeit Normal, Upgrades „auto“, 40 Level je Fahrzeug).
-Spalten: im Ziel bei Profi / Kind / Vollgas, dann Überschläge je Level bei
-Profi und bei Vollgas.
+**Messung** (Schwierigkeit Normal, Upgrades „auto“, 40 Level je Fahrzeug,
+`--vergleich` mit `--welt 0` … `--welt 9`). „im Ziel“ zählt Level, Ballon-Hilfen
+sind je Level gemittelt.
 
-| Fahrzeug | Profi | Kind | Vollgas | Überschläge Profi | Überschläge Vollgas |
-|---|---|---|---|---|---|
-| Flitzer | 40 | 33 | 11 | 0,03 | 2,5 |
-| Trecker | 39 | 30 | 20 | 0,06 | 7,1 |
-| Hüpf-Moped | 40 | 22 | 8 | 0 | 4,4 |
-| E-Auto | 40 | 37 | 22 | 0 | 2,7 |
-| Bummel-Bus | 39 | 39 | 31 | 0,1 | 1,8 |
-| Monster-Max | 39 | 29 | 21 | 0 | 3,4 |
-| Blitz-Rakete | 38 | 32 | 24 | 0,2 | 2,9 |
-| Mondmobil | 40 | 36 | 23 | 0 | 5,6 |
+| Fahrzeug | Profi im Ziel | Kind | Loslassen | Loslassen in Level 2–4 | Vollgas | Ballon-Hilfen Profi | Ballon-Hilfen Loslassen |
+|---|---|---|---|---|---|---|---|
+| Flitzer | 39 | 4 | 27 | 18 von 30 | 6 | 0,07 | 2,62 |
+| Trecker | 39 | 4 | 18 | 12 von 30 | 4 | 0,57 | 4,53 |
+| Hüpf-Moped | 39 | 2 | 22 | 15 von 30 | 2 | 0,15 | 2,98 |
+| E-Auto | 39 | 8 | 26 | 17 von 30 | 3 | 0,15 | 2,77 |
+| Bummel-Bus | 39 | 12 | 26 | 17 von 30 | 11 | 0,25 | 1,75 |
+| Monster-Max | 40 | 7 | 26 | 17 von 30 | 6 | 0,12 | 2,75 |
+| Blitz-Rakete | 39 | 9 | 26 | 17 von 30 | 3 | 0,30 | 1,98 |
+| Mondmobil | 40 | 3 | 27 | 18 von 30 | 3 | 0,00 | 2,15 |
 
-Wer gut fährt, kommt fast überall durch; wer nur Vollgas gibt, überschlägt
-sich oft und scheitert meistens. Die wenigen Lücken beim Profi sind
-🔥-Profi-Level mit unpassendem Fahrzeug (z. B. Rennwagen im Dschungel-Matsch).
-Im Modus **Leicht** kommt auch der Fahrer „Kind“ in allen 40 Leveln mit dem
-Flitzer ins Ziel. So bleibt kein Kind in einer Welt hängen.
-
-Zum Vergleich vorher (8 Welten × 3 Level): Der Trecker kam mit dem Fahrer
-„Kind“ (am Boden immer Vollgas) in 18 von 24 Leveln ins Ziel, und zwar in
-allen 18 ganz ohne Überschlag.
+- **Gas und Bremse braucht man wirklich.** Wer in der Luft nur loslässt,
+  kommt in den Leveln 2–4 mit jedem Fahrzeug in höchstens 60 % ins Ziel
+  (vor Bruchlandung, Steilrampen, Kuppen und Stufen waren es mit dem
+  Flitzer 38 von 40 Leveln). Er landet zu oft zu schief: Mit dem Flitzer sind 14,9 % seiner
+  693 Sprünge um mehr als 40° schief, beim Profi 0,4 % von 857.
+- **Der Profi bremst selten, aber im richtigen Moment.** Am Boden gibt er
+  94 % der Zeit Vollgas und bremst 6 %, in der Luft drückt er 16 % der Zeit
+  Gas und 5 % Bremse. Diese kurzen Stöße vor Kuppen, Abhängen und bei der
+  Landung machen den Unterschied zum Loslassen.
+- **Reines Vollgas** kommt nur in 2 bis 11 von 40 Leveln ins Ziel.
+- Die Lücken beim Profi sind ein Profi-Level oder ein Level auf dem Mond:
+  Dort geht ihm das Benzin knapp aus (z. B. Flitzer in Mondlandschaft 4,
+  Bus in Mondlandschaft 2, Trecker in Vulkaninsel 4).
+- Der Fahrer „Kind“ ist absichtlich schlecht (am Boden immer Vollgas). Für
+  Kinder gibt es den Modus **Leicht** (keine Bruchlandung, Hilfe kostet nur
+  5 % Benzin, größerer Tank, sanfter Stabilisator): Dort kommt der Fahrer
+  „Kind“ mit Flitzer und Trecker in allen 40 Leveln ins Ziel, mit den anderen
+  Fahrzeugen in 36–39.
 
 ## 🧪 Im Browser prüfen
 
@@ -385,17 +449,19 @@ node werkzeuge/browsertest.js layout --bilder fotos   # mit Bildschirmfotos
 | Prüfung | Was wird geprüft? |
 |---|---|
 | `ablauf` | Spielerwahl, Solo, getrennte Konten und Garagen, Lobby, Würfeln, Geisterrennen mit Roboter-Fahrer, Siegerehrung, Revanche |
-| `layout` | 17 Bildschirme in 6 Formaten (Handy quer/hoch, kleines Handy, Tablet quer/hoch, PC): Knöpfe mind. 44 px, erreichbar, ohne Überlappung, mit Namen; Fenster passen ohne Scrollen |
-| `robust` | kaputter, alter und unsinniger Spielstand, gesperrter Speicher (Privatmodus), Drehen während der Fahrt, App im Hintergrund, Neustart/Abbruch im Duell, Unentschieden, Endlos-Duell |
+| `layout` | 17 Bildschirme in 7 Formaten (Handy quer/hoch, kleines Handy quer, sehr schmales Handy mit 320 px, Tablet quer/hoch, PC): Knöpfe mind. 44 px, erreichbar, ohne Überlappung, mit Namen; Fenster passen ohne Scrollen |
+| `robust` | kaputter, alter (v1, v2 mit alter Welten-Reihenfolge: offene Welten bleiben offen) und unsinniger Spielstand, gesperrter Speicher (Privatmodus), Drehen während der Fahrt, App im Hintergrund, Neustart/Abbruch im Duell, Unentschieden, Endlos-Duell |
 | `offline` | Cache-Liste vollständig, Versionen passen, Service Worker aktiv, Spielen ohne Internet |
-| `inhalte` | Entwickler-Bereich, alle 40 Level starten, E-Auto mit Akku-Anzeige und Rekuperation, Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
+| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle 40 Level starten, nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
 | `leistung` | Bildrate normal und bei 4× gedrosselter CPU |
 
 Stand der Messung (Chromium ohne Grafikkarte, also ungünstigster Fall): ohne
 Drosselung durchgehend 60 Bilder/s. Bei 4× gedrosselter CPU (wie ein altes
-Tablet) ≈ 35 Bilder/s allein und ≈ 29 im Geisterrennen. Damit das so bleibt,
-liegt der Himmelsverlauf als CSS hinter dem Spielfeld, Deko-Emojis werden
-pixelgenau kopiert und der Geist wird in einer kleinen eigenen Ebene gemalt.
+Tablet) je nach Welt 27–33 Bilder/s allein und 24 im Geisterrennen. Die Werte
+schwanken stark mit dem Rechner und seiner Auslastung, ein anderer Rechner
+maß 18–26 Bilder/s. Damit es flüssig bleibt, liegt der Himmelsverlauf als CSS
+hinter dem Spielfeld, Deko-Emojis werden pixelgenau kopiert und der Geist
+wird in einer kleinen eigenen Ebene gemalt.
 
 ## 🗂️ Dateien: wo ändere ich was?
 
@@ -404,9 +470,10 @@ pixelgenau kopiert und der Geist wird in einer kleinen eigenen Ebene gemalt.
 | `config.js` | **Alle Stellschrauben**: Physik-Löser, Fahrzeuge (Masse, Federn, Motor, Umriss), Upgrades und Preise, Farben, Muster, Welten (Schwerkraft, Grip, Gelände, Kanister-Abstand, Deko). Hier zuerst schauen! |
 | `gelaende.js` | Strecken-Generator, Münzen, Kanister, Deko, Schilder |
 | `physik.js` | 2D-Fahrzeugphysik (Federn, Reifen, Motor, Kontakte) |
-| `fahrt.js` | Regeln einer Fahrt: Pedale, Tank, Saltos, Ballon-Hilfe, Ziel, Ergebnis |
+| `fahrt.js` | Regeln einer Fahrt: Pedale, Tank und Akku, Saltos, Bruchlandung, Ballon-Hilfe, Festgefahren-Hilfe, virtuelles Getriebe, Ziel, Ergebnis |
 | `geist.js` | Geisterrennen: Fahrt aufzeichnen, als Geist abspielen, Sieger bestimmen |
-| `grafik.js` | Zeichnen: Himmel, Parallax-Berge, Strecke, Fahrzeuge mit Fiete und Jonte, Geist, Partikel, Wetter, Kräfte-Pfeile, Tacho |
+| `kinder.js` | So sehen Fiete und Jonte aus: Gesicht, Haare, Brille und die Looks (Cap, Dutt), nach einem Foto der beiden. Steckbrief und Bilder: [`docs/KINDER.md`](docs/KINDER.md), Vorschau: `werkzeuge/kinder-vorschau.html` |
+| `grafik.js` | Zeichnen: Himmel, Parallax-Berge, Strecke, Fahrzeuge mit Fiete und Jonte (Körper und Outfit; den Kopf malt `kinder.js`), Geist, Partikel, Wetter, Kräfte-Pfeile, Tacho |
 | `klang.js` | Motorsound und Effekte per WebAudio, Vorlesen per Sprachsynthese |
 | `spiel.js` | Spielerwahl, Profile je Kind, Menüs, Garage, Geisterrennen-Ablauf (Lobby, Würfeln, Übergabe, Siegerehrung), Speicherstand (localStorage), Eingabe, Kamera, Spielschleife |
 | `index.html`, `style.css` | Bildschirme und Aussehen im JONFIE-STUDIOS-Stil |
@@ -421,14 +488,19 @@ Der Code ist durchgehend **auf Deutsch kommentiert**.
 
 In `config.js` einen Eintrag an `welten` anhängen. Dazu gehören Name, Emoji,
 Physik (Schwerkraft, Grip, Rollwiderstand, Abprall), Farben, Deko
-(`"🌳:2.8"` = Emoji und Größe in Metern), Gelände-Parameter und drei Level
-mit Länge und Seed.
+(`"🌳:2.8"` = Emoji und Größe in Metern), Gelände-Parameter (Gewichte der
+Bau-Elemente, `wildBasis`, Kanister-Abstand) und vier Level mit Länge und
+Seed (das vierte ist das Profi-Level). Alte Spielstände merken sich die
+Welten per Name, eine neue Welt dazwischen sperrt also nichts.
 
 ### Eigenes Fahrzeug bauen
 
 In `config.js` einen Eintrag an `fahrzeuge` anhängen (Masse, Räder,
-Federung, Motor, Umriss, Kopfposition). In `grafik.js` unter `KAROSSERIE`
-eine Zeichenfunktion mit dem Namen aus `form` ergänzen.
+Federung, Motor, Umriss, Kopfposition, Tank). Optional: `klang` (sonst klingt
+es wie der Flitzer), `akku` und `rekuperation` für einen Elektroantrieb,
+`leerlauf`, `eck`. Die Felder stehen oben im Abschnitt „Fahrzeuge“ erklärt. In
+`grafik.js` unter `KAROSSERIE` eine Zeichenfunktion mit dem Namen aus `form`
+ergänzen.
 
 ## 🌐 Ausblick: übers WLAN oder Internet
 

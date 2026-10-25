@@ -21,20 +21,18 @@
 <h1>Fiete und Jonte</h1>
 <p>Gezeichnet mit <code>kinder.js</code>, also genau so, wie sie im Spiel aussehen sollen.</p>
 <label><input type="checkbox" id="wind"> Fahrtwind</label>
-<canvas id="bild" width="1000" height="760"></canvas>
+<canvas id="bild" width="1300" height="760"></canvas>
 <script src="../kinder.js"></script>
 <script>
   "use strict";
   var K = FF.Kinder;
-  // Jonte mit offenen Haaren als zweite Variante zum Vergleich
-  K.AUSSEHEN.jonte_lang = Object.assign({}, K.AUSSEHEN.jonte, { frisur: "lang" });
-  var KINDER = [
-    { id: "fiete", name: "Fiete" },
-    { id: "jonte", name: "Jonte (Dutt)" },
-    { id: "jonte_lang", name: "Jonte (offen)" }
-  ];
+  // beide Kinder in allen Varianten (wie in der Garage unter „Look“)
+  var KINDER = [];
+  Object.keys(K.VARIANTEN).forEach(function (id) {
+    K.VARIANTEN[id].forEach(function (v) { KINDER.push({ id: id, variante: v.id, name: id.charAt(0).toUpperCase() + id.slice(1) + " (" + v.name + ")" }); });
+  });
   var c = document.getElementById("bild"), g = c.getContext("2d");
-  var B = 1000, H = 760, DPR = Math.min(2, window.devicePixelRatio || 1);
+  var B = 1300, H = 760, DPR = Math.min(2, window.devicePixelRatio || 1);
   c.width = B * DPR; c.height = H * DPR;
 
   // einfacher Oberkörper (Superhelden-Anzug), nur damit man die Größe einschätzen kann
@@ -61,7 +59,7 @@
     g.setTransform(DPR, 0, 0, DPR, 0, 0);
     g.clearRect(0, 0, B, H);
     KINDER.forEach(function (k, i) {
-      var x = 175 + i * 325;
+      var x = 160 + i * 325;
       // groß
       koerper(x, 150, 70, k.id === "fiete" ? 1 : 0.86);
       kopf(k, x, 150, 70, "normal", wind, zeit);
@@ -83,8 +81,8 @@
       g.strokeStyle = "rgba(30,44,82,0.25)"; g.lineWidth = 1;
       g.strokeRect(x - 90, 665, 40, 40); g.strokeRect(x - 30, 650, 70, 70);
     });
-    text("Kopfradius 8 / 11 px wie im Auto, 16 / 24 px wie in der Garage", 500, 512);
-    text("Kopfbilder 40 × 40 und 70 × 70 (Fortschrittsleiste, Menü)", 500, 748);
+    text("Kopfradius 8 / 11 px wie im Auto, 16 / 24 px wie in der Garage", 650, 512);
+    text("Kopfbilder 40 × 40 und 70 × 70 (Fortschrittsleiste, Menü)", 650, 748);
   }
 
   var start = performance.now();

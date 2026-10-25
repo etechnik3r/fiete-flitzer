@@ -15,7 +15,7 @@ var fs = require("fs");
 var { chromium } = require("playwright");
 
 var basis = path.join(__dirname, "..");
-var skripte = ["config.js", "gelaende.js", "physik.js", "fahrt.js", "grafik.js"]
+var skripte = ["config.js", "gelaende.js", "physik.js", "fahrt.js", "kinder.js", "grafik.js"]
   .map(function (d) { return fs.readFileSync(path.join(basis, d), "utf8"); }).join("\n;\n");
 
 function zeichneIcon(groesse) {

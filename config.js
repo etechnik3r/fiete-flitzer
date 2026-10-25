@@ -336,18 +336,16 @@ FF.CONFIG = {
 
   /* -------------------------------------------------------------------------
      6a) DIE KINDER – jedes hat ein eigenes Profil (Münzen, Garage, Outfit,
-     Fortschritt). Aussehen:
-       haut/hautRand, haar/haarDunkel, augen   Farben
-       frisur      "strubbel" (kurz, verwuschelt) | "lang" (bis zur Schulter)
+     Look, Fortschritt). Gesicht, Haare, Brille und die wählbaren Looks (Fiete
+     mit oder ohne Cap, Jonte mit Dutt oder offenen Haaren) stehen in kinder.js.
+     Hier nur die Körpermaße:
        groesse     so viel [m] sitzt der Kopf höher (größeres Kind)
        breite      Faktor für Oberkörper, Arme und Gesicht (schlanker < 1)
      Die Physik ist für beide gleich – nur das Aussehen unterscheidet sich.
      ------------------------------------------------------------------------- */
   kinder: [
-    { id: "fiete", name: "Fiete", haut: "#ffdcc4", hautRand: "#d99b78", haar: "#f6d35e", haarDunkel: "#d29f2a",
-      augen: "#7b4a22", frisur: "strubbel", groesse: 0, breite: 1 },
-    { id: "jonte", name: "Jonte", haut: "#ffd9c0", hautRand: "#d69a7a", haar: "#8a5a32", haarDunkel: "#5c381b",
-      augen: "#6b3f1d", frisur: "lang", groesse: 0.09, breite: 0.86 }
+    { id: "fiete", name: "Fiete", groesse: 0, breite: 1 },
+    { id: "jonte", name: "Jonte", groesse: 0.09, breite: 0.86 }
   ],
 
   /* -------------------------------------------------------------------------

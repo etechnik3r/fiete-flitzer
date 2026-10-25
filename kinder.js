@@ -22,8 +22,10 @@
      zeichneKopfbild(ctx, b, h, kind, ausdruck, zeit)
          Nur-Kopf-Bild in einem Rechteck b × h (Bildschirm-Pixel, y nach
          unten). Beide Kinder haben darin dieselbe Kopfgröße.
-     aussehenVon(kind)   Steckbrief-Daten des Kindes (Farben, Frisur …)
+     aussehenVon(kind)   Steckbrief-Daten des Kindes (Farben, Frisur …),
+                         mit kind.variante schon passend zur gewählten Variante
      AUSSEHEN            alle Steckbriefe, nach id
+     VARIANTEN           wählbare Varianten je Kind (Garage → „Look“), nach id
    =========================================================================== */
 
 var FF = globalThis.FF = globalThis.FF || {};
@@ -74,8 +76,43 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   };
 
-  // Ältere oder neue Einträge ohne Steckbrief: aus den CONFIG-Feldern ableiten
+  /* Varianten, die man in der Garage wählen kann („Look“). Die erste ist die
+     Grundform. Felder einer Variante ergänzen bzw. überschreiben den Steckbrief.
+       kappe   schwarze Baseball-Cap (Farben: Stoff, Schatten, Glanz, Schirm) */
+  var VARIANTEN = {
+    fiete: [
+      { id: "pony", name: "Ohne Cap", icon: "👦" },
+      { id: "cap", name: "Mit Cap", icon: "🧢",
+        kappe: { stoff: "#2b2b31", schatten: "#121216", glanz: "#5a5a66", schirm: "#1a1a1f" } }
+    ],
+    jonte: [
+      { id: "dutt", name: "Mit Dutt", icon: "🍩", frisur: "dutt" },
+      { id: "lang", name: "Haare offen", icon: "💇", frisur: "lang" }
+    ]
+  };
+  function varianteVon(id, vid) {
+    var L = VARIANTEN[id] || [];
+    for (var i = 0; i < L.length; i++) if (L[i].id === vid) return L[i];
+    return null;
+  }
+
+  // Steckbrief + gewählte Variante (zwischengespeichert, denn das läuft in jedem Bild)
+  var mitVariante = {};
   function aussehenVon(kind) {
+    var A = grundAussehen(kind), v = kind && kind.variante ? varianteVon(kind.id, kind.variante) : null;
+    if (!v || v === (VARIANTEN[kind.id] || [])[0]) return A;
+    var key = kind.id + "|" + v.id;
+    if (!mitVariante[key]) {
+      var M = {}, k;
+      for (k in A) M[k] = A[k];
+      for (k in v) if (k !== "id" && k !== "name" && k !== "icon") M[k] = v[k];
+      mitVariante[key] = M;
+    }
+    return mitVariante[key];
+  }
+
+  // Ältere oder neue Einträge ohne Steckbrief: aus den CONFIG-Feldern ableiten
+  function grundAussehen(kind) {
     if (kind && AUSSEHEN[kind.id]) return AUSSEHEN[kind.id];
     if (!kind || !kind.haar) return AUSSEHEN.fiete;
     return {
@@ -374,6 +411,41 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.strokeStyle = A.haarDunkel; ctx.lineWidth = lw; ctx.stroke();
   }
 
+  /* Schwarze Baseball-Cap (Fiete, Variante "cap"): Krone mit Nähten und Knopf,
+     Schirm zeigt nach vorne. Die Kappe sitzt auf dem Haar: Pony und Nacken
+     schauen darunter hervor. */
+  function zeichneKappe(ctx, K, lw, detail) {
+    var krone = [
+      [0.84, 0.48, true], [0.97, 0.72], [0.84, 1.03], [0.5, 1.25], [0.02, 1.33], [-0.46, 1.25],
+      [-0.85, 0.98], [-1.09, 0.6], [-1.12, 0.34, true], [-0.62, 0.33], [0.0, 0.38], [0.48, 0.44]
+    ];
+    ctx.beginPath(); kurve(ctx, krone, true);
+    ctx.fillStyle = radial(ctx, 0.45, 1.05, 1.9, [[0, K.glanz], [0.35, K.stoff], [1, K.schatten]]);
+    ctx.fill();
+    ctx.strokeStyle = K.schatten; ctx.lineWidth = lw; ctx.stroke();
+    if (detail) {
+      // Nähte vom Knopf zum Rand und das Verschlussband hinten
+      ctx.globalAlpha = 0.9 * detail; ctx.strokeStyle = K.schatten; ctx.lineWidth = lw * 0.5;
+      strich(ctx, [[0.02, 1.32], [0.5, 1.02], [0.74, 0.5]]);
+      strich(ctx, [[0.02, 1.32], [-0.18, 0.92], [-0.24, 0.38]]);
+      strich(ctx, [[0.02, 1.32], [-0.62, 1.0], [-0.86, 0.36]]);
+      ctx.beginPath(); ctx.ellipse(-0.98, 0.46, 0.1, 0.07, 0.3, Math.PI, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = lw * 0.9;
+      strich(ctx, [[-0.3, 1.24], [0.2, 1.28], [0.58, 1.12]]);
+      ctx.globalAlpha = 1;
+    }
+    // Knopf oben
+    ctx.fillStyle = K.stoff; ctx.strokeStyle = K.schatten; ctx.lineWidth = lw * 0.7;
+    ctx.beginPath(); ctx.ellipse(0.02, 1.35, 0.08, 0.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Schirm: leicht gebogen, Unterseite dunkler
+    var schirm = [[0.5, 0.5, true], [0.84, 0.57], [1.18, 0.55], [1.4, 0.45, true], [1.32, 0.37], [1.0, 0.36], [0.62, 0.42]];
+    ctx.beginPath(); kurve(ctx, schirm, true);
+    ctx.fillStyle = K.schirm; ctx.fill();
+    ctx.strokeStyle = K.schatten; ctx.lineWidth = lw; ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = lw * 0.8;
+    strich(ctx, [[0.72, 0.54], [1.04, 0.56], [1.3, 0.47]]);
+  }
+
   /* =========================================================================
      5) BRILLE – runde Gläser, kräftiger schwarzer Rahmen
      ========================================================================= */
@@ -429,7 +501,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneGesicht(ctx, A, lw);
     if (A.frisur === "pony") {
       zeichneOhr(ctx, A, -0.14, -0.12, lw);
-      haarePony(ctx, A, wind, zeit, lw, detail);
+      haarePony(ctx, A, A.kappe ? wind * 0.4 : wind, zeit, lw, detail);
+      if (A.kappe) zeichneKappe(ctx, A.kappe, lw, detail);
     } else {
       haarKappe(ctx, A, lw, detail, A.frisur === "lang" ? 1.07 : 1.04);
       if (A.frisur === "dutt") haareDutt(ctx, A, wind, lw, detail, "vorne");
@@ -456,7 +529,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* Nur der Kopf, eingepasst in ein Rechteck b × h (Pixel, y nach unten).
      Fester Rahmen für alle Kinder, damit beide gleich groß erscheinen. */
-  var RAHMEN = { links: -1.3, rechts: 1.24, oben: 1.34, unten: -1.3 };
+  var RAHMEN = { links: -1.3, rechts: 1.42, oben: 1.38, unten: -1.3 };      // rechts: Schirm der Cap
   function zeichneKopfbild(ctx, b, h, kind, ausdruck, zeit) {
     var R = RAHMEN, bw = R.rechts - R.links, bh = R.oben - R.unten;
     var s = Math.min(b / bw, h / bh);
@@ -469,6 +542,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   FF.Kinder = {
     AUSSEHEN: AUSSEHEN,
+    VARIANTEN: VARIANTEN,
     aussehenVon: aussehenVon,
     zeichneKopf: zeichneKopf,
     zeichneKopfbild: zeichneKopfbild

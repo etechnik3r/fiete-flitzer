@@ -53,6 +53,7 @@
       muster: ["keins"],
       outfit: C.outfits[0].id,
       outfits: [C.outfits[0].id],
+      look: null,                  // Variante aus kinder.js (z. B. Fiete mit Cap); null = Grundform
       level: {},
       endlos: {},
       freigeschaltet: [],          // Welten (ids), die offen bleiben – z. B. aus alten Spielständen
@@ -175,26 +176,47 @@
     return C.outfits[0];
   }
   /* Wie sieht das Auto eines Kindes aus (Lack, Muster, Outfit, Kind)? */
+  /* Look des Kindes (kinder.js: Fiete mit oder ohne Cap, Jonte mit Dutt oder
+     offenen Haaren). Gratis, gilt überall – auch für den Geist im Duell. */
+  function lookListe(kindId) { return FF.Kinder.VARIANTEN[kindId] || []; }
+  function lookVon(kindId) {
+    var L = lookListe(kindId), l = S.spieler[kindId].look;
+    for (var i = 0; i < L.length; i++) if (L[i].id === l) return l;
+    return L.length ? L[0].id : null;
+  }
+  var kindLookCache = {};
+  function kindMitLook(kindId, look) {
+    look = look || lookVon(kindId);
+    var key = kindId + "|" + look;
+    if (!kindLookCache[key]) {
+      var k = kindDef(kindId), m = {};
+      Object.keys(k).forEach(function (f) { m[f] = k[f]; });
+      m.variante = look;
+      kindLookCache[key] = m;
+    }
+    return kindLookCache[key];
+  }
+
   function aussehenVon(kindId, fzId) {
     var prof = S.spieler[kindId];
     fzId = fzId || prof.fahrzeug;
     var fs = prof.fahrzeuge[fzId] || {};
     var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
-    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindDef(kindId) };
+    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindMitLook(kindId) };
   }
 
   /* Kind als Bild (Brustbild oder nur Kopf) – gezeichnet mit denselben
      Funktionen wie im Auto, damit es überall gleich aussieht. */
   var bildCache = {};
-  function kindBild(kindId, b, h, ausdruck, nurKopf, outfitId) {
-    var o = outfitWert(outfitId || S.spieler[kindId].outfit);
-    var key = [kindId, b, h, ausdruck, nurKopf, o.id].join("|");
+  function kindBild(kindId, b, h, ausdruck, nurKopf, outfitId, look) {
+    var o = outfitWert(outfitId || S.spieler[kindId].outfit), kind = kindMitLook(kindId, look);
+    var key = [kindId, b, h, ausdruck, nurKopf, o.id, kind.variante].join("|");
     if (bildCache[key]) return bildCache[key];
     var c = document.createElement("canvas");
     c.width = b * 2; c.height = h * 2;
     var g = c.getContext("2d");
     g.scale(2, 2);
-    FF.Grafik.zeichnePortrait(g, b, h, { outfit: o, kind: kindDef(kindId) }, ausdruck, 0.4, nurKopf);
+    FF.Grafik.zeichnePortrait(g, b, h, { outfit: o, kind: kind }, ausdruck, 0.4, nurKopf);
     return (bildCache[key] = c.toDataURL());
   }
 
@@ -890,7 +912,9 @@
   function zeigeMenue(tab) {
     modus = "menue";
     zeigeBildschirm("menue");
-    $("tab-knopf-fahren").textContent = spielModus === "duell" ? "👫 Rennen" : "🏁 Fahren";
+    var tabFahren = spielModus === "duell" ? ["👫", "Rennen"] : ["🏁", "Fahren"];
+    $("tab-knopf-fahren").innerHTML = tabFahren[0] + '<span class="tab-wort"> ' + tabFahren[1] + "</span>";
+    $("tab-knopf-fahren").setAttribute("aria-label", tabFahren[1]);
     waehleTab(tab || aktiverTab);
     kontoAktualisieren();
   }
@@ -1395,6 +1419,22 @@
         }
         FF.Klang.spiele("klick");
         fs.farbe = f.id; speichere(); baueGarage();
+      });
+    });
+
+    // Look (gratis, gilt überall): Fiete mit oder ohne Cap, Jonte mit Dutt oder offenen Haaren
+    var looks = lookListe(S.aktiv), lookJetzt = lookVon(S.aktiv);
+    $("look-titel").textContent = "💇 " + genitiv(name) + " Look";
+    $("look-titel").hidden = $("look-liste").hidden = looks.length < 2;
+    $("look-liste").innerHTML = looks.map(function (v) {
+      return '<button type="button" class="outfit-knopf look-knopf' + (v.id === lookJetzt ? " aktiv" : "") +
+             '" data-look="' + v.id + '" aria-label="' + v.name + '">' +
+             '<img src="' + kindBild(S.aktiv, 70, 70, "freude", true, null, v.id) + '" alt=""></button>';
+    }).join("");
+    $("look-liste").querySelectorAll(".look-knopf").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick");
+        P.look = b.dataset.look; speichere(); baueGarage();
       });
     });
 

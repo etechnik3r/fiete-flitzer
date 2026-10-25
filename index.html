@@ -18,6 +18,7 @@
     gelaende.js Strecken-Generator
     physik.js   2D-Fahrzeugphysik (Federn, Reifen, Motor)
     fahrt.js    Spielregeln einer Fahrt
+    kinder.js   so sehen Fiete und Jonte aus (Gesicht, Haare, Looks)
     grafik.js   Zeichnen auf dem Canvas
     klang.js    Töne + Vorlesen
     spiel.js    Menüs, Garage, Speicherstand, Spielschleife
@@ -39,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 
 <body>
@@ -151,8 +152,8 @@
         <span class="marke-text">Fiete Flitzer</span>
       </button>
       <nav class="tabs" role="tablist">
-        <button type="button" class="tab aktiv" id="tab-knopf-fahren" data-tab="fahren" role="tab">🏁 Fahren</button>
-        <button type="button" class="tab" id="tab-knopf-garage" data-tab="garage" role="tab">🔧 Garage</button>
+        <button type="button" class="tab aktiv" id="tab-knopf-fahren" data-tab="fahren" role="tab" aria-label="Fahren">🏁<span class="tab-wort"> Fahren</span></button>
+        <button type="button" class="tab" id="tab-knopf-garage" data-tab="garage" role="tab" aria-label="Garage">🔧<span class="tab-wort"> Garage</span></button>
       </nav>
       <div class="top-rechts">
         <button type="button" class="chip konto-chip" id="konto" aria-label="Deine Münzen">
@@ -205,6 +206,8 @@
             <button type="button" class="aktion-knopf" id="fz-aktion">✅ Ausgewählt</button>
           </div>
           <div class="garage-werkstatt">
+            <h3 class="werkstatt-titel" id="look-titel">💇 Fietes Look</h3>
+            <div class="outfit-liste look-liste" id="look-liste"></div>
             <h3 class="werkstatt-titel" id="outfit-titel">🦸 Fietes Outfit</h3>
             <div class="outfit-liste" id="outfit-liste"></div>
             <h3 class="werkstatt-titel">🔧 Tuning</h3>
@@ -402,13 +405,14 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=5"></script>
-  <script src="gelaende.js?v=5"></script>
-  <script src="physik.js?v=5"></script>
-  <script src="fahrt.js?v=5"></script>
-  <script src="geist.js?v=5"></script>
-  <script src="grafik.js?v=5"></script>
-  <script src="klang.js?v=5"></script>
-  <script src="spiel.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="gelaende.js?v=6"></script>
+  <script src="physik.js?v=6"></script>
+  <script src="fahrt.js?v=6"></script>
+  <script src="geist.js?v=6"></script>
+  <script src="kinder.js?v=6"></script>
+  <script src="grafik.js?v=6"></script>
+  <script src="klang.js?v=6"></script>
+  <script src="spiel.js?v=6"></script>
 </body>
 </html>

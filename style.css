@@ -477,6 +477,10 @@ button { font: inherit; color: inherit; }
   .tab { padding: 5px 8px; font-size: 0.95rem; }
   .konto-chip { font-size: 1rem; padding-right: 8px; }
 }
+@media (max-width: 360px) {                        /* sehr schmale Handys: Reiter nur mit Symbol */
+  .tab-wort { display: none; }
+  .tab { min-width: 48px; padding: 5px 10px; font-size: 1.15rem; }
+}
 
 
 /* 9) FAHREN: Fahrzeug-Leiste + Welten-Karten --------------------------------- */
@@ -769,6 +773,19 @@ button { font: inherit; color: inherit; }
   .stern-gross { font-size: 2.1rem; }
   .ergebnis-liste li { padding: 2px 8px; font-size: 0.92rem; }
   .karte-titel { font-size: 1.5rem; margin-bottom: 2px; }
+}
+@media (orientation: portrait) and (max-height: 700px) {          /* kleine Handys hochkant */
+  .ergebnis-karte { padding: 12px 14px; }
+  .ergebnis-fiete { width: 72px; height: 78px; }
+  .ergebnis-icon { font-size: 1.6rem; right: -14px; }
+  .ergebnis-karte .karte-titel { font-size: 1.45rem; margin-bottom: 0; }
+  .ergebnis-sterne { margin: 0 0 2px; }
+  .stern-gross { font-size: 2rem; }
+  .ergebnis-liste li { padding: 1px 8px; font-size: 0.9rem; }
+  .ergebnis-liste b { font-size: 1rem; }
+  .ergebnis-summe { margin-top: 4px; font-size: 1.35rem; }
+  .ergebnis-karte .karte-hinweis { margin: 4px 0; font-size: 0.85rem; }
+  .ergebnis-knoepfe .gruen-knopf, .ergebnis-knoepfe .zweit-knopf { min-height: 44px; margin-top: 6px; }
 }
 
 .modal {

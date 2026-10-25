@@ -15,7 +15,7 @@
    Prüfungen:
      ablauf    Spielerwahl, Solo, getrennte Garagen, Lobby, Würfeln,
                Geisterrennen mit Roboter-Fahrer, Siegerehrung, Revanche
-     layout    alle Bildschirme in 6 Formaten (Handy quer/hoch, Tablet, PC):
+     layout    alle Bildschirme in 7 Formaten (Handy quer/hoch, 320 px, Tablet, PC):
                Knöpfe ≥ 44 px, erreichbar, ohne Überlappung, mit Namen;
                Dialoge passen ohne Scrollen
      robust    kaputter/alter/unsinniger Spielstand (v1, v2 mit alter Welten-
@@ -24,8 +24,9 @@
      offline   PWA: Cache-Liste, Service Worker, Spielen ohne Internet
      inhalte   Entwickler-Bereich (Elternsperre), alle Welten und Level startbar,
                Ergebnis nach Level 3 (neue Welt / Profi-Level), Hinweise in der
-               Luft und bei Bruchlandung, E-Auto (Akku, Rekuperation beim Bremsen
-               und Rollen), Motorklänge aller Fahrzeuge (offline gerendert)
+               Luft und bei Bruchlandung, Looks der Kinder (Cap, Dutt), E-Auto
+               (Akku, Rekuperation beim Bremsen und Rollen), Motorklänge aller
+               Fahrzeuge (offline gerendert)
      leistung  Bildrate normal und bei 4× gedrosselter CPU (nur Info)
 
    Voraussetzung: Playwright mit Chromium (npm i -D playwright &&
@@ -190,7 +191,7 @@ async function ablauf(browser) {
 /* =========================================================================
    LAYOUT
    ========================================================================= */
-var FORMATE = [["quer", 844, 390], ["kleinquer", 667, 375], ["hoch", 390, 844], ["tablet", 1024, 768], ["tablethoch", 768, 1024], ["desktop", 1440, 900]];
+var FORMATE = [["quer", 844, 390], ["kleinquer", 667, 375], ["hoch", 390, 844], ["schmal", 320, 568], ["tablet", 1024, 768], ["tablethoch", 768, 1024], ["desktop", 1440, 900]];
 
 /* Läuft im Browser: sucht Layout-Probleme auf der obersten Ebene (offenes Fenster oder Bildschirm) */
 function layoutProbleme() {
@@ -555,6 +556,26 @@ async function inhalte(browser) {
     return fehler;
   });
   pruef(!probleme.length, "alle " + (await page.evaluate(function () { return FF.CONFIG.welten.length * 4; })) + " Level starten und fahren", probleme);
+
+  // Looks aus kinder.js: Fiete mit/ohne Cap, Jonte mit Dutt/offenen Haaren – gratis, je Kind gespeichert
+  await page.evaluate(function () { FF.spiel.zeigeMenue("garage"); }); await page.waitForTimeout(200);
+  var look = await page.evaluate(function () {
+    var r = { knoepfe: Array.prototype.map.call(document.querySelectorAll("#look-liste .look-knopf"), function (b) { return b.dataset.look; }) };
+    document.querySelector('#look-liste .look-knopf[data-look="cap"]').click();
+    r.fiete = FF.spiel.profil.look;
+    r.kappe = !!FF.Kinder.aussehenVon({ id: "fiete", variante: FF.spiel.profil.look }).kappe;
+    FF.spiel.setzeAktiv("jonte"); FF.spiel.zeigeMenue("garage");
+    r.knoepfeJonte = Array.prototype.map.call(document.querySelectorAll("#look-liste .look-knopf"), function (b) { return b.dataset.look; });
+    document.querySelector('#look-liste .look-knopf[data-look="lang"]').click();
+    r.jonte = FF.spiel.profil.look;
+    var s = JSON.parse(localStorage.getItem("fiete-flitzer-spielstand-v1"));
+    r.gespeichert = [s.spieler.fiete.look, s.spieler.jonte.look];
+    FF.spiel.setzeAktiv("fiete"); FF.spiel.zeigeMenue("garage");
+    return r;
+  });
+  pruef(look.knoepfe.join() === "pony,cap" && look.knoepfeJonte.join() === "dutt,lang" && look.fiete === "cap" && look.kappe &&
+        look.jonte === "lang" && look.gespeichert.join() === "cap,lang",
+    "Looks: Fiete ohne/mit Cap, Jonte mit Dutt/Haare offen – wählbar und je Kind gespeichert", look);
 
   // E-Auto kaufen, fahren, Akku-Anzeige, Rekuperation
   await page.evaluate(function () { FF.spiel.zeigeMenue("garage"); });

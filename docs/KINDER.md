@@ -6,11 +6,11 @@ Spielerwahl und in der Fortschrittsleiste.
 
 ![Fiete und Jonte in allen Größen](kinder-vorschau.png)
 
-> **Stand:** Fertig gezeichnet in `kinder.js`, aber **noch nicht ins Spiel
-> eingebaut**. Beim Bau lief parallel ein Umbau des übrigen Codes. Deshalb
-> ändert dieser Schritt keine bestehende Datei, und es kann keine
-> Merge-Konflikte geben. Wie der Einbau geht, steht in Abschnitt 3. Er wurde
-> in einer Kopie des Spiels ausprobiert und funktioniert.
+> **Stand:** Eingebaut (Spielversion 6). Jedes Kind hat zwei **Looks**, die
+> man in der Garage unter „💇 Look“ wählt: **Fiete** ohne oder mit schwarzer
+> Baseball-Cap, **Jonte** mit Dutt oder mit offenen Haaren. Der Look ist
+> gratis, wird je Kind gespeichert und gilt überall, auch beim Geist im
+> Duell.
 
 ---
 
@@ -32,10 +32,12 @@ groß. Dort zählen Umriss und Farbe:
 Fiete ist der **goldene, runde Schopf**, Jonte der **braune Kopf mit Dutt
 obendrauf und zwei schwarzen Brillenringen**.
 
-**Variante für Jonte:** Mit `frisur: "lang"` hat Jonte die Haare offen bis
-auf die Schultern, hinters Ohr gestrichen und ohne Pony. Die Brille bleibt.
-Im Fahrtwind wehen die Haare nach hinten. Voreingestellt ist der Dutt wie auf
-dem Foto.
+**Looks (Varianten):**
+
+| | erster Look (voreingestellt, wie auf dem Foto) | zweiter Look |
+|---|---|---|
+| **Fiete** | „Ohne Cap“ | „Mit Cap“: schwarze Baseball-Cap mit Nähten, Knopf und Schirm nach vorn. Pony und Nacken schauen darunter hervor, im Fahrtwind wehen sie weniger. |
+| **Jonte** | „Mit Dutt“ | „Haare offen“: bis auf die Schultern, hinters Ohr gestrichen, ohne Pony. Die Brille bleibt. Im Fahrtwind wehen die Haare nach hinten. |
 
 Das Foto selbst liegt bewusst **nicht** im Repo. Alles Nötige steht in
 diesem Steckbrief und in den Farbwerten in `kinder.js`.
@@ -46,8 +48,8 @@ diesem Steckbrief und in den Farbwerten in `kinder.js`.
 
 | Datei | Inhalt |
 |---|---|
-| `kinder.js` | Steckbriefe als Daten (`AUSSEHEN`: Farben, Frisur, Brille, Gesichtsform) und alle Zeichenfunktionen für den Kopf. Eigenständig: braucht nur einen Canvas-2D-Kontext. |
-| `werkzeuge/kinder-vorschau.html` | Im Browser öffnen: beide Kinder groß, mit allen Gesichtsausdrücken, in Spielgröße und als Kopfbild. Mit „Fahrtwind“-Schalter. |
+| `kinder.js` | Steckbriefe als Daten (`AUSSEHEN`: Farben, Frisur, Brille, Gesichtsform), die Looks (`VARIANTEN`) und alle Zeichenfunktionen für den Kopf. Eigenständig: braucht nur einen Canvas-2D-Kontext. |
+| `werkzeuge/kinder-vorschau.html` | Im Browser öffnen: beide Kinder in allen Looks groß, mit allen Gesichtsausdrücken, in Spielgröße und als Kopfbild. Mit „Fahrtwind“-Schalter. |
 | `docs/kinder-vorschau.png` | Bildschirmfoto dieser Vorschau (Bild oben) |
 
 ### Schnittstelle (`FF.Kinder`)
@@ -57,15 +59,17 @@ diesem Steckbrief und in den Farbwerten in `kinder.js`.
 // bisherige zeichneKind() in grafik.js, also direkt austauschbar.
 FF.Kinder.zeichneKopf(ctx, x, y, r, ausdruck, raumhelm, kind, wind, zeit);
 //   ausdruck: "normal" | "freude" | "staunen"
-//   kind:     Eintrag aus CONFIG.kinder (gebraucht wird nur kind.id)
+//   kind:     Eintrag aus CONFIG.kinder (gebraucht wird kind.id) und
+//             kind.variante = id des Looks (fehlt sie: der erste Look)
 //   wind:     0..1 Fahrtwind, zeit: Sekunden (für wehende Haare)
 
 // Nur-Kopf-Bild in einem Rechteck b × h (Pixel, y nach unten). Fester
 // Rahmen: Beide Kinder erscheinen gleich groß, der Dutt passt hinein.
 FF.Kinder.zeichneKopfbild(ctx, b, h, kind, ausdruck, zeit);
 
-FF.Kinder.aussehenVon(kind);   // Steckbrief-Daten, z. B. .haut für Hals und Hände
+FF.Kinder.aussehenVon(kind);   // Steckbrief-Daten samt Look, z. B. .haut für Hals und Hände
 FF.Kinder.AUSSEHEN;            // { fiete: {...}, jonte: {...} }
+FF.Kinder.VARIANTEN;           // { fiete: [{ id: "pony", name: "Ohne Cap", … }, { id: "cap", … }], jonte: […] }
 ```
 
 Koordinaten wie überall im Spiel: Meter, y nach oben, das Kind schaut nach
@@ -76,62 +80,29 @@ vorhanden, sonst wie Fiete.
 
 ---
 
-## 3. Einbau ins Spiel (für den Merge)
+## 3. So ist es eingebaut
 
-Die Schritte beziehen sich auf den Code-Stand von `0c609cb`. Falls der Umbau
-Dateien oder Funktionen umbenannt hat, gelten sie sinngemäß: **Überall, wo
-ein Kinderkopf gemalt wird, ruft das Spiel `FF.Kinder.zeichneKopf` auf, und
-das Aussehen kommt nur noch aus `kinder.js`.**
+- `index.html`, `sw.js` und `werkzeuge/icons.js` laden `kinder.js` vor
+  `grafik.js` (in `sw.js` steht es in der Cache-Liste, damit es offline geht).
+- `grafik.js`: `zeichneKind()` ruft nur noch `FF.Kinder.zeichneKopf()` auf,
+  die Hautfarbe für Hals und Hände kommt aus `FF.Kinder.aussehenVon(kind)`,
+  und Nur-Kopf-Bilder (Fortschrittsleiste, Spielerwahl, Lobby, Würfeln) malt
+  `FF.Kinder.zeichneKopfbild()`.
+- `CONFIG.kinder` enthält nur noch `id`, `name`, `groesse` und `breite`. Für
+  das Aussehen gibt es also genau eine Quelle.
+- `spiel.js` speichert den Look je Kind (`look` im Profil) und gibt ihn als
+  `kind.variante` an alle Zeichenfunktionen weiter. Die Garage zeigt unter
+  „💇 Look“ beide Varianten als Kopfbild. Die zwischengespeicherten Bilder
+  haben den Look im Schlüssel, ein Wechsel ist also sofort überall zu sehen.
+- Die App-Icons sind mit `node werkzeuge/icons.js` neu erzeugt.
+- Geprüft mit `node werkzeuge/browsertest.js` (alle Prüfungen, darunter
+  „Looks: Fiete ohne/mit Cap, Jonte mit Dutt/Haare offen – wählbar und je
+  Kind gespeichert“) und an Bildschirmfotos von Garage, Fahrt, Spielerwahl
+  und Fortschrittsleiste.
 
-1. **Skript einbinden.** In `index.html` vor `grafik.js`:
-   `<script src="kinder.js?v=N"></script>`. In `sw.js` `"kinder.js?v=N"`
-   in `DATEIEN` aufnehmen, sonst fehlt die Datei offline. In
-   `werkzeuge/icons.js` `"kinder.js"` vor `"grafik.js"` in die Skriptliste
-   setzen.
-2. **Kopf ersetzen.** In `grafik.js` ruft `zeichneKind(...)` nur noch
-   `FF.Kinder.zeichneKopf(...)` mit denselben Parametern auf. Danach können
-   `zeichneStrubbelHaare`, `zeichneLangeHaareHinten` und
-   `zeichneLangeHaareVorne` weg.
-3. **Hautfarbe für Hals und Hände.** In `koerperFuer()`:
-   `haut: FF.Kinder.aussehenVon(kind).haut`.
-4. **Nur-Kopf-Bilder** (Fortschrittsleiste, Spielerwahl, Lobby, Würfeln):
-   In `zeichnePortrait()` bei `nurKopf` direkt
-   `FF.Kinder.zeichneKopfbild(ctx, b, h, kind, ausdruck, zeit)` aufrufen. Die
-   Sonderbehandlung `lang` für die Bildgröße entfällt.
-5. **`CONFIG.kinder` aufräumen.** `haut`, `hautRand`, `haar`, `haarDunkel`,
-   `augen` und `frisur` dort löschen. Es bleiben `id`, `name`, `groesse` und
-   `breite`. So gibt es für das Aussehen nur noch eine Quelle.
-6. **App-Icons neu erzeugen:** `node werkzeuge/icons.js` (auf dem Icon ist
-   Fiete zu sehen).
-7. **Version hochzählen:** `VERSION` in `sw.js` und alle `?v=` in
-   `index.html`.
-8. **README:** Die Beschreibung der Kinder anpassen, etwa so:
-   „**Fiete** ist ein rotblonder Junge mit braunen Augen und seitlich in die
-   Stirn gekämmtem Pony. **Jonte** ist größer und schlanker, hat hellbraune
-   lange Haare (meist zum Dutt gebunden), braune Augen und eine runde
-   schwarze Brille.“ In der Dateitabelle `kinder.js` ergänzen.
-
-Für Schritt 2 bis 4 reichen im heutigen `grafik.js` drei Zeilen. So wurde
-es in der Kopie getestet:
-
-```js
-// zeichneKind(), erste Zeile:
-if (FF.Kinder) return FF.Kinder.zeichneKopf(ctx, x, y, r, ausdruck, raumhelm, kind || FF.CONFIG.kinder[0], wind, zeit);
-// koerperFuer():
-haut: FF.Kinder ? FF.Kinder.aussehenVon(kind).haut : kind.haut,
-// zeichnePortrait(), vor ctx.save():
-if (nurKopf && FF.Kinder) { FF.Kinder.zeichneKopfbild(ctx, b, h, kind, ausdruck || "normal", zeit || 0); return; }
-```
-
-**Geprüft in der Kopie:** alle 7 Fahrzeuge (Raumhelm im Mondmobil, Fenster
-im Bus, Rakete), Spielerwahl, „Zu zweit“, Garage mit allen Outfits,
-Fortschrittsleiste und Fahrt. Keine Fehler in der Konsole. Der Dutt ragt
-bis etwa 1,35 r über die Kopfmitte und passt überall hinein, auch unter den
-Raumhelm. `node werkzeuge/browsertest.js ablauf layout robust`: 44 von 44
-Prüfungen bestanden. Nach dem echten Einbau die volle Suite laufen lassen,
-dann auch `offline` (prüft, dass `kinder.js` in der Cache-Liste steht).
-
----
+Einen weiteren Look baut man in `kinder.js` unter `VARIANTEN` ein: Felder
+einer Variante ergänzen oder überschreiben den Steckbrief (zum Beispiel
+`frisur` oder `kappe` mit Stoff-, Schatten-, Glanz- und Schirmfarbe).
 
 ## 4. Technik
 
@@ -161,7 +132,8 @@ Alles Wichtige steht oben in `kinder.js` unter `AUSSEHEN`:
 
 - **Farben:** `haar` (Grundton), `haarHell` (Glanz, Spitzen),
   `haarDunkel` (Schatten, Kontur), `haut`, `augen`, `brauen`
-- **Jonte mit offenen Haaren:** `frisur: "lang"`
+- **Frisur:** `frisur: "pony"`, `"dutt"` oder `"lang"` (die Looks unter
+  `VARIANTEN` setzen sie je nach Wahl in der Garage)
 - **Brille** an/aus: `brille: null` bzw. Rahmen- und Glasfarbe
 - **Gesichtsform:** `gesicht.breite`, `gesicht.hoehe`, `gesicht.kinn`;
   `ohr` (Größe, über 1 = abstehend)
