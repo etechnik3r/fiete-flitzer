@@ -512,6 +512,39 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
       (akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
+    var RK = gel.raketen || [];
+    for (i = 0; i < RK.length; i++) {
+      var rk = RK[i];
+      if (rk.weg || rk.x < x0 - 2 || rk.x > x1 + 2) continue;
+      zeichneRaketenKanister(ctx, sx(K, rk.x), sy(K, rk.y + 0.6 + Math.sin(zeit * 3.4 + rk.x) * 0.1), K.s, zeit);
+    }
+  }
+
+  /* 🚀 Raketen-Kanister: lila Dose mit Rakete – lädt den Boost-Knopf */
+  function zeichneRaketenKanister(ctx, X, Y, s, zeit) {
+    var w = 0.66 * s, h = 0.84 * s;
+    ctx.save();
+    ctx.translate(X, Y);
+    var gl = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.25);
+    gl.addColorStop(0, "rgba(190,150,255," + (0.5 + 0.25 * Math.sin(zeit * 6)) + ")");
+    gl.addColorStop(1, "rgba(190,150,255,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, s * 1.25, 0, Math.PI * 2); ctx.fill();
+    rundRechteck(ctx, -w / 2, -h / 2, w, h, 0.16 * s);
+    ctx.fillStyle = "#7a4dff"; ctx.fill();
+    ctx.strokeStyle = "#3d1f9e"; ctx.lineWidth = Math.max(1, 0.06 * s); ctx.stroke();
+    // kleine Rakete (Bildschirm-Koordinaten: y nach unten), schräg nach oben rechts
+    ctx.rotate(0.5);
+    var u = s * 0.1;
+    ctx.fillStyle = "#ffb02e";
+    ctx.beginPath(); ctx.moveTo(-1.1 * u, 2.2 * u); ctx.lineTo(0, (4.2 + Math.sin(zeit * 30)) * u); ctx.lineTo(1.1 * u, 2.2 * u); ctx.fill();
+    ctx.fillStyle = "#e8453c";
+    ctx.beginPath(); ctx.moveTo(-1.2 * u, 0.8 * u); ctx.lineTo(-2.2 * u, 2.6 * u); ctx.lineTo(-1.2 * u, 2.2 * u); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(1.2 * u, 0.8 * u); ctx.lineTo(2.2 * u, 2.6 * u); ctx.lineTo(1.2 * u, 2.2 * u); ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.moveTo(0, -3.4 * u); ctx.quadraticCurveTo(1.6 * u, -1.4 * u, 1.2 * u, 2.4 * u);
+    ctx.lineTo(-1.2 * u, 2.4 * u); ctx.quadraticCurveTo(-1.6 * u, -1.4 * u, 0, -3.4 * u); ctx.fill();
+    ctx.fillStyle = "#3aa0ff"; ctx.beginPath(); ctx.arc(0, -0.6 * u, 0.6 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
 
   /* Für das E-Auto sind die Kanister grüne Batterien */
@@ -1168,8 +1201,52 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.translate(sx(K, C.x), sy(K, C.y));
     ctx.rotate(-C.a);
     ctx.scale(K.s, -K.s);
+    if (fz.duese > 0) zeichneDuesen(ctx, fz, def, zeit);
     zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck);
+    if (fz.feder > 0) zeichneSprungfedern(ctx, fz);
     ctx.restore();
+  }
+
+  /* 🚀 Boost: Düsen fahren hinten aus der Karosserie, Flammen schießen heraus
+     (lokale Fahrzeug-Koordinaten, y nach oben) */
+  function zeichneDuesen(ctx, fz, def, zeit) {
+    var dauer = FF.CONFIG.regeln.extras.boostDauer, rest = fz.duese;
+    var ein = Math.min(1, (dauer - rest) / 0.15, rest / 0.25);       // ausfahren / einfahren
+    var xMin = Infinity, yU = Infinity, yO = -Infinity;
+    def.huelle.forEach(function (p) { xMin = Math.min(xMin, p[0]); });
+    def.huelle.forEach(function (p) { if (p[0] < xMin + 0.35) { yU = Math.min(yU, p[1]); yO = Math.max(yO, p[1]); } });
+    var y = (yU + yO) / 2, rD = 0.14, x = xMin + 0.15 - 0.35 * ein;
+    [y - 0.13, y + 0.13].forEach(function (yd, i) {
+      var fl = (0.9 + 0.5 * Math.sin(zeit * 47 + i * 2) + 0.3 * Math.sin(zeit * 83)) * ein * (0.5 + 0.5 * Math.min(1, rest / 0.5));
+      // Flamme: außen orange, innen gelb, ganz innen weiß
+      [["#ff5a1f", 1, 1], ["#ffcc33", 0.7, 0.62], ["#fffbe0", 0.4, 0.32]].forEach(function (f) {
+        ctx.fillStyle = f[0];
+        ctx.beginPath();
+        ctx.moveTo(x - 0.1, yd + rD * f[2]);
+        ctx.quadraticCurveTo(x - 0.1 - fl * 0.8 * f[1], yd + rD * 1.1 * f[2], x - 0.1 - fl * 1.6 * f[1], yd);
+        ctx.quadraticCurveTo(x - 0.1 - fl * 0.8 * f[1], yd - rD * 1.1 * f[2], x - 0.1, yd - rD * f[2]);
+        ctx.fill();
+      });
+      // Düse (Metallkegel)
+      ctx.fillStyle = "#6b7590";
+      ctx.beginPath(); ctx.moveTo(x + 0.3, yd + rD * 0.6); ctx.lineTo(x - 0.1, yd + rD); ctx.lineTo(x - 0.1, yd - rD); ctx.lineTo(x + 0.3, yd - rD * 0.6); ctx.fill();
+      ctx.fillStyle = "#3b4566"; ctx.fillRect(x - 0.14, yd - rD, 0.06, 2 * rD);
+    });
+  }
+
+  /* 🦘 Sprungfeder: dicke Federn schießen unter den Rädern heraus und fahren wieder ein */
+  function zeichneSprungfedern(ctx, fz) {
+    var t = fz.feder / 0.6, L = 1.3 * Math.sin(Math.PI * Math.min(1, (1 - t) * 1.6 + 0.15));
+    if (L <= 0.05) return;
+    fz.raeder.forEach(function (R) {
+      var x = R.lokalX, y0 = R.lokalY - R.r * 0.6, y1 = y0 - L, n = 6, b = 0.2;
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = "#c2302a"; ctx.lineWidth = 0.11;
+      ctx.beginPath(); ctx.moveTo(x, y0);
+      for (var i = 1; i < n; i++) ctx.lineTo(x + (i % 2 ? b : -b), y0 - L * i / n);
+      ctx.lineTo(x, y1); ctx.stroke();
+      ctx.fillStyle = "#ffd23f"; ctx.fillRect(x - 0.3, y1 - 0.08, 0.6, 0.12);
+    });
   }
 
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {

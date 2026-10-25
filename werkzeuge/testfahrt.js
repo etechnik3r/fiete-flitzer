@@ -170,6 +170,7 @@ function physikTests() {
     for (var i = 0; i < 4000; i++) gel.h.push(gel.hoeheBei(-40 + i * 0.5));
     gel.kreisKontakt = FF.Gelaende.prototype.kreisKontakt;
     gel.punktKontakt = FF.Gelaende.prototype.punktKontakt;
+    gel.loopKontakt = FF.Gelaende.prototype.loopKontakt;
     return { welt: w, gel: gel };
   }
   var h = FF.CONFIG.physik.schrittweite;

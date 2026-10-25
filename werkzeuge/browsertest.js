@@ -557,6 +557,35 @@ async function inhalte(browser) {
   });
   pruef(!probleme.length, "alle " + (await page.evaluate(function () { return FF.CONFIG.welten.length * 4; })) + " Level starten und fahren", probleme);
 
+  // Zusatz-Knöpfe: 🚀 Turbo (Raketen-Kanister) und 🦘 Sprungfeder (2 Saltos)
+  var ex = await page.evaluate(function () {
+    FF.spiel.starteFahrt(0, 1, false);
+    var f = FF.spiel.fahrt, r = { raketen: f.gelaende.raketen.length, sichtbar: !document.getElementById("extras").hidden };
+    r.boostLeer = f.zuende("boost");
+    f.boostLadung = 1; r.boost = f.zuende("boost");
+    r.federLeer = f.zuende("feder");
+    f.federLaden(2); r.federBereit = f.extraStand().feder;
+    return r;
+  });
+  await page.waitForTimeout(300);
+  ex.knopfAn = await page.evaluate(function () { return document.getElementById("knopf-boost").classList.contains("an") &&
+                                                         document.getElementById("knopf-feder").classList.contains("bereit"); });
+  pruef(ex.raketen >= 1 && ex.sichtbar && !ex.boostLeer && ex.boost && !ex.federLeer && ex.federBereit === 1 && ex.knopfAn,
+    "Turbo und Sprungfeder: Raketen im Level, Knöpfe laden sich auf und zeigen den Zustand", ex);
+  await page.evaluate(function () { FF.spiel.zeigeMenue("fahren"); });
+
+  // Hilfe aus den Einstellungen, mit „Was ist neu?“ für die aktuelle Version
+  var hilfe = await page.evaluate(function () {
+    document.getElementById("knopf-einstellungen").click();
+    document.getElementById("knopf-hilfe").click();
+    var r = { offen: document.getElementById("hilfe").classList.contains("offen"),
+              aktuell: (document.querySelector("#hilfe-neuigkeiten .neu-version.aktuell .neu-nummer") || {}).textContent };
+    document.getElementById("hilfe-fertig").click(); document.getElementById("einstellungen-fertig").click();
+    return r;
+  });
+  var swVersion = fs.readFileSync(path.join(BASIS, "sw.js"), "utf8").match(/VERSION = "v(\d+)"/)[1];
+  pruef(hilfe.offen && hilfe.aktuell === "Version " + swVersion, "Hilfe öffnet aus den Einstellungen, „Was ist neu?“ zeigt Version " + swVersion, hilfe);
+
   // Looks aus kinder.js: Fiete mit/ohne Cap, Jonte mit Dutt/offenen Haaren – gratis, je Kind gespeichert
   await page.evaluate(function () { FF.spiel.zeigeMenue("garage"); }); await page.waitForTimeout(200);
   var look = await page.evaluate(function () {

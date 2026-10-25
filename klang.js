@@ -472,6 +472,19 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "fehler":
         ton(220, 0, 0.14, "triangle", 0.15); ton(196, 0.15, 0.2, "triangle", 0.15);
         break;
+      case "boost":                    // Raketen-Düsen: Fauchen + aufsteigender Heulton
+        rauschen(0, 1.5, 0.35, 700);
+        ton(110, 0, 1.4, "sawtooth", 0.07, 330);
+        break;
+      case "feder":                    // Boooing!
+        ton(150, 0, 0.45, "sine", 0.32, 700); ton(300, 0.02, 0.35, "triangle", 0.12, 1200);
+        break;
+      case "rakete":                   // Raketen-Kanister eingesammelt
+        [523, 784, 1047, 1568].forEach(function (f, i) { ton(f, i * 0.05, 0.16, "square", 0.06); });
+        break;
+      case "extraBereit":              // Knopf ist voll aufgeladen
+        ton(1047, 0, 0.1, "triangle", 0.14); ton(1568, 0.09, 0.25, "triangle", 0.14);
+        break;
       case "meilenstein":
         ton(784, 0, 0.12, "triangle", 0.14); ton(1175, 0.1, 0.25, "triangle", 0.14);
         break;

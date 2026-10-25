@@ -76,6 +76,16 @@ FF.CONFIG = {
     },
     saltoBonus: 50,            // Münzen pro Salto
     loopingBonus: 75,          // Münzen pro geschafftem Looping
+    extras: {                  // kleine Zusatz-Knöpfe links über der Bremse (selten, ändern das Spiel nicht grundsätzlich)
+      boostDauer: 1.6,         // 🚀 Raketen-Boost: so lange [s] schießen Flammen aus den Düsen
+      boostBeschl: 13,         // Schub als Beschleunigung [m/s²] entlang der Fahrzeug-Längsachse
+      boostTempoMax: 2.1,      // … nur bis zum 2,1-fachen der Motor-Höchstgeschwindigkeit
+      boostMax: 2,             // so viele Raketen-Ladungen kann man höchstens sammeln
+      raketenProLevel: [1, 1, 2, 2],   // Raketen-Kanister je Level (Level 1–4); Endlos: alle raketenAbstandEndlos m
+      raketenAbstandEndlos: 500,
+      federSalti: 2,           // 🦘 Sprungfeder: lädt sich mit Saltos auf (ein Looping zählt wie ein Salto)
+      federSprung: 8.5         // Absprung [m/s] senkrecht zum Auto-Boden
+    },
     luftZeitMin: 1.2,          // ab so viel Flugzeit [s] gibt es einen Luftsprung-Bonus
     luftBonusProSekunde: 15,   // Münzen pro Sekunde Flugzeit
     sammelRadius: 0.75,        // Münze/Kanister wird eingesammelt, wenn so nah [m] an Rad, Kopf oder Karosserie
@@ -573,5 +583,35 @@ FF.CONFIG = {
   endlos: { ampMax: 1.35, ampStrecke: 1800, tankZuwachsStrecke: 3000 },
 
   /* Startguthaben für neue Spieler */
-  startMuenzen: 0
+  startMuenzen: 0,
+
+  /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
+     VERSION in sw.js und ?v= in index.html. */
+  neuigkeiten: [
+    { version: "9", titel: "Turbo, Sprungfeder und Hilfe", punkte: [
+      "🚀 Turbo: Lila Raketen-Kanister einsammeln, dann den 🚀-Knopf links drücken. Flammen kommen aus den Düsen, und das Auto wird doppelt so schnell!",
+      "🦘 Sprungfeder: Mach 2 Saltos oder Loopings, dann den 🦘-Knopf drücken, und das Auto hüpft hoch. Am besten oben auf dem Berg!",
+      "❓ Diese Hilfe-Seite mit allem, was man im Spiel machen kann" ] },
+    { version: "8", titel: "Freizeitpark", punkte: [
+      "🎡 Neue Welt Freizeitpark mit 4 Leveln",
+      "🎢 Loopings, auch zwei hintereinander. Nur mit Vollgas kommst du durch! +75 Münzen",
+      "🕳️ Grubensprünge: steil hoch und auf der anderen Seite landen" ] },
+    { version: "7", titel: "Bruchlandung und Updates", punkte: [
+      "💥 Bruchlandung kann man in den Einstellungen ausschalten (ist am Anfang aus)",
+      "🎈 Der Ballon kommt erst, wenn das Auto wirklich festliegt",
+      "✨ Die App aktualisiert sich selbst und sagt Bescheid" ] },
+    { version: "6", titel: "Fiete und Jonte", punkte: [
+      "🧒 Fiete und Jonte sehen aus wie auf dem Foto",
+      "🧢 Looks zum Auswählen: Fiete mit oder ohne Cap, Jonte mit Dutt oder offenen Haaren" ] },
+    { version: "5", titel: "Neue Fahrzeuge und Welten", punkte: [
+      "🚜 Trecker und ⚡ E-Auto mit eigenem Klang",
+      "🔊 Echter Motorklang mit Gangschaltung",
+      "🎢 Achterbahn-Park und 🌈 Regenbogenland, mehr und schwerere Level" ] },
+    { version: "4", titel: "Zu zweit", punkte: [
+      "👥 Jonte fährt mit: zwei Spieler, jeder mit eigener Garage",
+      "👻 Geisterrennen gegeneinander, 🎲 Würfeln, wer anfängt" ] },
+    { version: "1–3", titel: "Los geht's", punkte: [
+      "🚙 Das Spiel: Berge rauf, Münzen und Benzin sammeln, Garage",
+      "🦸 Fiete in fünf Superhelden-Looks" ] }
+  ]
 };

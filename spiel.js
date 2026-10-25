@@ -293,12 +293,31 @@
   });
   document.addEventListener("contextmenu", function (e) { if (modus === "fahrt") e.preventDefault(); });
 
+  /* Zusatz-Knöpfe 🚀 Boost und 🦘 Sprungfeder. Noch nicht bereit → kurzer Tipp, wie man sie auflädt. */
+  var extraTipps = { boost: false, feder: false };
+  function extraDruecken(art) {
+    if (!fahrt || modus !== "fahrt" || pausiert || ergebnisOffen) return;
+    FF.Klang.init();
+    if (fahrt.zuende(art)) return;
+    var X = C.regeln.extras, es = fahrt.extraStand();
+    FF.Klang.spiele("fehler");
+    if (art === "boost") tipp(fahrt.boostZeit > 0 ? "🚀 Der Turbo läuft schon!" : "🚀 Sammle einen lila Raketen-Kanister – dann gibt der Knopf Turbo!", 3000);
+    else if (es.feder >= 1) tipp("🦘 Die Sprungfeder geht nur, wenn die Räder auf dem Boden sind.", 3000);
+    else tipp("🦘 Mach " + (X.federSalti - es.federSalti) + (X.federSalti - es.federSalti === 1 ? " Salto" : " Saltos") +
+              " (oder Loopings) – dann ist die Sprungfeder bereit!", 3500);
+  }
+  [["knopf-boost", "boost"], ["knopf-feder", "feder"]].forEach(function (p) {
+    $(p[0]).addEventListener("pointerdown", function (e) { e.preventDefault(); e.stopPropagation(); extraDruecken(p[1]); });
+  });
+
   var TASTEN_GAS = ["ArrowRight", "ArrowUp", "KeyD", "KeyW"], TASTEN_BREMSE = ["ArrowLeft", "ArrowDown", "KeyA", "KeyS"];
   window.addEventListener("keydown", function (e) {
     if (modus !== "fahrt") return;
     if (TASTEN_GAS.indexOf(e.code) >= 0) { tasten.gas = true; e.preventDefault(); FF.Klang.init(); }
     else if (TASTEN_BREMSE.indexOf(e.code) >= 0) { tasten.bremse = true; e.preventDefault(); FF.Klang.init(); }
     else if (e.code === "Escape" || e.code === "KeyP") { if (!ergebnisOffen) (pausiert ? weiter() : pause()); }
+    else if (e.code === "Space" || e.code === "KeyJ") { if (!e.repeat) extraDruecken("feder"); e.preventDefault(); }
+    else if (e.code === "KeyB" || e.code === "ShiftLeft" || e.code === "ShiftRight") { if (!e.repeat) extraDruecken("boost"); e.preventDefault(); }
     else if (e.code === "KeyK") { S.einstellungen.kraefte = !S.einstellungen.kraefte; speichere(); }
     eingabeAktualisieren();
   });
@@ -413,6 +432,12 @@
                      vx: -ca * 1.5 + ch.vx * 0.6, vy: 0.6 - sa * 1.5 + ch.vy * 0.6,
                      t: 0, dauer: 0.7, r0: 0.08, r1: 0.35, farbe: "rgba(200,205,220,0.9)", alpha: 0.6, reibung: 1.5 });
     }
+    if (fahrt.boostZeit > 0 && Math.random() < 0.7) {          // 🚀 Turbo: Rauchwolken hinter den Düsen
+      var Lb = fahrt.werte.groesse.laenge, cb = Math.cos(ch.a), sb = Math.sin(ch.a), xb = -Lb * 0.5 - 1.2;
+      partikel.neu({ art: "rauch", x: ch.x + cb * xb, y: ch.y + sb * xb,
+                     vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
+                     t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
+    }
   }
 
   function funkeln(x, y, farbe, n) {
@@ -488,6 +513,43 @@
           konfettiWelt(e.x, e.y + 1, 14);
           setzeAusdruck("freude", 1.6);
           FF.Klang.sprich("Looping!");
+          break;
+        case "boost":
+          FF.Klang.spiele("boost");
+          schwebeText(ch.x, ch.y + 1.6, "Turbo! 🚀", "#ffb02e", true);
+          setzeAusdruck("freude", 2);
+          break;
+        case "feder":
+          FF.Klang.spiele("feder");
+          schwebeText(ch.x, ch.y + 1.6, "Boing! 🦘", "#7dffb8", true);
+          setzeAusdruck("freude", 2);
+          fahrt.fz.raeder.forEach(function (R) {
+            for (var k = 0; k < 5; k++) {
+              partikel.neu({ art: "staub", x: R.k.x + (Math.random() - 0.5) * 0.6, y: R.k.y - R.r + 0.1,
+                             vx: (Math.random() - 0.5) * 5, vy: Math.random() * 1.5, t: 0, dauer: 0.7,
+                             r0: 0.15, r1: 0.7, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 2 });
+            }
+          });
+          break;
+        case "rakete":
+          FF.Klang.spiele("rakete");
+          funkeln(e.x, e.y + 0.6, "#c9a8ff", 10);
+          schwebeText(e.x, e.y + 1.4, e.voll ? "🚀 schon voll" : "🚀 Turbo +1", "#c9a8ff", true);
+          plopp($("knopf-boost"));
+          if (!e.voll && !extraTipps.boost) {
+            extraTipps.boost = true;
+            tipp("🚀 Rakete eingesammelt! Drück den 🚀-Knopf links – dann gibt es Turbo!", 4500);
+            FF.Klang.sprich("Rakete! Drück den Raketen-Knopf für Turbo!"); spruchBis = zeit + 3;
+          }
+          break;
+        case "extraBereit":
+          FF.Klang.spiele("extraBereit");
+          plopp($("knopf-feder"));
+          if (!extraTipps.feder) {
+            extraTipps.feder = true;
+            tipp("🦘 Sprungfeder bereit! Oben auf dem Berg drücken – dann fliegst du weit!", 4500);
+            FF.Klang.sprich("Sprungfeder bereit!"); spruchBis = zeit + 3;
+          }
           break;
         case "luftsprung":
           FF.Klang.spiele("luftsprung");
@@ -663,6 +725,21 @@
       $("hud-tank-fuellung").style.width = t + "%";
       $("hud-tank").classList.toggle("knapp", fahrt.tank < C.regeln.tankWarnung);
       hudCache.t = t;
+    }
+    var es = fahrt.extraStand();
+    var schluessel = es.boost + "|" + Math.round(es.boostAn * 40) + "|" + es.federSalti;
+    if (erzwingen || hudCache.ex !== schluessel) {
+      hudCache.ex = schluessel;
+      var kb = $("knopf-boost"), kf = $("knopf-feder");
+      kb.style.setProperty("--ladung", es.boostAn > 0 ? es.boostAn : (es.boost > 0 ? 1 : 0));
+      kb.classList.toggle("bereit", es.boost > 0 && es.boostAn === 0);
+      kb.classList.toggle("an", es.boostAn > 0);
+      $("boost-zahl").hidden = es.boost < 2;
+      $("boost-zahl").textContent = "×" + es.boost;
+      kf.style.setProperty("--ladung", es.feder);
+      kf.classList.toggle("bereit", es.feder >= 1);
+      $("feder-zahl").hidden = es.federSalti === 0 || es.feder >= 1;
+      $("feder-zahl").textContent = es.federSalti + "/" + es.federNoetig;
     }
     if (fahrt.endlos) {
       var s = Math.max(0, Math.round(fahrt.strecke));
@@ -872,6 +949,7 @@
     $("menue").hidden = name !== "menue";
     $("hud").hidden = name !== "fahrt";
     $("pedale").hidden = name !== "fahrt";
+    $("extras").hidden = name !== "fahrt";
     pedaleLuft = false; $("pedale").classList.remove("luft");
     if (name !== "fahrt") {
       $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true;
@@ -1562,6 +1640,29 @@
     });
   });
 
+  /* Hilfe: alles, was man im Spiel machen kann, und „Was ist neu?“ (aus C.neuigkeiten) */
+  function oeffneHilfe() {
+    FF.Klang.init(); FF.Klang.spiele("klick");
+    $("hilfe-neuigkeiten").innerHTML = C.neuigkeiten.map(function (n, i) {
+      var aktuell = n.version === VERSION;
+      return '<div class="neu-version' + (aktuell ? " aktuell" : "") + '"><div class="neu-kopf"><span class="neu-nummer">Version ' + n.version +
+             "</span>" + n.titel + (aktuell ? ' <span class="neu-marke">⭐ deine Version</span>' : "") + "</div><ul>" +
+             n.punkte.map(function (p) { return "<li>" + p + "</li>"; }).join("") + "</ul></div>";
+    }).join("");
+    oeffneModal("hilfe");
+    $("hilfe-inhalt").scrollTop = 0;
+  }
+  $("knopf-hilfe").addEventListener("click", oeffneHilfe);
+  ["hilfe-zu", "hilfe-fertig"].forEach(function (id) {
+    $(id).addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseModal("hilfe"); });
+  });
+  document.querySelectorAll(".hilfe-sprung button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var z = $(b.dataset.ziel), box = $("hilfe-inhalt");
+      box.scrollTo({ top: box.scrollTop + z.getBoundingClientRect().top - box.getBoundingClientRect().top - 4, behavior: "smooth" });
+    });
+  });
+
   /* Frage für Erwachsene: kleine Rechenaufgabe (6–9 × 6–9), erst dann geht es weiter */
   function elternFrage(frage, beiRichtig) {
     var a = 6 + Math.floor(Math.random() * 4), b = 6 + Math.floor(Math.random() * 4), loesung = a * b;
@@ -1667,9 +1768,9 @@
     try { alt = localStorage.getItem(VERSION_SCHLUESSEL); localStorage.setItem(VERSION_SCHLUESSEL, VERSION); } catch (e) { /* egal */ }
     if (alt && alt !== VERSION) {
       var b = $("update-banner");
-      b.textContent = "✨ Fiete Flitzer wurde aktualisiert: Version " + alt + " → " + VERSION;
+      b.textContent = "✨ Fiete Flitzer wurde aktualisiert: Version " + alt + " → " + VERSION + " · Was ist neu? ❓";
       b.hidden = false;
-      b.addEventListener("click", function () { b.hidden = true; });
+      b.addEventListener("click", function () { b.hidden = true; if (modus !== "fahrt") oeffneHilfe(); });
       setTimeout(function () { b.hidden = true; }, 7000);
     }
   })();

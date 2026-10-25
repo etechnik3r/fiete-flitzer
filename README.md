@@ -42,6 +42,8 @@ Am schönsten spielt es sich im **Querformat**.
 | Linke Bildschirmhälfte / rotes Pedal / ← ↓ A S | **Bremse**, im Stand **rückwärts** |
 | Gas in der Luft | Nase hoch (Rückwärts-Salto), auf dem Pedal erscheint ⤴ |
 | Bremse in der Luft | Nase runter (Vorwärts-Salto), auf dem Pedal erscheint ⤵ |
+| 🚀-Knopf (links über der Bremse) / B / Umschalt | **Turbo**, wenn eine Rakete geladen ist |
+| 🦘-Knopf (links über der Bremse) / Leertaste / J | **Sprungfeder**, wenn sie aufgeladen ist und die Räder am Boden sind |
 | ⏸️ / Esc / P | Pause |
 | K (Tastatur) | Kräfte-Pfeile an/aus |
 
@@ -77,6 +79,23 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
     zu langsam ist, fällt oben ab oder rollt zurück.
   - **Grubensprünge** im Freizeitpark: Steiler Absprung, eine Grube und auf
     der anderen Seite ein Landehang. Wer zu kurz springt, landet in der Grube.
+- **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
+  das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
+  Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
+  zeigt den Ladestand, bunt und pulsierend = bereit.
+  - **Turbo**: ein bis zwei **lila Raketen-Kanister** pro Level (Level 1–2: einer,
+    Level 3–4: zwei, Endlos: alle 500 m), höchstens 2 auf Vorrat. Drücken:
+    Düsen fahren hinten heraus und spucken Feuer, 1,6 s lang 13 m/s² Schub
+    entlang der Längsachse, bis zum 2,1-fachen der Höchstgeschwindigkeit.
+  - **Sprungfeder**: lädt sich mit **2 Saltos** auf (ein Looping zählt wie ein
+    Salto, am Knopf steht „1/2“). Mit den Rädern am Boden drücken: Federn
+    schießen unter den Rädern heraus, Δv = 8,5 m/s senkrecht zum Auto-Boden
+    (aus dem Stand ≈ 3,7 m hoch). Oben auf dem Berg gedrückt, fliegt man weit.
+  - Einstellbar unter `regeln.extras` in `config.js`.
+- **❓ Hilfe** (Einstellungen → „Hilfe & Was ist neu?“): erklärt Fahren, Tricks,
+  Extras, Garage und Welten und zeigt den **Changelog** (`neuigkeiten` in
+  `config.js`) mit der eigenen Version hervorgehoben. Ein Klick auf den
+  Update-Hinweis nach einem App-Update öffnet sie auch.
 - **Bruchlandung 💥** (Einstellung, voreingestellt **aus**): Ist sie aus,
   prallt das Auto bei einer schiefen Landung ab, verliert etwas Tempo und
   fährt weiter. Ist sie an, gilt eine Landung schiefer als 40° zum Hang

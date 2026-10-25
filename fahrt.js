@@ -136,7 +136,46 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.zielZeit = null;            // Zeitpunkt der Zieldurchfahrt [s]
     this.nachZielZeit = 0;           // wie lange schon hinter dem Ziel
     this.naechsterMeilenstein = 500;
+    // Zusatz-Knöpfe: 🚀 Boost (Ladungen aus Raketen-Kanistern), 🦘 Sprungfeder (lädt sich mit Saltos auf)
+    this.boostLadung = 0; this.boostZeit = 0;
+    this.federLadung = 0; this.federZeit = 0;
   }
+
+  /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
+  Fahrt.prototype.zuende = function (art) {
+    var X = FF.CONFIG.regeln.extras, fz = this.fz, C = fz.chassis;
+    if (this.zustand !== "fahrt") return false;
+    if (art === "boost") {
+      if (this.boostLadung < 1 || this.boostZeit > 0) return false;
+      this.boostLadung--; this.boostZeit = X.boostDauer;
+      this.melde("boost");
+      return true;
+    }
+    if (art === "feder") {
+      // nur mit den Rädern am Boden – dann katapultiert die Feder das Auto senkrecht zum Auto-Boden hoch
+      if (this.federLadung < X.federSalti || fz.status.radKontakte === 0) return false;
+      this.federLadung = 0; this.federZeit = 0.6;
+      var nx = -Math.sin(C.a), ny = Math.cos(C.a), dv = X.federSprung;
+      C.vx += nx * dv; C.vy += ny * dv;
+      fz.raeder.forEach(function (R) { R.k.vx += nx * dv; R.k.vy += ny * dv; });
+      this.melde("feder", { x: C.x, y: C.y });
+      return true;
+    }
+    return false;
+  };
+
+  /* 0…1 für die Knopf-Anzeige */
+  Fahrt.prototype.extraStand = function () {
+    var X = FF.CONFIG.regeln.extras;
+    return { boost: this.boostLadung, boostAn: this.boostZeit > 0 ? this.boostZeit / X.boostDauer : 0,
+             feder: Math.min(1, this.federLadung / X.federSalti), federSalti: this.federLadung, federNoetig: X.federSalti };
+  };
+
+  Fahrt.prototype.federLaden = function (n) {
+    var X = FF.CONFIG.regeln.extras, vorher = this.federLadung;
+    this.federLadung = Math.min(X.federSalti, this.federLadung + n);
+    if (vorher < X.federSalti && this.federLadung >= X.federSalti) this.melde("extraBereit", { art: "feder" });
+  };
 
   Fahrt.prototype.melde = function (typ, daten) {
     var e = daten || {};
@@ -182,6 +221,18 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     this.setzeAntrieb();
     this.setzeZusatzMoment();
+    if (this.boostZeit > 0) {
+      // Raketen-Schub entlang der Längsachse (auch in der Luft), bis gut doppelt so schnell wie sonst
+      var X = FF.CONFIG.regeln.extras;
+      this.boostZeit = Math.max(0, this.boostZeit - h);
+      if (st.vorwaerts < X.boostTempoMax * w.motor.vmax) {
+        C.vx += Math.cos(C.a) * X.boostBeschl * h;
+        C.vy += Math.sin(C.a) * X.boostBeschl * h;
+      }
+    }
+    if (this.federZeit > 0) this.federZeit = Math.max(0, this.federZeit - h);
+    fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
+    fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
 
     // Tankverbrauch: Leerlauf + Gasstellung + abgegebene Leistung
@@ -309,6 +360,7 @@ var FF = globalThis.FF = globalThis.FF || {};
           var b = n * Rg.saltoBonus;
           this.salti += n; this.bonus += b;
           this.melde("salto", { anzahl: n, rueckwaerts: this.luftDrehung > 0, bonus: b });
+          this.federLaden(n);
         }
         var gFaktor = Math.sqrt(this.welt.schwerkraft / 9.81);   // auf dem Mond fliegt man länger
         var tWirk = this.luftZeit * gFaktor;
@@ -358,6 +410,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var b = FF.CONFIG.regeln.loopingBonus;
       this.bonus += b; this.loopings = (this.loopings || 0) + 1;
       this.melde("looping", { bonus: b, x: C.x, y: C.y });
+      this.federLaden(1);
     }
   };
 
@@ -425,6 +478,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Ballon-Hilfe; ueberX: festgefahren → hinter diesem Punkt (weitester Fortschritt) absetzen */
   Fahrt.prototype.starteHilfe = function (ueberX) {
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
+    this.boostZeit = 0; this.fz.duese = 0;
     var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3), true) : this.landeplatz(C.x);
     var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
@@ -551,6 +605,21 @@ var FF = globalThis.FF = globalThis.FF || {};
           this.tank = 1;
           this.tankGewarnt = false; this.leerGemeldet = false;
           this.melde("tank", { x: t.x, y: t.y });
+          break;
+        }
+      }
+    }
+    var X = FF.CONFIG.regeln.extras, RK = gel.raketen;
+    for (i = 0; i < RK.length; i++) {
+      var rk = RK[i];
+      if (rk.weg || Math.abs(rk.x - C.x) > reichweite) continue;
+      for (j = 0; j < pkt.length; j += 3) {
+        d = Math.hypot(rk.x - pkt[j], rk.y + 0.45 - pkt[j + 1]);
+        if (d < Rad + 0.8 + pkt[j + 2] * 0.6) {
+          rk.weg = true;
+          var neu = this.boostLadung < X.boostMax;
+          if (neu) this.boostLadung++;
+          this.melde("rakete", { x: rk.x, y: rk.y, voll: !neu });
           break;
         }
       }

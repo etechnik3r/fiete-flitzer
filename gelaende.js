@@ -117,6 +117,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Inhalte
     this.muenzen = [];             // {x, y, wert, weg}
     this.tanks = [];               // {x, y, weg}
+    this.raketen = [];             // 🚀 Raketen-Kanister für den Boost {x, y, weg} – nur ein, zwei pro Level
     this.deko = [];                // {x, y, emoji, groesse, spiegeln}
     this.schilder = [];            // {x, y, text}
     this.lippen = [];              // Schanzen-Kanten {x, hoehe, platziert}
@@ -131,6 +132,14 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.tankRest = this.tankAbstand * (0.75 + 0.15 * this.rnd());   // Aufwand bis zum nächsten Kanister
     this.naechsterTank = this.tankRest;            // ungefähre Stelle des nächsten Kanisters (für die Münzen)
     this.naechsteDeko = this.x0 + 2;
+    // Raketen-Kanister: eigene Zufallsquelle, damit Münzen und Kanister der Level gleich bleiben
+    var X = C.regeln.extras, rr = zufallsQuelle(this.seed * 4513 + 29);
+    this.raketenPlan = [];
+    if (this.endlos) this.naechsteRakete = 260;
+    else {
+      var nR = X.raketenProLevel[optionen.stufe] || 1;
+      for (var k = 0; k < nR; k++) this.raketenPlan.push(40 + (this.ziel - 90) * (k + 0.3 + 0.4 * rr()) / nR);
+    }
     this.naechstesSchild = 100;
 
     this.erweitereBis(this.endlos ? 400 : this.ziel + 140);
@@ -526,7 +535,16 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (!this.endlos) this.muenzWertGesamt += wert;
   };
 
+  Gelaende.prototype.neueRakete = function (x) {
+    for (var i = 0; i < this.tanks.length; i++) if (Math.abs(this.tanks[i].x - x) < 14) x = this.tanks[i].x + 16;
+    var xr = this.tankPlatz(x);
+    this.raketen.push({ x: xr, y: this.hoeheBei(xr), weg: false });
+  };
+
   Gelaende.prototype.nahAnTank = function (x, abstand) {
+    for (var r = this.raketen.length - 1; r >= 0 && r >= this.raketen.length - 2; r--) {
+      if (Math.abs(this.raketen[r].x - x) < abstand) return true;
+    }
     for (var i = this.tanks.length - 1; i >= 0 && i >= this.tanks.length - 3; i--) {
       if (Math.abs(this.tanks[i].x - x) < abstand) return true;
     }
@@ -582,6 +600,16 @@ var FF = globalThis.FF = globalThis.FF || {};
         this.tankX = xt;                           // Aufwand zählt ab dem neuen Kanister
       }
       this.naechsterTank = this.tankX + this.tankRest / 2;
+    }
+
+    // Raketen-Kanister (Boost)
+    if (this.endlos) {
+      while (this.naechsteRakete < bis) {
+        this.neueRakete(this.naechsteRakete);
+        this.naechsteRakete += FF.CONFIG.regeln.extras.raketenAbstandEndlos;
+      }
+    } else {
+      while (this.raketenPlan.length && this.raketenPlan[0] < bis) this.neueRakete(this.raketenPlan.shift());
     }
 
     // Münz-Reihen entlang des Bodens
@@ -661,7 +689,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       while (i < liste.length && liste[i].x < xHinten) i++;
       if (i > 0) liste.splice(0, i);
     }
-    filter(this.muenzen); filter(this.tanks); filter(this.deko); filter(this.schilder);
+    filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
   };
 
   FF.Gelaende = Gelaende;

@@ -40,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 
 <body>
@@ -89,6 +89,17 @@
     <button type="button" class="pedal pedal-gas" id="pedal-gas" aria-label="Gas">
       <span class="pedal-platte" aria-hidden="true"><span></span><span></span><span></span></span>
       <span class="pedal-text">Gas</span>
+    </button>
+  </div>
+
+  <!-- ZUSATZ-KNÖPFE links über der Bremse (linke Hand): 🚀 Raketen-Boost und 🦘 Sprungfeder.
+       Der Ring füllt sich beim Aufladen; voll = bunt und pulsierend. -->
+  <div class="extras" id="extras" hidden>
+    <button type="button" class="extra-knopf extra-boost" id="knopf-boost" aria-label="Raketen-Boost">
+      <span class="extra-icon" aria-hidden="true">🚀</span><span class="extra-zahl" id="boost-zahl" hidden></span>
+    </button>
+    <button type="button" class="extra-knopf extra-feder" id="knopf-feder" aria-label="Sprungfeder">
+      <span class="extra-icon" aria-hidden="true">🦘</span><span class="extra-zahl" id="feder-zahl" hidden></span>
     </button>
   </div>
 
@@ -314,6 +325,7 @@
         <button type="button" class="modal-schliessen" id="einstellungen-zu" aria-label="Schließen">✕</button>
       </header>
       <div class="modal-inhalt">
+        <button type="button" class="hilfe-button" id="knopf-hilfe"><span class="hilfe-frage">?</span> Hilfe &amp; Was ist neu?</button>
         <section class="opt-gruppe">
           <h3 class="opt-titel">🎚️ Schwierigkeit</h3>
           <div class="opt-reihe">
@@ -395,6 +407,79 @@
     </div>
   </div>
 
+  <!-- ========================================================================
+       HILFE: Was kann man alles machen? + Neuigkeiten (Changelog aus config.js)
+       ======================================================================== -->
+  <div class="modal-overlay" id="hilfe" aria-hidden="true">
+    <div class="modal hilfe-modal" role="dialog" aria-modal="true" aria-label="Hilfe">
+      <header class="modal-kopf">
+        <h2 class="modal-titel">❓ Hilfe</h2>
+        <button type="button" class="modal-schliessen" id="hilfe-zu" aria-label="Schließen">✕</button>
+      </header>
+      <div class="modal-inhalt" id="hilfe-inhalt">
+        <nav class="hilfe-sprung">
+          <button type="button" data-ziel="hilfe-neu">✨ Neu</button>
+          <button type="button" data-ziel="hilfe-fahren">🎮 Fahren</button>
+          <button type="button" data-ziel="hilfe-extras">🚀 Turbo</button>
+          <button type="button" data-ziel="hilfe-garage">🔧 Garage</button>
+          <button type="button" data-ziel="hilfe-welten">🗺️ Welten</button>
+        </nav>
+
+        <section class="opt-gruppe hilfe-gruppe" id="hilfe-neu">
+          <h3 class="opt-titel">✨ Was ist neu?</h3>
+          <div id="hilfe-neuigkeiten"></div>
+        </section>
+
+        <section class="opt-gruppe hilfe-gruppe" id="hilfe-fahren">
+          <h3 class="opt-titel">🎮 So fährst du</h3>
+          <ul class="hilfe-liste">
+            <li><b>Gas</b> ist rechts 🟢, <b>Bremse</b> links 🔴. Die ganze rechte bzw. linke Bildschirmhälfte geht auch.</li>
+            <li>Steht das Auto, fährt die Bremse <b>rückwärts</b>.</li>
+            <li><b>In der Luft</b>: Gas hebt die Nase ⤴, Bremse senkt sie ⤵. So landest du passend zum Hang.</li>
+            <li><b>Am Berg</b> nicht zu viel Gas, sonst kippt das Auto nach hinten.</li>
+            <li>Sammle <b>Benzin ⛽</b> (beim E-Auto Batterien 🔋). Ist der Tank leer, rollt das Auto aus.</li>
+            <li><b>Münzen 🪙</b> darfst du immer behalten. Im Ziel gibt es Sterne ⭐ und einen Bonus.</li>
+            <li><b>Tricks</b>: Salto 🤸 +50, Looping 🎢 +75, lange Sprünge geben einen Luftsprung-Bonus.</li>
+            <li>Liegt das Auto fest oder auf dem Dach, holt dich ein <b>Ballon 🎈</b> und stellt dich wieder hin.</li>
+            <li><b>Bruchlandung 💥</b> (Einstellungen): Wenn sie an ist, braucht jede zu schiefe Landung den Ballon.</li>
+          </ul>
+        </section>
+
+        <section class="opt-gruppe hilfe-gruppe" id="hilfe-extras">
+          <h3 class="opt-titel">🚀 Turbo und 🦘 Sprungfeder</h3>
+          <p class="opt-info">Die zwei runden Knöpfe links über der Bremse. Grau heißt: noch nicht bereit. Der Ring zeigt, wie voll er ist. Bunt und blinkend heißt: Los, drück!</p>
+          <ul class="hilfe-liste">
+            <li><b>🚀 Turbo</b>: Sammle einen <b>lila Raketen-Kanister</b> (ein oder zwei pro Level). Dann drücken: Düsen fahren hinten heraus, und das Auto wird für etwa 1½ Sekunden doppelt so schnell. Du kannst 2 Raketen sparen.</li>
+            <li><b>🦘 Sprungfeder</b>: Lädt sich mit <b>2 Saltos</b> auf (ein Looping zählt wie ein Salto). Die Zahl am Knopf zeigt, wie viele du schon hast. Drücken, wenn die Räder auf dem Boden sind, und das Auto hüpft hoch. Tipp: oben auf dem Berg drücken, dann fliegst du weit!</li>
+            <li>Tastatur: <b>Leertaste</b> = Sprungfeder, <b>B</b> oder <b>Umschalt</b> = Turbo.</li>
+          </ul>
+        </section>
+
+        <section class="opt-gruppe hilfe-gruppe" id="hilfe-garage">
+          <h3 class="opt-titel">🔧 Garage</h3>
+          <ul class="hilfe-liste">
+            <li><b>8 Fahrzeuge</b>: Flitzer, Trecker, Hüpf-Moped, E-Auto, Bummel-Bus, Monster-Max, Blitz-Rakete und Mondmobil. Jedes fährt sich anders.</li>
+            <li><b>Verbessern</b>: Motor, Reifen, Federung und Tank je 5 Stufen, dazu Allrad.</li>
+            <li><b>Aussehen</b>: Lackfarben und Muster. Bei Fiete und Jonte kannst du auswählen, wie sie aussehen.</li>
+            <li>Mit 🔊 in der Garage hörst du dir den <b>Motor</b> an.</li>
+          </ul>
+        </section>
+
+        <section class="opt-gruppe hilfe-gruppe" id="hilfe-welten">
+          <h3 class="opt-titel">🗺️ Welten und Spielarten</h3>
+          <ul class="hilfe-liste">
+            <li><b>11 Welten</b> mit je 4 Leveln. Nach Level 3 öffnet sich die nächste Welt. Level 4 ist das freiwillige <b>🔥 Profi-Level</b>.</li>
+            <li>Jede Welt hat eigene Physik: Auf dem Mond 🌙 fliegst du weit, auf Schnee ❄️ rutscht es, im Sand 🏜️ geht es schwerer.</li>
+            <li><b>Endlos ♾️</b>: Wie weit kommst du? Alle 500 m gibt es einen Bonus.</li>
+            <li><b>Zu zweit 👥</b>: Fiete und Jonte fahren nacheinander dieselbe Strecke. Wer als Zweiter fährt, fährt gegen den Geist 👻 der ersten Fahrt. Wer ist schneller, wer kommt weiter?</li>
+            <li><b>Schwierigkeit</b> (Einstellungen): Leicht 🐢 hält das Auto stabiler und gibt mehr Benzin.</li>
+          </ul>
+        </section>
+      </div>
+      <button type="button" class="modal-fertig" id="hilfe-fertig">✅ Alles klar</button>
+    </div>
+  </div>
+
   <!-- ELTERN-DIALOG: Sicherung vor dem Zurücksetzen und vor dem Entwickler-Bereich
        (kleine Rechenaufgabe) -->
   <div class="modal-overlay" id="eltern" aria-hidden="true">
@@ -411,14 +496,14 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=8"></script>
-  <script src="gelaende.js?v=8"></script>
-  <script src="physik.js?v=8"></script>
-  <script src="fahrt.js?v=8"></script>
-  <script src="geist.js?v=8"></script>
-  <script src="kinder.js?v=8"></script>
-  <script src="grafik.js?v=8"></script>
-  <script src="klang.js?v=8"></script>
-  <script src="spiel.js?v=8"></script>
+  <script src="config.js?v=9"></script>
+  <script src="gelaende.js?v=9"></script>
+  <script src="physik.js?v=9"></script>
+  <script src="fahrt.js?v=9"></script>
+  <script src="geist.js?v=9"></script>
+  <script src="kinder.js?v=9"></script>
+  <script src="grafik.js?v=9"></script>
+  <script src="klang.js?v=9"></script>
+  <script src="spiel.js?v=9"></script>
 </body>
 </html>
