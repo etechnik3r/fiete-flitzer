@@ -64,9 +64,9 @@ FF.CONFIG = {
     maxRollzeitLeer: 14,       // spätestens nach so vielen Sekunden mit leerem Tank ist Schluss
     hoppla: {                  // Überschlag: KEIN "Tod" – ein Ballon stellt das Auto wieder hin
       dauer: 2.4,              // [s] Animation
-      liegezeit: 0.9,          // so lange [s] auf dem Dach / der Seite, bevor geholfen wird
-      seitenWinkel: 1.4,       // ab diesem Winkel [rad] (≈ 80°) gilt "liegt auf der Seite"
-      seitenZeit: 2.2          // so lange auf der Seite + kaum Tempo → Hilfe
+      liegezeit: 2,            // so lange [s] auf Dach/Kopf/Seite ohne Pedal, bevor der Ballon hilft
+      liegezeitMitPedal: 4,    // … wenn man noch Gas oder Bremse gibt (vielleicht kommt man selbst frei)
+      seitenWinkel: 1.4        // ab diesem Winkel [rad] (≈ 80°) gilt "liegt auf der Seite" / hochkant
     },
     fest: {                    // Festgefahren: gemessen am Fortschritt nach vorn
       schritt: 2.5,            // so weit [m] muss das Auto über seinen bisher weitesten Punkt kommen

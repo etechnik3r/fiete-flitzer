@@ -72,18 +72,21 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
   - **Stufen**, die das Vorderrad hochschlagen, **große Wellen**, auf denen
     das Auto bei Tempo hüpft, und **Klippen** (Plateau, dann geht es
     senkrecht hinunter: Nase mit Gas hochhalten).
-- **Bruchlandung 💥**: Landet das Auto nach einem Sprung viel zu schief zum
-  Hang (Normal: mehr als 40°, Profi: 38°), halten Achsen und Federbeine das
-  nicht aus. Dann hilft der Ballon, und das Spiel sagt, was geholfen hätte:
-  „Nase zu hoch, in der Luft bremsen!“ oder „Nase zu tief, in der Luft Gas
-  geben!“. Im Modus **Leicht** gibt es keine Bruchlandung.
+- **Bruchlandung 💥** (Einstellung, voreingestellt **aus**): Ist sie aus,
+  prallt das Auto bei einer schiefen Landung ab, verliert etwas Tempo und
+  fährt weiter. Ist sie an, gilt eine Landung schiefer als 40° zum Hang
+  (Profi: 38°) als Bruch: Der Ballon hilft, und das Spiel sagt, was geholfen
+  hätte („Nase zu hoch, in der Luft bremsen!“ oder „Nase zu tief, in der Luft
+  Gas geben!“). Im Modus **Leicht** gibt es nie eine Bruchlandung.
 - **Hinweise zum Zuhören** für Kinder, die noch nicht lesen: beim ersten
   Sprung „Gas hebt die Nase, Bremse senkt sie“, nach einem Überschlag am
   Berg „Weniger Gas am Berg!“, auf dem Mond „nur sanft Gas geben“.
 
   Wer einfach Vollgas hält oder in der Luft nur loslässt, kommt in den
   meisten Leveln nicht ins Ziel (siehe Messung unten).
-- **Ballon-Hilfe** bei einem Überschlag oder einer Bruchlandung: Der Ballon
+- **Ballon-Hilfe** erst, wenn das Auto wirklich festliegt (auf dem Dach, mit dem
+  Kopf am Boden, hochkant oder auf der Seite): nach 2 s ohne Pedal, nach 4 s,
+  wenn man noch Gas oder Bremse gibt. Der Ballon
   setzt das Auto auf eine flache Stelle in der Nähe, nie mitten in einen
   Steilhang. Gibt es vorn keine, kommt es zurück an den Fuß des Hangs, damit
   man Anlauf nehmen kann. Der Ballon ist also keine Abkürzung.
@@ -187,7 +190,11 @@ kann sie dann für alle Fahrzeuge nutzen.
   Drehzahlmesser (zeigt die Motordrehzahl und den Gang, wie man sie hört)
 - 🔬 **Kräfte**: zeigt beim Fahren Gewichtskraft (lila), Normalkräfte (grün) und
   Reibung/Antrieb (orange) als Pfeile
-- 📲 App installieren · ♻️ Spielstand zurücksetzen (mit einer Rechenaufgabe
+- 💥 Bruchlandung an/aus (siehe oben)
+- 📲 App installieren. Gibt es eine neue Version, holt die App sie beim Start
+  oder beim Zurückkehren selbst, lädt neu (nie mitten in einer Fahrt) und
+  zeigt oben kurz „Fiete Flitzer wurde aktualisiert: Version … → …“.
+- ♻️ Spielstand zurücksetzen (mit einer Rechenaufgabe
   für Erwachsene gesichert)
 - 🛠️ **Versteckter Entwickler-Bereich** zum Testen: In den Einstellungen
   unten **7× schnell auf „Fiete Flitzer · Version …“ tippen** und die

@@ -109,6 +109,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.def = fahrzeugDef(o.fahrzeugId);
     this.werte = berechneWerte(this.def, o.upgrades, o.schwierigkeit);
     this.schw = C.schwierigkeit[o.schwierigkeit] || C.schwierigkeit.normal;
+    this.bruchAn = o.bruchlandung !== false;   // Einstellung „Bruchlandung“ (aus: Auto prallt ab und fährt weiter)
     this.fz = FF.Physik.baueFahrzeug(this.werte, 0, this.gelaende);
 
     var rSumme = 0, nA = 0;
@@ -295,7 +296,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var aufrecht = st.radKontakte > 0 && Math.abs(schief) < 1.1;
       if (this.luftZeit > 0.3) this.melde("landung", { staerke: Math.min(1, this.luftZeit / 1.5) });
       // Bruchlandung: viel zu schief zum Hang aufgekommen
-      if (this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > (this.schw.bruchWinkel || 90) * Math.PI / 180) {
+      if (this.bruchAn && this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > (this.schw.bruchWinkel || 90) * Math.PI / 180) {
         this.luftZeit = 0; this.luftDrehung = 0;
         this.melde("bruch", { nase: schief > 0 ? "hoch" : "tief" });
         this.starteHilfe();
@@ -336,10 +337,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.liegeZeit = Math.max(0, this.liegeZeit - 2 * h);
       if (this.liegeZeit === 0) this.kopfGemeldet = false;
     }
+    // Hochkant oder auf der Seite und es geht nicht mehr weiter?
     var aufDerSeite = Math.abs(normWinkel(C.a)) > H.seitenWinkel && (st.huellKontakt || st.radKontakte > 0) && st.tempo < 1.2;
     this.seitenZeit = aufDerSeite ? this.seitenZeit + h : 0;
-
-    if (this.liegeZeit > H.liegezeit || this.seitenZeit > H.seitenZeit) this.starteHilfe();
+    // Der Ballon kommt erst, wenn das Auto wirklich festliegt (Dach, Kopf, hochkant) –
+    // nach 2 s ohne Pedal, oder nach 4 s, wenn man noch versucht, selbst freizukommen
+    var pedal = this.gas > 0.5 || this.bremse > 0.5;
+    var warte = pedal ? H.liegezeitMitPedal : H.liegezeit;
+    if ((kopfOderDach && this.liegeZeit > warte) || this.seitenZeit > warte) this.starteHilfe();
 
     // Hängt das Auto fest oder rutscht es immer wieder den Steilhang hinunter? Gemessen
     // am Fortschritt: Kommt es trotz Pedal nicht über seinen weitesten Punkt hinaus, gibt

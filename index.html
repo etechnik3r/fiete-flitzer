@@ -40,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 
 <body>
@@ -95,6 +95,7 @@
   <!-- Große Meldung in der Mitte ("Los geht's!", "Salto!") + Tipps -->
   <div class="meldung" id="meldung" aria-live="polite" hidden></div>
   <div class="tipp" id="tipp" hidden></div>
+  <div class="update-banner" id="update-banner" role="status" hidden></div>
   <div class="hochkant-hinweis" id="hochkant-hinweis" hidden>📱↔️ Tipp: Handy quer halten!</div>
 
 
@@ -326,6 +327,11 @@
               <span class="opt-icon">🚀</span><span class="opt-name">Profi</span><span class="opt-text">Weniger Benzin, Hoppla kostet mehr</span>
             </button>
           </div>
+          <div class="opt-reihe opt-reihe-eins">
+            <button type="button" class="opt-karte opt-schalter" data-schalter="bruchlandung">
+              <span class="opt-icon">💥</span><span class="opt-name">Bruchlandung</span><span class="opt-text">An: Wer zu schief landet, braucht den Ballon. Aus: Das Auto prallt ab und fährt weiter.</span><span class="opt-schalter-status"></span>
+            </button>
+          </div>
         </section>
 
         <section class="opt-gruppe">
@@ -405,14 +411,14 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=6"></script>
-  <script src="gelaende.js?v=6"></script>
-  <script src="physik.js?v=6"></script>
-  <script src="fahrt.js?v=6"></script>
-  <script src="geist.js?v=6"></script>
-  <script src="kinder.js?v=6"></script>
-  <script src="grafik.js?v=6"></script>
-  <script src="klang.js?v=6"></script>
-  <script src="spiel.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="gelaende.js?v=7"></script>
+  <script src="physik.js?v=7"></script>
+  <script src="fahrt.js?v=7"></script>
+  <script src="geist.js?v=7"></script>
+  <script src="kinder.js?v=7"></script>
+  <script src="grafik.js?v=7"></script>
+  <script src="klang.js?v=7"></script>
+  <script src="spiel.js?v=7"></script>
 </body>
 </html>

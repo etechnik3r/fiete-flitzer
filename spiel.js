@@ -68,7 +68,7 @@
       version: 3,
       aktiv: C.kinder[0].id,
       spieler: {},
-      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false },
+      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false },
       duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
       entwickler: { alleOffen: false }      // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
     };
@@ -593,7 +593,8 @@
     var fs = P.fahrzeuge[P.fahrzeug];
     fahrt = new FF.Fahrt({
       weltIndex: wi, stufe: li, endlos: !!endlos,
-      fahrzeugId: P.fahrzeug, upgrades: fs.upgrades, schwierigkeit: S.einstellungen.schwierigkeit
+      fahrzeugId: P.fahrzeug, upgrades: fs.upgrades, schwierigkeit: S.einstellungen.schwierigkeit,
+      bruchlandung: S.einstellungen.bruchlandung
     });
     // Geisterrennen: 1. Fahrt wird aufgezeichnet, 2. Fahrt sieht den Geist
     aufnahme = null; geist = null;
@@ -1649,9 +1650,32 @@
     setTimeout(function () { t.classList.remove("aus"); startGedrueckt = false; zeigeSpielerwahl(); }, 380);
   });
 
+  /* App-Update (PWA): Der Service Worker sucht beim Start und beim Zurückkehren in die
+     App nach einer neuen Version. Ist eine da, lädt das Spiel neu – aber nie mitten in
+     einer Fahrt – und zeigt danach oben kurz „Update auf Version …“. */
+  var VERSION_SCHLUESSEL = "fiete-flitzer-version", neuLaden = false;
+  (function () {
+    var alt = null;
+    try { alt = localStorage.getItem(VERSION_SCHLUESSEL); localStorage.setItem(VERSION_SCHLUESSEL, VERSION); } catch (e) { /* egal */ }
+    if (alt && alt !== VERSION) {
+      var b = $("update-banner");
+      b.textContent = "✨ Fiete Flitzer wurde aktualisiert: Version " + alt + " → " + VERSION;
+      b.hidden = false;
+      b.addEventListener("click", function () { b.hidden = true; });
+      setTimeout(function () { b.hidden = true; }, 7000);
+    }
+  })();
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    var hatteSteuerung = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (!hatteSteuerung) { hatteSteuerung = true; return; }    // erste Installation, kein Update
+      neuLaden = true;
+    });
+    setInterval(function () { if (neuLaden && modus !== "fahrt") location.reload(); }, 1500);
     window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () { /* egal */ });
+      navigator.serviceWorker.register("sw.js").then(function (reg) {
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) reg.update().catch(function () {}); });
+      }).catch(function () { /* egal */ });
     });
   }
   var installEreignis = null;
