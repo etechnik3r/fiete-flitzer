@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiete und Jonte – Vorschau</title>
+<!--
+  Vorschau für kinder.js: zeigt Fiete und Jonte groß, mit allen
+  Gesichtsausdrücken und in den kleinen Größen aus dem Spiel.
+  Einfach im Browser öffnen (braucht nur ../kinder.js).
+-->
+<style>
+  body { margin: 0; padding: 16px; background: #9fd0ff; font-family: system-ui, sans-serif; color: #1e2c52; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p { margin: 0 0 12px; }
+  canvas { display: block; max-width: 100%; background: linear-gradient(#bfe2ff, #e6f4ff); border-radius: 12px; }
+  label { display: inline-block; margin: 0 0 12px; font-size: 15px; }
+</style>
+</head>
+<body>
+<h1>Fiete und Jonte</h1>
+<p>Gezeichnet mit <code>kinder.js</code>, also genau so, wie sie im Spiel aussehen sollen.</p>
+<label><input type="checkbox" id="wind"> Fahrtwind</label>
+<canvas id="bild" width="1000" height="760"></canvas>
+<script src="../kinder.js"></script>
+<script>
+  "use strict";
+  var K = FF.Kinder;
+  // Jonte mit offenen Haaren als zweite Variante zum Vergleich
+  K.AUSSEHEN.jonte_lang = Object.assign({}, K.AUSSEHEN.jonte, { frisur: "lang" });
+  var KINDER = [
+    { id: "fiete", name: "Fiete" },
+    { id: "jonte", name: "Jonte (Dutt)" },
+    { id: "jonte_lang", name: "Jonte (offen)" }
+  ];
+  var c = document.getElementById("bild"), g = c.getContext("2d");
+  var B = 1000, H = 760, DPR = Math.min(2, window.devicePixelRatio || 1);
+  c.width = B * DPR; c.height = H * DPR;
+
+  // einfacher Oberkörper (Superhelden-Anzug), nur damit man die Größe einschätzen kann
+  function koerper(x, y, r, breite) {
+    g.fillStyle = "#2f6fd6"; g.strokeStyle = "#1d4fa8"; g.lineWidth = r * 0.1;
+    g.beginPath(); g.roundRect(x - r * 0.9 * breite, y + r * 1.05, r * 1.8 * breite, r * 1.3, r * 0.35); g.fill(); g.stroke();
+    g.fillStyle = "#ffd23f"; g.fillRect(x - r * 0.9 * breite, y + r * 1.75, r * 1.8 * breite, r * 0.2);
+  }
+
+  function text(t, x, y, gross) {
+    g.fillStyle = "#1e2c52"; g.font = (gross ? "bold 18px" : "14px") + " system-ui, sans-serif"; g.textAlign = "center";
+    g.fillText(t, x, y);
+  }
+
+  // Kopf an Bildschirmposition (sx, sy) mit Radius rp Pixel: Spiel-Koordinaten (y nach oben)
+  function kopf(kind, sx, sy, rp, ausdruck, wind, zeit) {
+    g.save(); g.translate(sx, sy); g.scale(1, -1);
+    K.zeichneKopf(g, 0, 0, rp, ausdruck, false, kind, wind, zeit);
+    g.restore();
+  }
+
+  function malen(zeit) {
+    var wind = document.getElementById("wind").checked ? 1 : 0;
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    g.clearRect(0, 0, B, H);
+    KINDER.forEach(function (k, i) {
+      var x = 175 + i * 325;
+      // groß
+      koerper(x, 150, 70, k.id === "fiete" ? 1 : 0.86);
+      kopf(k, x, 150, 70, "normal", wind, zeit);
+      text(k.name, x, 335, true);
+      // Ausdrücke
+      ["normal", "freude", "staunen"].forEach(function (a, j) {
+        kopf(k, x - 95 + j * 95, 410, 30, a, wind, zeit);
+        text(a, x - 95 + j * 95, 462);
+      });
+      // Größen wie im Spiel: Auto (Kopfradius ≈ 8–12 px), Fortschrittsleiste, Garage
+      [8, 11, 16, 24].forEach(function (rp, j) {
+        var kx = x - 110 + [0, 40, 95, 175][j];
+        koerper(kx, 580, rp, k.id === "fiete" ? 1 : 0.86);
+        kopf(k, kx, 580, rp, "normal", wind, zeit);
+      });
+      // Kopfbild wie in der Fortschrittsleiste (40 × 40) und im Menü (70 × 70)
+      g.save(); g.translate(x - 90, 665); K.zeichneKopfbild(g, 40, 40, k, "normal"); g.restore();
+      g.save(); g.translate(x - 30, 650); K.zeichneKopfbild(g, 70, 70, k, "freude"); g.restore();
+      g.strokeStyle = "rgba(30,44,82,0.25)"; g.lineWidth = 1;
+      g.strokeRect(x - 90, 665, 40, 40); g.strokeRect(x - 30, 650, 70, 70);
+    });
+    text("Kopfradius 8 / 11 px wie im Auto, 16 / 24 px wie in der Garage", 500, 512);
+    text("Kopfbilder 40 × 40 und 70 × 70 (Fortschrittsleiste, Menü)", 500, 748);
+  }
+
+  var start = performance.now();
+  function schleife() {
+    malen((performance.now() - start) / 1000);
+    if (document.getElementById("wind").checked) requestAnimationFrame(schleife);
+  }
+  document.getElementById("wind").addEventListener("change", schleife);
+  malen(0.4);
+</script>
+</body>
+</html>
