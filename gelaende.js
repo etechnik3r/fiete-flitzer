@@ -685,10 +685,23 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Deko (Bäume, Blumen …) – reine Kulisse
     while (this.naechsteDeko < bis) {
       var xd = this.naechsteDeko;
-      var teile = welt.deko[Math.floor(r() * welt.deko.length)].split(":");
+      var wahl = Math.floor(r() * welt.deko.length);
+      if (wahl === this.letzteDeko) wahl = (wahl + 1) % welt.deko.length;   // nie zweimal dasselbe hintereinander
+      this.letzteDeko = wahl;
+      var teile = welt.deko[wahl].split(":");
       var groesse = (+teile[1] || 1.2) * (0.8 + 0.4 * r());
       r();                         // ehemals Neigung – Zufallsfolge bleibt gleich, Strecken unverändert
-      this.deko.push({ x: xd, y: this.hoeheBei(xd), emoji: teile[0], groesse: groesse, spiegeln: r() < 0.5 });
+      // Requisiten ("@art") aus requisiten.js: Variante und Beiwerk aus der Position (eigener Zufall,
+      // damit Münzen und Kanister der Level gleich bleiben)
+      var h1 = hash01(Math.round(xd * 10), this.seed + 3), h2 = hash01(Math.round(xd * 10), this.seed + 4);
+      var typ = teile[0].charAt(0) === "@" ? teile[0].slice(1) : null;
+      this.deko.push({ x: xd, y: this.hoeheBei(xd), emoji: typ ? null : teile[0], typ: typ, variante: Math.floor(h1 * 1000),
+                       groesse: groesse, spiegeln: r() < 0.5 });
+      if (welt.beiwerk && welt.beiwerk.length && h2 < 0.35) {            // kleines Beiwerk daneben (Gras, Steinchen …)
+        var bw = welt.beiwerk[Math.floor(h1 * 7919) % welt.beiwerk.length].split(":"), xb = xd + (h2 < 0.17 ? -1 : 1) * (0.8 + h2 * 3);
+        this.deko.push({ x: xb, y: this.hoeheBei(xb), emoji: null, typ: bw[0].slice(1), variante: Math.floor(h2 * 1000),
+                         groesse: (+bw[1] || 0.4) * (0.7 + h1 * 0.6), spiegeln: h1 < 0.5 });
+      }
       this.naechsteDeko += 3 + r() * 7;
     }
 

@@ -408,7 +408,8 @@ FF.CONFIG = {
         boden: ["#9a6535", "#6e4423"], oberflaeche: "#46b04a", kante: "#7fdc5a", punkte: "#b07a45"
       },
       sonne: "sonne", wetter: null,
-      deko: ["🌳:2.8", "🌳:2.3", "🌲:3.0", "🌷:0.7", "🌻:1.1", "🌼:0.6", "🍄:0.6", "🐞:0.35", "🐄:1.6", "🐇:0.6"],
+      deko: ["@laubbaum:3.4", "@laubbaum:2.6", "@busch:1.1", "@blumen:0.7", "@laubbaum:3.0", "@busch:0.8", "@blumen:0.6", "@stein:0.7", "🐄:1.6", "@tanne:3.4", "🐇:0.6", "@laubbaum:2.2"],
+      beiwerk: ["@gras:0.45", "@blumen:0.45", "@stein:0.35", "@gras:0.35"], kulisse: ["wald", "wald", "wald"],
       gelaende: { amp: 6.5, welle: 42, holperAmp: 0.2, holperWelle: 6, trend: 0.015,
                   maxAuf: 27, maxAb: 38, schanzen: 1.0, buckel: 1.0, steil: 0.6, taeler: 0.6, berg: 0.5, sprung: 0.5, wellen: 0.6, klippe: 0.5, rampe: 0.6, kuppe: 0.8, stufe: 0.8, wildBasis: 0,
                   abstandElemente: 38 },
@@ -423,7 +424,8 @@ FF.CONFIG = {
         boden: ["#e9b864", "#c48a3c"], oberflaeche: "#f4cf7e", kante: "#ffe3a3", punkte: "#d49a4a"
       },
       sonne: "sonne", wetter: null,
-      deko: ["🌵:2.2", "🌵:1.5", "🐪:2.2", "🌴:3.2", "🏺:0.7", "🦎:0.45", "🪨:1.0"],
+      deko: ["@kaktus:2.4", "@kaktus:1.6", "@sandfels:1.8", "@sandfels:1.1", "@palme:3.4", "@kaktus:2.0", "@sandfels:2.6", "🐪:2.2", "@stein:0.6", "🦎:0.45"],
+      beiwerk: ["@stein:0.35", "@gras:0.35", "@sandfels:0.45"], kulisse: ["tafelberg", "tafelberg", null],
       gelaende: { amp: 8.0, welle: 55, holperAmp: 0.15, holperWelle: 9, trend: 0.018,
                   maxAuf: 28, maxAb: 38, schanzen: 1.0, buckel: 0.7, steil: 0.8, taeler: 0.7, berg: 0.7, sprung: 0.6, wellen: 1.0, klippe: 0.6, rampe: 0.7, kuppe: 1.0, stufe: 1.0, wildBasis: 0.1,
                   abstandElemente: 36 },
@@ -438,7 +440,8 @@ FF.CONFIG = {
         boden: ["#a8733f", "#74491f"], oberflaeche: "#d9a253", kante: "#f4cf7f", punkte: "#86592f"
       },
       sonne: "sonne", wetter: "staub",
-      deko: ["🏗️:4.4", "🚧:1.0", "🧱:0.9", "🛢️:1.0", "🚛:2.6", "🪨:1.0", "🚧:0.8", "📦:0.8", "⛏️:0.7"],
+      deko: ["🏗️:4.4", "🚧:1.0", "🧱:0.9", "🛢️:1.0", "🚛:2.6", "@stein:0.9", "🚧:0.8", "📦:0.8", "@stein:1.3", "⛏️:0.7"],
+      beiwerk: ["@stein:0.35", "@gras:0.35"], kulisse: ["stadt", "stadt", "kran"],
       gelaende: { amp: 6.5, welle: 34, holperAmp: 0.3, holperWelle: 5, trend: 0.02,
                   maxAuf: 30, maxAb: 42, schanzen: 1.6, buckel: 1.0, steil: 1.2, taeler: 0.8, berg: 0.8, sprung: 1.4, wellen: 0.5, klippe: 1.2, rampe: 1.4, kuppe: 1.2, stufe: 1.0, wildBasis: 0.2,
                   abstandElemente: 30 },
@@ -449,11 +452,12 @@ FF.CONFIG = {
       id: "schnee", name: "Schneeberge", emoji: "❄️", hinweis: "Rutschig! Wenig Grip auf Schnee",
       schwerkraft: 9.81, grip: 0.58, rollwiderstand: 0.02, abprall: 0.05, luftdichte: 1.25,
       farben: {
-        himmel: ["#8fb8ef", "#eef6ff"], berge: ["#e3eefc", "#c3d6f2"],
+        himmel: ["#8fb8ef", "#eef6ff"], berge: ["#8fa6cc", "#b9cce8"], schnee: "#f4f8ff",
         boden: ["#9fb5d4", "#6f86aa"], oberflaeche: "#ffffff", kante: "#e6f2ff", punkte: "#c9d8ee"
       },
       sonne: "sonne", wetter: "schnee",
-      deko: ["🌲:3.0", "🌲:2.4", "⛄:1.4", "🐧:0.8", "🦌:1.6", "🏔️:3.5", "🪨:0.9"],
+      deko: ["@tanneSchnee:3.6", "@tanneSchnee:2.6", "@tanneSchnee:1.8", "@steinSchnee:1.0", "@tanneSchnee:3.0", "⛄:1.4", "@steinSchnee:1.5", "🦌:1.6", "@tanneSchnee:2.2", "🐧:0.8"],
+      beiwerk: ["@steinSchnee:0.4", "@tanneSchnee:0.9"], kulisse: ["gipfel", "gipfel", "tannen"],
       gelaende: { amp: 9.0, welle: 46, holperAmp: 0.22, holperWelle: 7, trend: 0.025,
                   maxAuf: 26, maxAb: 40, schanzen: 1.0, buckel: 0.8, steil: 0.9, taeler: 0.6, berg: 0.6, sprung: 0.8, wellen: 0.6, klippe: 0.6, rampe: 0.2, kuppe: 0.8, stufe: 1.0, wildBasis: 0.2,
                   abstandElemente: 34 },
@@ -468,7 +472,8 @@ FF.CONFIG = {
         boden: ["#8d90a6", "#5b5e75"], oberflaeche: "#c4c7d6", kante: "#e4e6f0", punkte: "#7a7d94"
       },
       sonne: "erde", wetter: "sterne",
-      deko: ["🪨:1.0", "🪨:0.6", "🛸:1.6", "🚩:1.1", "🛰️:1.4", "👽:0.8"],
+      deko: ["@mondstein:1.1", "@mondstein:0.7", "🛸:1.6", "@mondstein:1.6", "🚩:1.1", "@mondstein:0.9", "🛰️:1.4", "@mondstein:2.0", "👽:0.8"],
+      beiwerk: ["@mondstein:0.35", "@mondstein:0.5"], kulisse: ["gipfel", null, null],
       gelaende: { amp: 7.0, welle: 40, holperAmp: 0.28, holperWelle: 8, trend: 0.012,
                   maxAuf: 25, maxAb: 38, schanzen: 1.4, buckel: 0.6, steil: 0.4, taeler: 1.2, berg: 0.6, sprung: 1.2, wellen: 0.8, klippe: 1.0, rampe: 0.3, kuppe: 1.0, stufe: 1.0, wildBasis: 0.3,
                   abstandElemente: 32 },
@@ -484,6 +489,7 @@ FF.CONFIG = {
       },
       sonne: "sonne", wetter: "konfetti",
       deko: ["🍭:2.2", "🍬:0.8", "🧁:1.0", "🍩:1.1", "🍦:1.5", "🍫:0.9", "🍭:1.6", "🎂:1.3"],
+      beiwerk: [], kulisse: ["bonbon", "bonbon", null],
       gelaende: { amp: 8.0, welle: 38, holperAmp: 0.35, holperWelle: 6, trend: 0.02,
                   maxAuf: 30, maxAb: 40, schanzen: 1.0, buckel: 1.4, steil: 0.8, taeler: 0.8, berg: 0.7, sprung: 0.8, wellen: 1.4, klippe: 0.5, rampe: 0.6, kuppe: 1.0, stufe: 1.0, wildBasis: 0.3,
                   abstandElemente: 32 },
@@ -498,12 +504,32 @@ FF.CONFIG = {
         boden: ["#6b4a2b", "#4a311b"], oberflaeche: "#3f8f3a", kante: "#69c24a", punkte: "#7e5a36"
       },
       sonne: "sonne", wetter: "blaetter",
-      deko: ["🌴:3.4", "🌴:2.6", "🦜:0.8", "🌺:0.8", "🐒:1.1", "🌿:1.2", "🦋:0.5", "🐸:0.45", "🍌:0.6"],
+      deko: ["@palme:3.6", "@palme:2.8", "@farn:1.3", "@busch:1.3", "@laubbaum:3.8", "@farn:1.0", "🦜:0.8", "@palme:3.2", "🐒:1.1", "@busch:1.0", "@blumen:0.6", "🦋:0.5"],
+      beiwerk: ["@farn:0.6", "@gras:0.5"], kulisse: ["dschungel", "dschungel", "dschungel"],
       gelaende: { amp: 9.5, welle: 36, holperAmp: 0.3, holperWelle: 5, trend: 0.028,
                   maxAuf: 32, maxAb: 42, schanzen: 0.9, buckel: 1.2, steil: 1.2, taeler: 0.9, berg: 1.2, sprung: 0.6, wellen: 0.8, klippe: 1.0, rampe: 1.0, kuppe: 1.1, stufe: 1.0, wildBasis: 0.35,
                   abstandElemente: 30 },
       tankAbstand: 270, muenzAbstand: 22,
       level: [ { laenge: 620, seed: 601 }, { laenge: 820, seed: 602 }, { laenge: 1020, seed: 603 }, { laenge: 1220, seed: 604 } ]
+    },
+    {
+      /* Urzeit: Dinosaurier (gezeichnet, verschiedene Arten und Farben), Farne,
+         Palmfarne, Schachtelhalme; hinten Vulkane und Brachiosaurier im Dunst */
+      id: "urzeit", name: "Urzeit", emoji: "🦕", hinweis: "Bei den Dinosauriern – Farne, Sümpfe, rauchende Vulkane",
+      schwerkraft: 9.81, grip: 0.95, rollwiderstand: 0.025, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#6fb6b4", "#f4e2a8"], berge: ["#5f8a72", "#3f6a52"],
+        boden: ["#6b4f2e", "#4a3520"], oberflaeche: "#5c9e3a", kante: "#86c95a", punkte: "#7a5c38"
+      },
+      sonne: "sonne", wetter: "staub",
+      deko: ["@farn:1.5", "@palmfarn:2.4", "@schachtelhalm:2.6", "@dino:3.6", "@farn:1.1", "@stein:1.0", "@palmfarn:1.8", "@nest:0.8",
+             "@schachtelhalm:1.8", "@dino:2.6", "@farn:1.3", "@palme:3.4"],
+      beiwerk: ["@farn:0.5", "@gras:0.45", "@stein:0.35"], kulisse: ["vulkan", "brachio", "dschungel"],
+      gelaende: { amp: 9.5, welle: 40, holperAmp: 0.25, holperWelle: 7, trend: 0.028,
+                  maxAuf: 33, maxAb: 42, schanzen: 1.2, buckel: 1.0, steil: 1.1, taeler: 1.0, berg: 1.1, sprung: 1.0, wellen: 0.8, klippe: 0.8, rampe: 0.9, kuppe: 1.0, stufe: 1.0, wildBasis: 0.4,
+                  abstandElemente: 27 },
+      tankAbstand: 280, muenzAbstand: 22,
+      level: [ { laenge: 680, seed: 1301 }, { laenge: 880, seed: 1302 }, { laenge: 1100, seed: 1303 }, { laenge: 1300, seed: 1304 } ]
     },
     {
       id: "vulkan", name: "Vulkaninsel", emoji: "🌋", hinweis: "Große Schanzen und steile Rampen",
@@ -512,8 +538,9 @@ FF.CONFIG = {
         himmel: ["#43213f", "#ff8a5c"], berge: ["#5a2d3a", "#3d1f2c"],
         boden: ["#4a3a3a", "#2e2424"], oberflaeche: "#6b5555", kante: "#ff7b3a", punkte: "#5c4646"
       },
-      sonne: "vulkan", wetter: "funken",
-      deko: ["🌋:3.5", "🦕:2.8", "🪨:1.2", "🌴:2.6", "🦖:2.2", "🪨:0.7"],
+      sonne: "glut", wetter: "funken",
+      deko: ["@lavastein:1.2", "@kegel:2.6", "@lavastein:0.8", "@baumtot:2.6", "@kegel:1.7", "@lavastein:1.6", "@palme:3.0", "@stein:0.9", "@kegel:3.4", "@lavastein:1.0"],
+      beiwerk: ["@lavastein:0.35", "@lavastein:0.5", "@stein:0.35"], kulisse: ["vulkan", "vulkan", null],
       gelaende: { amp: 11.0, welle: 42, holperAmp: 0.25, holperWelle: 7, trend: 0.032,
                   maxAuf: 34, maxAb: 44, schanzen: 1.6, buckel: 0.8, steil: 1.2, taeler: 1.0, berg: 1.2, sprung: 1.4, wellen: 0.6, klippe: 1.0, rampe: 1.0, kuppe: 1.0, stufe: 1.0, wildBasis: 0.4,
                   abstandElemente: 28 },
@@ -529,7 +556,8 @@ FF.CONFIG = {
         wolken: "rgba(255,190,225,0.5)"
       },
       sonne: "mondsichel", wetter: "feuerwerk",
-      deko: ["🎡:4.6", "🎢:4.0", "🎠:2.6", "🎪:3.2", "🎈:1.2", "🍿:0.8", "🍦:1.0", "🧸:0.9", "🎈:1.6"],
+      deko: ["🎡:4.6", "🎢:4.0", "🎠:2.6", "🎪:3.2", "🎈:1.2", "🍿:0.8", "🍦:1.0", "🧸:0.9", "@busch:1.0", "🎈:1.6", "@laubbaum:3.0"],
+      beiwerk: ["@gras:0.4", "@blumen:0.45"], kulisse: ["riesenrad", "wald", null],
       gelaende: { amp: 12.0, welle: 34, holperAmp: 0.25, holperWelle: 6, trend: 0.03,
                   maxAuf: 35, maxAb: 46, schanzen: 1.0, buckel: 0.6, steil: 1.0, taeler: 1.2, berg: 1.6, sprung: 1.2, wellen: 1.6, klippe: 0.8, rampe: 1.0, kuppe: 1.4, stufe: 1.0, wildBasis: 0.5,
                   abstandElemente: 24 },
@@ -545,6 +573,7 @@ FF.CONFIG = {
       },
       sonne: "regenbogen", wetter: "sterne",
       deko: ["🦄:1.8", "☁️:2.0", "⭐:0.8", "🌈:2.4", "🎈:1.2", "🦄:1.4", "🏰:3.2"],
+      beiwerk: [], kulisse: ["wolkenberg", "wolkenberg", null],
       gelaende: { amp: 12.0, welle: 40, holperAmp: 0.3, holperWelle: 6, trend: 0.035,
                   maxAuf: 35, maxAb: 44, schanzen: 1.4, buckel: 1.0, steil: 1.3, taeler: 1.0, berg: 1.3, sprung: 1.3, wellen: 1.2, klippe: 1.0, rampe: 1.0, kuppe: 1.2, stufe: 1.0, wildBasis: 0.5,
                   abstandElemente: 27 },
@@ -559,7 +588,8 @@ FF.CONFIG = {
         boden: ["#7d5fd0", "#5a3ea8"], oberflaeche: "#ffcc3a", kante: "#ff6f9f", punkte: "#9a82e0"
       },
       sonne: "sonne", wetter: "konfetti",
-      deko: ["🎡:5.0", "🎠:2.8", "🎪:3.4", "🎢:4.2", "🎈:1.3", "🍭:1.4", "🍿:0.8", "🧸:0.9", "🍦:1.0", "🎟️:0.7"],
+      deko: ["🎡:5.0", "🎠:2.8", "🎪:3.4", "🎢:4.2", "🎈:1.3", "@laubbaum:3.0", "🍭:1.4", "🍿:0.8", "@busch:1.0", "🧸:0.9", "🍦:1.0", "🎟️:0.7"],
+      beiwerk: ["@gras:0.4", "@blumen:0.45"], kulisse: ["riesenrad", "wald", null],
       gelaende: { amp: 9.0, welle: 40, holperAmp: 0.2, holperWelle: 6, trend: 0.02,
                   maxAuf: 32, maxAb: 42, schanzen: 1.0, buckel: 0.6, steil: 0.8, taeler: 0.8, berg: 0.8, sprung: 0.8, wellen: 1.0, klippe: 0.5, rampe: 0.8, kuppe: 0.8, stufe: 0.6,
                   looping: 2.2, luecke: 1.6, wildBasis: 0.4,
@@ -581,7 +611,8 @@ FF.CONFIG = {
       },
       sonne: "keine", wetter: "glitzer",
       decke: { abstand: 8.2, fenster: 12, wellig: 0.8 },
-      deko: ["💎:1.1", "🍄:1.0", "🪨:1.3", "⛏️:0.9", "🕯️:0.8", "💎:0.7", "🐌:0.6", "🦇:0.9", "🪨:0.7"],
+      deko: ["@kristall:1.2", "@stalagmit:2.0", "@pilz:0.9", "@kristall:0.8", "@stein:1.0", "@stalagmit:1.2", "@kristall:1.6", "🦇:0.9", "@pilz:1.3", "🕯️:0.7"],
+      beiwerk: ["@kristall:0.4", "@stein:0.35"], kulisse: ["stalagmiten", "stalagmiten", null],
       gelaende: { amp: 7.0, welle: 36, holperAmp: 0.25, holperWelle: 6, trend: 0.02,
                   maxAuf: 32, maxAb: 40, schanzen: 0.25, buckel: 1.0, steil: 1.1, taeler: 1.1, berg: 1.0, sprung: 0.2, wellen: 1.2, klippe: 0.6, rampe: 0.3, kuppe: 0.6, stufe: 1.2, wildBasis: 0.4,
                   abstandElemente: 26 },
@@ -609,6 +640,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "11", titel: "Urzeit und schönere Landschaften", punkte: [
+      "🦕 Neue Welt Urzeit: Dinosaurier (Brachiosaurus, Stegosaurus, Triceratops, T-Rex) in vielen Farben, Farne und Dino-Nester",
+      "🌋 Vulkaninsel neu: rauchende Vulkane im Hintergrund, Lavasteine mit glühenden Rissen, kleine Vulkankegel",
+      "🌲 Alle Welten mit gezeichneten Bäumen, Tannen, Palmen, Kakteen, Felsen und Kristallen – jedes Mal ein bisschen anders",
+      "⛰️ Hintergründe mit drei Ebenen: Wälder, Tafelberge, Stadt, Gipfel, Riesenräder …" ] },
     { version: "10", titel: "Kristallhöhle und schönere Autos", punkte: [
       "💎 Neue Welt Kristallhöhle: unter der Erde, mit Tropfsteinen, leuchtenden Kristallen und Laternen an der Decke",
       "🚗 Alle Fahrzeuge glänzen jetzt: Licht und Schatten, Scheinwerfer, Chrom, und der Rennwagen hat einen echten Heckflügel",

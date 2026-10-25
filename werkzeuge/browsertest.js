@@ -691,7 +691,7 @@ async function leistung(browser) {
     };
     await weiterZu(page, "fiete");
     var ergebnisse = [];
-    for (var wi of [0, 2, 4, 7]) {
+    for (var wi of [0, 2, 4, 7, 8]) {
       await page.evaluate(function (w) { FF.spiel.starteFahrt(w, 2, false); }, wi);
       ergebnisse.push(await messe(await page.evaluate(function (w) { return FF.CONFIG.welten[w].name; }, wi)));
     }

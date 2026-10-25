@@ -51,10 +51,10 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
 
 ## 🧩 Spielidee
 
-- **12 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **13 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
-  🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🌋 Vulkaninsel ·
+  🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
@@ -106,6 +106,21 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
   Extras, Garage und Welten und zeigt den **Changelog** (`neuigkeiten` in
   `config.js`) mit der eigenen Version hervorgehoben. Ein Klick auf den
   Update-Hinweis nach einem App-Update öffnet sie auch.
+- **Kulisse** (`requisiten.js`, `grafik.js`): Bäume, Tannen, Palmen, Kakteen,
+  Felsen, Farne, Vulkankegel, Kristalle, Pilze, Dinosaurier (4 Arten × 3
+  Farben) … werden gezeichnet, nicht als Emoji. Jede Art gibt es in mehreren
+  Varianten, dazu zufällige Größe, Spiegelung und kleines Beiwerk (Gras,
+  Steinchen). Dieselbe Deko kommt nie zweimal hintereinander. In `config.js`
+  steht `"@art:Höhe"` für eine Requisite, `"🐄:1.6"` für ein Emoji.
+  Der Hintergrund hat drei Ebenen (die hinterste im Dunst) mit Silhouetten je
+  Welt (`welt.kulisse`: wald, tannen, tafelberg, stadt, kran, gipfel, vulkan,
+  dschungel, brachio, riesenrad, bonbon, wolkenberg, stalagmiten).
+  **Rechenzeit**: Jede Variante wird einmal in ein kleines Bild gemalt und
+  danach nur kopiert. Größen sind in Stufen von 7 % gestaffelt, damit beim
+  Zoomen nicht neu gemalt werden muss. Jede Hintergrund-Ebene wird nur bis
+  knapp unter die Ebene davor gemalt (weniger Fläche), das Glühen der
+  Vulkaninsel liegt im CSS-Hintergrund. Im direkten Vergleich bei 4×
+  gedrosselter CPU ist das Spiel damit eher etwas schneller als vorher.
 - **Bruchlandung 💥** (Einstellung, voreingestellt **aus**): Ist sie aus,
   prallt das Auto bei einer schiefen Landung ab, verliert etwas Tempo und
   fährt weiter. Ist sie an, gilt eine Landung schiefer als 40° zum Hang

@@ -127,7 +127,10 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Himmelsverlauf: entweder hier gemalt oder – schneller – als CSS-Hintergrund
      hinter dem durchsichtigen Canvas (himmelPerCss, siehe himmelCss()). */
   function himmelCss(welt) {
-    return "linear-gradient(" + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
+    var verlauf = "linear-gradient(" + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
+    // Vulkaninsel: Glühen am Horizont gleich im CSS-Hintergrund (kostet dann keine Malzeit)
+    if (welt.sonne === "glut") return "radial-gradient(ellipse 70% 45% at 60% 62%, rgba(255,120,60,0.4), rgba(255,90,40,0)), " + verlauf;
+    return verlauf;
   }
   function zeichneHimmel(ctx, K, welt, zeit, perCss) {
     var f = welt.farben;
@@ -181,6 +184,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.beginPath(); ctx.ellipse(x + r * 0.1, y - r * 0.6, r * 0.5, r * 0.1, 0.2, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
+    } else if (welt.sonne === "glut" && !perCss) {
+      // Vulkaninsel: rötliches Glühen am Horizont statt einer Sonne
+      var hg = ctx.createRadialGradient(K.b * 0.6, K.h * 0.62, 0, K.b * 0.6, K.h * 0.62, K.b * 0.6);
+      hg.addColorStop(0, "rgba(255,120,60,0.35)"); hg.addColorStop(1, "rgba(255,90,40,0)");
+      ctx.fillStyle = hg; ctx.fillRect(0, 0, K.b, K.h);
     } else if (welt.sonne === "vulkan") {
       var vg = ctx.createRadialGradient(x, y + r * 2, r * 0.2, x, y + r * 2, r * 4);
       vg.addColorStop(0, "rgba(255,140,60,0.7)"); vg.addColorStop(1, "rgba(255,90,40,0)");
@@ -242,23 +250,158 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
-  function zeichneBerge(ctx, K, welt) {
-    var f = welt.farben, ebenen = [[0.12, f.berge[0], 0.5, 120, 11], [0.28, f.berge[1], 0.62, 70, 23]];
-    for (var e = 0; e < ebenen.length; e++) {
-      var fak = ebenen[e][0], farbe = ebenen[e][1], basisY = ebenen[e][2], welle = ebenen[e][3], seed = ebenen[e][4];
-      var yVersatz = Math.max(-K.h * 0.25, Math.min(K.h * 0.25, (K.y - 5) * K.s * fak * 0.5));
-      ctx.fillStyle = farbe;
-      ctx.beginPath();
-      ctx.moveTo(0, K.h);
-      for (var px = 0; px <= K.b + 20; px += 16) {
-        var wx = K.x * fak + (px - K.b / 2) / K.s;
-        var n = FF.rauschen(wx / (welle / 10), seed) + 0.5 * FF.rauschen(wx / (welle / 25), seed + 5);
-        var y = K.h * basisY - n * K.h * 0.12 + yVersatz;
-        ctx.lineTo(px, y);
+  /* Hintergrund: drei Ebenen mit Parallaxe. Die hinterste verschwimmt im Dunst
+     (Farbe zum Horizont hin gemischt). Auf den Ebenen stehen je Welt eigene
+     Silhouetten (welt.kulisse = [hinten, mitte, vorn]): Wald, Tannen, Tafelberge,
+     Stadt, Kräne, Gipfel, Vulkane, Dschungel, Dinos, Riesenräder … – fest an
+     Positionen der Ebene (Zufall aus der Nummer), nur einfache Flächen. */
+  var KULISSE = {
+    wald: { abst: 14, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 5; i++) { var r = s * (0.12 + 0.1 * R()); ctx.beginPath(); ctx.arc(x + (i - 2) * s * 0.2, y - s * (0.12 + 0.2 * R()), r, 0, Math.PI * 2); ctx.fill(); }
+    } },
+    tannen: { abst: 10, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 4; i++) {
+        var h = s * (0.35 + 0.4 * R()), b = h * 0.28, xx = x + (i - 1.5) * s * 0.16;
+        ctx.beginPath(); ctx.moveTo(xx - b, y + 2); ctx.lineTo(xx, y - h); ctx.lineTo(xx + b, y + 2); ctx.fill();
       }
-      ctx.lineTo(K.b, K.h);
+    } },
+    tafelberg: { abst: 34, male: function (ctx, x, y, s, R) {
+      var b = s * (0.8 + 0.8 * R()), h = s * (0.4 + 0.35 * R()), st = s * 0.08;
+      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x - b * 0.7, y - h * 0.55); ctx.lineTo(x - b * 0.62, y - h * 0.55);
+      ctx.lineTo(x - b * 0.55, y - h); ctx.lineTo(x + b * 0.45, y - h); ctx.lineTo(x + b * 0.5, y - h + st); ctx.lineTo(x + b * 0.7, y - h * 0.4); ctx.lineTo(x + b, y + 2); ctx.fill();
+    } },
+    stadt: { abst: 16, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 5; i++) {
+        var b = s * (0.1 + 0.12 * R()), h = s * (0.25 + 0.75 * R()), xx = x + (i - 2) * s * 0.2;
+        ctx.fillRect(xx - b / 2, y - h, b, h + 2);
+        if (R() < 0.3) ctx.fillRect(xx - 1, y - h - s * 0.12, 2, s * 0.12);   // Antenne
+      }
+    } },
+    kran: { abst: 30, male: function (ctx, x, y, s, R) {
+      var h = s * (0.9 + 0.5 * R()), a = s * (0.5 + 0.4 * R());
+      ctx.fillRect(x - s * 0.03, y - h, s * 0.06, h + 2);
+      ctx.fillRect(x - a * 0.35, y - h, a * 1.35, s * 0.04);
+      ctx.fillRect(x + a * 0.9, y - h, s * 0.012, h * 0.35);
+      ctx.beginPath(); ctx.moveTo(x - s * 0.03, y - h); ctx.lineTo(x, y - h - s * 0.12); ctx.lineTo(x + s * 0.03, y - h); ctx.fill();
+    } },
+    gipfel: { abst: 26, male: function (ctx, x, y, s, R, f) {
+      var h = s * (0.7 + 0.6 * R()), b = h * (0.8 + 0.4 * R()), sp = (R() - 0.5) * b * 0.4;
+      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x + sp - b * 0.1, y - h * 0.8); ctx.lineTo(x + sp, y - h); ctx.lineTo(x + sp + b * 0.15, y - h * 0.85); ctx.lineTo(x + b, y + 2); ctx.fill();
+      if (f.schnee) {
+        var alt = ctx.fillStyle; ctx.fillStyle = f.schnee;
+        ctx.beginPath(); ctx.moveTo(x + sp - b * 0.1 * 1.3, y - h * 0.74); ctx.lineTo(x + sp, y - h); ctx.lineTo(x + sp + b * 0.15 * 1.3, y - h * 0.8);
+        ctx.lineTo(x + sp + b * 0.06, y - h * 0.76); ctx.lineTo(x + sp - b * 0.02, y - h * 0.82); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = alt;
+      }
+    } },
+    vulkan: { abst: 40, male: function (ctx, x, y, s, R, f, zeit, k) {
+      var h = s * (0.75 + 0.7 * R()), b = h * (1.1 + 0.5 * R()), kr = b * (0.12 + 0.06 * R()), aktiv = R() < 0.7;
+      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.quadraticCurveTo(x - kr * 1.8, y - h * 0.7, x - kr, y - h);
+      ctx.lineTo(x + kr, y - h); ctx.quadraticCurveTo(x + kr * 1.8, y - h * 0.7, x + b, y + 2); ctx.fill();
+      if (!aktiv) return;
+      var alt = ctx.fillStyle;
+      var gl = ctx.createRadialGradient(x, y - h, 0, x, y - h, kr * 3.5);
+      gl.addColorStop(0, "rgba(255,150,60,0.75)"); gl.addColorStop(1, "rgba(255,90,40,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y - h, kr * 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ff8a3a"; ctx.beginPath(); ctx.ellipse(x, y - h, kr * 0.9, kr * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+      for (var q = 0; q < 3; q++) {                                    // Rauchwolken steigen auf
+        var t = (zeit * 0.12 + q / 3 + k * 0.37) % 1;
+        ctx.fillStyle = "rgba(70,55,60," + (0.45 * (1 - t)) + ")";
+        ctx.beginPath(); ctx.arc(x + Math.sin(t * 4 + k) * kr + t * s * 0.4, y - h - t * s * 0.9, kr * (0.8 + t * 2.2), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = alt;
+    } },
+    dschungel: { abst: 12, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 2; i++) {
+        var h = s * (0.5 + 0.5 * R()), xx = x + (i - 0.5) * s * 0.4;
+        ctx.fillRect(xx - s * 0.02, y - h, s * 0.04, h + 2);
+        ctx.beginPath(); ctx.ellipse(xx, y - h, s * (0.2 + 0.12 * R()), s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(xx - s * 0.1, y - h + s * 0.05, s * 0.14, s * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(x, y, s * 0.25, Math.PI, 0); ctx.fill();
+    } },
+    brachio: { abst: 48, male: function (ctx, x, y, s, R) {
+      var u = s * (0.9 + 0.4 * R()), r = R() < 0.5 ? 1 : -1;
+      ctx.save(); ctx.translate(x, y); ctx.scale(r, 1);
+      ctx.beginPath();
+      ctx.moveTo(-u * 0.85, -u * 0.3); ctx.quadraticCurveTo(-u * 0.3, -u * 0.75, u * 0.28, -u * 0.6);
+      ctx.quadraticCurveTo(u * 0.45, -u * 0.8, u * 0.52, -u * 1.0); ctx.quadraticCurveTo(u * 0.6, -u * 1.06, u * 0.7, -u * 1.0);
+      ctx.lineTo(u * 0.58, -u * 0.92); ctx.quadraticCurveTo(u * 0.45, -u * 0.6, u * 0.32, -u * 0.38);
+      ctx.lineTo(u * 0.32, 2); ctx.lineTo(u * 0.2, 2); ctx.lineTo(u * 0.18, -u * 0.32); ctx.lineTo(-u * 0.2, -u * 0.32);
+      ctx.lineTo(-u * 0.22, 2); ctx.lineTo(-u * 0.34, 2); ctx.lineTo(-u * 0.38, -u * 0.34); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    } },
+    riesenrad: { abst: 46, male: function (ctx, x, y, s, R) {
+      var r = s * (0.45 + 0.2 * R()), cy = y - r - s * 0.12, alt = ctx.strokeStyle;
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.max(1.5, s * 0.02);
+      ctx.beginPath(); ctx.arc(x, cy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); for (var i = 0; i < 8; i++) { var w = i * Math.PI / 4; ctx.moveTo(x, cy); ctx.lineTo(x + Math.cos(w) * r, cy + Math.sin(w) * r); } ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - r * 0.6, y + 2); ctx.lineTo(x, cy); ctx.lineTo(x + r * 0.6, y + 2); ctx.stroke();
+      for (i = 0; i < 8; i++) { var w2 = i * Math.PI / 4; ctx.fillRect(x + Math.cos(w2) * r - s * 0.03, cy + Math.sin(w2) * r, s * 0.06, s * 0.05); }
+      ctx.strokeStyle = alt;
+    } },
+    bonbon: { abst: 16, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 2; i++) {
+        var h = s * (0.4 + 0.5 * R()), xx = x + (i - 0.5) * s * 0.35, r = s * (0.1 + 0.06 * R());
+        ctx.fillRect(xx - s * 0.015, y - h, s * 0.03, h + 2);
+        ctx.beginPath(); ctx.arc(xx, y - h, r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(x, y, s * 0.22, Math.PI, 0); ctx.fill();
+    } },
+    wolkenberg: { abst: 22, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(x + (i - 1.5) * s * 0.22, y - s * (0.1 + 0.15 * R()), s * (0.15 + 0.1 * R()), 0, Math.PI * 2); ctx.fill(); }
+    } },
+    stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 3; i++) {
+        var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
+        ctx.beginPath(); ctx.moveTo(xx - b, y + 2); ctx.quadraticCurveTo(xx - b * 0.2, y - h * 0.6, xx, y - h); ctx.quadraticCurveTo(xx + b * 0.2, y - h * 0.6, xx + b, y + 2); ctx.fill();
+      }
+    } }
+  };
+  function zeichneBerge(ctx, K, welt, zeit, gel) {
+    var f = welt.farben, ku = welt.kulisse || [], dunst = f.himmel[1];
+    var ebenen = [[0.06, mische(f.berge[0], dunst, 0.5), 0.47, 170, 5, 0.1, 0.2],
+                  [0.12, f.berge[0], 0.53, 120, 11, 0.12, 0.17],
+                  [0.28, f.berge[1], 0.64, 70, 23, 0.11, 0.13]];
+    // Erst alle Umrisse berechnen: Jede Ebene wird nur bis knapp unter den tiefsten
+    // Punkt der Ebene davor gemalt – sonst würden große Flächen doppelt gemalt
+    var SCHRITT = 24, linien = [], tiefste = [], bodenTiefst = K.h;
+    if (gel) {                                       // vorderste Ebene: nur bis zum tiefsten Bodenpunkt im Bild
+      var b = sichtbereich(K, gel); bodenTiefst = -Infinity;
+      for (var j = b[0]; j <= b[1]; j += 4) bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[j]));
+      bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[b[1]]));
+    }
+    ebenen.forEach(function (E, e) {
+      var yVersatz = Math.max(-K.h * 0.25, Math.min(K.h * 0.25, (K.y - 5) * K.s * E[0] * 0.5)), l = [], t = -Infinity;
+      for (var px = 0; px <= K.b + SCHRITT; px += SCHRITT) {
+        var wx = K.x * E[0] + (px - K.b / 2) / K.s;
+        var n = FF.rauschen(wx / (E[3] / 10), E[4]) + 0.5 * FF.rauschen(wx / (E[3] / 25), E[4] + 5);
+        var y = K.h * E[2] - n * K.h * E[5] + yVersatz;
+        l.push(y); t = Math.max(t, y);
+      }
+      linien.push(l); tiefste.push(t);
+    });
+    for (var e = 0; e < ebenen.length; e++) {
+      var E = ebenen[e], fak = E[0], seed = E[4], L = linien[e];
+      var hoehe = function (px) { var i = Math.max(0, Math.min(L.length - 2, Math.floor(px / SCHRITT))), t = px / SCHRITT - i; return L[i] * (1 - t) + L[i + 1] * t; };
+      var unten = e < ebenen.length - 1 ? Math.min(K.h, tiefste[e + 1] + 4) : Math.min(K.h, bodenTiefst + 4);
+      ctx.fillStyle = E[1];
+      ctx.beginPath();
+      ctx.moveTo(0, unten);
+      for (var i = 0; i < L.length; i++) ctx.lineTo(i * SCHRITT, Math.min(L[i], unten));
+      ctx.lineTo((L.length - 1) * SCHRITT, unten);
       ctx.closePath();
       ctx.fill();
+      var art = KULISSE[ku[e]];
+      if (!art) continue;
+      var s = K.h * E[6] * (welt.kulisseGroesse || 1), wl0 = K.x * fak + (-K.b / 2 - s * 2) / K.s, wl1 = K.x * fak + (K.b / 2 + s * 2) / K.s;
+      for (var k = Math.floor(wl0 / art.abst); k * art.abst <= wl1; k++) {
+        if (zufall01(k, seed + 31) < 0.3) continue;
+        var wx = k * art.abst + zufall01(k, seed + 32) * art.abst * 0.6;
+        var x = (wx - K.x * fak) * K.s + K.b / 2, y = hoehe(x) + s * 0.05;
+        var z = 0, R = function () { z++; return zufall01(k * 13 + z, seed + 40); };
+        art.male(ctx, x, y, s, R, f, zeit, k);
+      }
     }
   }
 
@@ -365,7 +508,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       var d = D[i];
       if (d.x < x0 - 3 || d.x > x1 + 3) continue;
       var px = d.groesse * K.s;
-      zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.y) - px * 0.42, px, d.spiegeln, q);
+      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, d.y), px, d.spiegeln, q);
+      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.y) - px * 0.42, px, d.spiegeln, q);
     }
   }
 
@@ -1916,7 +2060,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
     zeichneWolken(ctx, K, welt, z);
     sz.wetter.zeichne(ctx, K, sz.dt, z, true);
-    zeichneBerge(ctx, K, welt);
+    zeichneBerge(ctx, K, welt, z, gel);
     zeichneDecke(ctx, K, gel, welt, z);
     var b = sichtbereich(K, gel);
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1);
