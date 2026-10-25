@@ -228,7 +228,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var S = FF.CONFIG.steuerung, w = this.werte, fz = this.fz, C = fz.chassis;
     var motorAn = this.tank > 0 && this.zustand === "fahrt";
     var halten = this.zustand === "ziel";
-    var nA = this.nAntrieb, nAlle = fz.raeder.length, Tmax = w.motor.drehmoment;
+    // Bei wenig Schwerkraft (Mond) regelt die Motorsteuerung die Kraft herunter, sonst
+    // überschlägt sich ein starkes Fahrzeug schon beim Anfahren auf ebener Strecke
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var nA = this.nAntrieb, nAlle = fz.raeder.length, Tmax = w.motor.drehmoment * (0.4 + 0.6 * gRel);
     this.rueckwaerts = false;
     var bremsen = this.bremse > 0.01 && (halten || !motorAn || fz.status.vorwaerts > S.rueckwaertsSchwelle);
     if (!bremsen && this.bremse > 0.01 && this.gas <= 0.01) this.rueckwaerts = true;

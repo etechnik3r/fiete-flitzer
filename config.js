@@ -537,7 +537,7 @@ FF.CONFIG = {
       gelaende: { amp: 12.0, welle: 40, holperAmp: 0.3, holperWelle: 6, trend: 0.035,
                   maxAuf: 35, maxAb: 44, schanzen: 1.4, buckel: 1.0, steil: 1.3, taeler: 1.0, berg: 1.3, sprung: 1.3, wellen: 1.2, klippe: 1.0, rampe: 1.0, kuppe: 1.2, stufe: 1.0, wildBasis: 0.5,
                   abstandElemente: 27 },
-      tankAbstand: 340, muenzAbstand: 21,
+      tankAbstand: 320, muenzAbstand: 21,
       level: [ { laenge: 800, seed: 801 }, { laenge: 1050, seed: 802 }, { laenge: 1300, seed: 803 }, { laenge: 1550, seed: 804 } ]
     }
   ],
