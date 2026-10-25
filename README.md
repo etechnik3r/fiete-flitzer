@@ -51,11 +51,11 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
 
 ## 🧩 Spielidee
 
-- **11 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **12 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🌋 Vulkaninsel ·
-  🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark.
+  🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -77,6 +77,11 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
   - **Loopings** im 🎡 Freizeitpark, einzeln oder zwei hintereinander: Nur mit
     Vollgas schafft man es über Kopf durch den Ring (Bonus +75 Münzen). Wer
     zu langsam ist, fällt oben ab oder rollt zurück.
+  - **💎 Kristallhöhle** mit Felsdecke, Tropfsteinen, leuchtenden Kristallen
+    und Laternen. Die Decke liegt 8,2 m über dem höchsten Boden in ±12 m
+    (`welt.decke`, `gelaende.deckeBei`). Die Kamera hält sie oben im Bild.
+    Wer doch hochfliegt, prallt sanft ab (alle Umrisspunkte und der Kopf
+    werden geprüft), und der Ballon bleibt darunter.
   - **Grubensprünge** im Freizeitpark: Steiler Absprung, eine Grube und auf
     der anderen Seite ein Landehang. Wer zu kurz springt, landet in der Grube.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
@@ -92,6 +97,11 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
     schießen unter den Rädern heraus, Δv = 8,5 m/s senkrecht zum Auto-Boden
     (aus dem Stand ≈ 3,7 m hoch). Oben auf dem Berg gedrückt, fliegt man weit.
   - Einstellbar unter `regeln.extras` in `config.js`.
+- **Saltos** zählen relativ zum Gelände: Absprung von der Schanze mit
+  erhobener Nase, Landung auf dem Abhang, dann ist ein Rückwärts-Salto
+  absolut nur ~290°, gegenüber dem Boden aber eine ganze Umdrehung. Ein Flug
+  endet erst, wenn das Auto 0,1 s ruhig auf den Rädern steht. Abpraller und
+  kurzes Aufsetzen mit Karosserie oder Kopf gehören noch zum Flug.
 - **❓ Hilfe** (Einstellungen → „Hilfe & Was ist neu?“): erklärt Fahren, Tricks,
   Extras, Garage und Welten und zeigt den **Changelog** (`neuigkeiten` in
   `config.js`) mit der eigenen Version hervorgehoben. Ein Klick auf den

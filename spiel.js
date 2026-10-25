@@ -300,6 +300,7 @@
     FF.Klang.init();
     if (fahrt.zuende(art)) return;
     var X = C.regeln.extras, es = fahrt.extraStand();
+    if (fahrt.zustand !== "fahrt") return;               // Ballon, Ziel: Knopf ist ohnehin grau
     FF.Klang.spiele("fehler");
     if (art === "boost") tipp(fahrt.boostZeit > 0 ? "🚀 Der Turbo läuft schon!" : "🚀 Sammle einen lila Raketen-Kanister – dann gibt der Knopf Turbo!", 3000);
     else if (es.feder >= 1) tipp("🦘 Die Sprungfeder geht nur, wenn die Räder auf dem Boden sind.", 3000);
@@ -343,6 +344,14 @@
     kamera.ankerY = quer ? 0.58 : 0.55;
     var zielX = ch.x + klemme(ch.vx * Kc.vorausschau, -3, 6);
     var zielY = ch.y + 0.6;
+    if (fahrt.welt.decke) {
+      // Höhle: etwas weiter weg und so hoch, dass die Decke oben im Bild bleibt –
+      // aber das Auto rutscht nie tiefer als 80 % der Bildhöhe
+      kamera.s *= 0.9;
+      var sichtOben = kamera.ankerY * H / kamera.s, sichtUnten = (0.8 - kamera.ankerY) * H / kamera.s;
+      var decke = fahrt.gelaende.deckeBei(zielX);
+      zielY = Math.min(Math.max(zielY, decke - sichtOben + 2.0), ch.y + sichtUnten);
+    }
     if (sofort) { kamera.x = zielX; kamera.y = zielY; return; }
     var k = Math.min(1, dt * Kc.glaettung);
     kamera.x += (zielX - kamera.x) * k;
@@ -551,6 +560,13 @@
             FF.Klang.sprich("Sprungfeder bereit!"); spruchBis = zeit + 3;
           }
           break;
+        case "decke":                    // Höhle: an die Decke gestoßen
+          FF.Klang.spiele("landung", 0.4 * e.staerke + 0.2);
+          for (var dk = 0; dk < 6; dk++) {
+            partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 1.5, y: e.y + 0.3, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
+                           t: 0, dauer: 0.8, r0: 0.08, r1: 0.3, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 1 });
+          }
+          break;
         case "luftsprung":
           FF.Klang.spiele("luftsprung");
           schwebeText(ch.x, ch.y + 1.5, "Luftsprung +" + e.bonus, "#9fe0ff", false);
@@ -727,17 +743,17 @@
       hudCache.t = t;
     }
     var es = fahrt.extraStand();
-    var schluessel = es.boost + "|" + Math.round(es.boostAn * 40) + "|" + es.federSalti;
+    var schluessel = es.boost + "|" + Math.round(es.boostAn * 40) + "|" + es.federSalti + "|" + es.boostBereit + "|" + es.federBereit;
     if (erzwingen || hudCache.ex !== schluessel) {
       hudCache.ex = schluessel;
       var kb = $("knopf-boost"), kf = $("knopf-feder");
       kb.style.setProperty("--ladung", es.boostAn > 0 ? es.boostAn : (es.boost > 0 ? 1 : 0));
-      kb.classList.toggle("bereit", es.boost > 0 && es.boostAn === 0);
+      kb.classList.toggle("bereit", es.boostBereit);
       kb.classList.toggle("an", es.boostAn > 0);
       $("boost-zahl").hidden = es.boost < 2;
       $("boost-zahl").textContent = "×" + es.boost;
       kf.style.setProperty("--ladung", es.feder);
-      kf.classList.toggle("bereit", es.feder >= 1);
+      kf.classList.toggle("bereit", es.federBereit);
       $("feder-zahl").hidden = es.federSalti === 0 || es.feder >= 1;
       $("feder-zahl").textContent = es.federSalti + "/" + es.federNoetig;
     }

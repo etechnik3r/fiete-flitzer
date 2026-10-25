@@ -128,7 +128,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.zustand = "fahrt";        // fahrt | hilfe | ziel | ende
     this.grund = null;             // "ziel" | "leer"
     this.ereignisse = [];
-    this.luftZeit = 0; this.luftDrehung = 0;
+    this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
     this.leerZeit = 0; this.stillZeit = 0; this.liegeZeit = 0; this.seitenZeit = 0;
     this.klemmZeit = 0; this.letzterTipp = -99; this.festZeit = 0; this.weitesterX = 0;
     this.tankGewarnt = false; this.leerGemeldet = false; this.kopfGemeldet = false;
@@ -142,18 +142,23 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
+  /* Geht der Knopf JETZT? (Nur dann leuchtet er bunt.) */
+  Fahrt.prototype.extraMoeglich = function (art) {
+    if (this.zustand !== "fahrt") return false;
+    if (art === "boost") return this.boostLadung >= 1 && this.boostZeit <= 0;
+    return this.federLadung >= FF.CONFIG.regeln.extras.federSalti && this.fz.status.radKontakte > 0;
+  };
+
   Fahrt.prototype.zuende = function (art) {
     var X = FF.CONFIG.regeln.extras, fz = this.fz, C = fz.chassis;
-    if (this.zustand !== "fahrt") return false;
+    if (!this.extraMoeglich(art)) return false;
     if (art === "boost") {
-      if (this.boostLadung < 1 || this.boostZeit > 0) return false;
       this.boostLadung--; this.boostZeit = X.boostDauer;
       this.melde("boost");
       return true;
     }
     if (art === "feder") {
       // nur mit den Rädern am Boden – dann katapultiert die Feder das Auto senkrecht zum Auto-Boden hoch
-      if (this.federLadung < X.federSalti || fz.status.radKontakte === 0) return false;
       this.federLadung = 0; this.federZeit = 0.6;
       var nx = -Math.sin(C.a), ny = Math.cos(C.a), dv = X.federSprung;
       C.vx += nx * dv; C.vy += ny * dv;
@@ -168,7 +173,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   Fahrt.prototype.extraStand = function () {
     var X = FF.CONFIG.regeln.extras;
     return { boost: this.boostLadung, boostAn: this.boostZeit > 0 ? this.boostZeit / X.boostDauer : 0,
-             feder: Math.min(1, this.federLadung / X.federSalti), federSalti: this.federLadung, federNoetig: X.federSalti };
+             feder: Math.min(1, this.federLadung / X.federSalti), federSalti: this.federLadung, federNoetig: X.federSalti,
+             boostBereit: this.extraMoeglich("boost"), federBereit: this.extraMoeglich("feder") };
   };
 
   Fahrt.prototype.federLaden = function (n) {
@@ -234,6 +240,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
+    if (this.welt.decke) this.deckenStoss();
 
     // Tankverbrauch: Leerlauf + Gasstellung + abgegebene Leistung
     if (this.zustand === "fahrt" && this.tank > 0) {
@@ -334,44 +341,86 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.zusatzMoment = M;
   };
 
-  /* Flugphasen: Saltos und Luftsprünge */
+  /* Höhle: Wer bis an die Decke fliegt, prallt sanft nach unten ab. Geprüft
+     werden alle Umrisspunkte und der Kopf (auch bei hochkant stehendem Auto). */
+  Fahrt.prototype.deckenStoss = function () {
+    var fz = this.fz, C = fz.chassis, gel = this.gelaende, ca = Math.cos(C.a), sa = Math.sin(C.a);
+    var tief = -Infinity, px = 0, py = 0;
+    var punkte = fz.huelle.concat([{ x: fz.kopf.x, y: fz.kopf.y + fz.kopf.r }]);
+    for (var i = 0; i < punkte.length; i++) {
+      var p = punkte[i], wx = C.x + ca * p.x - sa * p.y, wy = C.y + sa * p.x + ca * p.y;
+      var pen = wy - gel.deckeBei(wx) + 0.15;
+      if (pen > tief) { tief = pen; px = wx; py = wy; }
+    }
+    if (tief <= 0) return;
+    var vyPunkt = C.vy + C.w * (px - C.x);              // Geschwindigkeit des Punktes nach oben
+    if (tief > 0.05) {                                   // aus der Decke herausschieben
+      var d = Math.min(tief, 0.3);
+      C.y -= d; fz.raeder.forEach(function (R) { R.k.y -= d; });
+    }
+    if (vyPunkt > 0) {
+      C.vy -= 1.3 * vyPunkt; C.w *= 0.5;
+      fz.raeder.forEach(function (R) { if (R.k.vy > C.vy) R.k.vy = C.vy; });
+      if (vyPunkt > 1.5) this.melde("decke", { x: px, y: py, staerke: Math.min(1, vyPunkt / 8) });
+    }
+  };
+
+  /* Flugphasen: Saltos und Luftsprünge.
+     Ein Flug beginnt beim Abheben und endet erst, wenn das Auto wieder ruhig auf den
+     Rädern steht – kurzes Aufsetzen mit Karosserie oder Kopf und Abpraller gehören
+     noch zum Flug. Gezählt wird die Drehung RELATIV ZUM GELÄNDE: Wer mit erhobener
+     Nase von der Schanze springt und auf dem Abhang landet, dreht sich bei einem
+     Rückwärts-Salto absolut nur gut 290°, gegenüber dem Boden aber ganz herum. */
   Fahrt.prototype.pruefeLuft = function (h) {
-    var st = this.fz.status, C = this.fz.chassis, Rg = FF.CONFIG.regeln;
+    var st = this.fz.status, C = this.fz.chassis, Rg = FF.CONFIG.regeln, gel = this.gelaende;
     var amBoden = st.radKontakte > 0 || st.huellKontakt || st.kopfKontakt;
     if (!amBoden) {
+      if (!this.flug) {
+        // Bezug: der Hang unter dem hintersten Rad – das verlässt die Schanze zuletzt
+        var xHinten = Infinity;
+        this.fz.raeder.forEach(function (R) { xHinten = Math.min(xHinten, R.k.x); });
+        this.flug = { zeit: 0, drehung: 0, boden0: Math.atan(gel.steigungBei(xHinten - 0.3)), ruhig: 0, nach: 0 };
+      }
       this.luftZeit += h;
-      this.luftDrehung += C.w * h;
+      this.flug.zeit += h; this.flug.drehung += C.w * h; this.flug.ruhig = 0; this.flug.nach = 0;
+      this.luftDrehung = this.flug.drehung;
       return;
     }
+    var schief = normWinkel(C.a - Math.atan(gel.steigungBei(C.x)));   // + = Nase zu hoch
     if (this.luftZeit > 0) {
-      var schief = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));   // + = Nase zu hoch
-      var aufrecht = st.radKontakte > 0 && Math.abs(schief) < 1.1;
       if (this.luftZeit > 0.3) this.melde("landung", { staerke: Math.min(1, this.luftZeit / 1.5) });
       // Bruchlandung: viel zu schief zum Hang aufgekommen
       if (this.bruchAn && this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > (this.schw.bruchWinkel || 90) * Math.PI / 180) {
-        this.luftZeit = 0; this.luftDrehung = 0;
+        this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
         this.melde("bruch", { nase: schief > 0 ? "hoch" : "tief" });
         this.starteHilfe();
         return;
       }
-      if (aufrecht && this.zustand === "fahrt") {
-        var n = Math.floor((Math.abs(this.luftDrehung) + 0.7) / ZWEI_PI);
-        if (n >= 1) {
-          var b = n * Rg.saltoBonus;
-          this.salti += n; this.bonus += b;
-          this.melde("salto", { anzahl: n, rueckwaerts: this.luftDrehung > 0, bonus: b });
-          this.federLaden(n);
-        }
-        var gFaktor = Math.sqrt(this.welt.schwerkraft / 9.81);   // auf dem Mond fliegt man länger
-        var tWirk = this.luftZeit * gFaktor;
-        if (tWirk >= Rg.luftZeitMin) {
-          var lb = Math.round(tWirk * Rg.luftBonusProSekunde);
-          this.bonus += lb;
-          this.melde("luftsprung", { zeit: this.luftZeit, bonus: lb });
-        }
-        if (this.luftZeit > this.besteLuftzeit) this.besteLuftzeit = this.luftZeit;
-      }
-      this.luftZeit = 0; this.luftDrehung = 0;
+      if (this.luftZeit > this.besteLuftzeit) this.besteLuftzeit = this.luftZeit;
+      this.luftZeit = 0;
+    }
+    var F = this.flug;
+    if (!F) return;
+    F.drehung += C.w * h; F.nach += h;
+    var aufrecht = st.radKontakte > 0 && !st.kopfKontakt && Math.abs(schief) < 1.1;
+    F.ruhig = aufrecht ? F.ruhig + h : 0;
+    if (F.ruhig < 0.1 && F.nach < 1.5) return;          // noch nicht entschieden (Abpraller, Aufsetzen)
+    this.flug = null; this.luftDrehung = 0;
+    if (!aufrecht || this.zustand !== "fahrt") return;  // auf Dach oder Seite gelandet: kein Salto
+    var relativ = F.drehung - (Math.atan(gel.steigungBei(C.x)) - F.boden0);
+    var n = Math.floor((Math.abs(relativ) + 0.8) / ZWEI_PI);
+    if (n >= 1) {
+      var b = n * Rg.saltoBonus;
+      this.salti += n; this.bonus += b;
+      this.melde("salto", { anzahl: n, rueckwaerts: relativ > 0, bonus: b });
+      this.federLaden(n);
+    }
+    var gFaktor = Math.sqrt(this.welt.schwerkraft / 9.81);   // auf dem Mond fliegt man länger
+    var tWirk = F.zeit * gFaktor;
+    if (tWirk >= Rg.luftZeitMin) {
+      var lb = Math.round(tWirk * Rg.luftBonusProSekunde);
+      this.bonus += lb;
+      this.melde("luftsprung", { zeit: F.zeit, bonus: lb });
     }
   };
 
@@ -488,12 +537,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       x: C.x, x0: C.x, x1: x1, y0: C.y, a0: a0, a1: a0 + d,
       yHoch: Math.max(C.y, gel.hoeheBei(C.x), gel.hoeheBei(x1)) + 2.6
     };
+    // Höhle: Ballon samt Auto bleibt unter der Decke
+    var unterDecke = Math.min(gel.deckeBei(C.x), gel.deckeBei(x1), gel.deckeBei((C.x + x1) / 2)) - this.werte.groesse.hoehe - 2.4;
+    this.hilfe.yHoch = Math.max(Math.min(this.hilfe.yHoch, unterDecke), Math.max(gel.hoeheBei(C.x), gel.hoeheBei(x1)) + 1.2);
     this.zustand = "hilfe";
     if (gel.aktiverLoop) { gel.aktiverLoop.fertig = true; gel.aktiverLoop = null; this.imLooping = false; }
     this.hoppla++;
     this.liegeZeit = 0; this.seitenZeit = 0; this.kopfGemeldet = false;
     this.klemmZeit = 0; this.festZeit = 0; this.weitesterX = Math.max(this.weitesterX, x1);
-    this.luftZeit = 0; this.luftDrehung = 0;
+    this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
     var abzug = this.schw.hopplaTank;
     this.tank = Math.max(0, this.tank - abzug);
     this.melde("hilfe", { abzug: abzug });

@@ -122,6 +122,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schilder = [];            // {x, y, text}
     this.lippen = [];              // Schanzen-Kanten {x, hoehe, platziert}
     this.gipfel = [];              // Plateaus großer Hügel {x, platziert}
+    this.deckeCache = null; this.deckeAnzahl = 0;   // Höhlendecke (deckeBei)
     this.loopings = [];            // Loopings {xc, R, …} – Kreisbahn, die das Auto von innen fährt (fahrt.js)
     this.sperrzonen = [];          // [von, bis]: dort setzt der Ballon nie ab, dort liegt kein Kanister (Grube, Looping)
     this.muenzWertGesamt = 0;
@@ -467,6 +468,27 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (i >= n - 1) return this.h[n - 1];
     var t = f - i;
     return this.h[i] * (1 - t) + this.h[i + 1] * t;
+  };
+
+  /* Höhlendecke [m] über x: höchster Boden in ±fenster (zum Rand hin etwas
+     abgeschwächt, damit sie weich verläuft) + abstand + leichte Wellen. Je 1 m
+     zwischengespeichert, dazwischen linear. Ohne welt.decke: Infinity. */
+  Gelaende.prototype.deckeBei = function (x) {
+    if (!this.welt.decke) return Infinity;
+    var f = x - this.x0, k = Math.floor(f), t = f - k;
+    return this.deckeRoh(k) * (1 - t) + this.deckeRoh(k + 1) * t;
+  };
+  Gelaende.prototype.deckeRoh = function (k) {
+    var c = this.deckeCache || (this.deckeCache = {});
+    if (c[k] !== undefined) return c[k];
+    var D = this.welt.decke, x = this.x0 + k, m = -Infinity;
+    for (var d = -D.fenster; d <= D.fenster; d += 1) m = Math.max(m, this.hoeheBei(x + d) - Math.abs(d) * 0.15);
+    var v = m + D.abstand + D.wellig * rauschen(x / 11, this.seed + 77);
+    if (x + D.fenster < this.x0 + (this.h.length - 1) * this.dx) {     // Boden dort schon fertig gebaut
+      if (++this.deckeAnzahl > 20000) { this.deckeCache = c = {}; this.deckeAnzahl = 0; }
+      c[k] = v;
+    }
+    return v;
   };
 
   Gelaende.prototype.steigungBei = function (x) {

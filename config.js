@@ -566,6 +566,27 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 300, muenzAbstand: 22,
       level: [ { laenge: 750, seed: 1101 }, { laenge: 1000, seed: 1102 }, { laenge: 1250, seed: 1103 }, { laenge: 1500, seed: 1104 } ]
+    },
+    {
+      /* Höhle: Über der Strecke hängt eine Felsdecke mit Tropfsteinen, Kristallen und
+         Laternen (grafik.js zeichneDecke). Sie liegt decke.abstand [m] über dem höchsten
+         Boden in ±decke.fenster [m]. Normalerweise kommt man nicht dran – wer doch
+         hochfliegt, prallt sanft ab (fahrt.js). Darum wenig große Sprünge. */
+      id: "hoehle", name: "Kristallhöhle", emoji: "💎", hinweis: "Unter der Erde – über dir hängen Tropfsteine",
+      schwerkraft: 9.81, grip: 0.92, rollwiderstand: 0.022, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#0d0a1c", "#2a2148"], berge: ["#2b2443", "#1c1730"],
+        boden: ["#4a3f5e", "#2a2238"], oberflaeche: "#7a6a92", kante: "#8fe8ff", punkte: "#5d5075",
+        decke: ["#5b4d78", "#16121f"], deckeKante: "#8fe8ff"
+      },
+      sonne: "keine", wetter: "glitzer",
+      decke: { abstand: 8.2, fenster: 12, wellig: 0.8 },
+      deko: ["💎:1.1", "🍄:1.0", "🪨:1.3", "⛏️:0.9", "🕯️:0.8", "💎:0.7", "🐌:0.6", "🦇:0.9", "🪨:0.7"],
+      gelaende: { amp: 7.0, welle: 36, holperAmp: 0.25, holperWelle: 6, trend: 0.02,
+                  maxAuf: 32, maxAb: 40, schanzen: 0.25, buckel: 1.0, steil: 1.1, taeler: 1.1, berg: 1.0, sprung: 0.2, wellen: 1.2, klippe: 0.6, rampe: 0.3, kuppe: 0.6, stufe: 1.2, wildBasis: 0.4,
+                  abstandElemente: 26 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 750, seed: 1201 }, { laenge: 1000, seed: 1202 }, { laenge: 1250, seed: 1203 }, { laenge: 1500, seed: 1204 } ]
     }
   ],
 
@@ -588,6 +609,12 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "10", titel: "Kristallhöhle und schönere Autos", punkte: [
+      "💎 Neue Welt Kristallhöhle: unter der Erde, mit Tropfsteinen, leuchtenden Kristallen und Laternen an der Decke",
+      "🚗 Alle Fahrzeuge glänzen jetzt: Licht und Schatten, Scheinwerfer, Chrom, und der Rennwagen hat einen echten Heckflügel",
+      "⭐ Aufkleber (Flammen, Sterne …) sitzen jetzt immer genau auf dem Auto",
+      "🤸 Saltos zählen jetzt immer, vorwärts und rückwärts, auch nach Schanzen und wenn das Auto beim Landen kurz hüpft",
+      "🚀 Die Knöpfe leuchten nur noch bunt, wenn sie wirklich gehen" ] },
     { version: "9", titel: "Turbo, Sprungfeder und Hilfe", punkte: [
       "🚀 Turbo: Lila Raketen-Kanister einsammeln, dann den 🚀-Knopf links drücken. Flammen kommen aus den Düsen, und das Auto wird doppelt so schnell!",
       "🦘 Sprungfeder: Mach 2 Saltos oder Loopings, dann den 🦘-Knopf drücken, und das Auto hüpft hoch. Am besten oben auf dem Berg!",
