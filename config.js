@@ -75,6 +75,7 @@ FF.CONFIG = {
       hilfeLeicht: 6           // dasselbe bei Schwierigkeit "Leicht"
     },
     saltoBonus: 50,            // Münzen pro Salto
+    loopingBonus: 75,          // Münzen pro geschafftem Looping
     luftZeitMin: 1.2,          // ab so viel Flugzeit [s] gibt es einen Luftsprung-Bonus
     luftBonusProSekunde: 15,   // Münzen pro Sekunde Flugzeit
     sammelRadius: 0.75,        // Münze/Kanister wird eingesammelt, wenn so nah [m] an Rad, Kopf oder Karosserie
@@ -539,6 +540,22 @@ FF.CONFIG = {
                   abstandElemente: 27 },
       tankAbstand: 320, muenzAbstand: 21,
       level: [ { laenge: 800, seed: 801 }, { laenge: 1050, seed: 802 }, { laenge: 1300, seed: 803 }, { laenge: 1550, seed: 804 } ]
+    },
+    {
+      id: "freizeitpark", name: "Freizeitpark", emoji: "🎡", hinweis: "Loopings mit Vollgas, Sprünge über Gruben",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.015, abprall: 0.08, luftdichte: 1.2,
+      farben: {
+        himmel: ["#58c7ff", "#fff1c9"], berge: ["#ffb6d5", "#f78fbd"],
+        boden: ["#7d5fd0", "#5a3ea8"], oberflaeche: "#ffcc3a", kante: "#ff6f9f", punkte: "#9a82e0"
+      },
+      sonne: "sonne", wetter: "konfetti",
+      deko: ["🎡:5.0", "🎠:2.8", "🎪:3.4", "🎢:4.2", "🎈:1.3", "🍭:1.4", "🍿:0.8", "🧸:0.9", "🍦:1.0", "🎟️:0.7"],
+      gelaende: { amp: 9.0, welle: 40, holperAmp: 0.2, holperWelle: 6, trend: 0.02,
+                  maxAuf: 32, maxAb: 42, schanzen: 1.0, buckel: 0.6, steil: 0.8, taeler: 0.8, berg: 0.8, sprung: 0.8, wellen: 1.0, klippe: 0.5, rampe: 0.8, kuppe: 0.8, stufe: 0.6,
+                  looping: 2.2, luecke: 1.6, wildBasis: 0.4,
+                  abstandElemente: 26 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 750, seed: 1101 }, { laenge: 1000, seed: 1102 }, { laenge: 1250, seed: 1103 }, { laenge: 1500, seed: 1104 } ]
     }
   ],
 

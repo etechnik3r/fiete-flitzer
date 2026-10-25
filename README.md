@@ -49,11 +49,11 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
 
 ## 🧩 Spielidee
 
-- **10 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **11 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🌋 Vulkaninsel ·
-  🎢 Achterbahn-Park · 🌈 Regenbogenland.
+  🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -72,6 +72,11 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
   - **Stufen**, die das Vorderrad hochschlagen, **große Wellen**, auf denen
     das Auto bei Tempo hüpft, und **Klippen** (Plateau, dann geht es
     senkrecht hinunter: Nase mit Gas hochhalten).
+  - **Loopings** im 🎡 Freizeitpark, einzeln oder zwei hintereinander: Nur mit
+    Vollgas schafft man es über Kopf durch den Ring (Bonus +75 Münzen). Wer
+    zu langsam ist, fällt oben ab oder rollt zurück.
+  - **Grubensprünge** im Freizeitpark: Steiler Absprung, eine Grube und auf
+    der anderen Seite ein Landehang. Wer zu kurz springt, landet in der Grube.
 - **Bruchlandung 💥** (Einstellung, voreingestellt **aus**): Ist sie aus,
   prallt das Auto bei einer schiefen Landung ab, verliert etwas Tempo und
   fährt weiter. Ist sie an, gilt eine Landung schiefer als 40° zum Hang
@@ -459,7 +464,7 @@ node werkzeuge/browsertest.js layout --bilder fotos   # mit Bildschirmfotos
 | `layout` | 17 Bildschirme in 7 Formaten (Handy quer/hoch, kleines Handy quer, sehr schmales Handy mit 320 px, Tablet quer/hoch, PC): Knöpfe mind. 44 px, erreichbar, ohne Überlappung, mit Namen; Fenster passen ohne Scrollen |
 | `robust` | kaputter, alter (v1, v2 mit alter Welten-Reihenfolge: offene Welten bleiben offen) und unsinniger Spielstand, gesperrter Speicher (Privatmodus), Drehen während der Fahrt, App im Hintergrund, Neustart/Abbruch im Duell, Unentschieden, Endlos-Duell |
 | `offline` | Cache-Liste vollständig, Versionen passen, Service Worker aktiv, Spielen ohne Internet |
-| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle 40 Level starten, nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
+| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle 44 Level starten, nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
 | `leistung` | Bildrate normal und bei 4× gedrosselter CPU |
 
 Stand der Messung (Chromium ohne Grafikkarte, also ungünstigster Fall): ohne

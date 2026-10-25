@@ -270,7 +270,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var kp = fz.kopf; ko = kp.kontakt;
     var kx = ca * kp.x - sa * kp.y, ky = sa * kp.x + ca * kp.y;
     ko.warAktiv = ko.aktiv;
-    ko.aktiv = gel.kreisKontakt(C.x + kx, C.y + ky, kp.r, P.kontaktRand, tmp);
+    ko.aktiv = gel.kreisKontakt(C.x + kx, C.y + ky, kp.r, P.kontaktRand, tmp, true);
     if (ko.aktiv) {
       ko.pen = tmp.pen; ko.nx = tmp.nx; ko.ny = tmp.ny;
       ko.rx = kx - kp.r * ko.nx; ko.ry = ky - kp.r * ko.ny; ko.rollMax = 0;

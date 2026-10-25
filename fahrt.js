@@ -214,6 +214,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.naechsterMeilenstein += 500;
     }
 
+    this.pruefeLooping(h);
     this.pruefeLuft(h);
     if (this.zustand === "fahrt") this.pruefeHoppla(h);
     this.pruefeEnde(h);
@@ -322,6 +323,44 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   };
 
+  /* Looping: Fährt das Auto unten in einen Looping hinein, wird die Kreisbahn aktiv
+     (gelaende.loopKontakt) – bis es einmal ganz herum ist, rückwärts hinausrollt oder
+     oben zu langsam war und herunterfällt (dann unten wieder ganz normal weiter). */
+  Fahrt.prototype.pruefeLooping = function (h) {
+    var gel = this.gelaende, Ls = gel.loopings;
+    if (!Ls.length) return;
+    var C = this.fz.chassis, st = this.fz.status, L = gel.aktiverLoop;
+    if (!L) {
+      if (this.zustand !== "fahrt" || st.radKontakte === 0 || st.vorwaerts < 2) return;
+      for (var i = 0; i < Ls.length; i++) {
+        var K = Ls[i];
+        if (K.fertig || C.x < K.xc - 0.4 || C.x > K.xc + 1.2 || C.y > gel.loopMitte(K)) continue;
+        gel.aktiverLoop = L = K;
+        L.phi = Math.atan2(C.x - L.xc, -(C.y - L.yc)); L.summe = 0; L.ohneKontakt = 0; L.gefallen = false;
+        this.imLooping = true;
+        return;
+      }
+      return;
+    }
+    var phi = Math.atan2(C.x - L.xc, -(C.y - L.yc));
+    L.summe += normWinkel(phi - L.phi); L.phi = phi;
+    if (st.radKontakte === 0 && L.summe > 1.2 && L.summe < 5.2) L.ohneKontakt += h; else L.ohneKontakt = 0;
+    if (L.ohneKontakt > 0.2) L.gefallen = true;              // oben zu langsam: fällt herunter
+    var ende = null;
+    if (L.summe >= 2 * Math.PI - 0.15) ende = "geschafft";
+    else if (L.summe < -0.8) ende = "zurueck";
+    else if (L.gefallen && st.radKontakte > 0 && C.y < L.yc - 0.5 * L.R) ende = "gefallen";
+    else if (this.zustand !== "fahrt") ende = "hilfe";
+    if (!ende) return;
+    gel.aktiverLoop = null; this.imLooping = false;
+    if (ende !== "zurueck") L.fertig = true;
+    if (ende === "geschafft") {
+      var b = FF.CONFIG.regeln.loopingBonus;
+      this.bonus += b; this.loopings = (this.loopings || 0) + 1;
+      this.melde("looping", { bonus: b, x: C.x, y: C.y });
+    }
+  };
+
   /* Liegt das Auto auf dem Dach / Kopf / der Seite? → Ballon-Hilfe */
   Fahrt.prototype.pruefeHoppla = function (h) {
     var st = this.fz.status, C = this.fz.chassis, H = FF.CONFIG.regeln.hoppla;
@@ -373,7 +412,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     function flach(xp) {                          // unter dem ganzen Auto höchstens ≈ 20° bergauf, 27° bergab
       for (var k = -1.5; k <= 1.5; k += 0.5) {
         var sk = gel.steigungBei(xp + k);
-        if (sk > 0.36 || sk < -0.5) return false;
+        if (sk > 0.36 || sk < -0.5 || gel.gesperrt(xp + k)) return false;
       }
       return true;
     }
@@ -396,6 +435,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       yHoch: Math.max(C.y, gel.hoeheBei(C.x), gel.hoeheBei(x1)) + 2.6
     };
     this.zustand = "hilfe";
+    if (gel.aktiverLoop) { gel.aktiverLoop.fertig = true; gel.aktiverLoop = null; this.imLooping = false; }
     this.hoppla++;
     this.liegeZeit = 0; this.seitenZeit = 0; this.kopfGemeldet = false;
     this.klemmZeit = 0; this.festZeit = 0; this.weitesterX = Math.max(this.weitesterX, x1);

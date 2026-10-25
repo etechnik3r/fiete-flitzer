@@ -481,6 +481,14 @@
           setzeAusdruck("freude", 1.6);
           FF.Klang.sprich(e.anzahl > 1 ? e.anzahl + " Saltos!" : "Salto!");
           break;
+        case "looping":
+          FF.Klang.spiele("salto");
+          meldung("Looping! 🎢");
+          schwebeText(e.x, e.y + 1.8, "+" + e.bonus, "#ffd23f", true);
+          konfettiWelt(e.x, e.y + 1, 14);
+          setzeAusdruck("freude", 1.6);
+          FF.Klang.sprich("Looping!");
+          break;
         case "luftsprung":
           FF.Klang.spiele("luftsprung");
           schwebeText(ch.x, ch.y + 1.5, "Luftsprung +" + e.bonus, "#9fe0ff", false);

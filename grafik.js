@@ -389,6 +389,36 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Loopings: Achterbahn-Schiene als Ring mit Stützen. Das Auto fährt innen auf
+     der Schiene (Radius R), darum liegt sie hinter dem Auto. */
+  function zeichneLoopings(ctx, K, gel) {
+    var Ls = gel.loopings;
+    if (!Ls || !Ls.length) return;
+    var s = K.s;
+    for (var i = 0; i < Ls.length; i++) {
+      var L = Ls[i], X = sx(K, L.xc);
+      if (X < -(L.R + 2) * s || X > K.b + (L.R + 2) * s) continue;
+      var Y = sy(K, gel.loopMitte(L)), R = L.R * s, boden = sy(K, gel.hoeheBei(L.xc));
+      // Stützen
+      ctx.strokeStyle = "#5a3ea8"; ctx.lineWidth = Math.max(2, 0.22 * s); ctx.lineCap = "round";
+      [[-0.95, -1.5], [0.95, 1.5], [-0.55, -0.6], [0.55, 0.6]].forEach(function (q) {
+        var w = Math.PI / 2 - q[0] * Math.PI / 2;            // Ansatzpunkt am Ring
+        ctx.beginPath(); ctx.moveTo(X + Math.cos(w) * (R + 0.3 * s), Y - Math.sin(w) * (R + 0.3 * s));
+        ctx.lineTo(X + q[1] * 1.1 * R, boden); ctx.stroke();
+      });
+      // Schiene: Ring mit rot-weißen Abschnitten, Rand dunkel
+      var dicke = 0.34 * s, rm = R + dicke / 2;
+      ctx.lineCap = "butt"; ctx.lineWidth = dicke;
+      for (var k = 0; k < 24; k++) {
+        ctx.strokeStyle = k % 2 ? "#ffffff" : "#ff4f6d";
+        ctx.beginPath(); ctx.arc(X, Y, rm, k * Math.PI / 12, (k + 1) * Math.PI / 12 + 0.01); ctx.stroke();
+      }
+      ctx.strokeStyle = "#2b1d5c"; ctx.lineWidth = Math.max(1, 0.06 * s);
+      ctx.beginPath(); ctx.arc(X, Y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(X, Y, R + dicke, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+
   function zeichneStartZiel(ctx, K, gel, zeit) {
     // Startlinie
     var X = sx(K, 0), Y = sy(K, gel.hoeheBei(0));
@@ -1520,6 +1550,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1);
     zeichneGelaende(ctx, K, gel, welt, z);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
+    zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
     zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;

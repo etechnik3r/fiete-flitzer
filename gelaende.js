@@ -90,7 +90,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       maxAb: (g.maxAb + st.ab) * GRAD,
       gewichte: { schanze: g.schanzen, buckel: g.buckel, steil: g.steil * st.steil, tal: g.taeler,
                   berg: g.berg * wild, sprung: g.sprung * wild, wellen: g.wellen * wild, klippe: g.klippe * wild,
-                  rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild },
+                  rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild,
+                  looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild) },
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -120,6 +121,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schilder = [];            // {x, y, text}
     this.lippen = [];              // Schanzen-Kanten {x, hoehe, platziert}
     this.gipfel = [];              // Plateaus großer Hügel {x, platziert}
+    this.loopings = [];            // Loopings {xc, R, …} – Kreisbahn, die das Auto von innen fährt (fahrt.js)
+    this.sperrzonen = [];          // [von, bis]: dort setzt der Ballon nie ab, dort liegt kein Kanister (Grube, Looping)
     this.muenzWertGesamt = 0;
 
     this.platziertBis = this.x0;
@@ -148,7 +151,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   /* ---------- Bau-Elemente ---------- */
-  var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe"];
+  var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
+               "looping", "luecke"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -248,6 +252,38 @@ var FF = globalThis.FF = globalThis.FF || {};
       el.Lo = 1.5 * -el.tief / Math.tan(p.ausfahrt);
       el.xe = xs + el.sB + el.Lb + el.Lo;
       this.lippen.push({ x: xs + el.sA, hoehe: el.Hap, platziert: false });
+    } else if (typ === "looping") {
+      // Looping (ein oder zwei hintereinander) auf ebenem Boden: langer, flacher Anlauf,
+      // denn oben braucht man v² > g·R – also mit Vollgas durch!
+      el.flach = true;
+      el.R = 4.5;
+      el.n = r() < 0.3 + 0.3 * p.wild ? 2 : 1;
+      el.La = 42;                                   // Anlauf
+      el.abstandL = 2 * el.R + 7;                   // Abstand der Mittelpunkte beim Doppel-Looping
+      el.Lflach = el.La + (el.n - 1) * el.abstandL + el.R + 14;
+      el.Lo = 25;                                   // danach sanfter Übergang ins Gelände
+      el.xe = xs + el.Lflach + el.Lo;
+      for (var k = 0; k < el.n; k++) {
+        var xc = xs + el.La + k * el.abstandL;
+        this.loopings.push({ xc: xc, R: el.R, yc: null });
+        this.sperrzonen.push([xc - el.R - 1, xc + el.R + 1]);
+      }
+    } else if (typ === "luecke") {
+      // Lückensprung: Anlauf, steile Schanze, Grube, Landehang auf der anderen Seite
+      el.flach = true;
+      el.La = 28;
+      el.Lk = 8 + 2 * r();                          // Schanze (wird zur Lippe hin steiler)
+      el.H = 2.6 + 0.8 * r();
+      el.G = 8 + 3 * r() + 2 * p.wild;              // Breite der Grube
+      el.D = 3.5;                                   // so tief liegt der Grubenboden unter dem Anlauf
+      el.Hl = el.H - 0.5;                           // Landedeck
+      el.Lp = 3; el.Lf = 14;
+      el.Lflach = el.La + el.Lk + el.G + el.Lp + el.Lf + 8;
+      el.Lo = 25;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xg = xs + el.La + el.Lk;
+      this.sperrzonen.push([xg - 1, xg + el.G + 1]);
+      this.lippen.push({ x: xg, hoehe: el.H, platziert: false });
     } else {
       // Klippe: hinauf auf ein Plateau, dann senkrecht hinunter
       el.D = (2.6 + r() * 2.6) * stark;
@@ -315,6 +351,23 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (s < el.sB) { aus.steilAb = true; return el.Hap - (s - el.sA) * el.tD; }
         if (s < el.sB + el.Lb) return el.tief;
         return el.tief * (1 - glatt(0, el.Lo, s - el.sB - el.Lb));
+      case "looping":
+        return 0;                                   // nur ebener Boden – die Kreisbahn selbst steht in loopings
+      case "luecke":
+        var sl = s - el.La;
+        if (sl < 0) return 0;
+        if (sl < el.Lk) { var ul = sl / el.Lk; if (ul > 0.6) aus.steilAuf = true; return el.H * ul * ul * (0.4 + 0.6 * ul); }
+        sl -= el.Lk;
+        if (sl < el.G) {                            // Grube mit steilen Wänden
+          if (sl < 3) aus.steilAb = true;
+          if (sl > el.G - 1.2) aus.steilAuf = true;
+          return sl < 0.6 ? el.H : (sl > el.G - 0.6 ? el.Hl : -el.D);
+        }
+        sl -= el.G;
+        if (sl < el.Lp) { aus.steilAuf = true; return el.Hl; }
+        sl -= el.Lp;
+        if (sl < el.Lf) return el.Hl * (1 - glatt(0, el.Lf, sl));
+        return 0;
       default: // klippe
         if (s < el.Lu) return el.D * glatt(0, el.Lu, s);
         if (s < el.Lu + el.Lp) return el.D;
@@ -345,9 +398,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       // 1) Rohhöhe
       var start = glatt(8, 45, x);
       var A = p.amp * this.fortschritt(x) * start;
-      var roh = A * (rauschen(x / p.welle, this.s1) + 0.45 * rauschen(x / (p.welle * 0.43), this.s2))
-              + p.holperAmp * start * rauschen(x / p.holperWelle, this.s3)
-              + p.trend * Math.max(0, x - 8) * start;
+      var roh = this.rohRauschen(x);
+      // Loopings und Lückensprünge brauchen ebenen Boden: dort ist das Rauschen eingefroren
+      for (var j = 0; j < this.elemente.length; j++) {
+        var ef = this.elemente[j];
+        if (!ef.flach || x < ef.xs || x > ef.xe) continue;
+        if (ef.basis === undefined) ef.basis = this.rohRauschen(ef.xs);
+        var m = glatt(ef.xs + ef.Lflach, ef.xe, x);
+        roh = ef.basis * (1 - m) + roh * m;
+      }
       var steilAb = false, steilAuf = false;
       for (var i = this.elemente.length - 1; i >= 0; i--) {
         var e = this.elemente[i];
@@ -371,6 +430,26 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.platziereInhalte(this.xEnde() - 40);
   };
 
+  /* Rohhöhe aus Rauschen und Trend (ohne Bau-Elemente) */
+  Gelaende.prototype.rohRauschen = function (x) {
+    var p = this.p, start = glatt(8, 45, x), A = p.amp * this.fortschritt(x) * start;
+    return A * (rauschen(x / p.welle, this.s1) + 0.45 * rauschen(x / (p.welle * 0.43), this.s2))
+         + p.holperAmp * start * rauschen(x / p.holperWelle, this.s3)
+         + p.trend * Math.max(0, x - 8) * start;
+  };
+
+  /* Liegt x in einer Sperrzone (Grube, Looping)? */
+  Gelaende.prototype.gesperrt = function (x) {
+    for (var i = 0; i < this.sperrzonen.length; i++) if (x > this.sperrzonen[i][0] && x < this.sperrzonen[i][1]) return true;
+    return false;
+  };
+
+  /* Mittelpunkt eines Loopings (der Boden darunter ist eben) */
+  Gelaende.prototype.loopMitte = function (L) {
+    if (L.yc === null) L.yc = this.hoeheBei(L.xc) + L.R;
+    return L.yc;
+  };
+
   /* ---------- Abfragen ---------- */
   Gelaende.prototype.hoeheBei = function (x) {
     var f = (x - this.x0) / this.dx;
@@ -389,7 +468,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* Kreis (Rad, Kopf) gegen Streckenzug. Füllt aus = {pen, nx, ny}; true bei (nahem) Kontakt.
      pen > 0: Eindringtiefe, pen < 0: Abstand (spekulativer Kontakt). */
-  Gelaende.prototype.kreisKontakt = function (cx, cy, r, rand, aus) {
+  Gelaende.prototype.kreisKontakt = function (cx, cy, r, rand, aus, ohneLoop) {
     var dx = this.dx, x0 = this.x0, h = this.h, n = h.length;
     var i0 = Math.max(0, Math.floor((cx - r - rand - x0) / dx) - 1);
     var i1 = Math.min(n - 2, Math.ceil((cx + r + rand - x0) / dx) + 1);
@@ -412,9 +491,22 @@ var FF = globalThis.FF = globalThis.FF || {};
       aus.pen = r + (boden - cy) / l;
       return true;
     }
-    if (d > r + rand) return false;
-    aus.nx = (cx - qx) / d; aus.ny = (cy - qy) / d;
-    aus.pen = r - d;
+    var treffer = d <= r + rand;
+    if (treffer) { aus.nx = (cx - qx) / d; aus.ny = (cy - qy) / d; aus.pen = r - d; }
+    return (!ohneLoop && this.loopKontakt(cx, cy, r, rand, aus, treffer)) || treffer;
+  };
+
+  /* Rad von innen gegen die aktive Looping-Bahn; nimmt den
+     tieferen Kontakt, falls schon einer mit dem Boden besteht */
+  Gelaende.prototype.loopKontakt = function (cx, cy, r, rand, aus, schonKontakt) {
+    var L = this.aktiverLoop;
+    if (!L) return false;
+    var ycL = this.loopMitte(L), dx = cx - L.xc, dy = cy - ycL, d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 1e-6) return false;
+    var pen = d + r - L.R;
+    // weit außerhalb des Rings (z. B. nach Versetzen) ist kein Kontakt
+    if (pen < -rand || pen > 1 || (schonKontakt && pen <= aus.pen)) return false;
+    aus.nx = -dx / d; aus.ny = -dy / d; aus.pen = pen;
     return true;
   };
 
@@ -423,10 +515,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     var boden = this.hoeheBei(px);
     var s = this.steigungBei(px), l = Math.sqrt(1 + s * s);
     var abstand = (py - boden) / l;
-    if (abstand > rand) return false;
-    aus.nx = -s / l; aus.ny = 1 / l;
-    aus.pen = -abstand;
-    return true;
+    var treffer = abstand <= rand;
+    if (treffer) { aus.nx = -s / l; aus.ny = 1 / l; aus.pen = -abstand; }
+    return treffer;                                 // die Karosserie streift die Looping-Bahn nicht (nur die Räder fahren darauf)
   };
 
   /* ---------- Münzen, Kanister, Deko, Schilder ---------- */
@@ -451,6 +542,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var kuppe = this.steigungBei(xp - 4) - this.steigungBei(xp + 4);        // > 0: Kuppe, < 0: Mulde
       var w = Math.abs(this.steigungBei(xp)) + 3 * Math.max(0, kuppe + 0.05) +
               1.5 * Math.max(0, this.flughoehe(xp) - 0.6) + 0.004 * Math.abs(xp - x);
+      if (this.gesperrt(xp)) w += 50;
       if (w < besteWertung) { besteWertung = w; beste = xp; }
     }
     return beste;

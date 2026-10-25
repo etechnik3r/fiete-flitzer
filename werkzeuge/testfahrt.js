@@ -79,6 +79,7 @@ function profiFahrer() {
   function eingabe(f, dt) {
     var fz = f.fz, C = fz.chassis, st = fz.status, gel = f.gelaende, g = f.welt.schwerkraft;
     var a = FF.normWinkel(C.a);
+    if (f.imLooping) return { gas: true, bremse: false };   // im Looping: Vollgas durch
     if (inDerLuft(st)) {
       statistik.luft += dt;
       // Landepunkt aus der Wurfparabel, dort soll die Nase zum Hang passen
