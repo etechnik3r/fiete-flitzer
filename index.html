@@ -39,7 +39,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 
 <body>
@@ -57,7 +57,7 @@
         <span class="chip-icon" aria-hidden="true">🪙</span><span class="chip-wert" id="hud-muenzen-wert">0</span>
       </button>
       <button type="button" class="chip tank-chip" id="hud-tank" aria-label="Tank">
-        <span class="chip-icon" aria-hidden="true">⛽</span>
+        <span class="chip-icon" id="hud-tank-icon" aria-hidden="true">⛽</span>
         <span class="tank-balken"><span class="tank-fuellung" id="hud-tank-fuellung"></span></span>
       </button>
     </div>
@@ -196,7 +196,10 @@
               </div>
               <button type="button" class="pfeil-knopf" id="fz-vor" aria-label="Nächstes Fahrzeug">▶</button>
             </div>
-            <canvas class="vorschau" id="vorschau" aria-label="Fahrzeug-Vorschau"></canvas>
+            <div class="vorschau-rahmen">
+              <canvas class="vorschau" id="vorschau" aria-label="Fahrzeug-Vorschau"></canvas>
+              <button type="button" class="motor-hoeren" id="fz-motor" aria-label="Motor anhören">🔊</button>
+            </div>
             <p class="fz-text" id="fz-text"></p>
             <div class="fz-werte" id="fz-werte"></div>
             <button type="button" class="aktion-knopf" id="fz-aktion">✅ Ausgewählt</button>
@@ -288,6 +291,7 @@
       <p class="karte-hinweis" id="ergebnis-tipp"></p>
       <div class="ergebnis-knoepfe">
         <button type="button" class="gruen-knopf" id="knopf-ergebnis-weiter">▶️ Nächstes Level</button>
+        <button type="button" class="zweit-knopf profi-knopf" id="knopf-ergebnis-profi" hidden>🔥 Profi-Level</button>
         <button type="button" class="zweit-knopf" id="knopf-ergebnis-nochmal">🔄 Nochmal</button>
         <button type="button" class="zweit-knopf" id="knopf-ergebnis-garage">🔧 Garage</button>
         <button type="button" class="zweit-knopf" id="knopf-ergebnis-menue">🏠 Menü</button>
@@ -354,6 +358,24 @@
             Luft. Auf dem Mond gilt g = 1,62 m/s², auf Schnee ist µ kleiner, im Sand der
             Rollwiderstand größer. Details stehen in der README.
           </p>
+          <!-- 7× tippen öffnet den versteckten Entwickler-Bereich -->
+          <button type="button" class="opt-version" id="opt-version">Fiete Flitzer · Version ?</button>
+        </section>
+
+        <section class="opt-gruppe entwickler-gruppe" id="entwickler-gruppe" hidden>
+          <h3 class="opt-titel">🛠️ Entwickler</h3>
+          <div class="opt-reihe">
+            <button type="button" class="opt-karte" id="dev-muenzen">
+              <span class="opt-icon">🪙</span><span class="opt-name">+10.000</span><span class="opt-text">für Fiete und Jonte</span>
+            </button>
+            <button type="button" class="opt-karte opt-schalter" id="dev-alle-offen">
+              <span class="opt-icon">🔓</span><span class="opt-name">Alle Level</span><span class="opt-schalter-status"></span>
+            </button>
+            <button type="button" class="opt-karte" id="dev-aus">
+              <span class="opt-icon">🙈</span><span class="opt-name">Verstecken</span><span class="opt-text">Bereich ausblenden</span>
+            </button>
+          </div>
+          <p class="opt-untertitel">Nur zum Testen: Münzen für beide Kinder, „Alle Level“ öffnet jede Welt, ohne den Fortschritt zu verändern.</p>
         </section>
 
         <section class="opt-gruppe">
@@ -364,11 +386,12 @@
     </div>
   </div>
 
-  <!-- ELTERN-DIALOG: Sicherung vor dem Zurücksetzen (kleine Rechenaufgabe) -->
+  <!-- ELTERN-DIALOG: Sicherung vor dem Zurücksetzen und vor dem Entwickler-Bereich
+       (kleine Rechenaufgabe) -->
   <div class="modal-overlay" id="eltern" aria-hidden="true">
     <div class="modal eltern-modal" role="dialog" aria-modal="true" aria-label="Frage für Erwachsene">
       <h2 class="eltern-titel">🔒 Frage für Erwachsene</h2>
-      <p class="eltern-text">Wirklich alles löschen? Dann rechne:<br><b id="eltern-aufgabe">7 × 8</b></p>
+      <p class="eltern-text"><span id="eltern-frage">Wirklich alles löschen?</span> Dann rechne:<br><b id="eltern-aufgabe">7 × 8</b></p>
       <div class="eltern-antworten" id="eltern-antworten"></div>
       <button type="button" class="eltern-abbrechen" id="eltern-abbrechen">Abbrechen</button>
     </div>
@@ -379,13 +402,13 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=4"></script>
-  <script src="gelaende.js?v=4"></script>
-  <script src="physik.js?v=4"></script>
-  <script src="fahrt.js?v=4"></script>
-  <script src="geist.js?v=4"></script>
-  <script src="grafik.js?v=4"></script>
-  <script src="klang.js?v=4"></script>
-  <script src="spiel.js?v=4"></script>
+  <script src="config.js?v=5"></script>
+  <script src="gelaende.js?v=5"></script>
+  <script src="physik.js?v=5"></script>
+  <script src="fahrt.js?v=5"></script>
+  <script src="geist.js?v=5"></script>
+  <script src="grafik.js?v=5"></script>
+  <script src="klang.js?v=5"></script>
+  <script src="spiel.js?v=5"></script>
 </body>
 </html>

@@ -145,6 +145,7 @@ button { font: inherit; color: inherit; }
   background: linear-gradient(90deg, #ffd23f, #28c08a);
   transition: width 0.15s linear, background 0.3s;
 }
+.tank-chip.akku .tank-fuellung { background: linear-gradient(90deg, #2fcf7d, #6ff3ff); }
 .tank-chip.knapp .tank-fuellung { background: linear-gradient(90deg, #e8453c, #ff9e2c); }
 .tank-chip.knapp { animation: blinken 0.6s ease-in-out infinite; }
 @keyframes blinken { 0%, 100% { box-shadow: var(--sh-chip); } 50% { box-shadow: 0 0 0 5px rgba(232, 69, 60, 0.45), var(--sh-chip); } }
@@ -221,6 +222,20 @@ button { font: inherit; color: inherit; }
 }
 .pedal-platte span { display: block; height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.45); }
 .pedal-text { position: relative; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2); }
+/* In der Luft: Pfeil über dem Pedal zeigt, wohin es die Nase dreht (Gas ⤴, Bremse ⤵) */
+.pedale.luft .pedal::before {
+  position: absolute; top: -58px; left: 50%;
+  width: 50px; height: 50px; margin-left: -25px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font-size: 2rem; line-height: 1; color: #fff;
+  box-shadow: var(--sh-card);
+  animation: luftPfeil 0.8s ease-in-out infinite alternate;
+}
+.pedale.luft .pedal-gas::before    { content: "⤴"; background: var(--cta); }
+.pedale.luft .pedal-bremse::before { content: "⤵"; background: var(--rot); }
+@keyframes luftPfeil { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .pedale.luft .pedal::before { animation: none; } }
 
 
 /* 6) MELDUNGEN + TIPPS -------------------------------------------------------- */
@@ -497,7 +512,7 @@ button { font: inherit; color: inherit; }
 
 .welten-liste {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 14px;
 }
 .welt-karte {
@@ -519,7 +534,8 @@ button { font: inherit; color: inherit; }
 .welt-name { font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; line-height: 1.1; text-shadow: 0 2px 3px rgba(0, 0, 0, 0.35); }
 .welt-hinweis { font-size: 0.85rem; opacity: 0.95; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
 .welt-sterne { position: absolute; top: 8px; right: 10px; font-family: var(--font-display); font-size: 0.95rem; background: rgba(0, 0, 0, 0.25); padding: 1px 8px; border-radius: 999px; }
-.welt-level { display: grid; grid-template-columns: repeat(3, 1fr) 1.15fr; gap: 8px; padding: 10px 12px 12px; }
+.welt-level { display: grid; grid-template-columns: repeat(4, minmax(44px, 1fr)) minmax(48px, 1.15fr); gap: 8px; padding: 10px 12px 12px; }
+@media (max-width: 360px) { .welt-level { gap: 5px; padding: 10px 8px 12px; } }
 .level-knopf {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 62px;
@@ -535,6 +551,7 @@ button { font: inherit; color: inherit; }
 .level-knopf.naechstes { border-color: var(--cta); background: #eafaf3; animation: naechstes 1.8s ease-in-out infinite; }
 @keyframes naechstes { 0%, 100% { box-shadow: 0 0 0 0 rgba(40, 192, 138, 0.0); } 50% { box-shadow: 0 0 0 5px rgba(40, 192, 138, 0.3); } }
 .level-knopf.gesperrt { opacity: 0.45; cursor: default; }
+.level-knopf.profi { border-color: #d9c8ff; background: linear-gradient(180deg, #f6f0ff, #ebe1ff); }
 .level-knopf.endlos { font-size: 1.1rem; }
 .level-knopf.endlos small { font-size: 0.75rem; color: var(--muted); }
 .welt-karte.gesperrt .welt-kopf { filter: grayscale(0.7) brightness(0.85); }
@@ -570,6 +587,17 @@ button { font: inherit; color: inherit; }
   border-radius: 16px;
   background: linear-gradient(180deg, #e7f0fe, #f7faff 70%, #dfe9f8);
 }
+.vorschau-rahmen { position: relative; }
+.motor-hoeren {
+  position: absolute; top: 8px; right: 8px;
+  width: 46px; height: 46px;
+  border: none; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92); box-shadow: var(--sh-card);
+  font-size: 1.3rem; cursor: pointer;
+}
+.motor-hoeren:active { transform: scale(0.9); }
+.vorschau.brummt { animation: brummen 0.07s linear infinite; }
+@keyframes brummen { 0% { transform: translate(0, 0); } 50% { transform: translate(0.6px, -0.8px); } 100% { transform: translate(-0.4px, 0.5px); } }
 .fz-text { font-size: 0.92rem; color: var(--muted); text-align: center; line-height: 1.25; min-height: 2.4em; }
 .fz-werte { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; align-items: center; margin: 8px 0 10px; font-size: 0.85rem; }
 .fz-wert-name { white-space: nowrap; }
@@ -725,6 +753,8 @@ button { font: inherit; color: inherit; }
 .ergebnis-knoepfe { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 8px; }
 .ergebnis-knoepfe .gruen-knopf { grid-column: 1 / -1; }
 .ergebnis-knoepfe .zweit-knopf { font-size: 1rem; padding: 0 4px; }
+.ergebnis-knoepfe .profi-knopf { grid-column: 1 / -1; color: #5a2fb0; background: linear-gradient(180deg, #f6f0ff, #ebe1ff); }
+.ergebnis-knoepfe .profi-knopf[hidden] { display: none; }
 @media (orientation: landscape) and (max-height: 700px) {
   .ergebnis-karte { width: min(94vw, 720px); display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: center; padding: 12px 18px; }
   .ergebnis-karte > :not(.ergebnis-knoepfe):not(.ergebnis-liste):not(.karte-hinweis) { grid-column: 1; }
@@ -781,6 +811,18 @@ button { font: inherit; color: inherit; }
 .opt-schalter.aktiv .opt-schalter-status::after { content: "An"; }
 .install-button { width: 100%; min-height: 52px; font-family: var(--font-display); font-size: 1.2rem; font-weight: 800; color: #fff; background: linear-gradient(180deg, #4f8ff0, #2f6fd6); border: none; border-radius: 16px; cursor: pointer; }
 .install-hinweis { margin-top: 6px; font-size: 0.9rem; color: var(--muted); }
+.opt-version { display: block; margin: 8px auto 0; min-height: 44px; padding: 0 14px; font-size: 0.8rem; font-weight: 700; color: #a3adc6; background: none; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.entwickler-gruppe { padding: 12px; border: 2px dashed #c9d2e6; border-radius: 18px; background: #fbfcff; }
+.entwickler-hinweis {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 8px 8px 8px 14px; border: 2px dashed #c9d2e6; border-radius: 16px; background: #fbfcff;
+  font-weight: 800; color: #5b6785;
+}
+.entwickler-hinweis button {
+  min-height: 44px; padding: 0 14px; border: none; border-radius: 12px;
+  font-family: var(--font-display); font-weight: 800; color: var(--ink); background: #eef1f8; cursor: pointer;
+}
 .reset-button { width: 100%; min-height: 50px; font-family: var(--font-display); font-size: 1.1rem; color: #c0392b; background: #fdeeec; border: 2px solid #f3c6c0; border-radius: 16px; cursor: pointer; }
 .modal-fertig { margin: 4px 18px 16px; min-height: 54px; font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; color: #fff; background: linear-gradient(180deg, var(--cta), var(--cta-deep)); border: none; border-radius: 18px; cursor: pointer; }
 
@@ -919,7 +961,7 @@ button { font: inherit; color: inherit; }
 }
 .welt-chip.aktiv { border-color: var(--accent); }
 .welt-chip.gesperrt { opacity: 0.5; filter: grayscale(0.6); }
-.duell-level { display: grid; grid-template-columns: repeat(3, minmax(56px, 90px)) minmax(120px, 170px); gap: 8px; }
+.duell-level { display: grid; grid-template-columns: repeat(4, minmax(48px, 84px)) minmax(110px, 170px); gap: 8px; }
 .level-knopf.gewaehlt { border-color: var(--accent); background: #fff5e6; }
 .duell-start { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .start-knopf {

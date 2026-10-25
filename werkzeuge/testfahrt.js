@@ -8,12 +8,26 @@
    Aufruf:
      node werkzeuge/testfahrt.js                 alle Welten, Flitzer ohne Upgrades
      node werkzeuge/testfahrt.js --upgrade 3     alle Upgrades auf Stufe 3
+     node werkzeuge/testfahrt.js --upgrade auto  Upgrades, die man bis zur Welt etwa hat
      node werkzeuge/testfahrt.js --fahrzeug monster --welt 3
+     node werkzeuge/testfahrt.js --kind          Fahrer "Kind" (siehe unten)
+     node werkzeuge/testfahrt.js --vollgas       Fahrer "Vollgas" (siehe unten)
+     node werkzeuge/testfahrt.js --loslassen     Fahrer "Loslassen" (siehe unten)
+     node werkzeuge/testfahrt.js --vergleich     alle vier Fahrer je Level nebeneinander
      node werkzeuge/testfahrt.js --physik        Physik-Plausibilitätstests
      node werkzeuge/testfahrt.js --geist         Geisterrennen: Aufnahme, Wiedergabe, Sieger
 
-   Der Bot gibt Vollgas, nimmt Gas weg, wenn die Nase zu weit hochgeht, und
-   richtet das Auto in der Luft gerade aus – ungefähr wie ein geübtes Kind.
+   Drei Roboter-Fahrer:
+     Profi    sagt in der Luft den Landepunkt voraus und stellt die Nase mit
+              Gas/Bremse passend zum Hang, dosiert am Berg das Gas (sonst
+              Überschlag nach hinten), bremst vor steilen Abhängen und nimmt
+              Anlauf, wenn er festhängt – so fährt ein geübter Spieler.
+     Kind     hält am Boden immer Vollgas, korrigiert in der Luft nur grob.
+     Loslassen  hält am Boden Vollgas und lässt in der Luft alles los –
+              bremst also nie (die naheliegendste Strategie ohne Bremse).
+     Vollgas  lässt das Gas nie los – auch nicht in der Luft.
+   Gute Level: Der Profi kommt ins Ziel, Loslassen und Vollgas überschlagen
+   sich oft – dann braucht man wirklich Gefühl für Gas UND Bremse.
    =========================================================================== */
 "use strict";
 
@@ -35,47 +49,91 @@ function arg(name, standard) {
   var v = argv[i + 1];
   return v === undefined || v.indexOf("--") === 0 ? true : v;
 }
-var upgradeStufe = +arg("upgrade", 0);
+var upgradeArg = arg("upgrade", 0);
 var fahrzeugId = arg("fahrzeug", "flitzer");
 var nurWelt = arg("welt", null);
 var schwierigkeit = arg("schwierigkeit", "normal");
 
-/* ---------- Bot ---------- */
-var kindModus = arg("kind", false);
+/* ---------- Roboter-Fahrer ---------- */
+var fahrerArt = arg("vollgas", false) ? "vollgas" : arg("loslassen", false) ? "loslassen" : (arg("kind", false) ? "kind" : "profi");
+
+function inDerLuft(st) { return st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt; }
+
+/* "Vollgas": lässt das Gas nie los */
+function vollgasEingabe() { return { gas: true, bremse: false }; }
+
+/* "Loslassen": am Boden Vollgas, in der Luft nichts drücken – bremst nie */
+function loslassenEingabe(f) { return inDerLuft(f.fz.status) ? { gas: false, bremse: false } : { gas: true, bremse: false }; }
 
 /* "Kind": gibt am Boden immer Vollgas und steuert in der Luft nur grob */
 function kindEingabe(f) {
-  var C = f.fz.chassis, st = f.fz.status;
-  var a = FF.normWinkel(C.a);
-  var inLuft = st.radKontakte === 0 && !st.huellKontakt;
-  if (inLuft && a > 0.9) return { gas: false, bremse: true };
-  if (inLuft && a < -0.9) return { gas: true, bremse: false };
+  var C = f.fz.chassis, a = FF.normWinkel(C.a);
+  if (inDerLuft(f.fz.status) && a > 0.9) return { gas: false, bremse: true };
+  if (inDerLuft(f.fz.status) && a < -0.9) return { gas: true, bremse: false };
   return { gas: true, bremse: false };
 }
 
-function botEingabe(f) {
-  if (kindModus) return kindEingabe(f);
-  var fz = f.fz, C = fz.chassis, st = fz.status;
-  var a = FF.normWinkel(C.a);
-  var boden = Math.atan(f.gelaende.steigungBei(C.x));
-  var rel = FF.normWinkel(a - boden);
-  var inLuft = st.radKontakte === 0 && !st.huellKontakt;
-  if (inLuft) {
-    if (a > 0.25) return { gas: false, bremse: true };
-    if (a < -0.25) return { gas: true, bremse: false };
-    return { gas: false, bremse: false };
+/* "Profi": wie ein geübter Spieler (siehe Kopf der Datei) */
+function profiFahrer() {
+  var rueck = 0, rueckBis = 0, klemm = 0, statistik = { boden: 0, gasWeg: 0, bremse: 0, luft: 0 };
+  function eingabe(f, dt) {
+    var fz = f.fz, C = fz.chassis, st = fz.status, gel = f.gelaende, g = f.welt.schwerkraft;
+    var a = FF.normWinkel(C.a);
+    if (inDerLuft(st)) {
+      statistik.luft += dt;
+      // Landepunkt aus der Wurfparabel, dort soll die Nase zum Hang passen
+      var x = C.x, y = C.y, t = 0;
+      for (var k = 0; k < 90; k++) {
+        t += 0.04; x = C.x + C.vx * t; y = C.y + C.vy * t - 0.5 * g * t * t;
+        if (y - 0.9 < gel.hoeheBei(x)) break;
+      }
+      var fehler = FF.normWinkel(Math.atan(gel.steigungBei(x)) - a);
+      var u = fehler / Math.max(0.3, t) - C.w;            // gewünschte minus aktuelle Drehrate
+      if (u > 0.4) return { gas: true, bremse: false };
+      if (u < -0.4) return { gas: false, bremse: true };
+      return { gas: false, bremse: false };
+    }
+    statistik.boden += dt;
+    var v = st.vorwaerts;
+    // festgefahren? → zurückrollen/-fahren und Anlauf nehmen
+    if (rueck > 0) {
+      rueck -= dt; statistik.bremse += dt;
+      if (C.x < rueckBis) rueck = 0;
+      return { gas: false, bremse: true };
+    }
+    klemm = (st.tempo < 0.5 && f.gas > 0.9) ? klemm + dt : 0;
+    if (klemm > 1.5) { klemm = 0; rueck = 5; rueckBis = C.x - 12; }
+    var rel = FF.normWinkel(a - Math.atan(gel.steigungBei(C.x)));   // + = Nase höher als der Boden
+    if (rel > 0.5 || (rel > 0.3 && C.w > 0.6)) {                 // Überschlag nach hinten droht
+      statistik.gasWeg += dt;
+      if (rel > 0.75) { statistik.bremse += dt; return { gas: false, bremse: true }; }
+      return { gas: false, bremse: false };
+    }
+    // vor steilem Gefälle oder Abbruchkante nicht zu schnell
+    var vorX = C.x + 3 + Math.max(0, v) * 0.6;
+    var gef = Math.min(gel.steigungBei(vorX), gel.steigungBei(vorX + 4));
+    var vMax = gef < -0.9 ? 8 : (gef < -0.6 ? 11 : 99);
+    if (v > vMax) { statistik.bremse += dt; return { gas: false, bremse: true }; }
+    return { gas: true, bremse: false };
   }
-  if (rel > 0.75) return { gas: false, bremse: rel > 1.0 };
-  return { gas: true, bremse: false };
+  return { eingabe: eingabe, statistik: statistik };
 }
 
-function fahre(weltIndex, stufe, fzId, upg, maxZeit) {
+function neuerFahrer(art) {
+  if (art === "vollgas") return { eingabe: vollgasEingabe, statistik: null };
+  if (art === "loslassen") return { eingabe: loslassenEingabe, statistik: null };
+  if (art === "kind") return { eingabe: kindEingabe, statistik: null };
+  return profiFahrer();
+}
+
+function fahre(weltIndex, stufe, fzId, upg, maxZeit, art) {
   var f = new FF.Fahrt({ weltIndex: weltIndex, stufe: stufe, fahrzeugId: fzId, upgrades: upg, schwierigkeit: schwierigkeit });
-  var dt = 1 / 60, minTank = 1, tanks = 0;
+  var dt = 1 / 60, minTank = 1, tanks = 0, fahrer = neuerFahrer(art || fahrerArt), luftSpruenge = 0, luft = 0;
   maxZeit = maxZeit || 400;
   while (f.zustand !== "ende" && f.zeit < maxZeit) {
-    f.aktualisiere(dt, botEingabe(f));
+    f.aktualisiere(dt, fahrer.eingabe(f, dt));
     if (f.tank < minTank) minTank = f.tank;
+    if (inDerLuft(f.fz.status) && f.zustand === "fahrt") luft += dt; else { if (luft > 0.6) luftSpruenge++; luft = 0; }
     for (var i = 0; i < f.ereignisse.length; i++) if (f.ereignisse[i].typ === "tank") tanks++;
     f.ereignisse.length = 0;
     if (!isFinite(f.fz.chassis.x) || !isFinite(f.fz.chassis.y)) { return { fehler: "NaN!" }; }
@@ -84,11 +142,17 @@ function fahre(weltIndex, stufe, fzId, upg, maxZeit) {
   e.minTank = minTank; e.tanks = tanks; e.zeitAbbruch = f.zeit >= maxZeit;
   e.wertGesamt = f.gelaende.muenzWertGesamt;
   e.laenge = f.gelaende.ziel;
+  e.spruenge = luftSpruenge;
+  e.statistik = fahrer.statistik;
   return e;
 }
 
 function upgradesAlle(stufe) {
   return { motor: stufe, reifen: stufe, federung: stufe, tank: stufe, allrad: stufe >= 4 ? 1 : 0 };
+}
+/* "auto": so viele Upgrades, wie man bis zu dieser Welt ungefähr erspielt hat */
+function upgradesFuer(weltIndex) {
+  return upgradesAlle(upgradeArg === "auto" ? Math.min(5, Math.floor(weltIndex / 2)) : +upgradeArg || 0);
 }
 
 /* ---------- Physik-Plausibilität ---------- */
@@ -180,9 +244,9 @@ function geistTests() {
   // 1) Fahrt aufzeichnen
   var f = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal" });
   var auf = new FF.Geist.Aufnahme({ kind: "fiete", fahrzeugId: "flitzer", upgrades: {} });
-  var echt = [];
+  var echt = [], fahrer = profiFahrer();
   while (f.zustand !== "ende" && f.zeit < 200) {
-    f.aktualisiere(1 / 60, botEingabe(f));
+    f.aktualisiere(1 / 60, fahrer.eingabe(f, 1 / 60));
     auf.erfasse(f, "normal");
     echt.push({ t: f.zeit, x: f.fz.chassis.x, y: f.fz.chassis.y });
     f.ereignisse.length = 0;
@@ -220,13 +284,40 @@ function geistTests() {
 if (arg("physik", false)) { physikTests(); process.exit(0); }
 if (arg("geist", false)) { process.exit(geistTests() ? 1 : 0); }
 
-var upg = upgradesAlle(upgradeStufe);
-console.log("Fahrzeug: " + fahrzeugId + ", Upgrades: Stufe " + upgradeStufe + ", Schwierigkeit: " + schwierigkeit);
+if (arg("vergleich", false)) {
+  console.log("Fahrzeug: " + fahrzeugId + ", Upgrades: " + upgradeArg + ", Schwierigkeit: " + schwierigkeit);
+  console.log("Welt/Level          | Profi: Ergebnis ⭐ Hoppla Tank Sprünge GasWeg Bremse | Kind: Ergebnis Hoppla | Loslassen: Ergebnis Hoppla | Vollgas: Ergebnis Hoppla");
+  var summe = { profi: 0, kind: 0, los: 0, vollgas: 0, n: 0, hpProfi: 0, hpLos: 0, hpVoll: 0, n2: 0, los2: 0 };
+  FF.CONFIG.welten.forEach(function (welt, wi) {
+    if (nurWelt !== null && +nurWelt !== wi) return;
+    welt.level.forEach(function (lv, li) {
+      var upg2 = upgradesFuer(wi);
+      var p = fahre(wi, li, fahrzeugId, upg2, 400, "profi"), k = fahre(wi, li, fahrzeugId, upg2, 400, "kind"),
+          l = fahre(wi, li, fahrzeugId, upg2, 400, "loslassen"), v = fahre(wi, li, fahrzeugId, upg2, 400, "vollgas");
+      var erg = function (e) { return e.fehler ? "NaN!" : (e.ziel ? "ZIEL" : (e.zeitAbbruch ? "Zeit" : e.strecke + "m")); };
+      var bd = p.statistik.boden || 1;
+      console.log((welt.name + " " + (li + 1)).padEnd(20) + "| " + erg(p).padStart(6) + " " + String(p.sterne).padStart(1) + " " +
+        String(p.hoppla).padStart(6) + " " + (Math.round(p.minTank * 100) + "%").padStart(4) + " " + String(p.spruenge).padStart(7) + " " +
+        (Math.round(p.statistik.gasWeg / bd * 100) + "%").padStart(6) + " " + (Math.round(p.statistik.bremse / bd * 100) + "%").padStart(6) +
+        " | " + erg(k).padStart(6) + " " + String(k.hoppla).padStart(6) + " | " + erg(l).padStart(6) + " " + String(l.hoppla).padStart(6) +
+        " | " + erg(v).padStart(6) + " " + String(v.hoppla).padStart(6));
+      summe.n++; if (p.ziel) summe.profi++; if (k.ziel) summe.kind++; if (l.ziel) summe.los++; if (v.ziel) summe.vollgas++;
+      summe.hpProfi += p.hoppla; summe.hpLos += l.hoppla; summe.hpVoll += v.hoppla;
+      if (li > 0) { summe.n2++; if (l.ziel) summe.los2++; }
+    });
+  });
+  console.log("Im Ziel: Profi " + summe.profi + "/" + summe.n + ", Kind " + summe.kind + "/" + summe.n + ", Loslassen " + summe.los + "/" + summe.n +
+              ", Vollgas " + summe.vollgas + "/" + summe.n + " · Hoppla gesamt: Profi " + summe.hpProfi + ", Loslassen " + summe.hpLos + ", Vollgas " + summe.hpVoll +
+              " · Loslassen in Level 2–4: " + summe.los2 + "/" + summe.n2);
+  process.exit(0);
+}
+
+console.log("Fahrzeug: " + fahrzeugId + ", Upgrades: " + upgradeArg + ", Fahrer: " + fahrerArt + ", Schwierigkeit: " + schwierigkeit);
 console.log("Welt/Level         Länge  Ergebnis   Strecke  Zeit   Münzen/Gesamt  Anteil  Sterne  Salti  Hoppla  minTank  Kanister");
 FF.CONFIG.welten.forEach(function (welt, wi) {
   if (nurWelt !== null && +nurWelt !== wi) return;
   welt.level.forEach(function (lv, li) {
-    var e = fahre(wi, li, fahrzeugId, upg);
+    var e = fahre(wi, li, fahrzeugId, upgradesFuer(wi));
     if (e.fehler) { console.log(welt.name + " " + (li + 1) + ": " + e.fehler); return; }
     console.log(
       (welt.name + " " + (li + 1)).padEnd(18) +

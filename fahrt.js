@@ -7,6 +7,8 @@
      • Luftsteuerung, Saltos und Luftsprünge erkennen
      • Überschlag = "Hoppla!" → ein Ballon stellt das Auto wieder hin
        (kein Game Over, nur etwas Benzin weg – kindgerecht)
+     • Bruchlandung: nach einem Sprung zu schief zum Hang gelandet → ebenso
+       Ballon-Hilfe (siehe CONFIG.schwierigkeit.bruchWinkel)
      • Ziel erreicht / Tank leer → Ergebnis
 
    Was passiert, wird als Ereignis in fahrt.ereignisse gemeldet
@@ -54,8 +56,43 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* -------------------------------------------------------------------------
+     Virtuelles Getriebe – für Drehzahlmesser und Motorklang (klang.js)
+     Gang nach Fahrtempo (mit Hysterese), Motordrehzahl aus der Raddrehzahl,
+     beim Anfahren schleift die Kupplung. Elektromotoren haben einen Gang.
+     klang = Klang-Profil des Fahrzeugs (leerlauf, max, gaenge, traegheit, art)
+     ------------------------------------------------------------------------- */
+  function Getriebe(klang) {
+    this.P = klang || {};
+    this.elektro = this.P.art === "elektro";
+    this.gaenge = this.elektro ? 1 : (this.P.gaenge || 4);
+    this.leerlauf = this.elektro ? 0 : (this.P.leerlauf || 800);
+    this.max = this.P.max || (this.elektro ? 12000 : 6000);
+    this.gang = 1; this.schaltZeit = 0;
+    this.rf = 0;                  // Drehzahl relativ zur Höchstdrehzahl im Gang (> 1: Begrenzer)
+    this.schalten = false; this.begrenzer = false;
+    this.rpm = 0;                 // Motordrehzahl [U/min], mit Trägheit
+  }
+  /* r = Raddrehzahl/Höchstdrehzahl, v = Tempo/vmax, gas 0..1, boden, laeuft, dt [s] */
+  Getriebe.prototype.schritt = function (r, v, gas, boden, laeuft, dt) {
+    var G = this.gaenge;
+    function gangOben(k) { return Math.pow(k / G, 0.8); }
+    this.schaltZeit = Math.max(0, this.schaltZeit - dt);
+    if (this.gang < G && v > 0.9 * gangOben(this.gang) && boden) { this.gang++; this.schaltZeit = 0.13; }
+    else if (this.gang > 1 && v < 0.62 * gangOben(this.gang - 1)) { this.gang--; this.schaltZeit = 0.08; }
+    var rf = r / gangOben(this.gang);
+    if (this.gang === 1 && !this.elektro) rf = Math.max(rf, gas * 0.42);   // Kupplung schleift beim Anfahren
+    this.rf = rf;
+    this.schalten = this.schaltZeit > 0;
+    this.begrenzer = rf > 1 && gas > 0.5;
+    var ziel = laeuft ? this.leerlauf + (this.max - this.leerlauf) * Math.min(1, rf) : 0;
+    var tr = !laeuft ? 2.5 : this.begrenzer ? 30 : (this.P.traegheit || 10);
+    this.rpm += (ziel - this.rpm) * Math.min(1, dt * tr);
+    return this;
+  };
+
+  /* -------------------------------------------------------------------------
      Fahrt
-     o = { weltIndex, stufe (0..2), endlos, fahrzeugId, upgrades, schwierigkeit }
+     o = { weltIndex, stufe (0..3), endlos, fahrzeugId, upgrades, schwierigkeit }
      ------------------------------------------------------------------------- */
   function Fahrt(o) {
     var C = FF.CONFIG;
@@ -77,7 +114,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var rSumme = 0, nA = 0;
     this.fz.raeder.forEach(function (R) { if (R.antrieb) { rSumme += R.r; nA++; } });
     this.nAntrieb = nA;
-    this.leistungMax = this.werte.motor.drehmoment * C.steuerung.eckDrehzahl * this.werte.motor.vmax / (rSumme / nA);
+    this.eck = this.werte.motor.eck || C.steuerung.eckDrehzahl;
+    this.leistungMax = this.werte.motor.drehmoment * this.eck * this.werte.motor.vmax / (rSumme / nA);
+    this.geladen = 0;              // Elektroauto: durch Bremsen zurückgewonnen (Anteil Akku)
+    this.getriebe = new Getriebe(this.def.klang);
 
     this.tank = 1;
     this.gas = 0; this.bremse = 0; this.rueckwaerts = false;
@@ -89,7 +129,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.ereignisse = [];
     this.luftZeit = 0; this.luftDrehung = 0;
     this.leerZeit = 0; this.stillZeit = 0; this.liegeZeit = 0; this.seitenZeit = 0;
-    this.klemmZeit = 0; this.letzterTipp = -99;
+    this.klemmZeit = 0; this.letzterTipp = -99; this.festZeit = 0; this.weitesterX = 0;
     this.tankGewarnt = false; this.leerGemeldet = false; this.kopfGemeldet = false;
     this.hilfe = null;
     this.zielZeit = null;            // Zeitpunkt der Zieldurchfahrt [s]
@@ -113,6 +153,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.schritt(h, eingabe);
       if (this.zustand === "ende") break;
     }
+    var st = this.fz.status, hilfe = this.zustand === "hilfe";
+    this.getriebe.schritt(hilfe ? 0 : st.drehzahl, hilfe ? 0 : st.tempo / this.werte.motor.vmax,
+                          this.gas + (this.rueckwaerts ? 0.6 * this.bremse : 0), !hilfe && st.radKontakte > 0,
+                          this.tank > 0 && this.zustand !== "ende", Math.min(dt, 0.05));
     this.sammle();
     if (this.endlos) {
       var x = this.fz.chassis.x;
@@ -143,10 +187,22 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.zustand === "fahrt" && this.tank > 0) {
       var gasWirk = this.gas + (this.rueckwaerts ? 0.6 * this.bremse : 0);
       var pAnteil = Math.min(1, st.leistung / this.leistungMax);
-      var L = Rg.leerlaufAnteil;
+      var L = w.leerlauf !== undefined ? w.leerlauf : Rg.leerlaufAnteil;
       this.tank -= (L + (1 - L) * (0.55 * Math.min(1, gasWirk) + 0.45 * pAnteil)) / w.tankSekunden * h;
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
+    }
+    // Rekuperation (Elektroauto): Bremsleistung P = M·ω fließt zum Teil zurück in den Akku –
+    // beim Bremsen und beim Rollen ohne Pedal (dann bremst der Motor als Generator)
+    if (w.rekuperation && this.zustand === "fahrt" && this.tank > 0 && (this.bremse > 0.05 || this.gas < 0.01) &&
+        !this.rueckwaerts && st.vorwaerts > 1) {
+      var pBrems = 0;
+      fz.raeder.forEach(function (R) { if (R.motorZiel === 0) pBrems += Math.abs(R.jMotor / h * (R.k.w - C.w)); });
+      var vorher = this.tank;
+      this.tank = Math.min(1, this.tank + w.rekuperation * Math.min(1, pBrems / this.leistungMax) / w.tankSekunden * h);
+      this.geladen += this.tank - vorher;                  // nur was wirklich in den Akku passt
+      if (this.geladen >= 0.02) { this.melde("geladen", { anteil: this.geladen }); this.geladen = 0; }
+      if (this.tank >= Rg.tankWarnung) this.tankGewarnt = false;
     }
 
     // Strecke
@@ -180,7 +236,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (var i = 0; i < nAlle; i++) {
       var R = fz.raeder[i];
       var rel = Math.abs(R.k.w - C.w);
-      var wEck = S.eckDrehzahl * R.wMax;
+      var wEck = this.eck * R.wMax;
       var Tkurve = rel <= wEck ? Tmax : Tmax * wEck / rel;   // konstantes Moment, dann konstante Leistung
       if (this.gas > 0.01 && motorAn) {
         R.motorZiel = -R.wMax;                               // vorwärts = Rad dreht im Uhrzeigersinn
@@ -192,8 +248,9 @@ var FF = globalThis.FF = globalThis.FF || {};
         R.motorZiel = R.wMax * S.rueckwaertsTempo;
         R.motorMax = R.antrieb ? Tkurve * S.rueckwaertsKraft * this.bremse / nA : 0;
       } else {
+        // ohne Pedal: Motorbremse – beim Elektroauto stärker (Generator lädt den Akku)
         R.motorZiel = 0;
-        R.motorMax = R.antrieb && motorAn ? Tmax * S.motorBremse / nA : 0;
+        R.motorMax = R.antrieb && motorAn ? Tmax * (w.rekuperation ? S.motorBremseElektro : S.motorBremse) / nA : 0;
       }
     }
   };
@@ -231,8 +288,16 @@ var FF = globalThis.FF = globalThis.FF || {};
       return;
     }
     if (this.luftZeit > 0) {
-      var aufrecht = st.radKontakte > 0 && Math.abs(normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)))) < 1.1;
+      var schief = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));   // + = Nase zu hoch
+      var aufrecht = st.radKontakte > 0 && Math.abs(schief) < 1.1;
       if (this.luftZeit > 0.3) this.melde("landung", { staerke: Math.min(1, this.luftZeit / 1.5) });
+      // Bruchlandung: viel zu schief zum Hang aufgekommen
+      if (this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > (this.schw.bruchWinkel || 90) * Math.PI / 180) {
+        this.luftZeit = 0; this.luftDrehung = 0;
+        this.melde("bruch", { nase: schief > 0 ? "hoch" : "tief" });
+        this.starteHilfe();
+        return;
+      }
       if (aufrecht && this.zustand === "fahrt") {
         var n = Math.floor((Math.abs(this.luftDrehung) + 0.7) / ZWEI_PI);
         if (n >= 1) {
@@ -259,7 +324,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     var kopfOderDach = st.kopfKontakt || st.dachKontakt;
     if (kopfOderDach) {
       this.liegeZeit += h;
-      if (!this.kopfGemeldet) { this.kopfGemeldet = true; this.melde("hoppla"); }
+      if (!this.kopfGemeldet) {
+        this.kopfGemeldet = true;
+        // nach hinten gekippt (Nase oben/hinten) und am Berg? → zu viel Gas am Berg
+        this.melde("hoppla", { rueckwaerts: normWinkel(C.a) > 0.6, bergauf: this.gelaende.steigungBei(C.x) > 0.25 });
+      }
     } else {
       this.liegeZeit = Math.max(0, this.liegeZeit - 2 * h);
       if (this.liegeZeit === 0) this.kopfGemeldet = false;
@@ -269,28 +338,59 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     if (this.liegeZeit > H.liegezeit || this.seitenZeit > H.seitenZeit) this.starteHilfe();
 
-    // Hängt das Auto fest (Gas, aber kein Vorwärtskommen)? → Tipp für Kinder
-    if (this.gas > 0.9 && st.radKontakte > 0 && st.tempo < 0.6 && this.tank > 0) this.klemmZeit += h;
-    else this.klemmZeit = 0;
-    if (this.klemmZeit > 3 && this.zeit - this.letzterTipp > 12) {
+    // Hängt das Auto fest oder rutscht es immer wieder den Steilhang hinunter? Gemessen
+    // am Fortschritt: Kommt es trotz Pedal nicht über seinen weitesten Punkt hinaus, gibt
+    // es erst einen Tipp, dann trägt der Ballon es über das Hindernis (kostet Benzin
+    // wie ein Hoppla, aber kein Kind bleibt für immer stecken)
+    var F = FF.CONFIG.regeln.fest;
+    if (C.x > this.weitesterX + F.schritt) { this.weitesterX = C.x; this.festZeit = 0; }
+    else if ((this.gas > 0.5 || this.bremse > 0.5) && this.tank > 0) this.festZeit += h;   // auch Anlauf-Versuche zählen
+    var klemmt = this.gas > 0.9 && st.tempo < 0.6 && this.tank > 0 && st.radKontakte > 0;
+    this.klemmZeit = klemmt ? this.klemmZeit + h : 0;
+    if ((this.klemmZeit > 3 || this.festZeit > F.tipp) && this.zeit - this.letzterTipp > 12) {
       this.letzterTipp = this.zeit; this.klemmZeit = 0;
       this.melde("tipp", { text: "Nimm Anlauf! Fahr ein Stück zurück 🔙" });
     }
+    if (this.festZeit > (this.werte.stabilisator ? F.hilfeLeicht : F.hilfe)) { this.starteHilfe(this.weitesterX); }
   };
 
-  Fahrt.prototype.starteHilfe = function () {
+  /* Wo setzt der Ballon ab? Nicht mitten in einen Steilhang (von dort kommt
+     man ohne Anlauf nicht weg), sondern auf eine flache Stelle: nach einem
+     Überschlag oder einer Bruchlandung die nächste in der Nähe, sonst zurück an
+     den Fuß des Hangs (dort kann man Anlauf nehmen – der Ballon ist keine
+     Abkürzung). Wer festhängt (vorwaerts), wird über das Hindernis getragen;
+     die längsten Steilstücke sind gut 35 m lang. */
+  Fahrt.prototype.landeplatz = function (x, vorwaerts) {
+    var gel = this.gelaende, ziel = this.endlos ? Infinity : gel.ziel - 2, d;
+    function flach(xp) {                          // unter dem ganzen Auto höchstens ≈ 20° bergauf, 27° bergab
+      for (var k = -1.5; k <= 1.5; k += 0.5) {
+        var sk = gel.steigungBei(xp + k);
+        if (sk > 0.36 || sk < -0.5) return false;
+      }
+      return true;
+    }
+    for (d = 0; d <= (vorwaerts ? 45 : 8) && x + d < ziel; d += 0.5) if (flach(x + d)) return x + d;
+    for (d = 0.5; d <= 40 && x - d > 0; d += 0.5) if (flach(x - d)) return x - d;
+    for (d = 0; d <= 45 && x + d < ziel; d += 0.5) if (flach(x + d)) return x + d;
+    return x;
+  };
+
+  /* Ballon-Hilfe; ueberX: festgefahren → hinter diesem Punkt (weitester Fortschritt) absetzen */
+  Fahrt.prototype.starteHilfe = function (ueberX) {
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
-    var zielA = Math.atan(gel.steigungBei(C.x));
+    var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3), true) : this.landeplatz(C.x);
+    var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
     var a0 = C.a, d = normWinkel(zielA - a0);
     this.hilfe = {
       t: 0, dauer: H.dauer,
-      x: C.x, y0: C.y, a0: a0, a1: a0 + d,
-      yHoch: Math.max(C.y, gel.hoeheBei(C.x)) + 2.6
+      x: C.x, x0: C.x, x1: x1, y0: C.y, a0: a0, a1: a0 + d,
+      yHoch: Math.max(C.y, gel.hoeheBei(C.x), gel.hoeheBei(x1)) + 2.6
     };
     this.zustand = "hilfe";
     this.hoppla++;
     this.liegeZeit = 0; this.seitenZeit = 0; this.kopfGemeldet = false;
+    this.klemmZeit = 0; this.festZeit = 0; this.weitesterX = Math.max(this.weitesterX, x1);
     this.luftZeit = 0; this.luftDrehung = 0;
     var abzug = this.schw.hopplaTank;
     this.tank = Math.max(0, this.tank - abzug);
@@ -304,8 +404,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     hf.t += h;
     var u = hf.t / hf.dauer;
     if (u < 0.28) return;                          // Ballon schwebt herunter
-    if (u < 0.68) {                                // anheben + aufrichten
+    if (u < 0.68) {                                // anheben, aufrichten, zum Landeplatz schweben
       var q = weich((u - 0.28) / 0.4);
+      hf.x = hf.x0 + (hf.x1 - hf.x0) * q;
       FF.Physik.setzePose(fz, hf.x, hf.y0 + (hf.yHoch - hf.y0) * q, hf.a0 + (hf.a1 - hf.a0) * q);
       return;
     }
@@ -397,7 +498,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (t.weg || Math.abs(t.x - C.x) > reichweite) continue;
       for (j = 0; j < pkt.length; j += 3) {
         d = Math.hypot(t.x - pkt[j], t.y + 0.45 - pkt[j + 1]);
-        if (d < Rad + 0.3 + pkt[j + 2] * 0.6) {
+        if (d < Rad + 0.8 + pkt[j + 2] * 0.6) {         // großzügig: knapp drüber fliegen zählt auch
           t.weg = true;
           this.tank = 1;
           this.tankGewarnt = false; this.leerGemeldet = false;
@@ -434,6 +535,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   FF.Fahrt = Fahrt;
+  FF.Getriebe = Getriebe;
   FF.berechneWerte = berechneWerte;
   FF.fahrzeugDef = fahrzeugDef;
   FF.normWinkel = normWinkel;

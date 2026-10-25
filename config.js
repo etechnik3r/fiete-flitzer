@@ -41,6 +41,7 @@ FF.CONFIG = {
     rueckwaertsTempo: 0.4,     // Anteil von vmax beim Rückwärtsfahren
     rueckwaertsKraft: 0.6,     // Anteil des Drehmoments beim Rückwärtsfahren
     motorBremse: 0.03,         // Schleppmoment ohne Pedal (Anteil vom Drehmoment)
+    motorBremseElektro: 0.1,   // dasselbe beim Elektroauto: der Motor bremst als Generator (lädt den Akku)
     eckDrehzahl: 0.35          // Bis zu diesem Anteil von vmax volles Drehmoment, danach konstante Leistung
   },
 
@@ -67,6 +68,12 @@ FF.CONFIG = {
       seitenWinkel: 1.4,       // ab diesem Winkel [rad] (≈ 80°) gilt "liegt auf der Seite"
       seitenZeit: 2.2          // so lange auf der Seite + kaum Tempo → Hilfe
     },
+    fest: {                    // Festgefahren: gemessen am Fortschritt nach vorn
+      schritt: 2.5,            // so weit [m] muss das Auto über seinen bisher weitesten Punkt kommen
+      tipp: 3.5,               // so lange [s] Pedal ohne Fortschritt → Tipp "Nimm Anlauf!"
+      hilfe: 8,                // … → der Ballon trägt das Auto über das Hindernis
+      hilfeLeicht: 6           // dasselbe bei Schwierigkeit "Leicht"
+    },
     saltoBonus: 50,            // Münzen pro Salto
     luftZeitMin: 1.2,          // ab so viel Flugzeit [s] gibt es einen Luftsprung-Bonus
     luftBonusProSekunde: 15,   // Münzen pro Sekunde Flugzeit
@@ -79,11 +86,15 @@ FF.CONFIG = {
     geistTakt: 1 / 20          // so oft [s] wird die Fahrt für den Geist aufgezeichnet
   },
 
-  /* Schwierigkeit (Einstellungen): wirkt auf Hilfe, Tank und Luftsteuerung */
+  /* Schwierigkeit (Einstellungen): wirkt auf Hilfe, Tank und Luftsteuerung.
+     bruchWinkel: Landet das Auto nach einem Sprung schiefer als dieser Winkel [°]
+     zum Hang, ist es eine Bruchlandung (echte Achsen und Federbeine würden das
+     nicht aushalten) → Ballon-Hilfe. Darum muss man die Nase in der Luft mit
+     Gas (hoch) und Bremse (runter) passend zum Landehang stellen. */
   schwierigkeit: {
-    leicht: { name: "Leicht", icon: "🐢", tank: 1.35, hopplaTank: 0.05, stabilisator: 1, luftsteuerung: 1.15 },
-    normal: { name: "Normal", icon: "🐇", tank: 1.0,  hopplaTank: 0.12, stabilisator: 0, luftsteuerung: 1.0 },
-    profi:  { name: "Profi",  icon: "🚀", tank: 0.85, hopplaTank: 0.2,  stabilisator: 0, luftsteuerung: 0.9 }
+    leicht: { name: "Leicht", icon: "🐢", tank: 1.35, hopplaTank: 0.05, stabilisator: 1, luftsteuerung: 1.15, bruchWinkel: 80 },
+    normal: { name: "Normal", icon: "🐇", tank: 1.0,  hopplaTank: 0.2,  stabilisator: 0, luftsteuerung: 1.0,  bruchWinkel: 40 },
+    profi:  { name: "Profi",  icon: "🚀", tank: 0.85, hopplaTank: 0.26,  stabilisator: 0, luftsteuerung: 0.9,  bruchWinkel: 38 }
   },
 
   /* -------------------------------------------------------------------------
@@ -94,14 +105,27 @@ FF.CONFIG = {
        raeder       Aufhängepunkt x/y (Schwerpunkt-Koordinaten), Radius r, Radmasse, Antrieb
        federung     ruhe = entspannte Federlänge, weg = Federweg [m],
                     frequenz = Eigenfrequenz [Hz], daempfung = Dämpfungsgrad ζ
-       motor        drehmoment = Summe an den Antriebsrädern [Nm], vmax [m/s]
+       motor        drehmoment = Summe an den Antriebsrädern [Nm], vmax [m/s],
+                    eck = bis zu diesem Anteil von vmax volles Drehmoment (sonst steuerung.eckDrehzahl)
        bremse       Bremsmoment gesamt [Nm]
        grip         Reifen-Reibwert µ (Spitzenwert der Kraftschlusskurve)
        tankSekunden so lange reicht ein voller Tank bei Vollgas [s]
+       leerlauf     Verbrauch im Stand (Anteil vom Vollgas-Verbrauch; sonst regeln.leerlaufAnteil)
+       rekuperation Elektroauto: Anteil der Bremsleistung, der zurück in den Akku fließt
+       akku         true = Akku statt Tank (Anzeige, Kanister werden zu Batterien)
        luftsteuerung Winkelbeschleunigung in der Luft [rad/s²] (Spiel-Hilfe, s. README)
        cwA, abtrieb Luftwiderstandsfläche cw·A und Abtriebsfläche cA·A [m²]
        huelle       Umriss der Karosserie (Kollision), dach = Punkte "Dach/Überrollbügel",
        kopf         Fietes Kopf (Kreis) – berührt er den Boden → "Hoppla!"
+       klang        Motorgeräusch (klang.js), darf fehlen (dann klingt es wie der Flitzer):
+                    art "verbrenner": zylinder, takte (2/4), leerlauf/max [U/min], gaenge,
+                      abkling (Druckstoß), ungleich (Ungleichförmigkeit), v8 (Bollern der
+                      Zylinderbänke), rohr = Auspuff-Laufzeit [s] + rueck (Rückkopplung),
+                      koerper = Körperresonanz [Hz], hell, diesel (Nageln), unruhe [Cent],
+                      traegheit [1/s], knallen (Puffen beim Gaswegnehmen);
+                    art "elektro": surren [Hz bei Höchstdrehzahl], avasTon [Hz] (Warnklang),
+                      max [U/min] für den Drehzahlmesser, weltraum (Wabern);
+                    für alle: lautstaerke, abrollen (Stärke der Reifen-/Abrollgeräusche)
      ------------------------------------------------------------------------- */
   fahrzeuge: [
     {
@@ -114,28 +138,32 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.36, weg: 0.26, frequenz: 1.9, daempfung: 0.42 },
       motor: { drehmoment: 640, vmax: 16 }, bremse: 900, grip: 0.95,
-      tankSekunden: 30, luftsteuerung: 5.5, cwA: 0.45, abtrieb: 0,
+      tankSekunden: 21, luftsteuerung: 5.5, cwA: 0.45, abtrieb: 0,
       huelle: [[-1.45, -0.30], [1.30, -0.30], [1.55, 0.02], [1.25, 0.30], [0.35, 0.34], [-1.45, 0.34]],
       dach: [[-0.80, 1.06], [0.02, 1.06]],
       kopf: { x: -0.32, y: 0.70, r: 0.30 },
       farbe: "orange", form: "buggy",
+      klang: { art: "verbrenner", zylinder: 4, takte: 4, leerlauf: 900, max: 5600, gaenge: 4, abkling: 7, ungleich: 0.35,
+               rohr: 0.0065, rueck: 0.45, koerper: 150, hell: 1.0, diesel: 0.1, unruhe: 12, traegheit: 12, lautstaerke: 1.0 },
       upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     },
     {
       id: "traktor", name: "Trecker", emoji: "🚜", preis: 2000, preisBasis: 150,
-      text: "Riesige Hinterräder und viel Kraft – langsam, aber zieht jeden Berg hoch.",
+      text: "Riesige Hinterräder und Bärenkraft! Aber Vorsicht: Mit zu viel Gas am Berg hebt er vorne ab.",
       masse: 520, groesse: { laenge: 3.2, hoehe: 1.8 },
       raeder: [
         { x: -0.85, y:  0.00, r: 0.68, masse: 45, antrieb: true },
         { x:  1.15, y: -0.25, r: 0.40, masse: 18, antrieb: false }
       ],
       federung: { ruhe: 0.25, weg: 0.18, frequenz: 2.0, daempfung: 0.5 },
-      motor: { drehmoment: 2100, vmax: 10 }, bremse: 2400, grip: 1.15,
-      tankSekunden: 44, luftsteuerung: 3.0, cwA: 0.9, abtrieb: 0,
+      motor: { drehmoment: 3000, vmax: 16.5 }, bremse: 3000, grip: 1.15,
+      tankSekunden: 27, luftsteuerung: 3.4, cwA: 0.9, abtrieb: 0,
       huelle: [[-1.45, -0.20], [1.60, -0.20], [1.72, 0.55], [0.05, 0.70], [-1.45, 0.20]],
       dach: [[-1.45, 1.66], [-0.05, 1.66]],
       kopf: { x: -0.70, y: 0.86, r: 0.30 },
       farbe: "gruen", form: "traktor",
+      klang: { art: "verbrenner", zylinder: 3, takte: 4, leerlauf: 750, max: 2700, gaenge: 4, abkling: 6, ungleich: 0.25,
+               rohr: 0.011, rueck: 0.55, koerper: 95, hell: 0.7, diesel: 0.9, unruhe: 10, traegheit: 7, lautstaerke: 1.05, abrollen: 1.2 },
       upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     },
     {
@@ -148,28 +176,52 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.32, weg: 0.28, frequenz: 2.2, daempfung: 0.4 },
       motor: { drehmoment: 300, vmax: 17 }, bremse: 420, grip: 1.0,
-      tankSekunden: 27, luftsteuerung: 6.5, cwA: 0.35, abtrieb: 0,
+      tankSekunden: 19.5, luftsteuerung: 6.5, cwA: 0.35, abtrieb: 0,
       huelle: [[-0.78, -0.16], [0.70, -0.16], [0.86, 0.36], [0.30, 0.30], [-0.82, 0.30]],
       dach: [],
       kopf: { x: -0.08, y: 0.98, r: 0.30 },
       farbe: "tuerkis", form: "moped",
+      klang: { art: "verbrenner", zylinder: 1, takte: 2, leerlauf: 1700, max: 9500, gaenge: 3, abkling: 9, ungleich: 0.1,
+               rohr: 0.0035, rueck: 0.6, koerper: 420, hell: 1.3, diesel: 0.05, unruhe: 20, traegheit: 18, lautstaerke: 0.75, abrollen: 0.6 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     },
     {
-      id: "bus", name: "Bummel-Bus", emoji: "🚌", preis: 6000, preisBasis: 220,
-      text: "Lang, schwer und sehr gemütlich – fällt fast nie um.",
+      id: "eauto", name: "E-Auto", emoji: "⚡", preis: 5000, preisBasis: 180,
+      text: "Leise und spritzig, mit schwerem Akku ganz unten. Bremsen lädt den Akku wieder auf!",
+      masse: 300, groesse: { laenge: 3.3, hoehe: 1.0 },
+      raeder: [
+        { x: -1.10, y: 0.02, r: 0.38, masse: 15, antrieb: true },
+        { x:  1.15, y: 0.02, r: 0.38, masse: 15, antrieb: false }
+      ],
+      federung: { ruhe: 0.30, weg: 0.22, frequenz: 2.0, daempfung: 0.5 },
+      // Elektromotor: volles Drehmoment bis 55 % der Höchstgeschwindigkeit (eck), kein Leerlauf-Verbrauch
+      motor: { drehmoment: 900, vmax: 19, eck: 0.55 }, bremse: 1300, grip: 1.0,
+      tankSekunden: 14.5, luftsteuerung: 5.0, cwA: 0.36, abtrieb: 0,
+      leerlauf: 0, rekuperation: 0.6, akku: true,
+      huelle: [[-1.60, -0.30], [1.62, -0.30], [1.74, -0.02], [1.40, 0.30], [0.60, 0.44], [-0.30, 0.76], [-1.40, 0.46], [-1.62, 0.05]],
+      dach: [[-0.80, 0.76], [0.10, 0.72]],
+      kopf: { x: -0.14, y: 0.5, r: 0.26 },
+      farbe: "eisblau", form: "eauto",
+      klang: { art: "elektro", surren: 2100, avasTon: 330, max: 12000, lautstaerke: 1.0, abrollen: 1.1 },
+      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+    },
+    {
+      id: "bus", name: "Bummel-Bus", emoji: "🚌", preis: 7000, preisBasis: 220,
+      text: "Lang, schwer und kaum umzuwerfen – aber in der Luft dreht er sich nur langsam.",
       masse: 900, groesse: { laenge: 5.4, hoehe: 2.0 },
       raeder: [
         { x: -1.75, y: -0.15, r: 0.50, masse: 40, antrieb: true },
         { x:  1.85, y: -0.15, r: 0.50, masse: 40, antrieb: false }
       ],
       federung: { ruhe: 0.30, weg: 0.24, frequenz: 1.6, daempfung: 0.5 },
-      motor: { drehmoment: 2500, vmax: 12 }, bremse: 3800, grip: 1.0,
-      tankSekunden: 38, luftsteuerung: 2.5, cwA: 1.6, abtrieb: 0,
+      motor: { drehmoment: 3300, vmax: 17 }, bremse: 4200, grip: 1.0,
+      tankSekunden: 17, luftsteuerung: 2.5, cwA: 1.6, abtrieb: 0,
       huelle: [[-2.70, -0.35], [2.70, -0.35], [2.78, 0.60], [2.55, 1.55], [-2.70, 1.55]],
       dach: [[-2.60, 1.60], [0.00, 1.60], [2.45, 1.60]],
       kopf: { x: 2.05, y: 0.86, r: 0.28 },
       farbe: "gelb", form: "bus",
+      klang: { art: "verbrenner", zylinder: 6, takte: 4, leerlauf: 650, max: 2500, gaenge: 5, abkling: 6, ungleich: 0.15,
+               rohr: 0.013, rueck: 0.5, koerper: 80, hell: 0.65, diesel: 0.6, unruhe: 8, traegheit: 6, lautstaerke: 1.1, abrollen: 1.3 },
       upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     },
     {
@@ -182,11 +234,13 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.55, weg: 0.50, frequenz: 1.4, daempfung: 0.45 },
       motor: { drehmoment: 2700, vmax: 19 }, bremse: 3200, grip: 1.1,
-      tankSekunden: 36, luftsteuerung: 5.0, cwA: 1.1, abtrieb: 0,
+      tankSekunden: 20.5, luftsteuerung: 5.0, cwA: 1.1, abtrieb: 0,
       huelle: [[-1.80, 0.05], [1.85, 0.05], [1.92, 0.55], [0.90, 0.70], [0.55, 1.25], [-0.50, 1.25], [-0.70, 0.70], [-1.80, 0.62]],
       dach: [[-0.45, 1.30], [0.50, 1.30]],
       kopf: { x: 0.05, y: 0.96, r: 0.28 },
       farbe: "rot", form: "monster",
+      klang: { art: "verbrenner", zylinder: 8, takte: 4, leerlauf: 750, max: 5800, gaenge: 4, abkling: 6, ungleich: 0.4, v8: true,
+               rohr: 0.008, rueck: 0.5, koerper: 105, hell: 0.85, diesel: 0.1, unruhe: 14, traegheit: 10, lautstaerke: 1.15, knallen: 0.3, abrollen: 1.4 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     },
     {
@@ -199,16 +253,18 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.18, weg: 0.13, frequenz: 3.0, daempfung: 0.6 },
       motor: { drehmoment: 1150, vmax: 30 }, bremse: 1800, grip: 1.05,
-      tankSekunden: 29, luftsteuerung: 4.0, cwA: 0.35, abtrieb: 1.4,
+      tankSekunden: 15.5, luftsteuerung: 4.0, cwA: 0.35, abtrieb: 1.4,
       huelle: [[-2.00, -0.22], [2.05, -0.22], [2.12, -0.05], [0.60, 0.25], [-1.40, 0.35], [-2.00, 0.32]],
       dach: [[-1.95, 0.78], [-0.22, 0.72]],
       kopf: { x: -0.25, y: 0.42, r: 0.26 },
       farbe: "blau", form: "renner",
+      klang: { art: "verbrenner", zylinder: 10, takte: 4, leerlauf: 1200, max: 9500, gaenge: 6, abkling: 11, ungleich: 0.15,
+               rohr: 0.0045, rueck: 0.45, koerper: 260, hell: 1.4, diesel: 0, unruhe: 10, traegheit: 16, lautstaerke: 0.9, knallen: 0.5, abrollen: 0.8 },
       upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     },
     {
       id: "mond", name: "Mondmobil", emoji: "🚀", preis: 22000, preisBasis: 400,
-      text: "Sechs Räder, alle angetrieben, superweiche Federn – kraxelt überall hoch.",
+      text: "Sechs Räder, alle angetrieben, superweiche Federn – kraxelt überall hoch. Fährt mit Akku wie die echten Mondautos.",
       masse: 300, groesse: { laenge: 3.4, hoehe: 1.2 },
       raeder: [
         { x: -1.30, y: -0.10, r: 0.45, masse: 14, antrieb: true },
@@ -217,11 +273,13 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.40, weg: 0.38, frequenz: 1.5, daempfung: 0.55 },
       motor: { drehmoment: 1300, vmax: 18 }, bremse: 1500, grip: 1.15,
-      tankSekunden: 40, luftsteuerung: 7.5, cwA: 0.6, abtrieb: 0,
+      tankSekunden: 12, luftsteuerung: 7.5, cwA: 0.6, abtrieb: 0,
+      leerlauf: 0, rekuperation: 0.3, akku: true,
       huelle: [[-1.75, -0.20], [1.75, -0.20], [1.82, 0.25], [-1.75, 0.25]],
       dach: [[-0.05, 1.16]],
       kopf: { x: -0.05, y: 0.70, r: 0.32 },
       farbe: "weiss", form: "mond",
+      klang: { art: "elektro", surren: 900, avasTon: 220, max: 8000, weltraum: true, lautstaerke: 1.0, abrollen: 1.0 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     }
   ],
@@ -258,6 +316,7 @@ FF.CONFIG = {
     { id: "blau",    name: "Blau",     wert: "#2f6fd6", preis: 0 },
     { id: "tuerkis", name: "Türkis",   wert: "#1fc7c1", preis: 0 },
     { id: "weiss",   name: "Weiß",     wert: "#f4f6fb", preis: 0 },
+    { id: "eisblau", name: "Eisblau",  wert: "#5ec8f2", preis: 0 },
     { id: "lila",    name: "Lila",     wert: "#8e5bd8", preis: 150 },
     { id: "pink",    name: "Pink",     wert: "#ff6fb5", preis: 150 },
     { id: "nacht",   name: "Nachtblau", wert: "#24345e", preis: 200 },
@@ -324,8 +383,11 @@ FF.CONFIG = {
      gelaende: amp/welle = große Hügel [m], holperAmp/holperWelle = kleine Wellen,
                trend = mittlere Steigung, maxAuf/maxAb = steilste Steigung/Gefälle [°],
                schanzen/buckel/steil/taeler = Häufigkeit der Bau-Elemente (Gewichte),
+               berg/sprung/wellen/klippe/rampe/kuppe = anspruchsvolle Elemente (Gewichte, wirken ab Level 2
+               bzw. mit wildBasis schon früher), wildBasis = Grund-Wildheit der Welt,
                abstandElemente = mittlerer Abstand zwischen Bau-Elementen [m]
-     tankAbstand: mittlerer Abstand der Benzinkanister [m]
+     tankAbstand: mittlerer Abstand der Benzinkanister [m] auf typischer Strecke
+                  (bergauf liegen sie dichter, bergab weiter auseinander, s. gelaende.js)
      deko: reine Kulisse, "Emoji:Größe in Metern"
      ------------------------------------------------------------------------- */
   welten: [
@@ -339,9 +401,10 @@ FF.CONFIG = {
       sonne: "sonne", wetter: null,
       deko: ["🌳:2.8", "🌳:2.3", "🌲:3.0", "🌷:0.7", "🌻:1.1", "🌼:0.6", "🍄:0.6", "🐞:0.35", "🐄:1.6", "🐇:0.6"],
       gelaende: { amp: 6.5, welle: 42, holperAmp: 0.2, holperWelle: 6, trend: 0.015,
-                  maxAuf: 27, maxAb: 38, schanzen: 1.0, buckel: 1.0, steil: 0.6, taeler: 0.6, abstandElemente: 38 },
+                  maxAuf: 27, maxAb: 38, schanzen: 1.0, buckel: 1.0, steil: 0.6, taeler: 0.6, berg: 0.5, sprung: 0.5, wellen: 0.6, klippe: 0.5, rampe: 0.6, kuppe: 0.8, stufe: 0.8, wildBasis: 0,
+                  abstandElemente: 38 },
       tankAbstand: 190, muenzAbstand: 24,
-      level: [ { laenge: 320, seed: 101 }, { laenge: 480, seed: 102 }, { laenge: 650, seed: 103 } ]
+      level: [ { laenge: 320, seed: 101 }, { laenge: 480, seed: 102 }, { laenge: 650, seed: 103 }, { laenge: 800, seed: 104 } ]
     },
     {
       id: "wueste", name: "Sandwüste", emoji: "🏜️", hinweis: "Weicher Sand bremst (Rollwiderstand!)",
@@ -353,9 +416,25 @@ FF.CONFIG = {
       sonne: "sonne", wetter: null,
       deko: ["🌵:2.2", "🌵:1.5", "🐪:2.2", "🌴:3.2", "🏺:0.7", "🦎:0.45", "🪨:1.0"],
       gelaende: { amp: 8.0, welle: 55, holperAmp: 0.15, holperWelle: 9, trend: 0.018,
-                  maxAuf: 28, maxAb: 38, schanzen: 1.0, buckel: 0.7, steil: 0.8, taeler: 0.7, abstandElemente: 36 },
-      tankAbstand: 230, muenzAbstand: 24,
-      level: [ { laenge: 420, seed: 201 }, { laenge: 580, seed: 202 }, { laenge: 760, seed: 203 } ]
+                  maxAuf: 28, maxAb: 38, schanzen: 1.0, buckel: 0.7, steil: 0.8, taeler: 0.7, berg: 0.7, sprung: 0.6, wellen: 1.0, klippe: 0.6, rampe: 0.7, kuppe: 1.0, stufe: 1.0, wildBasis: 0.1,
+                  abstandElemente: 36 },
+      tankAbstand: 190, muenzAbstand: 24,
+      level: [ { laenge: 420, seed: 201 }, { laenge: 580, seed: 202 }, { laenge: 760, seed: 203 }, { laenge: 920, seed: 204 } ]
+    },
+    {
+      id: "baustelle", name: "Baustelle", emoji: "🚧", hinweis: "Rampen, Erdhügel und Abbruchkanten",
+      schwerkraft: 9.81, grip: 0.9, rollwiderstand: 0.035, abprall: 0.04, luftdichte: 1.2,
+      farben: {
+        himmel: ["#79c3f2", "#e9f6ff"], berge: ["#d8c19a", "#bfa175"],
+        boden: ["#a8733f", "#74491f"], oberflaeche: "#d9a253", kante: "#f4cf7f", punkte: "#86592f"
+      },
+      sonne: "sonne", wetter: "staub",
+      deko: ["🏗️:4.4", "🚧:1.0", "🧱:0.9", "🛢️:1.0", "🚛:2.6", "🪨:1.0", "🚧:0.8", "📦:0.8", "⛏️:0.7"],
+      gelaende: { amp: 6.5, welle: 34, holperAmp: 0.3, holperWelle: 5, trend: 0.02,
+                  maxAuf: 30, maxAb: 42, schanzen: 1.6, buckel: 1.0, steil: 1.2, taeler: 0.8, berg: 0.8, sprung: 1.4, wellen: 0.5, klippe: 1.2, rampe: 1.4, kuppe: 1.2, stufe: 1.0, wildBasis: 0.2,
+                  abstandElemente: 30 },
+      tankAbstand: 240, muenzAbstand: 23,
+      level: [ { laenge: 450, seed: 901 }, { laenge: 620, seed: 902 }, { laenge: 800, seed: 903 }, { laenge: 980, seed: 904 } ]
     },
     {
       id: "schnee", name: "Schneeberge", emoji: "❄️", hinweis: "Rutschig! Wenig Grip auf Schnee",
@@ -367,9 +446,10 @@ FF.CONFIG = {
       sonne: "sonne", wetter: "schnee",
       deko: ["🌲:3.0", "🌲:2.4", "⛄:1.4", "🐧:0.8", "🦌:1.6", "🏔️:3.5", "🪨:0.9"],
       gelaende: { amp: 9.0, welle: 46, holperAmp: 0.22, holperWelle: 7, trend: 0.025,
-                  maxAuf: 28, maxAb: 40, schanzen: 1.0, buckel: 0.8, steil: 0.9, taeler: 0.6, abstandElemente: 34 },
-      tankAbstand: 250, muenzAbstand: 23,
-      level: [ { laenge: 450, seed: 301 }, { laenge: 640, seed: 302 }, { laenge: 820, seed: 303 } ]
+                  maxAuf: 26, maxAb: 40, schanzen: 1.0, buckel: 0.8, steil: 0.9, taeler: 0.6, berg: 0.6, sprung: 0.8, wellen: 0.6, klippe: 0.6, rampe: 0.2, kuppe: 0.8, stufe: 1.0, wildBasis: 0.2,
+                  abstandElemente: 34 },
+      tankAbstand: 225, muenzAbstand: 23,
+      level: [ { laenge: 450, seed: 301 }, { laenge: 640, seed: 302 }, { laenge: 820, seed: 303 }, { laenge: 1000, seed: 304 } ]
     },
     {
       id: "mond", name: "Mondlandschaft", emoji: "🌙", hinweis: "Kaum Schwerkraft – riesige Sprünge!",
@@ -381,9 +461,10 @@ FF.CONFIG = {
       sonne: "erde", wetter: "sterne",
       deko: ["🪨:1.0", "🪨:0.6", "🛸:1.6", "🚩:1.1", "🛰️:1.4", "👽:0.8"],
       gelaende: { amp: 7.0, welle: 40, holperAmp: 0.28, holperWelle: 8, trend: 0.012,
-                  maxAuf: 25, maxAb: 38, schanzen: 1.4, buckel: 0.6, steil: 0.4, taeler: 1.2, abstandElemente: 32 },
-      tankAbstand: 260, muenzAbstand: 26,
-      level: [ { laenge: 500, seed: 401 }, { laenge: 700, seed: 402 }, { laenge: 900, seed: 403 } ]
+                  maxAuf: 25, maxAb: 38, schanzen: 1.4, buckel: 0.6, steil: 0.4, taeler: 1.2, berg: 0.6, sprung: 1.2, wellen: 0.8, klippe: 1.0, rampe: 0.3, kuppe: 1.0, stufe: 1.0, wildBasis: 0.3,
+                  abstandElemente: 32 },
+      tankAbstand: 195, muenzAbstand: 26,
+      level: [ { laenge: 500, seed: 401 }, { laenge: 700, seed: 402 }, { laenge: 900, seed: 403 }, { laenge: 1100, seed: 404 } ]
     },
     {
       id: "bonbon", name: "Bonbon-Land", emoji: "🍭", hinweis: "Wackelpudding-Boden: alles federt!",
@@ -395,9 +476,10 @@ FF.CONFIG = {
       sonne: "sonne", wetter: "konfetti",
       deko: ["🍭:2.2", "🍬:0.8", "🧁:1.0", "🍩:1.1", "🍦:1.5", "🍫:0.9", "🍭:1.6", "🎂:1.3"],
       gelaende: { amp: 8.0, welle: 38, holperAmp: 0.35, holperWelle: 6, trend: 0.02,
-                  maxAuf: 30, maxAb: 40, schanzen: 1.0, buckel: 1.4, steil: 0.8, taeler: 0.8, abstandElemente: 32 },
-      tankAbstand: 290, muenzAbstand: 22,
-      level: [ { laenge: 560, seed: 501 }, { laenge: 760, seed: 502 }, { laenge: 960, seed: 503 } ]
+                  maxAuf: 30, maxAb: 40, schanzen: 1.0, buckel: 1.4, steil: 0.8, taeler: 0.8, berg: 0.7, sprung: 0.8, wellen: 1.4, klippe: 0.5, rampe: 0.6, kuppe: 1.0, stufe: 1.0, wildBasis: 0.3,
+                  abstandElemente: 32 },
+      tankAbstand: 270, muenzAbstand: 22,
+      level: [ { laenge: 560, seed: 501 }, { laenge: 760, seed: 502 }, { laenge: 960, seed: 503 }, { laenge: 1150, seed: 504 } ]
     },
     {
       id: "dschungel", name: "Dschungel", emoji: "🌴", hinweis: "Matschig und steil",
@@ -409,9 +491,10 @@ FF.CONFIG = {
       sonne: "sonne", wetter: "blaetter",
       deko: ["🌴:3.4", "🌴:2.6", "🦜:0.8", "🌺:0.8", "🐒:1.1", "🌿:1.2", "🦋:0.5", "🐸:0.45", "🍌:0.6"],
       gelaende: { amp: 9.5, welle: 36, holperAmp: 0.3, holperWelle: 5, trend: 0.028,
-                  maxAuf: 32, maxAb: 42, schanzen: 0.9, buckel: 1.2, steil: 1.2, taeler: 0.9, abstandElemente: 30 },
-      tankAbstand: 310, muenzAbstand: 22,
-      level: [ { laenge: 620, seed: 601 }, { laenge: 820, seed: 602 }, { laenge: 1020, seed: 603 } ]
+                  maxAuf: 32, maxAb: 42, schanzen: 0.9, buckel: 1.2, steil: 1.2, taeler: 0.9, berg: 1.2, sprung: 0.6, wellen: 0.8, klippe: 1.0, rampe: 1.0, kuppe: 1.1, stufe: 1.0, wildBasis: 0.35,
+                  abstandElemente: 30 },
+      tankAbstand: 270, muenzAbstand: 22,
+      level: [ { laenge: 620, seed: 601 }, { laenge: 820, seed: 602 }, { laenge: 1020, seed: 603 }, { laenge: 1220, seed: 604 } ]
     },
     {
       id: "vulkan", name: "Vulkaninsel", emoji: "🌋", hinweis: "Große Schanzen und steile Rampen",
@@ -423,9 +506,26 @@ FF.CONFIG = {
       sonne: "vulkan", wetter: "funken",
       deko: ["🌋:3.5", "🦕:2.8", "🪨:1.2", "🌴:2.6", "🦖:2.2", "🪨:0.7"],
       gelaende: { amp: 11.0, welle: 42, holperAmp: 0.25, holperWelle: 7, trend: 0.032,
-                  maxAuf: 34, maxAb: 44, schanzen: 1.6, buckel: 0.8, steil: 1.2, taeler: 1.0, abstandElemente: 28 },
-      tankAbstand: 340, muenzAbstand: 22,
-      level: [ { laenge: 700, seed: 701 }, { laenge: 900, seed: 702 }, { laenge: 1150, seed: 703 } ]
+                  maxAuf: 34, maxAb: 44, schanzen: 1.6, buckel: 0.8, steil: 1.2, taeler: 1.0, berg: 1.2, sprung: 1.4, wellen: 0.6, klippe: 1.0, rampe: 1.0, kuppe: 1.0, stufe: 1.0, wildBasis: 0.4,
+                  abstandElemente: 28 },
+      tankAbstand: 315, muenzAbstand: 22,
+      level: [ { laenge: 700, seed: 701 }, { laenge: 900, seed: 702 }, { laenge: 1150, seed: 703 }, { laenge: 1350, seed: 704 } ]
+    },
+    {
+      id: "achterbahn", name: "Achterbahn-Park", emoji: "🎢", hinweis: "Rauf, runter, Sprung: Gas und Bremse dosieren!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.015, abprall: 0.08, luftdichte: 1.2,
+      farben: {
+        himmel: ["#2d2470", "#ff9ec4"], berge: ["#6c52b8", "#4e3a93"],
+        boden: ["#5a4a90", "#372a62"], oberflaeche: "#ff6f9f", kante: "#ffe066", punkte: "#7f6bc6",
+        wolken: "rgba(255,190,225,0.5)"
+      },
+      sonne: "mondsichel", wetter: "feuerwerk",
+      deko: ["🎡:4.6", "🎢:4.0", "🎠:2.6", "🎪:3.2", "🎈:1.2", "🍿:0.8", "🍦:1.0", "🧸:0.9", "🎈:1.6"],
+      gelaende: { amp: 12.0, welle: 34, holperAmp: 0.25, holperWelle: 6, trend: 0.03,
+                  maxAuf: 35, maxAb: 46, schanzen: 1.0, buckel: 0.6, steil: 1.0, taeler: 1.2, berg: 1.6, sprung: 1.2, wellen: 1.6, klippe: 0.8, rampe: 1.0, kuppe: 1.4, stufe: 1.0, wildBasis: 0.5,
+                  abstandElemente: 24 },
+      tankAbstand: 350, muenzAbstand: 21,
+      level: [ { laenge: 760, seed: 1001 }, { laenge: 980, seed: 1002 }, { laenge: 1200, seed: 1003 }, { laenge: 1420, seed: 1004 } ]
     },
     {
       id: "regenbogen", name: "Regenbogenland", emoji: "🌈", hinweis: "Die große Abschluss-Tour über den Wolken",
@@ -437,17 +537,21 @@ FF.CONFIG = {
       sonne: "regenbogen", wetter: "sterne",
       deko: ["🦄:1.8", "☁️:2.0", "⭐:0.8", "🌈:2.4", "🎈:1.2", "🦄:1.4", "🏰:3.2"],
       gelaende: { amp: 12.0, welle: 40, holperAmp: 0.3, holperWelle: 6, trend: 0.035,
-                  maxAuf: 35, maxAb: 44, schanzen: 1.4, buckel: 1.0, steil: 1.3, taeler: 1.0, abstandElemente: 27 },
-      tankAbstand: 370, muenzAbstand: 21,
-      level: [ { laenge: 800, seed: 801 }, { laenge: 1050, seed: 802 }, { laenge: 1300, seed: 803 } ]
+                  maxAuf: 35, maxAb: 44, schanzen: 1.4, buckel: 1.0, steil: 1.3, taeler: 1.0, berg: 1.3, sprung: 1.3, wellen: 1.2, klippe: 1.0, rampe: 1.0, kuppe: 1.2, stufe: 1.0, wildBasis: 0.5,
+                  abstandElemente: 27 },
+      tankAbstand: 340, muenzAbstand: 21,
+      level: [ { laenge: 800, seed: 801 }, { laenge: 1050, seed: 802 }, { laenge: 1300, seed: 803 }, { laenge: 1550, seed: 804 } ]
     }
   ],
 
-  /* Schwierigkeit innerhalb einer Welt: Level 1/2/3 */
+  /* Schwierigkeit innerhalb einer Welt: Level 1–4 (Level 4 = Profi-Level).
+     auf/ab: Zuschlag auf die steilste Steigung/das steilste Gefälle [°],
+     wild: wie oft Berge, Sprünge, Wellen und Klippen kommen (0 = nie) */
   levelStufen: [
-    { amp: 0.8, tank: 0.95, steil: 0.8, auf: -2 },
-    { amp: 1.0, tank: 1.0,  steil: 1.0, auf: 0 },
-    { amp: 1.2, tank: 1.08, steil: 1.2, auf: 2 }
+    { amp: 0.8,  tank: 1.0,  steil: 0.8, auf: -2, ab: -2, wild: 0.0 },
+    { amp: 1.0,  tank: 1.0,  steil: 1.0, auf: 1,  ab: 2,  wild: 0.6 },
+    { amp: 1.15, tank: 1.0,  steil: 1.2, auf: 4,  ab: 5,  wild: 1.0 },
+    { amp: 1.3,  tank: 0.95, steil: 1.4, auf: 7,  ab: 8,  wild: 1.35 }
   ],
 
   /* Endlos-Modus: wird mit der Strecke langsam schwerer */

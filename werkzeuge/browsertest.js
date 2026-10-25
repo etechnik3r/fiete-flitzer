@@ -18,9 +18,14 @@
      layout    alle Bildschirme in 6 Formaten (Handy quer/hoch, Tablet, PC):
                Knöpfe ≥ 44 px, erreichbar, ohne Überlappung, mit Namen;
                Dialoge passen ohne Scrollen
-     robust    kaputter/alter/unsinniger Spielstand, gesperrter Speicher,
-               Drehen, App im Hintergrund, Duell-Sonderfälle
+     robust    kaputter/alter/unsinniger Spielstand (v1, v2 mit alter Welten-
+               Reihenfolge), gesperrter Speicher, Drehen, App im Hintergrund,
+               Duell-Sonderfälle
      offline   PWA: Cache-Liste, Service Worker, Spielen ohne Internet
+     inhalte   Entwickler-Bereich (Elternsperre), alle Welten und Level startbar,
+               Ergebnis nach Level 3 (neue Welt / Profi-Level), Hinweise in der
+               Luft und bei Bruchlandung, E-Auto (Akku, Rekuperation beim Bremsen
+               und Rollen), Motorklänge aller Fahrzeuge (offline gerendert)
      leistung  Bildrate normal und bei 4× gedrosselter CPU (nur Info)
 
    Voraussetzung: Playwright mit Chromium (npm i -D playwright &&
@@ -42,7 +47,7 @@ var argv = process.argv.slice(2);
 var bilderIndex = argv.indexOf("--bilder");
 var BILDER = bilderIndex >= 0 ? path.resolve(argv[bilderIndex + 1]) : null;
 if (bilderIndex >= 0) argv.splice(bilderIndex, 2);
-var STANDARD = ["ablauf", "layout", "robust", "offline"];
+var STANDARD = ["ablauf", "layout", "robust", "offline", "inhalte"];
 var auswahl = argv.length ? argv : STANDARD;
 if (BILDER) fs.mkdirSync(BILDER, { recursive: true });
 
@@ -322,6 +327,26 @@ async function robust(browser) {
   pruef(!p.fehler.length && await p.evaluate(function () { return FF.spiel.modus === "fahrt"; }), "… und das Spiel ist damit spielbar", p.fehler);
   await p.context().close();
 
+  // Spielstand aus der Zeit vor Baustelle und Achterbahn-Park (v2): was offen war, bleibt offen
+  p = await neueSeite(browser, { spielstand: JSON.stringify({ version: 2, aktiv: "fiete",
+    spieler: { fiete: { level: { "wiese-3": { geschafft: true, sterne: 2 }, "wueste-3": { geschafft: true, sterne: 1 }, "vulkan-3": { geschafft: true, sterne: 1 } } } },
+    duell: { welt: 2, stufe: 1 } }) });
+  await weiterZu(p, "fiete");
+  r = await p.evaluate(function () {
+    var S = FF.spiel.spielstand, W = FF.CONFIG.welten.map(function (w) { return w.id; });
+    var karten = document.querySelectorAll("#welten-liste .welt-karte");
+    function frei(id) { return !karten[W.indexOf(id)].classList.contains("gesperrt"); }
+    return { schnee: frei("schnee"), regenbogen: frei("regenbogen"), baustelle: frei("baustelle"), mond: frei("mond"),
+             duellWelt: W[S.duell.welt], version: S.version };
+  });
+  pruef(r.schnee && r.regenbogen && r.baustelle && !r.mond && r.duellWelt === "schnee",
+    "Alter Spielstand (v2): offene Welten bleiben offen, die Duell-Welt bleibt die Schneeberge", r);
+  await p.evaluate(function () { FF.spiel.starteFahrt(0, 0, false); }); await p.waitForTimeout(400);
+  r = await p.evaluate(function () { return JSON.parse(localStorage.getItem("fiete-flitzer-spielstand-v1")); });
+  pruef(r.version === 3 && r.duell.weltId === "schnee" && r.spieler.fiete.freigeschaltet.indexOf("schnee") >= 0,
+    "… und wird als Version 3 gespeichert (Duell-Welt per Name)", { v: r.version, w: r.duell.weltId });
+  await p.context().close();
+
   p = await neueSeite(browser, { init: function () {
     Storage.prototype.getItem = function () { throw new Error("gesperrt"); };
     Storage.prototype.setItem = function () { throw new Error("gesperrt"); };
@@ -452,6 +477,146 @@ async function offline(browser) {
 }
 
 /* =========================================================================
+   INHALTE: Entwickler-Bereich, E-Auto, alle Level, Motorklänge
+   ========================================================================= */
+async function inhalte(browser) {
+  var page = await neueSeite(browser);
+  await weiterZu(page, "fiete");
+  // Entwickler-Bereich: versteckt; 7× auf die Version tippen, dann die Rechenaufgabe für Erwachsene
+  await page.click("#knopf-einstellungen"); await page.waitForTimeout(200);
+  pruef(await page.evaluate(function () { return document.getElementById("entwickler-gruppe").hidden; }), "Entwickler-Bereich ist zuerst versteckt");
+  await page.evaluate(function () { document.getElementById("popover").hidden = true; });
+  for (var i = 0; i < 6; i++) await page.click("#opt-version");
+  pruef(await page.evaluate(function () { return document.getElementById("popover").hidden && !document.getElementById("eltern").classList.contains("offen"); }),
+    "Beim Tippen zählt nichts sichtbar mit (Kinder finden den Bereich nicht zufällig)");
+  await page.click("#opt-version"); await page.waitForTimeout(200);
+  pruef(await page.evaluate(function () { return document.getElementById("eltern").classList.contains("offen") && document.getElementById("entwickler-gruppe").hidden; }),
+    "Nach dem 7. Tippen kommt erst die Rechenaufgabe für Erwachsene");
+  await page.evaluate(function () {
+    var t = document.getElementById("eltern-aufgabe").textContent.split("×"), l = (+t[0]) * (+t[1]);
+    document.querySelector('.eltern-antwort[data-wert="' + l + '"]').click();
+  });
+  await page.waitForTimeout(200);
+  pruef(await page.evaluate(function () { return !document.getElementById("entwickler-gruppe").hidden && !document.getElementById("eltern").classList.contains("offen"); }),
+    "Richtige Antwort öffnet den Entwickler-Bereich");
+  var vor = await page.evaluate(function () { var S = FF.spiel.spielstand.spieler; return S.fiete.muenzen + S.jonte.muenzen; });
+  await page.click("#dev-muenzen");
+  var nach = await page.evaluate(function () { var S = FF.spiel.spielstand.spieler; return [S.fiete.muenzen, S.jonte.muenzen]; });
+  pruef(nach[0] + nach[1] - vor === 20000, "+10.000 Münzen für beide Kinder", nach);
+  await page.click("#dev-alle-offen");
+  await page.click("#einstellungen-fertig"); await page.waitForTimeout(300);
+  var offen = await page.evaluate(function () { return document.querySelectorAll("#welten-liste .level-knopf.gesperrt").length; });
+  pruef(offen === 0, "„Alle Level“: keine Welt mehr gesperrt", offen);
+  pruef(await page.evaluate(function () { return !!document.querySelector("#welten-liste .entwickler-hinweis #dev-alle-zu"); }),
+    "„Alle Level“ ist in der Weltenliste sichtbar markiert (mit Ausschalter)");
+  pruef(await page.evaluate(function () { return document.querySelectorAll("#welten-liste .welt-karte").length === FF.CONFIG.welten.length &&
+    document.querySelectorAll("#welten-liste .level-knopf.profi").length === FF.CONFIG.welten.length; }), "Jede Welt hat 4 Level, das vierte ist ein Profi-Level");
+
+  // Nach Level 3 geht es in die neue Welt, das Profi-Level ist die zweite Wahl
+  await page.evaluate(function () { FF.spiel.starteFahrt(0, 2, false); }); await page.waitForTimeout(400);
+  await zumZiel(page); await warte(page, offen, 8000, "ergebnis");
+  var knoepfe = await page.evaluate(function () {
+    return { weiter: document.getElementById("knopf-ergebnis-weiter").textContent, profi: !document.getElementById("knopf-ergebnis-profi").hidden };
+  });
+  pruef(/Neue Welt/.test(knoepfe.weiter) && knoepfe.profi, "Nach Level 3: Hauptknopf „Neue Welt“, Profi-Level als zweiter Knopf", knoepfe);
+  await page.click("#knopf-ergebnis-profi"); await page.waitForTimeout(400);
+  pruef(await page.evaluate(function () { return FF.spiel.fahrt.stufe === 3 && FF.spiel.fahrt.weltIndex === 0; }), "… der zweite Knopf startet das Profi-Level");
+
+  // In der Luft: Pfeile auf den Pedalen und einmal der gesprochene Tipp; Bruchlandung erklärt, was hilft
+  var luft = await page.evaluate(async function () {
+    var f = FF.spiel.fahrt, warte = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    FF.Physik.setzePose(f.fz, f.fz.chassis.x, f.fz.chassis.y + 25, 0);
+    await warte(800);
+    var r = { pfeile: document.getElementById("pedale").classList.contains("luft"), tipp: document.getElementById("tipp").textContent };
+    f.melde("bruch", { nase: "hoch" }); await warte(250);
+    r.bruch = document.getElementById("tipp").textContent;
+    f.melde("bruch", { nase: "tief" }); await warte(250);
+    r.bruch2 = document.getElementById("tipp").textContent;
+    return r;
+  });
+  pruef(luft.pfeile && /hebt die Nase/.test(luft.tipp), "In der Luft: Pfeile auf den Pedalen und Tipp „Gas hebt die Nase, Bremse senkt sie“", luft);
+  pruef(/Nase zu hoch/.test(luft.bruch) && /BREMSEN/.test(luft.bruch) && /Nase zu tief/.test(luft.bruch2) && /GAS/.test(luft.bruch2),
+    "Bruchlandung: der Tipp sagt, was hilft (zu hoch → bremsen, zu tief → Gas)", luft);
+
+  // Alle Welten und Level lassen sich starten (je 0,4 s fahren)
+  var probleme = await page.evaluate(async function () {
+    var fehler = [];
+    for (var wi = 0; wi < FF.CONFIG.welten.length; wi++) {
+      for (var li = 0; li < FF.CONFIG.welten[wi].level.length; li++) {
+        try {
+          FF.spiel.starteFahrt(wi, li, false); FF.spiel.setzeEingabe(true, false);
+          await new Promise(function (ok) { setTimeout(ok, 400); });
+          var f = FF.spiel.fahrt;
+          if (!f || !isFinite(f.fz.chassis.x) || f.zeit <= 0) fehler.push(wi + "/" + li);
+        } catch (e) { fehler.push(wi + "/" + li + ": " + e.message); }
+      }
+    }
+    FF.spiel.setzeEingabe(false, false);
+    return fehler;
+  });
+  pruef(!probleme.length, "alle " + (await page.evaluate(function () { return FF.CONFIG.welten.length * 4; })) + " Level starten und fahren", probleme);
+
+  // E-Auto kaufen, fahren, Akku-Anzeige, Rekuperation
+  await page.evaluate(function () { FF.spiel.zeigeMenue("garage"); });
+  await page.waitForTimeout(200);
+  await page.evaluate(function () { while (document.getElementById("fz-name").textContent.indexOf("E-Auto") < 0) document.getElementById("fz-vor").click(); });
+  await page.click("#fz-aktion"); await page.waitForTimeout(200);
+  pruef(await page.evaluate(function () { return FF.spiel.profil.fahrzeug === "eauto"; }), "E-Auto gekauft und ausgewählt");
+  await page.click("#fz-motor"); await page.waitForTimeout(400);
+  await page.evaluate(function () { FF.spiel.starteFahrt(0, 0, false); });
+  await page.waitForTimeout(300);
+  pruef(await page.evaluate(function () { return document.getElementById("hud-tank-icon").textContent === "🔋" && document.getElementById("hud-tank").classList.contains("akku"); }), "HUD zeigt beim E-Auto den Akku 🔋");
+  var r = await page.evaluate(async function () {
+    var f = FF.spiel.fahrt, warte = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    FF.spiel.setzeEingabe(true, false); await warte(3000);
+    f.tank = 0.5; var vorher = f.tank;
+    FF.spiel.setzeEingabe(false, true);                          // bremsen, bis fast stehend
+    for (var n = 0; n < 40 && f.fz.status.vorwaerts > 1.5; n++) await warte(50);
+    var nachher = f.tank;
+    // auf der flachen Startgeraden: Tempo holen, dann ohne Pedal rollen lassen
+    FF.spiel.setzeEingabe(false, false);
+    FF.Physik.setzeAufBoden(f.fz, f.gelaende, 2, 0);
+    FF.spiel.setzeEingabe(true, false); await warte(1800);
+    FF.spiel.setzeEingabe(false, false); await warte(300);      // Pedal ist los
+    var rollVor = f.tank; await warte(1000);
+    var rollNach = f.tank;
+    FF.Physik.setzeAufBoden(f.fz, f.gelaende, 2, 0);            // im Stand auf ebenem Boden
+    await warte(800);
+    var stand = f.tank; await warte(1500);
+    return { vorher: vorher, nachher: nachher, rollVor: rollVor, rollNach: rollNach, stand: stand, standSpaeter: f.tank };
+  });
+  pruef(r.nachher > r.vorher, "Rekuperation: Bremsen lädt den Akku (" + (r.vorher * 100).toFixed(1) + " % → " + (r.nachher * 100).toFixed(1) + " %)", r);
+  pruef(r.rollNach > r.rollVor, "Rekuperation: Rollen ohne Pedal lädt den Akku auch (" + (r.rollVor * 100).toFixed(1) + " % → " + (r.rollNach * 100).toFixed(1) + " %)", r);
+  pruef(Math.abs(r.standSpaeter - r.stand) < 1e-9, "E-Auto verbraucht im Stand nichts", r);
+
+  // Motorklänge aller Fahrzeuge: offline rendern, keine Fehler, kein NaN, nicht übersteuert, hörbar
+  var klang = await page.evaluate(async function () {
+    var erg = [];
+    for (var i = 0; i < FF.CONFIG.fahrzeuge.length; i++) {
+      var def = FF.CONFIG.fahrzeuge[i], ac = new OfflineAudioContext(1, 44100 * 4, 44100);
+      var m = new FF.Klang.Motor(ac, ac.destination, def.klang);
+      for (var k = 1; k < 4 * 30; k++) {
+        (function (t) {
+          ac.suspend(t).then(function () {
+            var u = Math.min(1, Math.max(0, (t - 0.8) / 2.5));
+            m.setze({ drehzahl: u, gas: t > 0.8 ? 1 : 0, bremse: 0, laeuft: true, tempo: u * def.motor.vmax, vmax: def.motor.vmax, boden: true, luft: true, dt: 1 / 30 });
+            ac.resume();
+          });
+        })(k / 30);
+      }
+      var d = (await ac.startRendering()).getChannelData(0), spitze = 0, nan = 0, summe = 0;
+      for (var j = 0; j < d.length; j++) { if (!isFinite(d[j])) nan++; else { spitze = Math.max(spitze, Math.abs(d[j])); if (j > 44100 * 2) summe += d[j] * d[j]; } }
+      erg.push({ id: def.id, spitze: spitze, nan: nan, rms: Math.sqrt(summe / (44100 * 2)) });
+    }
+    return erg;
+  });
+  pruef(klang.every(function (k) { return k.nan === 0 && k.spitze < 0.9 && k.rms > 0.005; }), "Motorklang aller " + klang.length + " Fahrzeuge: sauber, hörbar, nicht übersteuert",
+    klang.map(function (k) { return k.id + " " + k.spitze.toFixed(2) + "/" + k.rms.toFixed(3); }));
+  pruef(!page.fehler.length, "keine Fehler in der Konsole", page.fehler);
+  await page.context().close();
+}
+
+/* =========================================================================
    LEISTUNG (nur Info – hängt stark vom Rechner ab)
    ========================================================================= */
 async function leistung(browser) {
@@ -498,7 +663,7 @@ async function leistung(browser) {
   var server = await starteServer();
   URL = "http://127.0.0.1:" + server.address().port + "/";
   var browser = await chromium.launch();
-  var pruefungen = { ablauf: ablauf, layout: layout, robust: robust, offline: offline, leistung: leistung };
+  var pruefungen = { ablauf: ablauf, layout: layout, robust: robust, offline: offline, inhalte: inhalte, leistung: leistung };
   try {
     for (var i = 0; i < auswahl.length; i++) {
       if (!pruefungen[auswahl[i]]) { console.error("Unbekannte Prüfung: " + auswahl[i]); fehlgeschlagen++; continue; }

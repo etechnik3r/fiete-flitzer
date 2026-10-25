@@ -2,8 +2,23 @@
    Fiete Flitzer – gelaende.js
    ---------------------------------------------------------------------------
    Erzeugt die Strecke: ein Höhenprofil y(x) aus Rauschen + Bau-Elementen
-   (Schanzen, Buckel, Steilhänge, Täler) und verteilt darauf Münzen,
-   Benzinkanister, Deko und Meter-Schilder.
+   und verteilt darauf Münzen, Benzinkanister, Deko und Meter-Schilder.
+
+   Bau-Elemente – jedes verlangt etwas anderes vom Fahrer:
+     schanze  kleine Rampe mit Kante              → kurzer Sprung
+     buckel   kleine Hubbel                        → Federung
+     steil    Steilhang mit Plateau                → Schwung holen
+     tal      Mulde                                → runter und wieder rauf
+     berg     großer, steiler Berg mit Kuppe       → Gas dosieren (sonst Überschlag
+                                                     nach hinten), oben abheben, bergab bremsen
+     sprung   große Rampe, Abbruchkante, Landehang → in der Luft mit Gas/Bremse
+                                                     die Nase passend zum Hang stellen
+     wellen   große Wellen                         → bei Tempo hüpft das Auto, Nase halten
+     klippe   Plateau mit Abbruch                  → Fall: Nase hochhalten (Gas)
+     rampe    kurze Steilrampe (bis 50°)           → mit Vollgas Wheelie und Überschlag nach
+                                                     hinten: Gas wegnehmen oder kurz bremsen
+     kuppe    scharfe Kuppe vor steilem Abhang     → bei Tempo dreht das Auto im Flug nach vorn
+                                                     (ω ≈ v/R): vorher bremsen, in der Luft Gas
 
    Ablauf pro Abtastpunkt (alle 0,5 m):
      1. Rohhöhe   = große Hügel + kleine Wellen + Trend + Bau-Elemente
@@ -56,7 +71,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* =========================================================================
      Gelaende
-     optionen: { endlos, stufe (0..2), laenge, seed }
+     optionen: { endlos, stufe (0..3), laenge, seed }
      ========================================================================= */
   function Gelaende(welt, optionen) {
     var C = FF.CONFIG;
@@ -65,14 +80,22 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.ziel = this.endlos ? Infinity : optionen.laenge;
 
     var st = C.levelStufen[this.endlos ? 1 : optionen.stufe];
-    var g = welt.gelaende;
+    var g = welt.gelaende, wild = Math.min(1.6, st.wild + (g.wildBasis || 0));
     this.p = {
       amp: g.amp * st.amp, welle: g.welle,
       holperAmp: g.holperAmp, holperWelle: g.holperWelle, trend: g.trend,
-      maxAuf: (g.maxAuf + st.auf) * GRAD, maxAb: g.maxAb * GRAD,
-      gewichte: { schanze: g.schanzen, buckel: g.buckel, steil: g.steil * st.steil, tal: g.taeler },
-      abstand: g.abstandElemente
+      // Auf rutschigem Boden wird es mit dem Level weniger steil schwerer als auf griffigem,
+      // und kein Berg ist steiler, als die Reifen dort halten (µ·0,85, plus 3° für Schwung)
+      maxAuf: Math.min(g.maxAuf + st.auf * Math.min(1, welt.grip), Math.atan(0.85 * welt.grip) / GRAD + 3) * GRAD,
+      maxAb: (g.maxAb + st.ab) * GRAD,
+      gewichte: { schanze: g.schanzen, buckel: g.buckel, steil: g.steil * st.steil, tal: g.taeler,
+                  berg: g.berg * wild, sprung: g.sprung * wild, wellen: g.wellen * wild, klippe: g.klippe * wild,
+                  rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild },
+      wild: wild,
+      abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
+    // Ausfahrt aus Tälern und Sprung-Mulden: flacher, weil man dort oft ohne Anlauf startet
+    this.p.ausfahrt = Math.max(16 * GRAD, this.p.maxAuf - 7 * GRAD);
     this.tankAbstand = welt.tankAbstand * st.tank;
     this.muenzAbstand = welt.muenzAbstand;
 
@@ -87,6 +110,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Zustand des Generators
     this.aus = 0; this.tp1 = 0; this.tp2 = 0;
     this.elemente = [];            // aktive Bau-Elemente
+    this.bauplan = [];             // alle Bau-Elemente der Strecke (nur endliche Level)
     this.naechstesElement = 48 + this.rnd() * 20;
 
     // Inhalte
@@ -100,7 +124,9 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     this.platziertBis = this.x0;
     this.naechsteMuenze = 22;
-    this.naechsterTank = this.tankAbstand * (0.75 + 0.15 * this.rnd());
+    this.tankX = 0;                                // bis hierhin ist der Benzin-Aufwand verbucht
+    this.tankRest = this.tankAbstand * (0.75 + 0.15 * this.rnd());   // Aufwand bis zum nächsten Kanister
+    this.naechsterTank = this.tankRest;            // ungefähre Stelle des nächsten Kanisters (für die Münzen)
     this.naechsteDeko = this.x0 + 2;
     this.naechstesSchild = 100;
 
@@ -122,14 +148,15 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   /* ---------- Bau-Elemente ---------- */
+  var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe"];
+
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
-    var w = p.gewichte, summe = w.schanze + w.buckel + w.steil + w.tal;
-    var z = r() * summe, typ;
-    if ((z -= w.schanze) < 0) typ = "schanze";
-    else if ((z -= w.buckel) < 0) typ = "buckel";
-    else if ((z -= w.steil) < 0) typ = "steil";
-    else typ = "tal";
+    var w = p.gewichte, summe = 0, i;
+    for (i = 0; i < TYPEN.length; i++) summe += w[TYPEN[i]] || 0;
+    var z = r() * summe, typ = TYPEN[TYPEN.length - 1];
+    for (i = 0; i < TYPEN.length; i++) { if ((z -= w[TYPEN[i]] || 0) < 0) { typ = TYPEN[i]; break; } }
+    var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
     var el = { typ: typ, xs: xs };
     if (typ === "schanze") {
@@ -150,12 +177,85 @@ var FF = globalThis.FF = globalThis.FF || {};
       el.Ld = 1.5 * el.H / Math.tan(30 * GRAD);
       el.xe = xs + el.Lu + el.Lp + el.Ld;
       this.gipfel.push({ x: xs + el.Lu + el.Lp * 0.5, platziert: false });
-    } else {
+    } else if (typ === "tal") {
       el.D = (2.5 + r() * 3) * f;
       el.Ld = 1.5 * el.D / Math.tan(35 * GRAD);
       el.Lb = 4 + r() * 5;
-      el.Lu = 1.5 * el.D / Math.tan(p.maxAuf);
+      el.Lu = 1.5 * el.D / Math.tan(p.ausfahrt);
       el.xe = xs + el.Ld + el.Lb + el.Lu;
+    } else if (typ === "berg") {
+      // großer Berg: steil hinauf (Gas dosieren!), kurze Kuppe, steil hinunter (bremsen!)
+      el.H = (4.5 + r() * 4) * stark;
+      el.Lu = 1.5 * el.H / Math.tan(p.maxAuf);
+      el.Lp = 1.5 + r() * 2.5;
+      el.Ld = 1.5 * el.H / Math.tan(Math.min(p.maxAb, p.maxAuf + 8 * GRAD));
+      el.xe = xs + el.Lu + el.Lp + el.Ld;
+      this.gipfel.push({ x: xs + el.Lu + el.Lp * 0.5, platziert: false });
+    } else if (typ === "sprung") {
+      // Rampe → Abbruchkante → langer Landehang → Mulde → wieder hinauf
+      el.L = (9 + r() * 5) * (1 - 0.15 * p.wild);   // je wilder, desto steiler die Lippe
+      el.H = (1.8 + r() * 1.6) * stark;
+      el.Lk = 0.35 * el.H;                         // Abbruchkante (steil)
+      el.D = (2.5 + r() * 3) * stark;              // so tief liegt die Mulde unter dem Start
+      el.Lf = 12 + r() * 8;                        // Landehang
+      el.Lb = 4 + r() * 4;
+      el.Lu = 1.5 * el.D / Math.tan(p.ausfahrt);
+      el.xe = xs + el.L + el.Lf + el.Lb + el.Lu;
+      this.lippen.push({ x: xs + el.L, hoehe: el.H, platziert: false });
+    } else if (typ === "wellen") {
+      el.n = 3 + Math.floor(r() * 3);
+      el.P = 11 + r() * 6;
+      el.A = (0.8 + r() * 0.9) * stark;
+      el.xe = xs + el.n * el.P;
+    } else if (typ === "rampe") {
+      // kurze Steilrampe: steiler als die normalen Berge – Gas dosieren! Auf rutschigem
+      // Boden weniger steil; die Einfahrt ist rund (Le), sonst prallt man gegen eine Wand
+      el.th = Math.min((38 + 12 * Math.min(1, this.welt.grip)) * GRAD, p.maxAuf + (8 + 6 * r() + 4 * p.wild) * GRAD);
+      el.H = (2.0 + 2.2 * r()) * stark;
+      el.Le = 5;
+      el.Lr = el.H / Math.tan(el.th) + el.Le / 2;
+      el.Lp = 2.5 + 3 * r();
+      el.Ld = 1.5 * el.H / Math.tan(32 * GRAD);
+      el.xe = xs + el.Lr + el.Lp + el.Ld;
+      this.gipfel.push({ x: xs + el.Lr + el.Lp * 0.5, platziert: false });
+    } else if (typ === "stufe") {
+      // Stufen (wie Bordsteine/Felsstufen): das Vorderrad wird hochgeschlagen, die
+      // Nase dreht nach oben – bei Tempo hebt das Auto ab und muss mit der Bremse
+      // wieder gerade gestellt werden
+      el.n = 1 + Math.floor(r() * 3);
+      el.Hs = (0.5 + 0.5 * r()) * Math.min(1.4, stark);
+      el.Ls = 7 + r() * 6;                          // Abstand der Stufen
+      el.Ld = 1.5 * el.n * el.Hs / Math.tan(25 * GRAD);
+      el.xe = xs + el.n * el.Ls + el.Ld;
+    } else if (typ === "kuppe") {
+      // scharfe Kuppe (Radius R) vor einem steilen Abhang: Wer schnell drüberfährt,
+      // hebt ab und dreht sich mit ω ≈ v/R nach vorn
+      var thU = (22 + 8 * r() + 4 * p.wild) * GRAD, thD = (40 + 8 * r() + 6 * p.wild) * GRAD;
+      thU = Math.min(thU, p.maxAuf);
+      el.Hap = (1.6 + 1.8 * r()) * stark;
+      el.Dd = el.Hap + (1.5 + 3 * r()) * stark;
+      el.Rc = 4 + 3 * r();
+      el.tU = Math.tan(thU); el.tD = Math.tan(thD);
+      el.sA = el.Hap / el.tU;                       // Spitze (ohne Rundung)
+      var dK = el.Rc * Math.tan((thU + thD) / 2);   // Abstand der Rundungs-Enden von der Spitze
+      el.x1 = el.sA - dK * Math.cos(thU);
+      el.x2 = el.sA + dK * Math.cos(thD);
+      el.cx = el.x1 + el.Rc * Math.sin(thU);
+      el.cy = el.Hap - dK * Math.sin(thU) - el.Rc * Math.cos(thU);
+      el.sB = el.sA + el.Dd / el.tD;                // Fuß des Abhangs
+      el.tief = el.Hap - el.Dd;                     // < 0: so tief unter dem Start
+      el.Lb = 3 + 0.6 * el.Dd;                      // flacher Auslauf (sonst verkeilen sich lange Autos)
+      el.Lo = 1.5 * -el.tief / Math.tan(p.ausfahrt);
+      el.xe = xs + el.sB + el.Lb + el.Lo;
+      this.lippen.push({ x: xs + el.sA, hoehe: el.Hap, platziert: false });
+    } else {
+      // Klippe: hinauf auf ein Plateau, dann senkrecht hinunter
+      el.D = (2.6 + r() * 2.6) * stark;
+      el.Lu = 1.5 * el.D / Math.tan(p.ausfahrt);    // der Aufstieg ist nicht die Aufgabe, der Abbruch schon
+      el.Lp = 6 + r() * 6;
+      el.Ld = 0.35 * el.D;
+      el.xe = xs + el.Lu + el.Lp + el.Ld;
+      this.lippen.push({ x: xs + el.Lu + el.Lp, hoehe: el.D, platziert: false });
     }
     return el;
   };
@@ -163,7 +263,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Beitrag eines Elements an der Stelle x (und ob dort steiles Gefälle erlaubt ist) */
   function elementBeitrag(el, x, aus) {
     var s = x - el.xs;
-    aus.steilAb = false;
+    aus.steilAb = false; aus.steilAuf = false;
     if (s < 0 || x > el.xe) return 0;
     switch (el.typ) {
       case "schanze":
@@ -174,19 +274,58 @@ var FF = globalThis.FF = globalThis.FF || {};
         var sn = Math.sin(Math.PI * s / el.P);
         return el.A * sn * sn;
       case "steil":
+      case "berg":
         if (s < el.Lu) return el.H * glatt(0, el.Lu, s);
         if (s < el.Lu + el.Lp) return el.H;
         return el.H * (1 - glatt(0, el.Ld, s - el.Lu - el.Lp));
-      default: // tal
+      case "tal":
         if (s < el.Ld) return -el.D * glatt(0, el.Ld, s);
         if (s < el.Ld + el.Lb) return -el.D;
         return -el.D * (1 - glatt(0, el.Lu, s - el.Ld - el.Lb));
+      case "sprung":
+        if (s <= el.L) { var u = s / el.L; return el.H * u * u; }
+        var sf = s - el.L;
+        if (sf < el.Lf) {
+          if (sf < el.Lk) aus.steilAb = true;
+          var kante = el.H * Math.max(0, 1 - sf / el.Lk) * 0.55;   // Abbruchkante: gut die Hälfte fällt sofort
+          return kante + (el.H * 0.45 + el.D) * (1 - glatt(0, el.Lf, sf)) - el.D;
+        }
+        sf -= el.Lf;
+        if (sf < el.Lb) return -el.D;
+        return -el.D * (1 - glatt(0, el.Lu, sf - el.Lb));
+      case "wellen":
+        var sw = Math.sin(Math.PI * s / el.P);
+        return el.A * sw * sw;
+      case "rampe":
+        if (s < el.Le) return Math.tan(el.th) * s * s / (2 * el.Le);         // Steigung wächst gleichmäßig
+        if (s < el.Lr) { aus.steilAuf = true; return Math.tan(el.th) * (s - el.Le / 2); }
+        if (s < el.Lr + el.Lp) return el.H;
+        return el.H * (1 - glatt(0, el.Ld, s - el.Lr - el.Lp));
+      case "stufe":
+        var k = Math.floor(s / el.Ls);
+        if (k < el.n) {
+          var sk = s - k * el.Ls;
+          if (sk < 0.35) aus.steilAuf = true;
+          return el.Hs * (k + Math.min(1, sk / 0.35));
+        }
+        return el.n * el.Hs * (1 - glatt(0, el.Ld, s - el.n * el.Ls));
+      case "kuppe":
+        if (s < el.x1) return s * el.tU;
+        if (s < el.x2) { var dxk = s - el.cx; return el.cy + Math.sqrt(Math.max(0, el.Rc * el.Rc - dxk * dxk)); }
+        if (s < el.sB) { aus.steilAb = true; return el.Hap - (s - el.sA) * el.tD; }
+        if (s < el.sB + el.Lb) return el.tief;
+        return el.tief * (1 - glatt(0, el.Lo, s - el.sB - el.Lb));
+      default: // klippe
+        if (s < el.Lu) return el.D * glatt(0, el.Lu, s);
+        if (s < el.Lu + el.Lp) return el.D;
+        aus.steilAb = true;
+        return el.D * Math.max(0, 1 - (s - el.Lu - el.Lp) / el.Ld);
     }
   }
 
   /* ---------- Höhenprofil berechnen ---------- */
   Gelaende.prototype.erweitereBis = function (xBis) {
-    var p = this.p, dx = this.dx, hilf = { steilAb: false };
+    var p = this.p, dx = this.dx, hilf = { steilAb: false, steilAuf: false };
     var alpha = 0.4;                                   // Tiefpass-Koeffizient pro Abtastschritt
     var tanAuf = Math.tan(p.maxAuf), tanAb = Math.tan(p.maxAb), tanKante = Math.tan(68 * GRAD);
     var tanEben = Math.tan(1.5 * GRAD);
@@ -199,6 +338,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (x >= this.naechstesElement && !zielZone) {
         var el = this.neuesElement(x);
         this.elemente.push(el);
+        if (!this.endlos) this.bauplan.push(el);       // für Analyse und Tests (werkzeuge/)
         this.naechstesElement = el.xe + p.abstand * (0.45 + this.rnd() * 0.9);
       }
 
@@ -208,16 +348,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       var roh = A * (rauschen(x / p.welle, this.s1) + 0.45 * rauschen(x / (p.welle * 0.43), this.s2))
               + p.holperAmp * start * rauschen(x / p.holperWelle, this.s3)
               + p.trend * Math.max(0, x - 8) * start;
-      var steilAb = false;
+      var steilAb = false, steilAuf = false;
       for (var i = this.elemente.length - 1; i >= 0; i--) {
         var e = this.elemente[i];
         if (e.xe < x - 1) { this.elemente.splice(i, 1); continue; }
         roh += elementBeitrag(e, x, hilf);
         if (hilf.steilAb) steilAb = true;
+        if (hilf.steilAuf) steilAuf = true;
       }
 
       // 2) Slew-Rate-Begrenzer
-      var auf = tanAuf * dx, ab = (steilAb ? tanKante : tanAb) * dx;
+      var auf = (steilAuf ? tanKante : tanAuf) * dx, ab = (steilAb ? tanKante : tanAb) * dx;
       if (!this.endlos && x > this.ziel - 14) { auf = ab = tanEben * dx; }
       if (this.h.length === 0) { this.aus = roh; this.tp1 = roh; this.tp2 = roh; }
       this.aus = Math.min(this.aus + auf, Math.max(this.aus - ab, roh));
@@ -301,18 +442,54 @@ var FF = globalThis.FF = globalThis.FF || {};
     return Math.abs(this.naechsterTank - x) < abstand;
   };
 
+  /* Kanister nicht dorthin legen, wo man drüberfliegt (Kuppen, hinter Schanzen).
+     Gesucht wird kurz davor (bis 18 m) oder dahinter (bis 6 m) eine flache Stelle
+     oder Mulde, wo die Räder sicher am Boden sind. */
+  Gelaende.prototype.tankPlatz = function (x) {
+    var beste = x, besteWertung = Infinity;
+    for (var xp = Math.max(30, x - 18); xp <= x + 6; xp += 1) {
+      var kuppe = this.steigungBei(xp - 4) - this.steigungBei(xp + 4);        // > 0: Kuppe, < 0: Mulde
+      var w = Math.abs(this.steigungBei(xp)) + 3 * Math.max(0, kuppe + 0.05) +
+              1.5 * Math.max(0, this.flughoehe(xp) - 0.6) + 0.004 * Math.abs(xp - x);
+      if (w < besteWertung) { besteWertung = w; beste = xp; }
+    }
+    return beste;
+  };
+
+  /* So hoch [m] fliegt ein Auto mit typischem Tempo höchstens über die Stelle xp,
+     wenn es bis zu 30 m davor abhebt (Wurfparabel ab der Hangneigung). */
+  Gelaende.prototype.flughoehe = function (xp) {
+    var v = 17, k = this.welt.schwerkraft / (2 * v * v), yp = this.hoeheBei(xp), hoch = 0;
+    for (var d = 2; d <= 30; d++) {
+      var xl = xp - d, sl = this.steigungBei(xl), yl = this.hoeheBei(xl), q = k * (1 + sl * sl), frei = true;
+      for (var e = 1; e < d && frei; e++) frei = yl + sl * e - q * e * e > this.hoeheBei(xl + e) - 0.05;
+      if (frei) hoch = Math.max(hoch, yl + sl * d - q * d * d - yp);
+    }
+    return hoch;
+  };
+
   Gelaende.prototype.platziereInhalte = function (bis) {
     var r = this.rnd, welt = this.welt, ende = this.endlos ? Infinity : this.ziel - 12;
     var g = welt.schwerkraft;
     bis = Math.min(bis, this.endlos ? bis : this.ziel + 120);
     if (bis <= this.platziertBis) return;
 
-    // Benzinkanister (im Endlos-Modus werden die Abstände langsam größer)
-    while (this.naechsterTank < bis && this.naechsterTank < ende - 10) {
-      var xt = this.naechsterTank;
-      this.tanks.push({ x: xt, y: this.hoeheBei(xt), weg: false });
-      var zuwachs = this.endlos ? 1 + xt / FF.CONFIG.endlos.tankZuwachsStrecke : 1;
-      this.naechsterTank += this.tankAbstand * (0.88 + 0.24 * r()) * zuwachs;
+    // Benzinkanister nach Aufwand verteilt: Bergauf kostet jeder Meter mehr Benzin
+    // (langsamer und volle Last), bergab weniger. Darum liegen die Kanister am Berg
+    // dichter, und jeder Abschnitt verlangt ungefähr gleich viel Benzin.
+    // (Im Endlos-Modus werden die Abstände langsam größer.)
+    while (this.tankX < bis && this.tankX < ende - 10) {
+      var sl = this.steigungBei(this.tankX);
+      this.tankRest -= this.dx * Math.max(0.4, 1 + 3 * Math.max(0, sl) - 0.6 * Math.max(0, -sl)) / 1.3;
+      this.tankX += this.dx;
+      if (this.tankRest <= 0) {
+        var xt = this.tankPlatz(this.tankX);
+        this.tanks.push({ x: xt, y: this.hoeheBei(xt), weg: false });
+        var zuwachs = this.endlos ? 1 + xt / FF.CONFIG.endlos.tankZuwachsStrecke : 1;
+        this.tankRest = this.tankAbstand * (0.88 + 0.24 * r()) * zuwachs;
+        this.tankX = xt;                           // Aufwand zählt ab dem neuen Kanister
+      }
+      this.naechsterTank = this.tankX + this.tankRest / 2;
     }
 
     // Münz-Reihen entlang des Bodens

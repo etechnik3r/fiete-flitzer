@@ -24,6 +24,7 @@
   "use strict";
 
   var C = FF.CONFIG;
+  var VERSION = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || "?";
   function $(id) { return document.getElementById(id); }
   function klemme(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function zahl(n) { return Math.round(n).toLocaleString("de-DE"); }
@@ -54,6 +55,7 @@
       outfits: [C.outfits[0].id],
       level: {},
       endlos: {},
+      freigeschaltet: [],          // Welten (ids), die offen bleiben – z. B. aus alten Spielständen
       statistik: { fahrten: 0, meter: 0, salti: 0, muenzen: 0 }
     };
     C.fahrzeuge.forEach(function (f) { p.fahrzeuge[f.id] = neuesFahrzeug(f); });
@@ -62,11 +64,12 @@
 
   function neuerSpielstand() {
     var s = {
-      version: 2,
+      version: 3,
       aktiv: C.kinder[0].id,
       spieler: {},
       einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false },
-      duell: { welt: 0, stufe: 0, endlos: false, siege: {} }
+      duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
+      entwickler: { alleOffen: false }      // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
     };
     C.kinder.forEach(function (k) { s.spieler[k.id] = neuesProfil(); s.duell.siege[k.id] = 0; });
     return s;
@@ -83,10 +86,26 @@
     });
     C.fahrzeuge.forEach(function (f) { if (!ziel.fahrzeuge[f.id]) ziel.fahrzeuge[f.id] = neuesFahrzeug(f); });
     var frisch = neuesProfil();
-    ["farben", "muster", "outfits"].forEach(function (k) { if (!Array.isArray(ziel[k])) ziel[k] = frisch[k]; });
+    ["farben", "muster", "outfits", "freigeschaltet"].forEach(function (k) { if (!Array.isArray(ziel[k])) ziel[k] = frisch[k]; });
+    frisch.farben.forEach(function (f) { if (ziel.farben.indexOf(f) < 0) ziel.farben.push(f); });   // neue Gratis-Farben
     if (typeof ziel.muenzen !== "number" || !isFinite(ziel.muenzen) || ziel.muenzen < 0) ziel.muenzen = 0;
     if (!ziel.fahrzeuge[ziel.fahrzeug] || !ziel.fahrzeuge[ziel.fahrzeug].gekauft) ziel.fahrzeug = "flitzer";
     if (ziel.outfits.indexOf(ziel.outfit) < 0) ziel.outfit = C.outfits[0].id;
+  }
+
+  /* Bis Spielstand-Version 2 gab es diese acht Welten in dieser Reihenfolge (je
+     drei Level). Damals öffnete Level 3 die nächste Welt. Inzwischen liegen
+     Baustelle und Achterbahn-Park dazwischen – was schon offen war, bleibt offen. */
+  var ALTE_WELTEN = ["wiese", "wueste", "schnee", "mond", "bonbon", "dschungel", "vulkan", "regenbogen"];
+  function weltIndex(id) {
+    for (var i = 0; i < C.welten.length; i++) if (C.welten[i].id === id) return i;
+    return -1;
+  }
+  function alteFreischaltungen(p) {
+    for (var k = 1; k < ALTE_WELTEN.length; k++) {
+      var vorher = p.level[ALTE_WELTEN[k - 1] + "-3"];
+      if (vorher && vorher.geschafft && p.freigeschaltet.indexOf(ALTE_WELTEN[k]) < 0) p.freigeschaltet.push(ALTE_WELTEN[k]);
+    }
   }
 
   function lade() {
@@ -95,11 +114,18 @@
       var roh = window.localStorage.getItem(SCHLUESSEL);
       if (roh) {
         var d = JSON.parse(roh);
+        var alt = !d || !(d.version >= 3);
         if (d && d.spieler) {
           C.kinder.forEach(function (k) { uebernimmProfil(s.spieler[k.id], d.spieler[k.id]); });
           if (s.spieler[d.aktiv]) s.aktiv = d.aktiv;
           if (d.duell) {
             ["welt", "stufe", "endlos"].forEach(function (k) { if (d.duell[k] !== undefined) s.duell[k] = d.duell[k]; });
+            // Welt per Name (ab Version 3), alte Stände: Index der alten Reihenfolge
+            var wid = alt ? ALTE_WELTEN[d.duell.welt] : d.duell.weltId;
+            if (wid && weltIndex(wid) >= 0) s.duell.welt = weltIndex(wid);
+            if (!(s.duell.welt >= 0 && s.duell.welt < C.welten.length)) s.duell.welt = 0;
+            if (!(s.duell.stufe >= 0 && s.duell.stufe < C.welten[s.duell.welt].level.length)) s.duell.stufe = 0;
+            s.duell.endlos = s.duell.endlos === true;
             if (d.duell.siege) C.kinder.forEach(function (k) { s.duell.siege[k.id] = +d.duell.siege[k.id] || 0; });
           }
         } else if (d) {
@@ -108,12 +134,15 @@
         if (d && d.einstellungen) Object.keys(s.einstellungen).forEach(function (k) {
           if (d.einstellungen[k] !== undefined) s.einstellungen[k] = d.einstellungen[k];
         });
+        if (d && d.entwickler) s.entwickler.alleOffen = d.entwickler.alleOffen === true;
+        if (alt) C.kinder.forEach(function (k) { alteFreischaltungen(s.spieler[k.id]); });
       }
     } catch (e) { /* kaputter Speicher → frisch anfangen */ }
     return s;
   }
 
   function speichere() {
+    S.duell.weltId = C.welten[S.duell.welt] ? C.welten[S.duell.welt].id : C.welten[0].id;
     try { window.localStorage.setItem(SCHLUESSEL, JSON.stringify(S)); } catch (e) { /* privat-Modus o. ä. */ }
   }
 
@@ -123,11 +152,17 @@
 
   function levelSchluessel(wi, li) { return C.welten[wi].id + "-" + (li + 1); }
   function levelStand(wi, li, prof) { return (prof || P).level[levelSchluessel(wi, li)] || { geschafft: false, sterne: 0 }; }
+  /* Level n+1 öffnet sich mit Level n. Die nächste Welt öffnet sich schon mit
+     Level 3 – Level 4 ist ein freiwilliges Profi-Level. Was einmal geschafft
+     wurde, bleibt offen (auch wenn sich die Reihenfolge der Welten ändert). */
+  var PROFI = 3;                                   // Index des Profi-Levels
   function levelOffen(wi, li, prof) {
-    if (wi === 0 && li === 0) return true;
-    return li > 0 ? levelStand(wi, li - 1, prof).geschafft : levelStand(wi - 1, 2, prof).geschafft;
+    if ((wi === 0 && li === 0) || S.entwickler.alleOffen) return true;
+    if (levelStand(wi, li, prof).geschafft) return true;
+    if (li === 0 && (prof || P).freigeschaltet.indexOf(C.welten[wi].id) >= 0) return true;
+    return li > 0 ? levelStand(wi, li - 1, prof).geschafft : levelStand(wi - 1, PROFI - 1, prof).geschafft;
   }
-  function endlosOffen(wi, prof) { return levelStand(wi, 0, prof).geschafft; }
+  function endlosOffen(wi, prof) { return S.entwickler.alleOffen || levelStand(wi, 0, prof).geschafft; }
   function sterneSumme(prof) {
     return Object.keys(prof.level).reduce(function (s, k) { return s + (prof.level[k].sterne || 0); }, 0);
   }
@@ -178,6 +213,9 @@
   var partikel = new FF.Grafik.Partikel(), texte = [], wetter = new FF.Grafik.Wetter();
   var zeit = 0, letzteZeit = 0;
   var ausdruck = "normal", ausdruckBis = 0;
+  var spruchBis = 0;               // bis dahin läuft ein wichtiger gesprochener Hinweis (nicht überreden)
+  var luftTippGezeigt = false;     // "Gas hebt die Nase, Bremse senkt sie" – einmal pro Spielstart
+  var pedaleLuft = false;          // Pedale zeigen gerade die Luft-Pfeile
   var auspuffTakt = 0, staubTakt = 0;
 
   function groesseAnpassen() {
@@ -345,7 +383,7 @@
         }
       });
     }
-    if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0) {
+    if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro) {   // Elektro: kein Auspuff
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
@@ -370,13 +408,24 @@
     }
   }
 
+  /* Benzin oder Akku? Texte passend zum Fahrzeug */
+  function energie(def) {
+    return def.akku
+      ? { icon: "🔋", name: "Akku", voll: "⚡ Geladen!", knapp: "🔋 Akku wird leer – sammle eine grüne Batterie!", knappSag: "Akku wird leer!",
+          leer: "Akku leer! 🔋", ergebnis: "Akku leer – gut gefahren!", garage: "den Akku 🔋",
+          info: "🔋 Dein Akku<small>Sammle die grünen Batterien – und Bremsen lädt ihn wieder auf!</small>" }
+      : { icon: "⛽", name: "Tank", voll: "⛽ Voll!", knapp: "⛽ Benzin wird knapp – sammle einen roten Kanister!", knappSag: "Benzin wird knapp!",
+          leer: "Tank leer! ⛽", ergebnis: "Tank leer – gut gefahren!", garage: "den Tank ⛽",
+          info: "⛽ Dein Benzin<small>Sammle die roten Kanister, sonst bleibt das Auto stehen.</small>" };
+  }
+
   /* =========================================================================
      6) EREIGNISSE DER FAHRT → Ton, Effekte, Texte
      ========================================================================= */
   function setzeAusdruck(a, dauer) { ausdruck = a; ausdruckBis = zeit + (dauer || 1.5); }
 
   function verarbeiteEreignisse() {
-    var E = fahrt.ereignisse, ch = fahrt.fz.chassis;
+    var E = fahrt.ereignisse, ch = fahrt.fz.chassis, en = energie(fahrt.def);
     for (var i = 0; i < E.length; i++) {
       var e = E[i];
       switch (e.typ) {
@@ -387,19 +436,19 @@
           plopp($("hud-muenzen"));
           break;
         case "tank":
-          FF.Klang.spiele("tank");
+          FF.Klang.spiele(fahrt.def.akku ? "laden" : "tank");
           funkeln(e.x, e.y + 0.6, "#ffd23f", 8);
-          schwebeText(e.x, e.y + 1.4, "⛽ Voll!", "#7dffb8", true);
+          schwebeText(e.x, e.y + 1.4, en.voll, "#7dffb8", true);
           $("hud-tank").classList.remove("knapp");
           break;
         case "tankWarnung":
           FF.Klang.spiele("tankWarnung");
-          tipp("⛽ Benzin wird knapp – sammle einen roten Kanister!");
-          FF.Klang.sprich("Benzin wird knapp!");
+          tipp(en.knapp);
+          FF.Klang.sprich(en.knappSag);
           break;
         case "tankLeer":
           FF.Klang.spiele("tankLeer");
-          meldung("Tank leer! ⛽");
+          meldung(en.leer);
           setzeAusdruck("staunen", 6);
           break;
         case "salto":
@@ -428,12 +477,31 @@
           FF.Klang.spiele("hoppla");
           setzeAusdruck("staunen", 3);
           schwebeText(ch.x, ch.y + 1.6, "Hoppla!", "#ffffff", true);
+          if (e.bergauf && e.rueckwaerts) {              // am Berg nach hinten gekippt: zu viel Gas
+            tipp("⛰️ Am Berg nicht so viel Gas – sonst kippt das Auto nach hinten!", 4500);
+            FF.Klang.sprich("Weniger Gas am Berg!");
+            spruchBis = zeit + 3;
+          }
+          break;
+        case "bruch":
+          // Bruchlandung: viel zu schief zum Hang aufgekommen – sagen, was hilft
+          FF.Klang.spiele("hoppla");
+          setzeAusdruck("staunen", 3);
+          schwebeText(ch.x, ch.y + 1.6, "Bums! 💥", "#ffffff", true);
+          if (e.nase === "hoch") {
+            tipp("💥 Nase zu hoch ⤴ – in der Luft kurz BREMSEN, dann senkt sie sich!", 4500);
+            FF.Klang.sprich("Bums! Die Nase war zu hoch. In der Luft bremsen!");
+          } else {
+            tipp("💥 Nase zu tief ⤵ – in der Luft GAS geben, dann hebt sie sich!", 4500);
+            FF.Klang.sprich("Bums! Die Nase war zu tief. In der Luft Gas geben!");
+          }
+          spruchBis = zeit + 3;
           break;
         case "hilfe":
           FF.Klang.spiele("hilfe");
           meldung("Ballon-Hilfe! 🎈");
-          FF.Klang.sprich("Hoppla! Der Ballon hilft dir.");
-          if (e.abzug > 0) schwebeText(ch.x, ch.y + 2.4, "−" + Math.round(e.abzug * 100) + " % ⛽", "#ffb3ad", false);
+          if (zeit > spruchBis) FF.Klang.sprich("Hoppla! Der Ballon hilft dir.");
+          if (e.abzug > 0) schwebeText(ch.x, ch.y + 2.4, "−" + Math.round(e.abzug * 100) + " % " + en.icon, "#ffb3ad", false);
           alleZeigerLos();
           break;
         case "hilfeFertig":
@@ -443,6 +511,14 @@
         case "tipp":
           tipp(e.text, 4000);
           FF.Klang.sprich(e.text.replace(/[^\wäöüÄÖÜß!.,\s-]/g, ""));
+          break;
+        case "geladen":
+          schwebeText(ch.x, ch.y + 1.3, "+⚡", "#7dffb8", false);
+          if (!fahrt.ladeTippGezeigt) {
+            fahrt.ladeTippGezeigt = true;
+            tipp("⚡ Bremsen lädt den Akku wieder auf!", 3000);
+            FF.Klang.sprich("Bremsen lädt den Akku!");
+          }
           break;
         case "meilenstein":
           FF.Klang.spiele("meilenstein");
@@ -520,21 +596,28 @@
     modus = "fahrt";
     zeigeBildschirm("fahrt");
     $("hud-tank").classList.remove("knapp");
+    var en = energie(fahrt.def);
+    $("hud-tank-icon").textContent = en.icon;
+    $("hud-tank").setAttribute("aria-label", en.name);
+    $("hud-tank").classList.toggle("akku", !!fahrt.def.akku);
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
     $("hud-geist-strecke").hidden = !(endlos && geist);
     $("hud-fortschritt-auto").src = kindBild(S.aktiv, 40, 40, "normal", true);
     $("hud-fortschritt-geist").hidden = !geist || !!endlos;
     if (geist) $("hud-fortschritt-geist").src = kindBild(geist.kind, 40, 40, "normal", true);
-    FF.Klang.motorStart();
+    FF.Klang.motorStart(fahrt.def.klang);
     var w = fahrt.welt;
+    // Kaum Schwerkraft: schon wenig Gas hebt die Nase (besonders beim Trecker) – gleich sagen
+    var mondHinweis = w.schwerkraft < 3 ? " Auf dem Mond nur sanft Gas geben!" : "";
     if (geist) {
       meldung("👻 Gegen " + genitiv(geist.name) + " Geist!");
-      FF.Klang.sprich("Los, " + kindDef(S.aktiv).name + "! Fahr gegen " + genitiv(geist.name) + " Geist!");
+      FF.Klang.sprich("Los, " + kindDef(S.aktiv).name + "! Fahr gegen " + genitiv(geist.name) + " Geist!" + mondHinweis);
     } else {
       meldung(endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
-      FF.Klang.sprich(spielModus === "duell" ? "Los, " + kindDef(S.aktiv).name + "!" : (endlos ? "Wie weit kommst du?" : "Los geht's!"));
+      FF.Klang.sprich((spielModus === "duell" ? "Los, " + kindDef(S.aktiv).name + "!" : (endlos ? "Wie weit kommst du?" : "Los geht's!")) + mondHinweis);
     }
+    if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000);
     if (H > B) { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
     hudCache = {};
     hudAktualisieren(true);
@@ -575,7 +658,7 @@
     if (modus !== "fahrt" || pausiert || ergebnisOffen) return;
     pausiert = true;
     alleZeigerLos();
-    FF.Klang.motorSetze(0, 0, false);
+    FF.Klang.motorSetze({ stumm: true });
     $("knopf-menue").textContent = spielModus === "duell" ? "🏠 Rennen abbrechen" : "🏠 Zum Menü";
     oeffneModal("pause");
   }
@@ -638,21 +721,25 @@
     if (pausiert) { schliesseModal("pause"); pausiert = false; }
     ergebnisOffen = true;
     alleZeigerLos();
-    FF.Klang.motorSetze(0, 0, false);
+    FF.Klang.motorSetze({ stumm: true });
     if (spielModus === "duell" && duell) duellRundeFertig();
     else zeigeErgebnis();
   }
 
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) { if (modus === "fahrt") pause(); FF.Klang.motorSetze(0, 0, false); }
+    if (document.hidden) { if (modus === "fahrt") pause(); FF.Klang.motorSetze({ stumm: true }); }
   });
 
   /* =========================================================================
      8) ERGEBNIS (allein)
      ========================================================================= */
+  /* Wohin führt "Weiter"? Nach Level 3 in die nächste Welt – das Profi-Level ist
+     freiwillig und wird nur als zweiter Knopf angeboten (in der letzten Welt
+     gibt es danach nur noch das Profi-Level). */
   function naechstesLevel(wi, li) {
-    if (li < 2) return [wi, li + 1];
+    if (li < PROFI - 1) return [wi, li + 1];
     if (wi < C.welten.length - 1) return [wi + 1, 0];
+    if (li < PROFI) return [wi, PROFI];
     return null;
   }
 
@@ -664,7 +751,7 @@
     var titel, icon;
     if (e.ziel) { titel = "Ziel erreicht!"; icon = "🏆"; }
     else if (e.endlos) { titel = rekord ? "Neuer Rekord!" : "Super gefahren!"; icon = rekord ? "🥇" : "📏"; }
-    else { titel = "Tank leer – gut gefahren!"; icon = "⛽"; }
+    else { titel = energie(fahrt.def).ergebnis; icon = energie(fahrt.def).icon; }
     $("ergebnis-titel").textContent = titel;
     $("ergebnis-icon").textContent = icon;
     $("ergebnis-fiete").src = kindBild(S.aktiv, 120, 130, e.ziel || rekord ? "freude" : "normal");
@@ -692,7 +779,7 @@
     zaehleHoch($("ergebnis-summe"), e.gesamt);
 
     var tippText = "";
-    if (!e.ziel && !e.endlos) tippText = "Tipp: In der Garage 🔧 den Tank ⛽ oder Motor verbessern – dann kommst du weiter!";
+    if (!e.ziel && !e.endlos) tippText = "Tipp: In der Garage 🔧 " + energie(fahrt.def).garage + " oder den Motor verbessern – dann kommst du weiter!";
     else if (e.ziel && e.sterne < 3) tippText = "Sammle " + Math.round(C.regeln.sterne3 * 100) + " % der Münzen für alle 3 Sterne!";
     else if (e.ziel) tippText = "Perfekt! Alle Sterne! 🌟";
     else if (e.endlos) tippText = "Bester Wert hier: " + zahl(P.endlos[welt.id]) + " m";
@@ -700,8 +787,10 @@
 
     var nl = naechstesLevel(wi, li);
     var weiterKnopf = $("knopf-ergebnis-weiter"), nochmalKnopf = $("knopf-ergebnis-nochmal");
+    // Level 3 geschafft: Profi-Level als freiwillige zweite Wahl
+    $("knopf-ergebnis-profi").hidden = !(e.ziel && li === PROFI - 1 && nl && nl[1] !== PROFI && levelOffen(wi, PROFI));
     if (e.ziel && nl && levelOffen(nl[0], nl[1])) {
-      weiterKnopf.textContent = nl[0] !== wi ? "▶️ Neue Welt: " + C.welten[nl[0]].emoji : "▶️ Nächstes Level";
+      weiterKnopf.textContent = nl[0] !== wi ? "▶️ Neue Welt: " + C.welten[nl[0]].emoji : (nl[1] === PROFI ? "🔥 Profi-Level" : "▶️ Nächstes Level");
       weiterKnopf.dataset.ziel = nl.join(",");
       nochmalKnopf.hidden = false;
     } else {
@@ -730,6 +819,11 @@
     if (z === "nochmal") starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos);
     else { var t = z.split(",").map(Number); starteFahrt(t[0], t[1], false); }
   });
+  $("knopf-ergebnis-profi").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    schliesseModal("ergebnis");
+    starteFahrt(fahrtInfo.weltIndex, PROFI, false);
+  });
   $("knopf-ergebnis-nochmal").addEventListener("click", function () {
     FF.Klang.spiele("klick");
     schliesseModal("ergebnis");
@@ -747,6 +841,7 @@
     $("menue").hidden = name !== "menue";
     $("hud").hidden = name !== "fahrt";
     $("pedale").hidden = name !== "fahrt";
+    pedaleLuft = false; $("pedale").classList.remove("luft");
     if (name !== "fahrt") {
       $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true;
       FF.Klang.motorStopp();
@@ -853,26 +948,32 @@
     baueFahrzeugLeiste();
     var el = $("welten-liste"), html = "";
     var naechstes = null;
+    // Sichtbar machen, wenn der Entwickler-Schalter alles geöffnet hat
+    if (S.entwickler.alleOffen) {
+      html += '<div class="entwickler-hinweis">🛠️ Entwickler-Modus: alle Level offen' +
+              '<button type="button" id="dev-alle-zu">Ausschalten</button></div>';
+    }
     C.welten.forEach(function (w, wi) {
-      for (var li = 0; li < 3 && !naechstes; li++) if (levelOffen(wi, li) && !levelStand(wi, li).geschafft) naechstes = wi + "," + li;
+      for (var li = 0; li < PROFI && !naechstes; li++) if (levelOffen(wi, li) && !levelStand(wi, li).geschafft) naechstes = wi + "," + li;
     });
     C.welten.forEach(function (w, wi) {
-      var offen = levelOffen(wi, 0), sterne = 0;
-      for (var li = 0; li < 3; li++) sterne += levelStand(wi, li).sterne || 0;
+      var offen = levelOffen(wi, 0), sterne = 0, n = w.level.length;
+      for (var li = 0; li < n; li++) sterne += levelStand(wi, li).sterne || 0;
       html += '<div class="welt-karte' + (offen ? "" : " gesperrt") + '">' +
         '<div class="welt-kopf" style="background:linear-gradient(135deg,' + w.farben.himmel[0] + "," + w.farben.berge[1] + ' 70%,' + w.farben.boden[0] + ')">' +
         '<span class="welt-emoji">' + w.emoji + "</span><div><div class=\"welt-name\">" + w.name + "</div>" +
         '<div class="welt-hinweis">' + w.hinweis + "</div></div>" +
-        '<span class="welt-sterne">⭐ ' + sterne + "/9</span></div>" +
+        '<span class="welt-sterne">⭐ ' + sterne + "/" + 3 * n + "</span></div>" +
         '<div class="welt-level">';
-      for (li = 0; li < 3; li++) {
-        var o = levelOffen(wi, li), ls = levelStand(wi, li), kl = "level-knopf";
+      for (li = 0; li < n; li++) {
+        var o = levelOffen(wi, li), ls = levelStand(wi, li), kl = "level-knopf", profi = li === PROFI;
         if (!o) kl += " gesperrt";
+        if (profi) kl += " profi";
         if (naechstes === wi + "," + li) kl += " naechstes";
         var st = "";
         for (var k = 0; k < 3; k++) st += '<span class="' + (k < ls.sterne ? "an" : "") + '">★</span>';
-        html += '<button type="button" class="' + kl + '" data-welt="' + wi + '" data-level="' + li + '" aria-label="Level ' + (li + 1) + '">' +
-                (o ? li + 1 : "🔒") + '<span class="level-sterne">' + st + "</span></button>";
+        html += '<button type="button" class="' + kl + '" data-welt="' + wi + '" data-level="' + li + '" aria-label="' + (profi ? "Profi-Level " : "Level ") + (li + 1) + '">' +
+                (o ? (profi ? "🔥" : li + 1) : "🔒") + '<span class="level-sterne">' + st + "</span></button>";
       }
       var eo = endlosOffen(wi), best = P.endlos[w.id] || 0;
       html += '<button type="button" class="level-knopf endlos' + (eo ? "" : " gesperrt") + '" data-welt="' + wi + '" data-endlos="1" aria-label="Endlos fahren">' +
@@ -880,6 +981,11 @@
       html += "</div></div>";
     });
     el.innerHTML = html;
+    if ($("dev-alle-zu")) $("dev-alle-zu").addEventListener("click", function () {
+      FF.Klang.spiele("klick");
+      S.entwickler.alleOffen = false;
+      speichere(); entwicklerAnzeigen(); baueWelten();
+    });
     el.querySelectorAll(".level-knopf").forEach(function (b) {
       b.addEventListener("click", function () {
         var wi = +b.dataset.welt, li = +(b.dataset.level || 0), endlos = !!b.dataset.endlos;
@@ -963,10 +1069,11 @@
       });
     });
     var lv = "";
-    for (var li = 0; li < 3; li++) {
+    for (var li = 0; li < C.welten[D.welt].level.length; li++) {
       var o = stueckOffen(D.welt, li, false);
       lv += '<button type="button" class="level-knopf' + (!D.endlos && D.stufe === li ? " gewaehlt" : "") + (o ? "" : " gesperrt") +
-            '" data-level="' + li + '">' + (o ? li + 1 : "🔒") + "</button>";
+            (li === PROFI ? " profi" : "") + '" data-level="' + li + '" aria-label="' + (li === PROFI ? "Profi-Level " : "Level ") + (li + 1) + '">' +
+            (o ? (li === PROFI ? "🔥" : li + 1) : "🔒") + "</button>";
     }
     var eo = stueckOffen(D.welt, 0, true);
     lv += '<button type="button" class="level-knopf endlos' + (D.endlos ? " gewaehlt" : "") + (eo ? "" : " gesperrt") +
@@ -1219,7 +1326,7 @@
       ["💪 Kraft", (w.motor.drehmoment / rA) / (mGes * 9.81) / 1.1],
       ["🛞 Grip", (w.grip * (nA === w.raeder.length ? 1.25 : 1)) / 1.9],
       ["🌀 Federung", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
-      ["⛽ Tank", w.tankSekunden / 70],
+      [def.akku ? "🔋 Akku" : "⛽ Tank", w.tankSekunden / 70],
       ["🤸 Saltos", w.luftsteuerung / 9]
     ];
   }
@@ -1249,6 +1356,7 @@
     var ul = $("upgrade-liste"), html = "";
     def.upgrades.forEach(function (key) {
       var U = C.upgrades[key], stufe = fs.upgrades[key] || 0, voll = stufe >= U.stufen;
+      if (key === "tank" && def.akku) U = { name: "Akku", icon: "🔋", text: "Größerer Akku – weiter fahren", stufen: U.stufen };
       var preis = voll ? 0 : upgradePreis(def, key, stufe);
       var punkte = "";
       for (var i = 0; i < U.stufen; i++) punkte += '<span class="' + (i < stufe ? "an" : "") + '"></span>';
@@ -1340,6 +1448,15 @@
     FF.Klang.spiele("klick");
     garageIndex = (garageIndex + 1) % C.fahrzeuge.length; baueGarage();
   });
+  $("fz-motor").addEventListener("click", function () {
+    FF.Klang.init();
+    var def = C.fahrzeuge[garageIndex], v = $("vorschau");
+    FF.Klang.motorProbe(def.klang, def.motor.vmax);
+    plopp(this);
+    v.classList.add("brummt");
+    clearTimeout(v.brummTimer);
+    v.brummTimer = setTimeout(function () { v.classList.remove("brummt"); }, 3600);
+  });
   $("fz-aktion").addEventListener("click", function () {
     var def = C.fahrzeuge[garageIndex], fs = P.fahrzeuge[def.id];
     if (fs.gekauft) {
@@ -1396,9 +1513,10 @@
     });
   });
 
-  // Zurücksetzen: nur mit kleiner Rechenaufgabe für Erwachsene
-  $("knopf-zuruecksetzen").addEventListener("click", function () {
+  /* Frage für Erwachsene: kleine Rechenaufgabe (6–9 × 6–9), erst dann geht es weiter */
+  function elternFrage(frage, beiRichtig) {
     var a = 6 + Math.floor(Math.random() * 4), b = 6 + Math.floor(Math.random() * 4), loesung = a * b;
+    $("eltern-frage").textContent = frage;
     $("eltern-aufgabe").textContent = a + " × " + b;
     var antworten = [loesung, loesung + a, loesung - b].sort(function () { return Math.random() - 0.5; });
     $("eltern-antworten").innerHTML = antworten.map(function (x) {
@@ -1407,12 +1525,8 @@
     $("eltern-antworten").querySelectorAll("button").forEach(function (knopf) {
       knopf.addEventListener("click", function () {
         if (+knopf.dataset.wert === loesung) {
-          S = neuerSpielstand(); P = S.spieler[S.aktiv]; speichere();
-          bildCache = {};
-          schliesseModal("eltern"); schliesseModal("einstellungen");
-          einstellungenAnwenden();
-          popover("♻️ Alles zurückgesetzt (beide Kinder) – viel Spaß beim neuen Start!");
-          if (modus === "menue" || modus === "wahl") zeigeSpielerwahl();
+          schliesseModal("eltern");
+          beiRichtig();
         } else {
           wackeln(document.querySelector(".eltern-modal"));
           FF.Klang.spiele("fehler");
@@ -1420,8 +1534,56 @@
       });
     });
     oeffneModal("eltern");
+  }
+
+  // Zurücksetzen: nur mit kleiner Rechenaufgabe für Erwachsene
+  $("knopf-zuruecksetzen").addEventListener("click", function () {
+    elternFrage("Wirklich alles löschen?", function () {
+      S = neuerSpielstand(); P = S.spieler[S.aktiv]; speichere();
+      bildCache = {};
+      schliesseModal("einstellungen");
+      einstellungenAnwenden();
+      popover("♻️ Alles zurückgesetzt (beide Kinder) – viel Spaß beim neuen Start!");
+      if (modus === "menue" || modus === "wahl") zeigeSpielerwahl();
+    });
   });
   $("eltern-abbrechen").addEventListener("click", function () { schliesseModal("eltern"); });
+
+  /* Versteckter Entwickler-Bereich: 7× schnell auf die Versionsnummer tippen (wie
+     bei Android), dann die Rechenaufgabe für Erwachsene. Kein Zähler auf dem
+     Bildschirm – Kinder sollen ihn nicht zufällig finden. Zum Testen von
+     Upgrades und Leveln, ohne Münzen erspielen zu müssen. */
+  var versionTipps = 0, versionZeit = 0;
+  $("opt-version").textContent = "Fiete Flitzer · Version " + VERSION;
+  $("opt-version").addEventListener("click", function () {
+    var jetzt = performance.now();
+    versionTipps = jetzt - versionZeit < 1500 ? versionTipps + 1 : 1;
+    versionZeit = jetzt;
+    if (!$("entwickler-gruppe").hidden || versionTipps < 7) return;
+    versionTipps = 0;
+    elternFrage("Entwickler-Bereich öffnen?", function () {
+      $("entwickler-gruppe").hidden = false;
+      entwicklerAnzeigen();
+      FF.Klang.spiele("kauf");
+      popover("🛠️ Entwickler-Bereich ist offen", 1600);
+    });
+  });
+  function entwicklerAnzeigen() { $("dev-alle-offen").classList.toggle("aktiv", S.entwickler.alleOffen); }
+  $("dev-muenzen").addEventListener("click", function () {
+    C.kinder.forEach(function (k) { S.spieler[k.id].muenzen += 10000; });
+    speichere(); kontoAktualisieren();
+    FF.Klang.spiele("kauf");
+    popover("🪙 +10.000 für " + C.kinder.map(function (k) { return k.name; }).join(" und "), 1600);
+  });
+  $("dev-alle-offen").addEventListener("click", function () {
+    S.entwickler.alleOffen = !S.entwickler.alleOffen;
+    speichere(); entwicklerAnzeigen();
+    FF.Klang.spiele("klick");
+  });
+  $("dev-aus").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    $("entwickler-gruppe").hidden = true; versionTipps = 0;
+  });
 
   $("knopf-info").addEventListener("click", function () {
     FF.Klang.spiele("klick");
@@ -1432,7 +1594,7 @@
             " m gefahren · " + st.salti + " Saltos</small>", 5000);
   });
   $("hud-muenzen").addEventListener("click", function () { popover("🪙 Münzen in dieser Fahrt<small>Die darfst du immer behalten!</small>", 2000); });
-  $("hud-tank").addEventListener("click", function () { popover("⛽ Dein Benzin<small>Sammle die roten Kanister, sonst bleibt das Auto stehen.</small>", 2400); });
+  $("hud-tank").addEventListener("click", function () { if (fahrt) popover(energie(fahrt.def).info, 2400); });
 
   /* =========================================================================
      13) TITEL + PWA
@@ -1502,11 +1664,25 @@
         fahrEffekte(dt);
         kameraNachfuehren(dt, false);
         hudAktualisieren(false);
-        var st = fahrt.fz.status;
-        FF.Klang.motorSetze(st.drehzahl, fahrt.gas, fahrt.tank > 0 && (fahrt.zustand === "fahrt" || fahrt.zustand === "ziel"));
+        var st = fahrt.fz.status, hilfe = fahrt.zustand === "hilfe";
+        FF.Klang.motorSetze({
+          drehzahl: hilfe ? 0 : st.drehzahl, bremse: fahrt.bremse, rueckwaerts: fahrt.rueckwaerts,
+          gas: fahrt.gas + (fahrt.rueckwaerts ? 0.6 * fahrt.bremse : 0),       // rückwärts treibt der Motor auch
+          laeuft: fahrt.tank > 0 && fahrt.zustand !== "ende", tempo: hilfe ? 0 : st.tempo, vmax: fahrt.werte.motor.vmax,
+          boden: !hilfe && st.radKontakte > 0, luft: fahrt.welt.luftdichte > 0, getriebe: fahrt.getriebe, dt: dt
+        });
+        var inLuft = st.radKontakte === 0 && !st.huellKontakt && fahrt.zustand === "fahrt";
         if (zeit > ausdruckBis) {
-          var inLuft = st.radKontakte === 0 && !st.huellKontakt;
           ausdruck = fahrt.luftZeit > 0.35 && inLuft ? "freude" : (fahrt.tank <= 0 ? "staunen" : "normal");
+        }
+        // In der Luft zeigen die Pedale, wohin sie die Nase drehen (⤴ Gas, ⤵ Bremse)
+        var luftPedale = inLuft && fahrt.luftZeit > 0.3;
+        if (luftPedale !== pedaleLuft) { pedaleLuft = luftPedale; $("pedale").classList.toggle("luft", luftPedale); }
+        if (luftPedale && !luftTippGezeigt && fahrt.luftZeit > 0.5) {
+          luftTippGezeigt = true;
+          tipp("✈️ In der Luft: GAS hebt die Nase ⤴, BREMSE senkt sie ⤵", 4500);
+          FF.Klang.sprich("In der Luft: Gas hebt die Nase, Bremse senkt sie!");
+          spruchBis = zeit + 3;
         }
       }
       partikel.aktualisiere(pausiert ? 0 : dt, fahrt.welt.schwerkraft);

@@ -196,6 +196,22 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "rgba(90,70,80," + (0.5 * (1 - t)) + ")";
         ctx.beginPath(); ctx.arc(x + Math.sin(t * 6 + q) * r * 0.4, y + r * 0.5 - t * r * 3, r * (0.35 + t * 0.9), 0, Math.PI * 2); ctx.fill();
       }
+    } else if (welt.sonne === "mondsichel") {
+      // Lichthof um die helle Seite, darauf die Sichel: Umriss aus zwei Kreisbögen –
+      // außen die Mondscheibe, innen der Kreis, der sie verdeckt (Schnittpunkte P1, P2)
+      var gx = x - r * 0.35, gy = y + r * 0.15;
+      var mg = ctx.createRadialGradient(gx, gy, r * 0.4, gx, gy, r * 2.1);
+      mg.addColorStop(0, "rgba(255,236,190,0.28)"); mg.addColorStop(1, "rgba(255,236,190,0)");
+      ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(gx, gy, r * 2.1, 0, Math.PI * 2); ctx.fill();
+      var cx2 = x + r * 0.45, cy2 = y - r * 0.22, r2 = r * 0.88, dd = Math.hypot(cx2 - x, cy2 - y);
+      var aa = (r * r - r2 * r2 + dd * dd) / (2 * dd), hh = Math.sqrt(r * r - aa * aa);
+      var ux = (cx2 - x) / dd, uy = (cy2 - y) / dd;
+      var p1x = x + aa * ux - hh * uy, p1y = y + aa * uy + hh * ux, p2x = x + aa * ux + hh * uy, p2y = y + aa * uy - hh * ux;
+      ctx.fillStyle = "#fff1bf";
+      ctx.beginPath();
+      ctx.arc(x, y, r, Math.atan2(p1y - y, p1x - x), Math.atan2(p2y - y, p2x - x), false);
+      ctx.arc(cx2, cy2, r2, Math.atan2(p2y - cy2, p2x - cx2), Math.atan2(p1y - cy2, p1x - cx2), true);
+      ctx.closePath(); ctx.fill();
     } else if (welt.sonne === "regenbogen") {
       var farben = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
       ctx.lineWidth = r * 0.28;
@@ -211,7 +227,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function zeichneWolken(ctx, K, welt, zeit) {
     if (welt.sonne === "erde") return;
     var breite = K.b + 400;
-    var farbe = welt.id === "vulkan" ? "rgba(120,90,100,0.55)" : "rgba(255,255,255,0.85)";
+    var farbe = welt.farben.wolken || (welt.id === "vulkan" ? "rgba(120,90,100,0.55)" : "rgba(255,255,255,0.85)");
     for (var i = 0; i < 6; i++) {
       var basis = i * 337 + 60;
       var x = ((basis - K.x * K.s * 0.06 + zeit * 8 * (1 + i % 3 * 0.3)) % breite + breite) % breite - 200;
@@ -453,7 +469,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.restore();
   }
 
-  function zeichneItems(ctx, K, gel, zeit, x0, x1) {
+  function zeichneItems(ctx, K, gel, zeit, x0, x1, akku) {
     var M = gel.muenzen, i;
     for (i = 0; i < M.length; i++) {
       var m = M[i];
@@ -464,8 +480,27 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (i = 0; i < T.length; i++) {
       var t = T[i];
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
-      zeichneKanister(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
+      (akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
+  }
+
+  /* Für das E-Auto sind die Kanister grüne Batterien */
+  function zeichneBatterie(ctx, X, Y, s, zeit) {
+    var w = 0.56 * s, h = 0.8 * s;
+    ctx.save();
+    ctx.translate(X, Y);
+    var gl = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.1);
+    gl.addColorStop(0, "rgba(150,255,210," + (0.45 + 0.2 * Math.sin(zeit * 5)) + ")");
+    gl.addColorStop(1, "rgba(150,255,210,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, s * 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#3b4566"; rundRechteck(ctx, -w * 0.2, -h * 0.62, w * 0.4, h * 0.14, 0.04 * s); ctx.fill();
+    rundRechteck(ctx, -w / 2, -h / 2, w, h, 0.12 * s);
+    ctx.fillStyle = "#2fcf7d"; ctx.fill();
+    ctx.strokeStyle = "#16824c"; ctx.lineWidth = Math.max(1, 0.06 * s); ctx.stroke();
+    ctx.scale(s, -s);
+    blitzForm(ctx, 0, 0, 0.5);
+    ctx.fillStyle = "#ffe066"; ctx.fill();
+    ctx.restore();
   }
 
   function zeichneKanister(ctx, X, Y, s, zeit) {
@@ -925,6 +960,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.restore();
     }
     // Felge
+    if (art === "aero") {                    // E-Auto: glatte Aero-Felge mit Lichtring
+      ctx.fillStyle = "#d9dee9"; ctx.beginPath(); ctx.arc(0, 0, r * 0.66, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#6ff3ff"; ctx.lineWidth = r * 0.07; ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "#9aa3b8";
+      for (i = 0; i < 3; i++) { ctx.save(); ctx.rotate(i * Math.PI * 2 / 3); rundRechteck(ctx, r * 0.2, -r * 0.05, r * 0.24, r * 0.1, r * 0.05); ctx.fill(); ctx.restore(); }
+      ctx.fillStyle = "#3b4566"; ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      return;
+    }
     var rf = art === "monster" ? 0.5 : art === "mond" ? 0.82 : 0.58;
     ctx.fillStyle = art === "mond" ? "rgba(200,205,220,0.35)" : FELGE;
     ctx.beginPath(); ctx.arc(0, 0, r * rf, 0, Math.PI * 2); ctx.fill();
@@ -955,6 +999,14 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.stroke();
     ctx.strokeStyle = "#5f6e96"; ctx.lineWidth = 0.09;
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + dx * 0.45, ay + dy * 0.45); ctx.stroke();
+  }
+
+  /* Blitz (E-Auto-Dekor, Batterien): Mitte x/y, Höhe h – y zeigt nach oben */
+  function blitzForm(ctx, x, y, h) {
+    var p = [[0.1, 0.5], [-0.22, -0.04], [-0.02, -0.04], [-0.12, -0.5], [0.22, 0.08], [0.02, 0.08]];
+    ctx.beginPath();
+    p.forEach(function (q, i) { if (i) ctx.lineTo(x + q[0] * h, y + q[1] * h); else ctx.moveTo(x + q[0] * h, y + q[1] * h); });
+    ctx.closePath();
   }
 
   /* --- einzelne Karosserien --- */
@@ -1159,6 +1211,44 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: hinten, vorne: vorne, fahrerKoerper: null, fahrerZuerst: true };
     },
 
+    eauto: function (ctx, a, z) {
+      var c = basisFarbe(a);
+      var scheibe = [[0.58, 0.38], [0.1, 0.7], [-0.55, 0.72], [-1.15, 0.6], [-1.3, 0.34]];
+      var vorne = function () {
+        // flache Fließheck-Karosserie (Akku sitzt ganz unten)
+        ctx.beginPath();
+        ctx.moveTo(-1.62, -0.28); ctx.lineTo(1.52, -0.28);
+        ctx.quadraticCurveTo(1.78, -0.26, 1.75, 0.02);
+        ctx.quadraticCurveTo(1.72, 0.24, 1.38, 0.30);
+        ctx.quadraticCurveTo(0.95, 0.34, 0.6, 0.44);
+        ctx.quadraticCurveTo(0.2, 0.78, -0.4, 0.78);
+        ctx.quadraticCurveTo(-1.18, 0.78, -1.47, 0.44);
+        ctx.quadraticCurveTo(-1.68, 0.24, -1.62, -0.28);
+        ctx.closePath();
+        ctx.fillStyle = lack(ctx, a, -1.62, 1.75, z); ctx.fill();
+        musterZeichnen(ctx, a.muster, -1.62, 1.75, -0.28, 0.71, z);
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.05; ctx.stroke();
+        // Seitenscheibe mit Säule
+        ctx.beginPath(); scheibe.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.closePath();
+        ctx.fillStyle = "rgba(190,230,255,0.35)"; ctx.fill();
+        ctx.strokeStyle = dunkel(c, 0.3); ctx.lineWidth = 0.04; ctx.stroke();
+        ctx.strokeStyle = dunkel(c, 0.3); ctx.lineWidth = 0.06;
+        ctx.beginPath(); ctx.moveTo(-0.7, 0.36); ctx.lineTo(-0.7, 0.72); ctx.stroke();
+        // Akku im Unterboden + Blitz-Dekor
+        ctx.fillStyle = "#3b4566"; rundRechteck(ctx, -1.15, -0.36, 2.35, 0.1, 0.04); ctx.fill();
+        ctx.fillStyle = "#6ff3ff"; rundRechteck(ctx, -1.1, -0.34, 2.25, 0.03, 0.015); ctx.fill();
+        blitzForm(ctx, 0.15, 0.08, 0.36); ctx.fillStyle = "#ffe066"; ctx.fill();
+        ctx.strokeStyle = dunkel(c, 0.35); ctx.lineWidth = 0.02; ctx.stroke();
+        // LED-Lichtleiste vorn, Rücklicht, Ladeklappe
+        ctx.fillStyle = "#b9fbff"; rundRechteck(ctx, 1.42, 0.08, 0.3, 0.06, 0.03); ctx.fill();
+        ctx.fillStyle = "#ff5b5b"; rundRechteck(ctx, -1.66, 0.12, 0.1, 0.14, 0.03); ctx.fill();
+        ctx.fillStyle = dunkel(c, 0.12); ctx.beginPath(); ctx.arc(-1.18, 0.22, 0.1, 0, Math.PI * 2); ctx.fill();
+        blitzForm(ctx, -1.18, 0.22, 0.12); ctx.fillStyle = "#6ff3ff"; ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.3)"; rundRechteck(ctx, -1.2, 0.3, 0.9, 0.05, 0.025); ctx.fill();
+      };
+      return { hinten: function () {}, vorne: vorne, fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
+    },
+
     mond: function (ctx, a, z) {
       var c = basisFarbe(a);
       var hinten = function () {
@@ -1212,7 +1302,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
     var kp = fz.kopf;
     var tempo = Math.hypot(fz.chassis.vx, fz.chassis.vy);
-    var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : "normal";
+    var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : form === "eauto" ? "aero" : "normal";
 
     // Federn
     fz.raeder.forEach(function (R) {
@@ -1384,24 +1474,26 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.globalAlpha = 1;
   };
 
-  function Wetter() { this.teile = []; this.art = null; this.letztesX = null; }
+  function Wetter() { this.teile = []; this.art = null; this.letztesX = null; this.bursts = []; this.naechster = 0; }
+  var HINTEN = { sterne: true, feuerwerk: true };     // diese Arten liegen hinter den Bergen
   Wetter.prototype.setze = function (art, K) {
-    this.art = art; this.teile = [];
+    this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
     if (!art) return;
-    var n = art === "sterne" ? 70 : art === "funken" ? 30 : 46;
+    var n = art === "sterne" ? 70 : art === "funken" ? 30 : art === "feuerwerk" ? 40 : art === "staub" ? 34 : 46;
     for (var i = 0; i < n; i++) {
       this.teile.push({ x: Math.random() * (K.b || 800), y: Math.random() * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
   };
   Wetter.prototype.zeichne = function (ctx, K, dt, zeit, hinten) {
     var art = this.art;
-    if (!art || (art === "sterne") !== hinten) return;
+    if (!art || !!HINTEN[art] !== hinten) return;
     var dx = this.letztesX === null ? 0 : (K.x - this.letztesX) * K.s;
     this.letztesX = K.x;
     var B = K.b, H = K.h;
+    if (art === "feuerwerk") this.feuerwerk(ctx, K, dt);
     for (var i = 0; i < this.teile.length; i++) {
       var t = this.teile[i];
-      if (art === "sterne") {
+      if (art === "sterne" || art === "feuerwerk") {
         var x = ((t.x - K.x * K.s * 0.02) % B + B) % B;
         ctx.fillStyle = "rgba(255,255,255," + (0.4 + 0.5 * Math.abs(Math.sin(zeit * 1.5 + t.p))) + ")";
         ctx.fillRect(x, t.y * 0.65, 1.5 * t.g, 1.5 * t.g);
@@ -1411,6 +1503,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "blaetter") { t.y += (25 + 15 * t.g) * dt; t.x += Math.sin(zeit * 0.8 + t.p) * 30 * dt - dx * 0.6; }
       else if (art === "konfetti") { t.y += (22 + 12 * t.g) * dt; t.x += Math.sin(zeit + t.p) * 15 * dt - dx * 0.6; }
       else if (art === "funken") { t.y -= (30 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 10 * dt - dx * 0.6; }
+      else if (art === "staub") { t.y += Math.sin(zeit * 0.7 + t.p) * 6 * dt; t.x += (-14 - 10 * t.g) * dt - dx * 0.8; }
       if (t.y > H + 10) { t.y = -10; t.x = Math.random() * B; }
       if (t.y < -10) { t.y = H + 10; t.x = Math.random() * B; }
       t.x = ((t.x % (B + 20)) + B + 20) % (B + 20) - 10;
@@ -1428,8 +1521,37 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (art === "funken") {
         ctx.fillStyle = "rgba(255," + (120 + 80 * t.g | 0) + ",60," + (0.5 + 0.4 * Math.sin(zeit * 6 + t.p)) + ")";
         ctx.beginPath(); ctx.arc(t.x, t.y, 1.2 + t.g, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "staub") {
+        ctx.fillStyle = "rgba(196,150,92," + (0.22 + 0.18 * t.g) + ")";
+        ctx.beginPath(); ctx.arc(t.x, t.y, 1.5 + 2.2 * t.g, 0, Math.PI * 2); ctx.fill();
       }
     }
+  };
+
+  /* Feuerwerk über dem Achterbahn-Park: alle 1–2 s eine bunte Blüte */
+  var FEUERWERK_FARBEN = ["#ff6fb5", "#ffd23f", "#6fd6ff", "#8ee6b8", "#ff8a5c", "#c9a0ff"];
+  Wetter.prototype.feuerwerk = function (ctx, K, dt) {
+    this.naechster -= dt;
+    if (this.naechster <= 0) {
+      this.naechster = 0.9 + Math.random() * 1.3;
+      this.bursts.push({ x: K.b * (0.1 + Math.random() * 0.8), y: K.h * (0.1 + Math.random() * 0.28), t: 0,
+                         dauer: 1.5 + Math.random() * 0.5, r: Math.min(K.b, K.h) * (0.07 + Math.random() * 0.06),
+                         farbe: FEUERWERK_FARBEN[Math.floor(Math.random() * FEUERWERK_FARBEN.length)], n: 14 + Math.floor(Math.random() * 8) });
+    }
+    for (var i = this.bursts.length - 1; i >= 0; i--) {
+      var b = this.bursts[i];
+      b.t += dt;
+      var u = b.t / b.dauer;
+      if (u >= 1) { this.bursts.splice(i, 1); continue; }
+      var rad = b.r * (1 - (1 - u) * (1 - u)), sinken = b.r * 0.35 * u * u;
+      ctx.globalAlpha = 1 - u;
+      ctx.fillStyle = b.farbe;
+      for (var k = 0; k < b.n; k++) {
+        var w = k / b.n * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(b.x + Math.cos(w) * rad, b.y + Math.sin(w) * rad + sinken, 2.2 - u, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
   };
 
   function zeichneTexte(ctx, K, texte) {
@@ -1525,14 +1647,18 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   function zeichneInstrumente(ctx, K, fahrt) {
+    if (!fahrt.getriebe) return;
     var st = fahrt.fz.status;
     var r = Math.max(26, Math.min(44, K.h * 0.085));
     var y = K.h - r * 0.75 - 8;
     var kmh = Math.round(Math.abs(st.vorwaerts) * 3.6);
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
     zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "km/h", String(kmh), 0);
-    var u = Math.min(1.2, st.drehzahl) / 1.2;
-    zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, u, 1, "Drehzahl", Math.round(u * 6) + "", 0.82);
+    // Motordrehzahl aus dem virtuellen Getriebe (wie der Motorklang): Skala bis zur
+    // Höchstdrehzahl, Anzeige in 1000 U/min; beim Verbrenner steht der Gang darüber
+    var G = fahrt.getriebe, skala = Math.ceil(G.max / 1000);
+    zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, skala, G.elektro ? "Drehzahl" : G.gang + ". Gang",
+                      (G.rpm / 1000).toFixed(1).replace(".", ","), G.elektro ? 0 : 0.9 * G.max / 1000 / skala);
   }
 
   /* =========================================================================
@@ -1550,7 +1676,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneGelaende(ctx, K, gel, welt, z);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3]);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
