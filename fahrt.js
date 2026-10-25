@@ -138,7 +138,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.naechsterMeilenstein = 500;
     // Zusatz-Knöpfe: 🚀 Boost (Ladungen aus Raketen-Kanistern), 🦘 Sprungfeder (lädt sich mit Saltos auf)
     this.boostLadung = 0; this.boostZeit = 0;
-    this.federLadung = 0; this.federZeit = 0;
+    this.federLadung = 0; this.federZeit = 0; this.federSperre = 0;
   }
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
@@ -146,7 +146,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   Fahrt.prototype.extraMoeglich = function (art) {
     if (this.zustand !== "fahrt") return false;
     if (art === "boost") return this.boostLadung >= 1 && this.boostZeit <= 0;
-    return this.federLadung >= FF.CONFIG.regeln.extras.federSalti && this.fz.status.radKontakte > 0;
+    return this.federLadung >= FF.CONFIG.regeln.extras.federSalti && this.federSperre <= 0 && this.fz.status.radKontakte > 0;
   };
 
   Fahrt.prototype.zuende = function (art) {
@@ -159,7 +159,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     if (art === "feder") {
       // nur mit den Rädern am Boden – dann katapultiert die Feder das Auto senkrecht zum Auto-Boden hoch
-      this.federLadung = 0; this.federZeit = 0.6;
+      this.federLadung = 0; this.federZeit = 0.6; this.federSperre = X.federPause;
       var nx = -Math.sin(C.a), ny = Math.cos(C.a), dv = X.federSprung;
       C.vx += nx * dv; C.vy += ny * dv;
       fz.raeder.forEach(function (R) { R.k.vx += nx * dv; R.k.vy += ny * dv; });
@@ -174,11 +174,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     var X = FF.CONFIG.regeln.extras;
     return { boost: this.boostLadung, boostAn: this.boostZeit > 0 ? this.boostZeit / X.boostDauer : 0,
              feder: Math.min(1, this.federLadung / X.federSalti), federSalti: this.federLadung, federNoetig: X.federSalti,
-             boostBereit: this.extraMoeglich("boost"), federBereit: this.extraMoeglich("feder") };
+             boostBereit: this.extraMoeglich("boost"), federBereit: this.extraMoeglich("feder"), federSperre: this.federSperre };
   };
 
   Fahrt.prototype.federLaden = function (n) {
     var X = FF.CONFIG.regeln.extras, vorher = this.federLadung;
+    if (this.federSperre > 0) return;                    // Abkühlzeit nach dem Sprung: Saltos zählen nicht
     this.federLadung = Math.min(X.federSalti, this.federLadung + n);
     if (vorher < X.federSalti && this.federLadung >= X.federSalti) this.melde("extraBereit", { art: "feder" });
   };
@@ -237,6 +238,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
     if (this.federZeit > 0) this.federZeit = Math.max(0, this.federZeit - h);
+    if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);

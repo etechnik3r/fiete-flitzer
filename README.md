@@ -49,6 +49,11 @@ Am schönsten spielt es sich im **Querformat**.
 
 Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
 
+Vor jeder Fahrt zählt eine **Start-Ampel 🚦** 3 – 2 – 1 – LOS (rot, rot,
+rot-gelb, grün, je 0,8 s). Bis dahin stehen Physik, Zeit und Geist still,
+Gas lässt nur den Motor aufheulen. **Tipps 💡** zur Bedienung stehen klein
+oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
+
 ## 🧩 Spielidee
 
 - **13 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
@@ -92,8 +97,10 @@ Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
     Level 3–4: zwei, Endlos: alle 500 m), höchstens 2 auf Vorrat. Drücken:
     Düsen fahren hinten heraus und spucken Feuer, 1,6 s lang 13 m/s² Schub
     entlang der Längsachse, bis zum 2,1-fachen der Höchstgeschwindigkeit.
-  - **Sprungfeder**: lädt sich mit **2 Saltos** auf (ein Looping zählt wie ein
-    Salto, am Knopf steht „1/2“). Mit den Rädern am Boden drücken: Federn
+  - **Sprungfeder**: lädt sich mit **3 Saltos** auf (ein Looping zählt wie ein
+    Salto, am Knopf steht „1/3“). Nach jedem Sprung 15 s Abkühlzeit (⏳ am
+    Knopf), in der Saltos nicht mitzählen – sonst könnte man fast dauernd
+    springen. Mit den Rädern am Boden drücken: Federn
     schießen unter den Rädern heraus, Δv = 8,5 m/s senkrecht zum Auto-Boden
     (aus dem Stand ≈ 3,7 m hoch). Oben auf dem Berg gedrückt, fliegt man weit.
   - Einstellbar unter `regeln.extras` in `config.js`.

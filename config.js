@@ -83,7 +83,8 @@ FF.CONFIG = {
       boostMax: 2,             // so viele Raketen-Ladungen kann man höchstens sammeln
       raketenProLevel: [1, 1, 2, 2],   // Raketen-Kanister je Level (Level 1–4); Endlos: alle raketenAbstandEndlos m
       raketenAbstandEndlos: 500,
-      federSalti: 2,           // 🦘 Sprungfeder: lädt sich mit Saltos auf (ein Looping zählt wie ein Salto)
+      federSalti: 3,           // 🦘 Sprungfeder: lädt sich mit Saltos auf (ein Looping zählt wie ein Salto)
+      federPause: 15,          // … nach dem Sprung so lange [s] Abkühlzeit; Saltos darin laden nicht auf
       federSprung: 8.5         // Absprung [m/s] senkrecht zum Auto-Boden
     },
     luftZeitMin: 1.2,          // ab so viel Flugzeit [s] gibt es einen Luftsprung-Bonus
@@ -640,6 +641,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "13", titel: "Start-Ampel", punkte: [
+      "🚦 Vor jedem Rennen zählt eine Ampel 3 – 2 – 1 – LOS! Vorher kannst du nur den Motor aufheulen lassen",
+      "💡 Tipps stehen jetzt klein oben links und lassen sich in den Einstellungen ausschalten",
+      "🦘 Die Sprungfeder braucht jetzt 3 Saltos und nach dem Sprung 15 Sekunden Pause" ] },
     { version: "12", titel: "Ruhiger und schöner", punkte: [
       "🌵 Bäume, Kakteen und Felsen wackeln nicht mehr in der Größe, wenn das Auto schneller oder langsamer wird",
       "⛰️ Am Hang hängt nichts mehr in der Luft: alles steht fest auf dem Boden",
@@ -658,7 +663,7 @@ FF.CONFIG = {
       "🚀 Die Knöpfe leuchten nur noch bunt, wenn sie wirklich gehen" ] },
     { version: "9", titel: "Turbo, Sprungfeder und Hilfe", punkte: [
       "🚀 Turbo: Lila Raketen-Kanister einsammeln, dann den 🚀-Knopf links drücken. Flammen kommen aus den Düsen, und das Auto wird doppelt so schnell!",
-      "🦘 Sprungfeder: Mach 2 Saltos oder Loopings, dann den 🦘-Knopf drücken, und das Auto hüpft hoch. Am besten oben auf dem Berg!",
+      "🦘 Sprungfeder: Mach 3 Saltos oder Loopings, dann den 🦘-Knopf drücken, und das Auto hüpft hoch. Am besten oben auf dem Berg!",
       "❓ Diese Hilfe-Seite mit allem, was man im Spiel machen kann" ] },
     { version: "8", titel: "Freizeitpark", punkte: [
       "🎡 Neue Welt Freizeitpark mit 4 Leveln",

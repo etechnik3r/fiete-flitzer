@@ -77,6 +77,8 @@ var URL = "";
 async function neueSeite(browser, opt) {
   opt = opt || {};
   var ctx = await browser.newContext(Object.assign({ viewport: { width: 844, height: 390 }, hasTouch: true }, opt.kontext || {}));
+  // Start-Ampel (2,4 s) nur im eigenen Test – sonst würde jeder Start warten
+  if (!opt.mitCountdown) await ctx.addInitScript("window.FF_OHNE_COUNTDOWN = true;");
   if (opt.init) await ctx.addInitScript(opt.init);
   var page = await ctx.newPage();
   page.fehler = [];
@@ -472,7 +474,7 @@ async function offline(browser) {
   await page.reload(); await page.waitForTimeout(800);
   pruef(await page.evaluate(function () { return !!(window.FF && FF.spiel) && document.fonts.check("16px 'Baloo 2'"); }), "ohne Internet: Spiel lädt samt Schrift");
   await weiterZu(page, "fiete");
-  await page.evaluate(function () { FF.spiel.starteFahrt(0, 0, false); }); await page.waitForTimeout(800);
+  await page.evaluate(function () { FF.spiel.starteFahrt(0, 0, false); }); await page.waitForTimeout(3300);   // nach der Start-Ampel
   pruef(await page.evaluate(function () { return FF.spiel.modus === "fahrt" && FF.spiel.fahrt.zeit > 0.3; }) && !fehler.length, "ohne Internet: Fahrt läuft, keine Fehler", fehler);
   await ctx.close();
 }
@@ -481,6 +483,32 @@ async function offline(browser) {
    INHALTE: Entwickler-Bereich, E-Auto, alle Level, Motorklänge
    ========================================================================= */
 async function inhalte(browser) {
+  // Start-Ampel: 3 – 2 – 1 – LOS; vorher bewegt sich das Auto trotz Gas nicht
+  var ap = await neueSeite(browser, { mitCountdown: true });
+  await weiterZu(ap, "fiete");
+  var amp = await ap.evaluate(function () { FF.spiel.starteFahrt(0, 0, false); FF.spiel.setzeEingabe(true, false);
+    return { x: FF.spiel.fahrt.fz.chassis.x, sichtbar: !document.getElementById("ampel").hidden, zahl: document.getElementById("ampel-zahl").textContent }; });
+  await ap.waitForTimeout(1500);
+  amp.mitte = await ap.evaluate(function () { return { x: FF.spiel.fahrt.fz.chassis.x, zahl: document.getElementById("ampel-zahl").textContent,
+    rot: document.querySelector(".lampe-rot").classList.contains("an") }; });
+  await ap.waitForTimeout(2500);
+  amp.danach = await ap.evaluate(function () { return { x: FF.spiel.fahrt.fz.chassis.x, weg: document.getElementById("ampel").hidden }; });
+  pruef(amp.sichtbar && amp.zahl === "3" && Math.abs(amp.mitte.x - amp.x) < 0.01 && amp.mitte.rot && amp.danach.weg && amp.danach.x > amp.x + 1,
+    "Start-Ampel: Countdown 3 – 2 – 1 – LOS, erst danach fährt das Auto", amp);
+  // Tipps abschaltbar (Einstellungen → 💡 Tipps)
+  var tp = await ap.evaluate(function () {
+    FF.spiel.setzeEingabe(false, false); FF.spiel.zeigeMenue("fahren");
+    document.getElementById("knopf-einstellungen").click();
+    var karte = document.querySelector('[data-schalter="tipps"]'), vorher = karte.classList.contains("aktiv");
+    karte.click();
+    var nachher = karte.classList.contains("aktiv");
+    document.getElementById("einstellungen-fertig").click();
+    FF.spiel.starteFahrt(4, 0, false);                       // Mond: zeigt sonst gleich einen Tipp
+    return { vorher: vorher, nachher: nachher, tippSichtbar: !document.getElementById("tipp").hidden };
+  });
+  pruef(tp.vorher && !tp.nachher && !tp.tippSichtbar, "Tipps lassen sich in den Einstellungen ausschalten", tp);
+  await ap.context().close();
+
   var page = await neueSeite(browser);
   await weiterZu(page, "fiete");
   // Entwickler-Bereich: versteckt; 7× auf die Version tippen, dann die Rechenaufgabe für Erwachsene
@@ -564,14 +592,19 @@ async function inhalte(browser) {
     r.boostLeer = f.zuende("boost");
     f.boostLadung = 1; r.boost = f.zuende("boost");
     r.federLeer = f.zuende("feder");
-    f.federLaden(2); r.federBereit = f.extraStand().feder;
+    f.federLaden(FF.CONFIG.regeln.extras.federSalti); r.federBereit = f.extraStand().feder;
+    // nach dem Sprung: Abkühlzeit, Saltos zählen dann nicht
+    var g = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal" });
+    for (var i = 0; i < 120; i++) g.aktualisiere(1 / 60, { gas: false, bremse: false });
+    g.federLaden(FF.CONFIG.regeln.extras.federSalti); r.sprung = g.zuende("feder");
+    g.federLaden(FF.CONFIG.regeln.extras.federSalti); r.sperre = g.extraStand().federSperre > 0 && g.federLadung === 0 && !g.zuende("feder");
     return r;
   });
   await page.waitForTimeout(300);
   ex.knopfAn = await page.evaluate(function () { return document.getElementById("knopf-boost").classList.contains("an") &&
                                                          document.getElementById("knopf-feder").classList.contains("bereit"); });
-  pruef(ex.raketen >= 1 && ex.sichtbar && !ex.boostLeer && ex.boost && !ex.federLeer && ex.federBereit === 1 && ex.knopfAn,
-    "Turbo und Sprungfeder: Raketen im Level, Knöpfe laden sich auf und zeigen den Zustand", ex);
+  pruef(ex.raketen >= 1 && ex.sichtbar && !ex.boostLeer && ex.boost && !ex.federLeer && ex.federBereit === 1 && ex.knopfAn && ex.sprung && ex.sperre,
+    "Turbo und Sprungfeder: Raketen im Level, Knöpfe laden sich auf, Feder mit Abkühlzeit", ex);
   await page.evaluate(function () { FF.spiel.zeigeMenue("fahren"); });
 
   // Hilfe aus den Einstellungen, mit „Was ist neu?“ für die aktuelle Version

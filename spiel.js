@@ -68,7 +68,7 @@
       version: 3,
       aktiv: C.kinder[0].id,
       spieler: {},
-      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false },
+      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true },
       duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
       entwickler: { alleOffen: false }      // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
     };
@@ -303,6 +303,7 @@
     if (fahrt.zustand !== "fahrt") return;               // Ballon, Ziel: Knopf ist ohnehin grau
     FF.Klang.spiele("fehler");
     if (art === "boost") tipp(fahrt.boostZeit > 0 ? "🚀 Der Turbo läuft schon!" : "🚀 Sammle einen lila Raketen-Kanister – dann gibt der Knopf Turbo!", 3000);
+    else if (es.federSperre > 0) tipp("🦘 Die Sprungfeder muss sich erholen – noch " + Math.ceil(es.federSperre) + " Sekunden.", 2500);
     else if (es.feder >= 1) tipp("🦘 Die Sprungfeder geht nur, wenn die Räder auf dem Boden sind.", 3000);
     else tipp("🦘 Mach " + (X.federSalti - es.federSalti) + (X.federSalti - es.federSalti === 1 ? " Salto" : " Saltos") +
               " (oder Loopings) – dann ist die Sprungfeder bereit!", 3500);
@@ -379,8 +380,17 @@
     meldungTimer = setTimeout(function () { el.hidden = true; }, 1700);
   }
 
+  /* Tipps zur Bedienung: dezent oben links, abschaltbar (Einstellung „Tipps“).
+     sag: dazu vorlesen (nur wenn Tipps an sind) */
   var tippTimer = null;
-  function tipp(text, dauer) {
+  var tippWartet = null;
+  function tipp(text, dauer, sag) {
+    if (!S.einstellungen.tipps) return;
+    if (countdown) { tippWartet = [text, dauer, sag]; return; }      // erst nach der Start-Ampel
+    tippZeigen(text, dauer, sag);
+  }
+  function tippZeigen(text, dauer, sag) {
+    if (sag) FF.Klang.sprich(sag);
     var el = $("tipp");
     el.textContent = text; el.hidden = false;
     clearTimeout(tippTimer);
@@ -499,8 +509,7 @@
           break;
         case "tankWarnung":
           FF.Klang.spiele("tankWarnung");
-          tipp(en.knapp);
-          FF.Klang.sprich(en.knappSag);
+          tipp(en.knapp, 3500, en.knappSag);
           break;
         case "tankLeer":
           FF.Klang.spiele("tankLeer");
@@ -509,7 +518,7 @@
           break;
         case "salto":
           FF.Klang.spiele("salto");
-          meldung((e.anzahl > 1 ? e.anzahl + "× " : "") + "Salto! 🤸");
+          meldung((e.anzahl > 1 ? e.anzahl + "× " : "") + "Salto!");
           schwebeText(ch.x, ch.y + 1.8, "+" + e.bonus, "#ffd23f", true);
           konfettiWelt(ch.x, ch.y + 1, 18);
           setzeAusdruck("freude", 1.6);
@@ -517,7 +526,7 @@
           break;
         case "looping":
           FF.Klang.spiele("salto");
-          meldung("Looping! 🎢");
+          meldung("Looping!");
           schwebeText(e.x, e.y + 1.8, "+" + e.bonus, "#ffd23f", true);
           konfettiWelt(e.x, e.y + 1, 14);
           setzeAusdruck("freude", 1.6);
@@ -547,8 +556,7 @@
           plopp($("knopf-boost"));
           if (!e.voll && !extraTipps.boost) {
             extraTipps.boost = true;
-            tipp("🚀 Rakete eingesammelt! Drück den 🚀-Knopf links – dann gibt es Turbo!", 4500);
-            FF.Klang.sprich("Rakete! Drück den Raketen-Knopf für Turbo!"); spruchBis = zeit + 3;
+            tipp("🚀 Rakete eingesammelt! Drück den 🚀-Knopf links – dann gibt es Turbo!", 4500, "Rakete! Drück den Raketen-Knopf für Turbo!"); spruchBis = zeit + 3;
           }
           break;
         case "extraBereit":
@@ -556,8 +564,7 @@
           plopp($("knopf-feder"));
           if (!extraTipps.feder) {
             extraTipps.feder = true;
-            tipp("🦘 Sprungfeder bereit! Oben auf dem Berg drücken – dann fliegst du weit!", 4500);
-            FF.Klang.sprich("Sprungfeder bereit!"); spruchBis = zeit + 3;
+            tipp("🦘 Sprungfeder bereit! Oben auf dem Berg drücken – dann fliegst du weit!", 4500, "Sprungfeder bereit!"); spruchBis = zeit + 3;
           }
           break;
         case "decke":                    // Höhle: an die Decke gestoßen
@@ -586,8 +593,7 @@
           setzeAusdruck("staunen", 3);
           schwebeText(ch.x, ch.y + 1.6, "Hoppla!", "#ffffff", true);
           if (e.bergauf && e.rueckwaerts) {              // am Berg nach hinten gekippt: zu viel Gas
-            tipp("⛰️ Am Berg nicht so viel Gas – sonst kippt das Auto nach hinten!", 4500);
-            FF.Klang.sprich("Weniger Gas am Berg!");
+            tipp("⛰️ Am Berg nicht so viel Gas – sonst kippt das Auto nach hinten!", 4500, "Weniger Gas am Berg!");
             spruchBis = zeit + 3;
           }
           break;
@@ -597,11 +603,9 @@
           setzeAusdruck("staunen", 3);
           schwebeText(ch.x, ch.y + 1.6, "Bums! 💥", "#ffffff", true);
           if (e.nase === "hoch") {
-            tipp("💥 Nase zu hoch ⤴ – in der Luft kurz BREMSEN, dann senkt sie sich!", 4500);
-            FF.Klang.sprich("Bums! Die Nase war zu hoch. In der Luft bremsen!");
+            tipp("💥 Nase zu hoch ⤴ – in der Luft kurz BREMSEN, dann senkt sie sich!", 4500, "Bums! Die Nase war zu hoch. In der Luft bremsen!");
           } else {
-            tipp("💥 Nase zu tief ⤵ – in der Luft GAS geben, dann hebt sie sich!", 4500);
-            FF.Klang.sprich("Bums! Die Nase war zu tief. In der Luft Gas geben!");
+            tipp("💥 Nase zu tief ⤵ – in der Luft GAS geben, dann hebt sie sich!", 4500, "Bums! Die Nase war zu tief. In der Luft Gas geben!");
           }
           spruchBis = zeit + 3;
           break;
@@ -617,15 +621,13 @@
           setzeAusdruck("freude", 1.2);
           break;
         case "tipp":
-          tipp(e.text, 4000);
-          FF.Klang.sprich(e.text.replace(/[^\wäöüÄÖÜß!.,\s-]/g, ""));
+          tipp(e.text, 4000, e.text.replace(/[^\wäöüÄÖÜß!.,\s-]/g, ""));
           break;
         case "geladen":
           schwebeText(ch.x, ch.y + 1.3, "+⚡", "#7dffb8", false);
           if (!fahrt.ladeTippGezeigt) {
             fahrt.ladeTippGezeigt = true;
-            tipp("⚡ Bremsen lädt den Akku wieder auf!", 3000);
-            FF.Klang.sprich("Bremsen lädt den Akku!");
+            tipp("⚡ Bremsen lädt den Akku wieder auf!", 3000, "Bremsen lädt den Akku!");
           }
           break;
         case "meilenstein":
@@ -719,17 +721,55 @@
     var w = fahrt.welt;
     // Kaum Schwerkraft: schon wenig Gas hebt die Nase (besonders beim Trecker) – gleich sagen
     var mondHinweis = w.schwerkraft < 3 ? " Auf dem Mond nur sanft Gas geben!" : "";
-    if (geist) {
-      meldung("👻 Gegen " + genitiv(geist.name) + " Geist!");
-      FF.Klang.sprich("Los, " + kindDef(S.aktiv).name + "! Fahr gegen " + genitiv(geist.name) + " Geist!" + mondHinweis);
-    } else {
-      meldung(endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
-      FF.Klang.sprich((spielModus === "duell" ? "Los, " + kindDef(S.aktiv).name + "!" : (endlos ? "Wie weit kommst du?" : "Los geht's!")) + mondHinweis);
-    }
-    if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000);
+    var titel = geist ? "👻 Gegen " + genitiv(geist.name) + " Geist!" : (endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
+    starteCountdown(titel);
+    if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000, mondHinweis.trim());
     if (H > B) { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
     hudCache = {};
     hudAktualisieren(true);
+  }
+
+  /* Start-Ampel: 3 (rot) – 2 (rot) – 1 (rot-gelb) – LOS (grün). Bis dahin steht
+     alles still (keine Physik, keine Zeit, kein Geist); Gas geben lässt nur den
+     Motor aufheulen. Pause hält auch den Countdown an. */
+  var countdown = null, COUNTDOWN_SCHRITT = 0.8;
+  function starteCountdown(titel) {
+    $("ampel-titel").textContent = titel; $("ampel-titel").style.visibility = "";
+    tippWartet = null;
+    if (window.FF_OHNE_COUNTDOWN) { countdown = null; $("ampel").hidden = true; return; }
+    countdown = { t: 0, stufe: -1 };
+    $("ampel").hidden = false;
+    countdownZeigen(3);
+  }
+  function countdownZeigen(n) {
+    var a = $("ampel");
+    a.querySelector(".lampe-rot").classList.toggle("an", n >= 1);
+    a.querySelector(".lampe-gelb").classList.toggle("an", n === 1);
+    a.querySelector(".lampe-gruen").classList.toggle("an", n === 0);
+    var z = $("ampel-zahl");
+    z.textContent = n > 0 ? n : "LOS!";
+    z.classList.toggle("los", n === 0);
+    z.classList.remove("plopp"); void z.offsetWidth; z.classList.add("plopp");
+  }
+  /* true, solange die Fahrt noch nicht losgehen darf */
+  function countdownSchritt(dt) {
+    if (!countdown) return false;
+    countdown.t += dt;
+    var stufe = Math.floor(countdown.t / COUNTDOWN_SCHRITT);         // 0 → „3“ … 3 → „LOS“
+    if (stufe !== countdown.stufe) {
+      countdown.stufe = stufe;
+      if (stufe <= 3) {
+        countdownZeigen(3 - stufe);
+        FF.Klang.spiele(stufe < 3 ? "ampel" : "ampelLos");
+        if (stufe === 3) {
+          FF.Klang.sprich("Los!");
+          $("ampel-titel").style.visibility = "hidden";
+          if (tippWartet) { tippZeigen.apply(null, tippWartet); tippWartet = null; }
+        }
+      }
+    }
+    if (stufe >= 4) { $("ampel").hidden = true; countdown = null; return false; }
+    return stufe < 3;
   }
 
   var hudCache = {};
@@ -743,7 +783,7 @@
       hudCache.t = t;
     }
     var es = fahrt.extraStand();
-    var schluessel = es.boost + "|" + Math.round(es.boostAn * 40) + "|" + es.federSalti + "|" + es.boostBereit + "|" + es.federBereit;
+    var schluessel = es.boost + "|" + Math.round(es.boostAn * 40) + "|" + es.federSalti + "|" + es.boostBereit + "|" + es.federBereit + "|" + Math.ceil(es.federSperre);
     if (erzwingen || hudCache.ex !== schluessel) {
       hudCache.ex = schluessel;
       var kb = $("knopf-boost"), kf = $("knopf-feder");
@@ -754,8 +794,10 @@
       $("boost-zahl").textContent = "×" + es.boost;
       kf.style.setProperty("--ladung", es.feder);
       kf.classList.toggle("bereit", es.federBereit);
-      $("feder-zahl").hidden = es.federSalti === 0 || es.feder >= 1;
-      $("feder-zahl").textContent = es.federSalti + "/" + es.federNoetig;
+      // Abkühlzeit: Sanduhr mit Sekunden, sonst gesammelte Saltos („2/3“)
+      $("feder-zahl").hidden = !(es.federSperre > 0) && (es.federSalti === 0 || es.feder >= 1);
+      $("feder-zahl").textContent = es.federSperre > 0 ? "⏳" + Math.ceil(es.federSperre) : es.federSalti + "/" + es.federNoetig;
+      kf.classList.toggle("abkuehlen", es.federSperre > 0);
     }
     if (fahrt.endlos) {
       var s = Math.max(0, Math.round(fahrt.strecke));
@@ -966,6 +1008,7 @@
     $("hud").hidden = name !== "fahrt";
     $("pedale").hidden = name !== "fahrt";
     $("extras").hidden = name !== "fahrt";
+    if (name !== "fahrt") { countdown = null; $("ampel").hidden = true; }
     pedaleLuft = false; $("pedale").classList.remove("luft");
     if (name !== "fahrt") {
       $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true;
@@ -1845,16 +1888,22 @@
 
     if (modus === "fahrt" && fahrt) {
       if (!pausiert && !ergebnisOffen) {
-        fahrt.aktualisiere(dt, eingabe);
-        if (aufnahme) aufnahme.erfasse(fahrt, ausdruck);
-        if (geist) { geist.obj.setzeZeit(fahrt.zeit); geistVergleich(); }
+        var wartet = countdownSchritt(dt);
+        if (!wartet) {
+          fahrt.aktualisiere(dt, eingabe);
+          if (aufnahme) aufnahme.erfasse(fahrt, ausdruck);
+          if (geist) { geist.obj.setzeZeit(fahrt.zeit); geistVergleich(); }
+        }
         verarbeiteEreignisse();
         if (!fahrt) return;
         fahrEffekte(dt);
         kameraNachfuehren(dt, false);
         hudAktualisieren(false);
         var st = fahrt.fz.status, hilfe = fahrt.zustand === "hilfe";
-        FF.Klang.motorSetze({
+        if (wartet) {                                   // an der Ampel: nur Motor aufheulen lassen
+          FF.Klang.motorSetze({ drehzahl: eingabe.gas ? 0.55 : 0, gas: eingabe.gas ? 1 : 0, bremse: 0, laeuft: true, tempo: 0,
+                                vmax: fahrt.werte.motor.vmax, boden: true, luft: fahrt.welt.luftdichte > 0, probe: true, dt: dt });
+        } else FF.Klang.motorSetze({
           drehzahl: hilfe ? 0 : st.drehzahl, bremse: fahrt.bremse, rueckwaerts: fahrt.rueckwaerts,
           gas: fahrt.gas + (fahrt.rueckwaerts ? 0.6 * fahrt.bremse : 0),       // rückwärts treibt der Motor auch
           laeuft: fahrt.tank > 0 && fahrt.zustand !== "ende", tempo: hilfe ? 0 : st.tempo, vmax: fahrt.werte.motor.vmax,
@@ -1869,8 +1918,7 @@
         if (luftPedale !== pedaleLuft) { pedaleLuft = luftPedale; $("pedale").classList.toggle("luft", luftPedale); }
         if (luftPedale && !luftTippGezeigt && fahrt.luftZeit > 0.5) {
           luftTippGezeigt = true;
-          tipp("✈️ In der Luft: GAS hebt die Nase ⤴, BREMSE senkt sie ⤵", 4500);
-          FF.Klang.sprich("In der Luft: Gas hebt die Nase, Bremse senkt sie!");
+          tipp("✈️ In der Luft: GAS hebt die Nase ⤴, BREMSE senkt sie ⤵", 4500, "In der Luft: Gas hebt die Nase, Bremse senkt sie!");
           spruchBis = zeit + 3;
         }
       }

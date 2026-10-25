@@ -472,6 +472,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "fehler":
         ton(220, 0, 0.14, "triangle", 0.15); ton(196, 0.15, 0.2, "triangle", 0.15);
         break;
+      case "ampel":                    // Countdown 3, 2, 1
+        ton(523, 0, 0.18, "square", 0.08);
+        break;
+      case "ampelLos":                 // grün: LOS!
+        ton(1047, 0, 0.45, "square", 0.09); ton(1568, 0.02, 0.4, "triangle", 0.08);
+        break;
       case "boost":                    // Raketen-Düsen: Fauchen + aufsteigender Heulton
         rauschen(0, 1.5, 0.35, 700);
         ton(110, 0, 1.4, "sawtooth", 0.07, 330);
