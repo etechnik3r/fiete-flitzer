@@ -40,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 
 <body>
@@ -376,6 +376,21 @@
           <p class="opt-untertitel">🔬 Kräfte: zeigt beim Fahren Gewichtskraft, Normalkraft und Reibung als Pfeile.</p>
         </section>
 
+        <section class="opt-gruppe" id="ausrichtung-gruppe" hidden>
+          <h3 class="opt-titel">📱 Bildschirm</h3>
+          <div class="opt-reihe">
+            <button type="button" class="opt-karte" data-setting="ausrichtung" data-wert="quer">
+              <span class="opt-icon">↔️</span><span class="opt-name">Quer</span><span class="opt-text">Weiter Blick nach vorn</span>
+            </button>
+            <button type="button" class="opt-karte" data-setting="ausrichtung" data-wert="hoch">
+              <span class="opt-icon">↕️</span><span class="opt-name">Hochkant</span><span class="opt-text">Gut mit einer Hand</span>
+            </button>
+            <button type="button" class="opt-karte" data-setting="ausrichtung" data-wert="auto">
+              <span class="opt-icon">🔄</span><span class="opt-name">Drehen</span><span class="opt-text">Wie du das Handy hältst</span>
+            </button>
+          </div>
+        </section>
+
         <section class="opt-gruppe" id="install-gruppe" hidden>
           <h3 class="opt-titel">📲 Als App</h3>
           <button type="button" class="install-button" id="knopf-installieren">📲 App installieren</button>
@@ -507,15 +522,15 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=13"></script>
-  <script src="gelaende.js?v=13"></script>
-  <script src="physik.js?v=13"></script>
-  <script src="fahrt.js?v=13"></script>
-  <script src="geist.js?v=13"></script>
-  <script src="kinder.js?v=13"></script>
-  <script src="requisiten.js?v=13"></script>
-  <script src="grafik.js?v=13"></script>
-  <script src="klang.js?v=13"></script>
-  <script src="spiel.js?v=13"></script>
+  <script src="config.js?v=14"></script>
+  <script src="gelaende.js?v=14"></script>
+  <script src="physik.js?v=14"></script>
+  <script src="fahrt.js?v=14"></script>
+  <script src="geist.js?v=14"></script>
+  <script src="kinder.js?v=14"></script>
+  <script src="requisiten.js?v=14"></script>
+  <script src="grafik.js?v=14"></script>
+  <script src="klang.js?v=14"></script>
+  <script src="spiel.js?v=14"></script>
 </body>
 </html>

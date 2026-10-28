@@ -68,7 +68,7 @@
       version: 3,
       aktiv: C.kinder[0].id,
       spieler: {},
-      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true },
+      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true, ausrichtung: "quer" },
       duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
       entwickler: { alleOffen: false }      // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
     };
@@ -724,7 +724,7 @@
     var titel = geist ? "👻 Gegen " + genitiv(geist.name) + " Geist!" : (endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
     starteCountdown(titel);
     if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000, mondHinweis.trim());
-    if (H > B) { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
+    if (H > B && S.einstellungen.ausrichtung !== "hoch") { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
     hudCache = {};
     hudAktualisieren(true);
   }
@@ -1671,11 +1671,29 @@
   function einstellungenAnwenden() {
     FF.Klang.setzeAn(S.einstellungen.ton);
     FF.Klang.setzeSprache(S.einstellungen.sprache);
+    ausrichtungAnwenden();
   }
+  /* Bildschirm-Ausrichtung (nur in der installierten App): Das Manifest gibt Querformat
+     vor; screen.orientation.lock() überschreibt das zur Laufzeit. Im Browser-Tab geht das
+     nur im Vollbild, auf iPhone/iPad gar nicht – dort bleibt die Auswahl verborgen. */
+  var ALS_APP = ["fullscreen", "standalone"].some(function (m) {
+    return window.matchMedia && window.matchMedia("(display-mode: " + m + ")").matches;
+  });
+  var AUSRICHTUNG_MOEGLICH = ALS_APP && !!(screen.orientation && screen.orientation.lock) &&
+    !/iphone|ipad|ipod/i.test(navigator.userAgent);
+  function ausrichtungAnwenden() {
+    if (!AUSRICHTUNG_MOEGLICH) return;
+    var art = { quer: "landscape", hoch: "portrait", auto: "any" }[S.einstellungen.ausrichtung] || "landscape";
+    try { screen.orientation.lock(art).catch(function () { /* Gerät erlaubt es nicht */ }); } catch (e) { /* egal */ }
+  }
+  $("ausrichtung-gruppe").hidden = !AUSRICHTUNG_MOEGLICH;
+  ausrichtungAnwenden();
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) ausrichtungAnwenden(); });
   document.querySelectorAll("[data-setting]").forEach(function (b) {
     b.addEventListener("click", function () {
       FF.Klang.init(); FF.Klang.spiele("klick");
       S.einstellungen[b.dataset.setting] = b.dataset.wert; speichere(); einstellungenAnzeigen();
+      if (b.dataset.setting === "ausrichtung") ausrichtungAnwenden();
     });
   });
   document.querySelectorAll("[data-schalter]").forEach(function (b) {

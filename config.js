@@ -641,6 +641,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "14", titel: "Hochkant oder quer", punkte: [
+      "📱 In der installierten App kannst du in den Einstellungen wählen: quer, hochkant oder mit dem Handy mitdrehen",
+      "↕️ Wer hochkant spielt, bekommt keinen „Handy quer halten“-Hinweis mehr" ] },
     { version: "13", titel: "Start-Ampel", punkte: [
       "🚦 Vor jedem Rennen zählt eine Ampel 3 – 2 – 1 – LOS! Vorher kannst du nur den Motor aufheulen lassen",
       "💡 Tipps stehen jetzt klein oben links und lassen sich in den Einstellungen ausschalten",

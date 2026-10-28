@@ -32,7 +32,12 @@ python3 -m http.server 8000
 # am Handy öffnen: http://<IP-des-Computers>:8000
 ```
 
-Am schönsten spielt es sich im **Querformat**.
+Am schönsten spielt es sich im **Querformat**. In der **installierten App**
+(Android) lässt sich unter ⚙️ Einstellungen → 📱 Bildschirm wählen:
+**Quer** (Standard, wie im Manifest), **Hochkant** oder **Drehen** (folgt dem
+Handy). Das läuft über `screen.orientation.lock()`; im Browser-Tab ist das
+nur im Vollbild erlaubt und auf iPhone/iPad gar nicht, deshalb erscheint die
+Auswahl dort nicht – im Browser bestimmt einfach die Handyhaltung das Format.
 
 ## 🎮 Steuerung
 
