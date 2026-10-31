@@ -1,7 +1,8 @@
 /* ===========================================================================
    FIETE FLITZER – requisiten.js
    Gezeichnete Kulisse statt Emojis: Steine, Bäume, Tannen, Palmen, Kakteen,
-   Farne, Vulkankegel, Kristalle, Dinosaurier …, jeweils in mehreren Varianten.
+   Farne, Vulkankegel, Kristalle, Dinosaurier, Riesenblumen, Kürbisse,
+   Korallen, Laternen …, jeweils in mehreren Varianten.
 
    RECHENZEIT: Jede Variante wird EINMAL in ein kleines Bild (Canvas) gemalt
    und danach nur noch pixelgenau kopiert – genau wie vorher die Emojis.
@@ -371,8 +372,289 @@
       g.strokeStyle = "#6a4f28"; g.lineWidth = Math.max(1, u * 0.025);
       for (i = 0; i < 10; i++) { var x0 = (R() - 0.5) * u * 1.4; g.beginPath(); g.moveTo(x0, -u * (0.05 + 0.2 * R())); g.lineTo(x0 + (R() - 0.5) * u * 0.6, -u * (0.1 + 0.2 * R())); g.stroke(); }
     } },
-    dino: { breite: 1.7, sinken: 0.02, male: function (g, u, R, v) { DINOS[v % DINOS.length](g, u, R, v); } }
+    dino: { breite: 1.7, sinken: 0.02, male: function (g, u, R, v) { DINOS[v % DINOS.length](g, u, R, v); } },
+
+    /* ---- Pfützenland ---- */
+    regenschirm: { breite: 1.1, sinken: 0.04, male: function (g, u, R) {
+      // aufgespannter Schirm, schräg in den Boden gesteckt
+      var p = [["#e8453c", "#ffd23f"], ["#2f6fd6", "#ffffff"], ["#ff6fb5", "#ffe58a"], ["#3cc35a", "#ffd23f"]][Math.floor(R() * 4)];
+      g.save(); g.rotate((R() - 0.5) * 0.35);
+      g.strokeStyle = "#3a3a48"; g.lineWidth = Math.max(1.5, u * 0.03); g.lineCap = "round";
+      g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -u * 0.86); g.stroke();
+      g.beginPath(); g.arc(u * 0.05, -u * 0.02, u * 0.05, Math.PI, 0, true); g.stroke();          // Griff
+      var cy = -u * 0.7, rx = u * 0.5, ry = u * 0.3, n = 6;
+      for (var i = 0; i < n; i++) {
+        var a0 = Math.PI + Math.PI * i / n, a1 = Math.PI + Math.PI * (i + 1) / n;
+        g.beginPath(); g.moveTo(0, cy - ry * 0.05);
+        g.lineTo(Math.cos(a0) * rx, cy + Math.sin(a0) * ry);
+        g.quadraticCurveTo(Math.cos((a0 + a1) / 2) * rx * 0.85, cy + Math.sin((a0 + a1) / 2) * ry * 0.75 + ry * 0.12, Math.cos(a1) * rx, cy + Math.sin(a1) * ry);
+        g.closePath(); g.fillStyle = i % 2 ? p[1] : p[0]; g.fill();
+      }
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.015);
+      g.beginPath(); g.ellipse(0, cy, rx, ry, 0, Math.PI, 0); g.stroke();
+      g.fillStyle = "#3a3a48"; g.beginPath(); g.arc(0, cy - ry, u * 0.025, 0, Math.PI * 2); g.fill();
+      g.restore();
+    } },
+    gummistiefel: { breite: 1.3, sinken: 0, male: function (g, u, R) {
+      var f = ["#ffd23f", "#e8453c", "#2f6fd6", "#3cc35a"][Math.floor(R() * 4)];
+      [-0.28, 0.24].forEach(function (x, i) {
+        var b = u * 0.3, xx = x * u;
+        g.save(); g.translate(xx, 0); g.rotate(i ? 0.12 : -0.05);
+        var gr = g.createLinearGradient(-b / 2, 0, b / 2, 0);
+        gr.addColorStop(0, hell(f, 0.25)); gr.addColorStop(1, dunkel(f, 0.2));
+        g.fillStyle = gr;
+        g.beginPath(); g.moveTo(-b / 2, -u); g.lineTo(b / 2, -u); g.lineTo(b / 2, -u * 0.25);
+        g.quadraticCurveTo(b * 1.3, -u * 0.22, b * 1.25, -u * 0.06); g.lineTo(b * 1.25, 0); g.lineTo(-b / 2, 0); g.closePath(); g.fill();
+        g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.stroke();
+        g.fillStyle = "#3a3a48"; g.fillRect(-b / 2, -u * 0.06, b * 1.75, u * 0.06);                   // Sohle
+        g.fillStyle = "rgba(255,255,255,0.4)"; g.fillRect(-b * 0.35, -u * 0.95, b * 0.18, u * 0.6);
+        g.restore();
+      });
+    } },
+    pilzrot: { breite: 1.0, sinken: 0, male: function (g, u, R) {
+      // Fliegenpilz: weißer Stiel, roter Hut mit weißen Tupfen
+      var b = u * (0.42 + 0.08 * R()), hs = u * 0.62;
+      var gr = g.createLinearGradient(-u * 0.1, 0, u * 0.1, 0);
+      gr.addColorStop(0, "#fffaf0"); gr.addColorStop(1, "#d8cfc0");
+      g.fillStyle = gr; g.beginPath(); g.moveTo(-u * 0.11, 0); g.lineTo(-u * 0.08, -hs); g.lineTo(u * 0.08, -hs); g.lineTo(u * 0.11, 0); g.closePath(); g.fill();
+      var hg = g.createRadialGradient(-b * 0.3, -u * 0.95, u * 0.05, 0, -u * 0.7, b);
+      hg.addColorStop(0, "#ff7a6a"); hg.addColorStop(1, "#c8261e");
+      g.fillStyle = hg; g.beginPath(); g.moveTo(-b, -hs + u * 0.02); g.quadraticCurveTo(-b * 0.95, -u * 1.02, 0, -u * 1.02);
+      g.quadraticCurveTo(b * 0.95, -u * 1.02, b, -hs + u * 0.02); g.closePath(); g.fill();
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.stroke();
+      g.fillStyle = "#fffaf0";
+      for (var i = 0; i < 6; i++) { g.beginPath(); g.ellipse((R() - 0.5) * b * 1.4, -u * (0.72 + 0.22 * R()), u * 0.045, u * 0.035, 0, 0, Math.PI * 2); g.fill(); }
+    } },
+
+    /* ---- Riesengarten ---- */
+    riesenblume: { breite: 0.7, sinken: 0, male: function (g, u, R, v) {
+      var art = v % 3, kx = (R() - 0.5) * u * 0.12, ky = -u * 0.82;
+      g.strokeStyle = "#3f8f3a"; g.lineWidth = u * 0.035; g.lineCap = "round";
+      g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(kx * 2, -u * 0.45, kx, ky); g.stroke();
+      // zwei Blätter am Stiel
+      [[-1, 0.3], [1, 0.48]].forEach(function (b) {
+        var y = -u * b[1], l = u * 0.2;
+        g.fillStyle = b[0] < 0 ? "#4fae46" : "#3f9a3a";
+        g.beginPath(); g.moveTo(kx * b[1], y); g.quadraticCurveTo(b[0] * l * 0.7, y - l * 0.6, b[0] * l * 1.1, y - l * 0.1);
+        g.quadraticCurveTo(b[0] * l * 0.6, y + l * 0.15, kx * b[1], y); g.fill();
+      });
+      var r = u * 0.16;
+      if (art === 0) {                                        // Sonnenblume
+        g.fillStyle = "#ffcc1a";
+        for (var i = 0; i < 14; i++) { var w = i * Math.PI * 2 / 14; g.beginPath(); g.ellipse(kx + Math.cos(w) * r * 1.15, ky + Math.sin(w) * r * 1.15, r * 0.55, r * 0.2, w, 0, Math.PI * 2); g.fill(); }
+        g.fillStyle = "#6a3f1a"; g.beginPath(); g.arc(kx, ky, r * 0.8, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#8a5a2a"; for (i = 0; i < 9; i++) { g.beginPath(); g.arc(kx + (R() - 0.5) * r, ky + (R() - 0.5) * r, r * 0.08, 0, Math.PI * 2); g.fill(); }
+      } else if (art === 1) {                                 // Margerite
+        g.fillStyle = "#ffffff"; g.strokeStyle = "rgba(0,0,0,0.12)"; g.lineWidth = Math.max(1, u * 0.006);
+        for (i = 0; i < 12; i++) { w = i * Math.PI * 2 / 12; g.beginPath(); g.ellipse(kx + Math.cos(w) * r, ky + Math.sin(w) * r, r * 0.6, r * 0.19, w, 0, Math.PI * 2); g.fill(); g.stroke(); }
+        g.fillStyle = "#ffcf3a"; g.beginPath(); g.arc(kx, ky, r * 0.42, 0, Math.PI * 2); g.fill();
+      } else {                                                // Tulpe
+        var f = R() < 0.5 ? "#ff4f6d" : "#ff8a2e";
+        var tg = g.createLinearGradient(kx - r, 0, kx + r, 0);
+        tg.addColorStop(0, hell(f, 0.2)); tg.addColorStop(1, dunkel(f, 0.2));
+        g.fillStyle = tg;
+        g.beginPath(); g.moveTo(kx - r, ky - r * 0.9); g.lineTo(kx - r * 0.45, ky - r * 0.4); g.lineTo(kx, ky - r * 1.0); g.lineTo(kx + r * 0.45, ky - r * 0.4);
+        g.lineTo(kx + r, ky - r * 0.9); g.quadraticCurveTo(kx + r * 1.1, ky + r * 0.9, kx, ky + r * 0.9); g.quadraticCurveTo(kx - r * 1.1, ky + r * 0.9, kx - r, ky - r * 0.9); g.fill();
+      }
+    } },
+    grashalm: { breite: 0.6, sinken: 0, male: function (g, u, R) {
+      for (var i = 0; i < 4; i++) {
+        var x = (i - 1.5) * u * 0.07, h = u * (0.55 + 0.45 * R()), b = u * 0.035, k = (R() - 0.4) * u * 0.35;
+        var f = ["#5aa845", "#4f9e3a", "#6ab84c", "#3f8f3a"][i];
+        g.fillStyle = f;
+        g.beginPath(); g.moveTo(x - b, 0); g.quadraticCurveTo(x - b * 0.6, -h * 0.6, x + k, -h); g.quadraticCurveTo(x + b * 0.6, -h * 0.55, x + b, 0); g.closePath(); g.fill();
+        g.strokeStyle = "rgba(255,255,255,0.25)"; g.lineWidth = Math.max(1, u * 0.008);
+        g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x, -h * 0.55, x + k * 0.95, -h * 0.97); g.stroke();
+      }
+    } },
+    kleeblatt: { breite: 1.1, sinken: 0, male: function (g, u, R) {
+      var n = 2 + Math.floor(R() * 2);
+      for (var k = 0; k < n; k++) {
+        var x = (k - (n - 1) / 2) * u * 0.32, h = u * (k === 1 ? 0.95 : 0.6 + 0.2 * R()), r = u * 0.16;
+        g.strokeStyle = "#3f8f3a"; g.lineWidth = Math.max(1, u * 0.025);
+        g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + u * 0.05, -h * 0.5, x, -h + r * 0.5); g.stroke();
+        for (var i = 0; i < 3; i++) {
+          var w = -Math.PI / 2 + (i - 1) * 2.1, bx = x + Math.cos(w) * r * 0.75, by = -h + r * 0.5 + Math.sin(w) * r * 0.75;
+          g.fillStyle = i % 2 ? "#4fae46" : "#5cbc4e";
+          g.beginPath(); g.arc(bx - Math.sin(w) * r * 0.3, by + Math.cos(w) * r * 0.3, r * 0.5, 0, Math.PI * 2); g.arc(bx + Math.sin(w) * r * 0.3, by - Math.cos(w) * r * 0.3, r * 0.5, 0, Math.PI * 2); g.fill();
+        }
+        g.strokeStyle = "rgba(255,255,255,0.45)"; g.lineWidth = Math.max(1, u * 0.012);
+        g.beginPath(); g.arc(x, -h + r * 0.5, r * 0.5, 0, Math.PI * 2); g.stroke();
+      }
+    } },
+
+    /* ---- Herbststurm ---- */
+    herbstbaum: { breite: 1.2, sinken: 0.02, male: function (g, u, R) {
+      var farbe = ["#e8862e", "#d9532b", "#f2b233", "#c9772e"][Math.floor(R() * 4)];
+      var neig = (R() - 0.5) * u * 0.12;
+      stamm(g, u, 0, 0, neig, -u * 0.5, u * 0.06, "#6a4528");
+      g.strokeStyle = "#5a3a22"; g.lineWidth = u * 0.03; g.lineCap = "round";
+      g.beginPath(); g.moveTo(neig * 0.6, -u * 0.42); g.lineTo(neig - u * 0.16, -u * 0.6); g.stroke();
+      krone(g, u, R, neig, -u * 0.62, u * 0.42, farbe, 7 + Math.floor(R() * 3));
+      // ein paar Blätter fallen gerade
+      for (var i = 0; i < 4; i++) {
+        g.fillStyle = ["#e8862e", "#d9532b", "#f2b233"][i % 3];
+        g.beginPath(); g.ellipse((R() - 0.3) * u * 0.9, -u * (0.05 + 0.25 * R()), u * 0.03, u * 0.015, R() * 3, 0, Math.PI * 2); g.fill();
+      }
+    } },
+    kuerbis: { breite: 1.4, sinken: 0.04, male: function (g, u, R) {
+      var f = R() < 0.7 ? "#f08a24" : "#f2b233", b = u * 0.68, h = u * 0.82;
+      for (var i = -2; i <= 2; i++) {
+        var gr = g.createRadialGradient(i * b * 0.25 - b * 0.1, -h * 0.65, b * 0.05, i * b * 0.25, -h * 0.45, b * 0.5);
+        gr.addColorStop(0, hell(f, 0.25)); gr.addColorStop(1, dunkel(f, 0.12 + Math.abs(i) * 0.08));
+        g.fillStyle = gr;
+        g.beginPath(); g.ellipse(i * b * 0.24, -h * 0.45, b * (0.32 - Math.abs(i) * 0.03), h * 0.45, 0, 0, Math.PI * 2); g.fill();
+      }
+      g.strokeStyle = dunkel(f, 0.35); g.lineWidth = Math.max(1, u * 0.015);
+      for (i = -1; i <= 1; i += 2) { g.beginPath(); g.ellipse(i * b * 0.12, -h * 0.45, b * 0.2, h * 0.43, 0, 0, Math.PI * 2); g.stroke(); }
+      g.strokeStyle = "#5a7a2a"; g.lineWidth = u * 0.07; g.lineCap = "round";
+      g.beginPath(); g.moveTo(0, -h * 0.85); g.quadraticCurveTo(u * 0.04, -h * 1.05, u * 0.12, -h * 1.08); g.stroke();
+      g.fillStyle = "#4f9e3a"; g.beginPath(); g.ellipse(-u * 0.14, -h * 0.95, u * 0.12, u * 0.05, -0.4, 0, Math.PI * 2); g.fill();
+    } },
+    laubhaufen: { breite: 2.0, sinken: 0.06, male: function (g, u, R) {
+      var b = u * 0.95;
+      g.fillStyle = "#b8682a"; g.beginPath(); g.ellipse(0, 0, b, u * 0.75, 0, Math.PI, 0); g.fill();
+      var farben = ["#e8862e", "#d9532b", "#f2b233", "#c9772e", "#9a5a2a", "#e0a53a"];
+      for (var i = 0; i < 34; i++) {
+        var w = Math.PI + Math.PI * R(), d = Math.sqrt(R());
+        var x = Math.cos(w) * b * d * 0.95, y = Math.sin(w) * u * 0.72 * d;
+        g.fillStyle = farben[i % farben.length];
+        g.beginPath(); g.ellipse(x, y, u * 0.1, u * 0.05, R() * 3, 0, Math.PI * 2); g.fill();
+      }
+    } },
+    vogelscheuche: { breite: 1.0, sinken: 0.02, male: function (g, u, R) {
+      var hemd = ["#d9532b", "#2f6fd6", "#3cc35a"][Math.floor(R() * 3)];
+      g.fillStyle = "#7a5232"; g.fillRect(-u * 0.025, -u * 0.8, u * 0.05, u * 0.8);           // Pfahl
+      g.fillRect(-u * 0.42, -u * 0.62, u * 0.84, u * 0.04);                                     // Querholz
+      g.fillStyle = hemd; rundRechteckG(g, -u * 0.36, -u * 0.66, u * 0.72, u * 0.32, u * 0.05); g.fill();
+      g.strokeStyle = "#f2d07a"; g.lineWidth = Math.max(1, u * 0.015);                         // Stroh an den Ärmeln
+      [-1, 1].forEach(function (s) { for (var k = 0; k < 4; k++) { g.beginPath(); g.moveTo(s * u * 0.36, -u * 0.6 + k * u * 0.06); g.lineTo(s * u * (0.44 + 0.04 * R()), -u * 0.6 + k * u * 0.07); g.stroke(); } });
+      g.fillStyle = "#3a6ab0"; g.fillRect(-u * 0.18, -u * 0.36, u * 0.36, u * 0.12);             // Hose (Flicken)
+      g.fillStyle = "#f2d6a2"; g.beginPath(); g.arc(0, -u * 0.76, u * 0.11, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#3a2a1a"; g.beginPath(); g.arc(-u * 0.04, -u * 0.78, u * 0.015, 0, Math.PI * 2); g.arc(u * 0.04, -u * 0.78, u * 0.015, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#3a2a1a"; g.lineWidth = Math.max(1, u * 0.012);
+      g.beginPath(); g.arc(0, -u * 0.75, u * 0.05, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+      g.fillStyle = "#c9a24a"; g.beginPath(); g.ellipse(0, -u * 0.86, u * 0.2, u * 0.04, 0, 0, Math.PI * 2); g.fill();   // Strohhut
+      g.beginPath(); g.moveTo(-u * 0.1, -u * 0.86); g.quadraticCurveTo(0, -u * 1.02, u * 0.1, -u * 0.86); g.fill();
+    } },
+
+    /* ---- Meeresgrund ---- */
+    koralle: { breite: 1.1, sinken: 0.02, male: function (g, u, R) {
+      var f = ["#ff6f91", "#ff9a4a", "#b57cff", "#ff5a6a", "#ffb03a"][Math.floor(R() * 5)];
+      g.strokeStyle = f; g.lineCap = "round"; g.lineJoin = "round";
+      var ast = function (x, y, w, l, d, tiefe) {
+        var x2 = x + Math.cos(w) * l, y2 = y - Math.sin(w) * l;
+        g.lineWidth = d; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo((x + x2) / 2 + (R() - 0.5) * l * 0.3, (y + y2) / 2, x2, y2); g.stroke();
+        if (tiefe > 0) { ast(x2, y2, w + 0.35 + R() * 0.25, l * 0.72, d * 0.75, tiefe - 1); ast(x2, y2, w - 0.35 - R() * 0.25, l * 0.68, d * 0.75, tiefe - 1); }
+        else { g.fillStyle = hell(f, 0.35); g.beginPath(); g.arc(x2, y2, d * 0.75, 0, Math.PI * 2); g.fill(); }
+      };
+      ast(0, 0, Math.PI / 2 + (R() - 0.5) * 0.3, u * 0.32, u * 0.09, 3);
+    } },
+    seetang: { breite: 0.6, sinken: 0, male: function (g, u, R) {
+      for (var s = 0; s < 3; s++) {
+        var x = (s - 1) * u * 0.1, h = u * (0.6 + 0.4 * R()), f = ["#2f8a5a", "#3fa06a", "#4a9a3a"][s], ph = R() * 6;
+        g.strokeStyle = f; g.lineWidth = u * 0.045; g.lineCap = "round";
+        g.beginPath(); g.moveTo(x, 0);
+        for (var y = 0; y <= 1.001; y += 0.1) g.lineTo(x + Math.sin(y * 7 + ph) * u * 0.06 * y, -h * y);
+        g.stroke();
+        g.fillStyle = hell(f, 0.15);
+        for (y = 0.25; y < 1; y += 0.2) { var bx = x + Math.sin(y * 7 + ph) * u * 0.06 * y; g.beginPath(); g.ellipse(bx + u * 0.05, -h * y, u * 0.06, u * 0.025, -0.5, 0, Math.PI * 2); g.fill(); }
+      }
+    } },
+    muschel: { breite: 1.4, sinken: 0.05, male: function (g, u, R) {
+      var f = ["#ffd9c2", "#f6c6d8", "#fff0d0"][Math.floor(R() * 3)], b = u * 0.68;
+      var gr = g.createLinearGradient(0, -u, 0, 0); gr.addColorStop(0, hell(f, 0.3)); gr.addColorStop(1, dunkel(f, 0.15));
+      g.fillStyle = gr;
+      g.beginPath(); g.moveTo(-u * 0.12, 0);
+      for (var i = 0; i <= 8; i++) { var w = Math.PI + Math.PI * i / 8; g.lineTo(Math.cos(w) * b, -u * 0.18 + Math.sin(w) * u * 0.8 + (i % 2 ? u * 0.05 : 0)); }
+      g.lineTo(u * 0.12, 0); g.closePath(); g.fill();
+      g.strokeStyle = dunkel(f, 0.3); g.lineWidth = Math.max(1, u * 0.025);
+      for (i = 1; i < 8; i++) { w = Math.PI + Math.PI * i / 8; g.beginPath(); g.moveTo(0, -u * 0.05); g.lineTo(Math.cos(w) * b * 0.92, -u * 0.18 + Math.sin(w) * u * 0.74); g.stroke(); }
+    } },
+    seestern: { breite: 1.6, sinken: 0.1, male: function (g, u, R) {
+      var f = ["#ff7a3a", "#ff5a6a", "#ffb03a", "#b57cff"][Math.floor(R() * 4)];
+      g.save(); g.translate(0, -u * 0.45); g.scale(1, 0.62); g.rotate(R() * 1.2);
+      g.beginPath();
+      for (var i = 0; i < 10; i++) { var w = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? u * 0.28 : u * 0.75; if (i) g.lineTo(Math.cos(w) * r, Math.sin(w) * r); else g.moveTo(Math.cos(w) * r, Math.sin(w) * r); }
+      g.closePath(); g.fillStyle = f; g.fill(); g.strokeStyle = dunkel(f, 0.3); g.lineWidth = Math.max(1, u * 0.03); g.stroke();
+      g.fillStyle = hell(f, 0.45);
+      for (i = 0; i < 5; i++) { var w2 = -Math.PI / 2 + i * Math.PI * 2 / 5; for (var k = 1; k <= 3; k++) { g.beginPath(); g.arc(Math.cos(w2) * u * 0.17 * k, Math.sin(w2) * u * 0.17 * k, u * 0.04, 0, Math.PI * 2); g.fill(); } }
+      g.restore();
+    } },
+    anker: { breite: 0.9, sinken: 0.08, male: function (g, u, R) {
+      g.save(); g.rotate(0.25 + (R() - 0.5) * 0.2);
+      g.strokeStyle = "#6f7a86"; g.lineWidth = u * 0.08; g.lineCap = "round";
+      g.beginPath(); g.moveTo(0, -u * 0.08); g.lineTo(0, -u * 0.85); g.stroke();                      // Schaft
+      g.beginPath(); g.moveTo(-u * 0.22, -u * 0.72); g.lineTo(u * 0.22, -u * 0.72); g.stroke();     // Stock
+      g.beginPath(); g.arc(0, -u * 0.38, u * 0.32, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();     // Arme
+      g.lineWidth = u * 0.05; g.beginPath(); g.arc(0, -u * 0.92, u * 0.07, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = "#c9a26a"; g.lineWidth = Math.max(1, u * 0.025);                              // Tau
+      g.beginPath(); g.moveTo(0, -u * 0.99); g.quadraticCurveTo(u * 0.3, -u * 0.95, u * 0.25, -u * 0.6); g.quadraticCurveTo(u * 0.2, -u * 0.3, u * 0.38, -u * 0.05); g.stroke();
+      g.restore();
+    } },
+    schatzkiste: { breite: 1.4, sinken: 0.05, male: function (g, u, R) {
+      var b = u * 0.62;
+      var gl = g.createRadialGradient(0, -u * 0.62, 0, 0, -u * 0.62, u * 0.6);
+      gl.addColorStop(0, "rgba(255,230,120,0.6)"); gl.addColorStop(1, "rgba(255,230,120,0)");
+      g.fillStyle = gl; g.beginPath(); g.arc(0, -u * 0.62, u * 0.6, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#8a5a2a"; g.fillRect(-b, -u * 0.55, b * 2, u * 0.55);
+      g.fillStyle = "#ffcf3a";                                                                       // Goldmünzen
+      for (var i = 0; i < 7; i++) { g.beginPath(); g.ellipse((i - 3) * b * 0.26, -u * 0.6 - (i % 2) * u * 0.05, b * 0.15, u * 0.06, 0, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = "#6e4420"; g.save(); g.translate(-b, -u * 0.55); g.rotate(-0.9);                // offener Deckel
+      g.fillRect(0, -u * 0.12, b * 1.1, u * 0.12); g.restore();
+      g.fillStyle = "#d9a53a"; g.fillRect(-b, -u * 0.55, b * 2, u * 0.06); g.fillRect(-b * 0.12, -u * 0.42, b * 0.24, u * 0.16);
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(-b, -u * 0.55, b * 2, u * 0.55);
+    } },
+
+    /* ---- Nachtwald (das Licht malt grafik.js zeichneNacht dazu) ---- */
+    laterne: { breite: 0.45, sinken: 0, male: function (g, u, R) {
+      g.fillStyle = "#2e3442"; g.fillRect(-u * 0.025, -u * 0.82, u * 0.05, u * 0.82);
+      g.fillRect(-u * 0.08, -u * 0.02, u * 0.16, u * 0.02);
+      g.fillStyle = "#3a4152"; g.beginPath(); g.moveTo(-u * 0.11, -u * 0.86); g.lineTo(0, -u * 0.98); g.lineTo(u * 0.11, -u * 0.86); g.closePath(); g.fill();
+      var gl = g.createRadialGradient(0, -u * 0.78, 0, 0, -u * 0.78, u * 0.12);
+      gl.addColorStop(0, "#fff6c8"); gl.addColorStop(1, "#ffc24a");
+      g.fillStyle = gl; g.fillRect(-u * 0.08, -u * 0.86, u * 0.16, u * 0.16);
+      g.strokeStyle = "#2e3442"; g.lineWidth = Math.max(1, u * 0.015); g.strokeRect(-u * 0.08, -u * 0.86, u * 0.16, u * 0.16);
+    } },
+    eule: { breite: 0.8, sinken: 0.02, male: function (g, u, R) {
+      // Baumstumpf, darauf eine freundliche Eule
+      var gr = g.createLinearGradient(-u * 0.25, 0, u * 0.25, 0);
+      gr.addColorStop(0, "#8a6238"); gr.addColorStop(1, "#4e3420");
+      g.fillStyle = gr; g.fillRect(-u * 0.24, -u * 0.48, u * 0.48, u * 0.48);
+      g.fillStyle = "#c9a26a"; g.beginPath(); g.ellipse(0, -u * 0.48, u * 0.24, u * 0.05, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#8a6238"; g.lineWidth = Math.max(1, u * 0.01); g.beginPath(); g.ellipse(0, -u * 0.48, u * 0.12, u * 0.025, 0, 0, Math.PI * 2); g.stroke();
+      var f = R() < 0.5 ? "#8a6a4a" : "#a07a52";
+      g.fillStyle = f; g.beginPath(); g.ellipse(0, -u * 0.7, u * 0.17, u * 0.23, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(-u * 0.15, -u * 0.86); g.lineTo(-u * 0.12, -u * 0.98); g.lineTo(-u * 0.05, -u * 0.9); g.moveTo(u * 0.15, -u * 0.86); g.lineTo(u * 0.12, -u * 0.98); g.lineTo(u * 0.05, -u * 0.9); g.fill();
+      g.fillStyle = hell(f, 0.4); g.beginPath(); g.ellipse(0, -u * 0.62, u * 0.1, u * 0.12, 0, 0, Math.PI * 2); g.fill();
+      [-1, 1].forEach(function (s) {
+        g.fillStyle = "#fff6c8"; g.beginPath(); g.arc(s * u * 0.07, -u * 0.8, u * 0.06, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#2a1a10"; g.beginPath(); g.arc(s * u * 0.07, -u * 0.8, u * 0.03, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#ffffff"; g.beginPath(); g.arc(s * u * 0.07 + u * 0.01, -u * 0.81, u * 0.01, 0, Math.PI * 2); g.fill();
+      });
+      g.fillStyle = "#f2a02a"; g.beginPath(); g.moveTo(-u * 0.025, -u * 0.75); g.lineTo(u * 0.025, -u * 0.75); g.lineTo(0, -u * 0.71); g.closePath(); g.fill();
+    } },
+    zelt: { breite: 1.7, sinken: 0.02, male: function (g, u, R) {
+      var f = ["#e8862e", "#3cc35a", "#2f6fd6"][Math.floor(R() * 3)], b = u * 0.55;
+      g.fillStyle = dunkel(f, 0.15); g.beginPath(); g.moveTo(-b - u * 0.3, 0); g.lineTo(-u * 0.3, -u * 0.8); g.lineTo(b - u * 0.3, 0); g.closePath(); g.fill();
+      g.fillStyle = "#2a1f1a"; g.beginPath(); g.moveTo(-u * 0.48, 0); g.lineTo(-u * 0.3, -u * 0.45); g.lineTo(-u * 0.12, 0); g.closePath(); g.fill();
+      g.fillStyle = hell(f, 0.2); g.beginPath(); g.moveTo(-u * 0.3, -u * 0.8); g.lineTo(-u * 0.12, 0); g.lineTo(-u * 0.05, 0); g.closePath(); g.fill();
+      // Lagerfeuer
+      var x = u * 0.5;
+      g.strokeStyle = "#6a4528"; g.lineWidth = u * 0.05; g.lineCap = "round";
+      g.beginPath(); g.moveTo(x - u * 0.16, -u * 0.02); g.lineTo(x + u * 0.16, -u * 0.08); g.moveTo(x - u * 0.16, -u * 0.08); g.lineTo(x + u * 0.16, -u * 0.02); g.stroke();
+      [["#ff5a1f", 0.3, 0.12], ["#ffb02e", 0.22, 0.08], ["#fff2a0", 0.12, 0.045]].forEach(function (fl) {
+        g.fillStyle = fl[0]; g.beginPath(); g.moveTo(x - u * fl[2], -u * 0.06);
+        g.quadraticCurveTo(x - u * fl[2], -u * fl[1] * 0.7, x, -u * (0.06 + fl[1])); g.quadraticCurveTo(x + u * fl[2], -u * fl[1] * 0.7, x + u * fl[2], -u * 0.06); g.closePath(); g.fill();
+      });
+    } }
   };
+
+  function rundRechteckG(g, x, y, w, h, r) {
+    g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+    g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g.lineTo(x + r, y + h);
+    g.quadraticCurveTo(x, y + h, x, y + h - r); g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+  }
 
   function tanneMalen(g, u, R, schnee) {
     var f = ["#2f6b3f", "#2a5f3a", "#36734a"][Math.floor(R() * 3)];
@@ -511,7 +793,7 @@
   /* ---------------------------------------------------------------------------
      Bild-Zwischenspeicher
      --------------------------------------------------------------------------- */
-  var VARIANTEN = { dino: 12 };              // Dinos: 4 Arten × 3 Farben, sonst 4 Varianten
+  var VARIANTEN = { dino: 12, riesenblume: 6 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
   var cache = {}, anzahl = 0;
   function sprite(typ, variante, px, q) {
     var M = MALER[typ];

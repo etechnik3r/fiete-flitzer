@@ -239,6 +239,7 @@
   var luftTippGezeigt = false;     // "Gas hebt die Nase, Bremse senkt sie" – einmal pro Spielstart
   var pedaleLuft = false;          // Pedale zeigen gerade die Luft-Pfeile
   var auspuffTakt = 0, staubTakt = 0;
+  var weltTipps = {};                        // wie oft der Welt-Tipp in dieser Sitzung schon kam
 
   function groesseAnpassen() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -429,7 +430,20 @@
     staubTakt -= dt; auspuffTakt -= dt;
     if (staubTakt <= 0) {
       staubTakt = 0.045;
+      var wasser = fahrt.gelaende.pfuetzen.length > 0;
       fz.raeder.forEach(function (R) {
+        if (wasser && R.imWasser) {                            // Pfütze: Wasser spritzt nach hinten und oben
+          var v = Math.abs(R.k.vx);
+          if (v > 1.5) {
+            var L = fahrt.gelaende.wasserBei(R.k.x), n = Math.min(4, 1 + Math.floor(v / 4));
+            for (var k = 0; k < n; k++) {
+              partikel.neu({ art: "tropfen", x: R.k.x - Math.sign(R.k.vx) * R.r * 0.6, y: L + 0.05, t: 0, dauer: 0.55 + Math.random() * 0.3,
+                             vx: -R.k.vx * (0.15 + Math.random() * 0.25) + (Math.random() - 0.5), vy: 1.5 + Math.random() * (1 + v * 0.25),
+                             r0: 0.06 + Math.random() * 0.06, farbe: "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.5 });
+            }
+          }
+          return;
+        }
         var ko = R.kontakt;
         if (!ko.aktiv || ko.pen < -0.02) return;
         var tx = ko.ny, ty = -ko.nx;
@@ -447,7 +461,10 @@
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
-      partikel.neu({ art: "rauch", x: ch.x + ca * lx - sa * ly, y: ch.y + sa * lx + ca * ly,
+      if (welt.unterwasser) {                                  // unter Wasser blubbert der Auspuff
+        partikel.neu({ art: "blase", x: ch.x + ca * lx - sa * ly, y: ch.y + sa * lx + ca * ly,
+                       vx: -ca * 0.8 + ch.vx * 0.3, vy: 0.4, t: 0, dauer: 1.4, r0: 0.05, r1: 0.14, schwer: -0.35, reibung: 1.2 });
+      } else partikel.neu({ art: "rauch", x: ch.x + ca * lx - sa * ly, y: ch.y + sa * lx + ca * ly,
                      vx: -ca * 1.5 + ch.vx * 0.6, vy: 0.6 - sa * 1.5 + ch.vy * 0.6,
                      t: 0, dauer: 0.7, r0: 0.08, r1: 0.35, farbe: "rgba(200,205,220,0.9)", alpha: 0.6, reibung: 1.5 });
     }
@@ -572,6 +589,36 @@
           for (var dk = 0; dk < 6; dk++) {
             partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 1.5, y: e.y + 0.3, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
                            t: 0, dauer: 0.8, r0: 0.08, r1: 0.3, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 1 });
+          }
+          break;
+        case "platsch":                  // in eine Pfütze gefahren
+          FF.Klang.spiele("platsch", e.staerke);
+          for (var pt = 0; pt < 6 + 10 * e.staerke; pt++) {
+            var pw = Math.PI * (0.15 + 0.7 * Math.random()), pv = 2 + Math.random() * 4 * (0.5 + e.staerke);
+            partikel.neu({ art: "tropfen", x: e.x + (Math.random() - 0.5) * 0.8, y: e.y + 0.05, vx: Math.cos(pw) * pv, vy: Math.sin(pw) * pv,
+                           t: 0, dauer: 0.7 + Math.random() * 0.3, r0: 0.07 + Math.random() * 0.07, farbe: "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.4 });
+          }
+          if (e.staerke > 0.55) { schwebeText(e.x, e.y + 1.6, "Platsch! 💦", "#bfe4ff", false); setzeAusdruck("freude", 1.2); }
+          if (!extraTipps.platsch) { extraTipps.platsch = true; FF.Klang.sprich("Platsch!"); }
+          break;
+        case "boing":                    // Hüpfpilz
+          FF.Klang.spiele("boing");
+          schwebeText(e.x, e.y + 2.2, "Boing! 🍄", "#ffd23f", true);
+          funkeln(e.x, e.y + 0.8, "#ffffff", 8);
+          setzeAusdruck("freude", 2.5);
+          if (!extraTipps.boing) {
+            extraTipps.boing = true;
+            tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
+          }
+          break;
+        case "wind":                     // Sturm: Rückenwind oder Gegenwind beginnt
+          FF.Klang.spiele("windstoss");
+          schwebeText(ch.x, ch.y + 2, e.richtung > 0 ? "Rückenwind! 💨" : "Gegenwind! 🌬️", e.richtung > 0 ? "#7dffb8" : "#ffd6a0", true);
+          if (!extraTipps["wind" + e.richtung]) {
+            extraTipps["wind" + e.richtung] = true;
+            if (e.richtung > 0) tipp("💨 Rückenwind schiebt dich – und trägt dich bei Sprüngen weit!", 4000, "Rückenwind!");
+            else tipp("🌬️ Gegenwind bremst – gib mehr Gas!", 4000, "Gegenwind! Gib mehr Gas!");
+            spruchBis = zeit + 3;
           }
           break;
         case "luftsprung":
@@ -724,6 +771,10 @@
     var titel = geist ? "👻 Gegen " + genitiv(geist.name) + " Geist!" : (endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
     starteCountdown(titel);
     if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000, mondHinweis.trim());
+    FF.Klang.setzeUmgebung(w.wetter === "regen" ? "regen" : w.wind ? "wind" : w.unterwasser ? "meer" : null);
+    // Neue Spielidee der Welt erklären – die ersten beiden Male je Welt (pro Spielsitzung)
+    weltTipps[w.id] = (weltTipps[w.id] || 0) + 1;
+    if (w.tipp && weltTipps[w.id] <= 2) tipp(w.tipp[0], 5500, w.tipp[1]);
     if (H > B && S.einstellungen.ausrichtung !== "hoch") { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
     hudCache = {};
     hudAktualisieren(true);
@@ -1063,6 +1114,18 @@
     $("tab-knopf-fahren").setAttribute("aria-label", tabFahren[1]);
     waehleTab(tab || aktiverTab);
     kontoAktualisieren();
+    if (aktiverTab === "fahren" && spielModus !== "duell") zeigeNaechstesLevel();
+  }
+
+  /* Bei 18 Welten liegt das nächste Level oft weit unten: die Liste dorthin
+     scrollen (nur wenn die Welt-Karte nicht ohnehin schon zu sehen ist) */
+  function zeigeNaechstesLevel() {
+    var knopf = document.querySelector("#welten-liste .level-knopf.naechstes");
+    var box = knopf && knopf.closest(".menue-inhalt"), karte = knopf && knopf.closest(".welt-karte");
+    if (!box || !karte) return;
+    var k = karte.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (k.top >= b.top && k.bottom <= b.bottom) return;
+    box.scrollTop = Math.max(0, box.scrollTop + k.top - b.top - Math.max(8, (b.height - k.height) * 0.3));
   }
 
   function waehleTab(tab) {
@@ -1920,13 +1983,14 @@
         var st = fahrt.fz.status, hilfe = fahrt.zustand === "hilfe";
         if (wartet) {                                   // an der Ampel: nur Motor aufheulen lassen
           FF.Klang.motorSetze({ drehzahl: eingabe.gas ? 0.55 : 0, gas: eingabe.gas ? 1 : 0, bremse: 0, laeuft: true, tempo: 0,
-                                vmax: fahrt.werte.motor.vmax, boden: true, luft: fahrt.welt.luftdichte > 0, probe: true, dt: dt });
+                                vmax: fahrt.werte.motor.vmax, boden: true, luft: fahrt.welt.luftdichte > 0 && !fahrt.welt.unterwasser, probe: true, dt: dt });
         } else FF.Klang.motorSetze({
           drehzahl: hilfe ? 0 : st.drehzahl, bremse: fahrt.bremse, rueckwaerts: fahrt.rueckwaerts,
           gas: fahrt.gas + (fahrt.rueckwaerts ? 0.6 * fahrt.bremse : 0),       // rückwärts treibt der Motor auch
           laeuft: fahrt.tank > 0 && fahrt.zustand !== "ende", tempo: hilfe ? 0 : st.tempo, vmax: fahrt.werte.motor.vmax,
-          boden: !hilfe && st.radKontakte > 0, luft: fahrt.welt.luftdichte > 0, getriebe: fahrt.getriebe, dt: dt
+          boden: !hilfe && st.radKontakte > 0, luft: fahrt.welt.luftdichte > 0 && !fahrt.welt.unterwasser, getriebe: fahrt.getriebe, dt: dt
         });
+        if (fahrt.welt.wind) FF.Klang.umgebungStaerke(Math.min(1, Math.abs(fahrt.gelaende.windBei(fahrt.fz.chassis.x)) / fahrt.welt.wind.staerke));
         var inLuft = st.radKontakte === 0 && !st.huellKontakt && fahrt.zustand === "fahrt";
         if (zeit > ausdruckBis) {
           ausdruck = fahrt.luftZeit > 0.35 && inLuft ? "freude" : (fahrt.tank <= 0 ? "staunen" : "normal");

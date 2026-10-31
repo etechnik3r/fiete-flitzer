@@ -398,7 +398,8 @@ FF.CONFIG = {
                abstandElemente = mittlerer Abstand zwischen Bau-Elementen [m]
      tankAbstand: mittlerer Abstand der Benzinkanister [m] auf typischer Strecke
                   (bergauf liegen sie dichter, bergab weiter auseinander, s. gelaende.js)
-     deko: reine Kulisse, "Emoji:Größe in Metern"
+     deko: reine Kulisse, "Emoji:Größe in Metern" oder "@requisite:Größe";
+           ein drittes Feld schwebt so hoch über dem Boden: "🐠:0.7:2.2"
      ------------------------------------------------------------------------- */
   welten: [
     {
@@ -619,6 +620,132 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 300, muenzAbstand: 22,
       level: [ { laenge: 750, seed: 1201 }, { laenge: 1000, seed: 1202 }, { laenge: 1250, seed: 1203 }, { laenge: 1500, seed: 1204 } ]
+    },
+
+    /* ---------------------------------------------------------------------
+       Ab hier: fünf Welten mit je einer eigenen Spielidee (Version 15).
+       Zusätzliche Felder (alle optional, siehe gelaende.js / fahrt.js):
+         wasser   Pfützen: In jeder Mulde steht Wasser bis tiefe [m] (höchstens
+                  maxBreite [m] breit). Wasser spritzt und bremst: a = bremse·v²
+                  (anteilig, wie tief die Räder eintauchen)
+         wind     Sturm: Rückenwind und Gegenwind wechseln sich ab (staerke [m/s²],
+                  laenge [m] = Größe der Windzonen, bias > 0: öfter Rückenwind)
+         unterwasser  alles unter Wasser: Taucherhelm, Blasen, dumpfer Klang;
+                  dazu wenig Schwerkraft (Auftrieb), dichtes "luftdichte" (Wasser
+                  bremst) und drehDaempfung [1/s] (Drehungen werden langsamer)
+         nacht    Dunkelheit (dunkel 0..1): Scheinwerfer, Laternen, Glühwürmchen
+         gelaende.trampolin  Hüpfpilze: wer drauffährt, fliegt hoch
+         tipp     [Text, vorgelesener Satz] beim Start eines Levels
+       --------------------------------------------------------------------- */
+    {
+      /* Regen: In den Tälern stehen Pfützen. Durchfahren spritzt, das Wasser bremst
+         ein bisschen. Viele Täler, damit es viele Pfützen gibt. */
+      id: "pfuetzen", name: "Pfützenland", emoji: "🌧️", hinweis: "Es regnet! In den Tälern stehen Pfützen – platsch!",
+      schwerkraft: 9.81, grip: 0.85, rollwiderstand: 0.025, abprall: 0.04, luftdichte: 1.2,
+      farben: {
+        himmel: ["#7f93ad", "#d3dde8"], berge: ["#94b79c", "#6d9a7c"],
+        boden: ["#7a5a3c", "#53402b"], oberflaeche: "#4f9e48", kante: "#86c46a", punkte: "#6b4c30",
+        wolken: "rgba(118,132,158,0.82)", wasser: "#5fa8de"
+      },
+      sonne: "wolkig", wetter: "regen",
+      wasser: { tiefe: 0.6, maxBreite: 16, bremse: 0.055 },
+      tipp: ["🌧️ Fahr durch die Pfützen – platsch! Das Wasser bremst ein bisschen.", "Platsch! Fahr durch die Pfützen!"],
+      deko: ["@laubbaum:3.4", "@regenschirm:1.5", "@busch:1.1", "🐸:0.55", "@laubbaum:2.8", "@pilzrot:0.7", "@gummistiefel:0.6", "🐌:0.5",
+             "@busch:0.9", "@laubbaum:3.8", "@blumen:0.6", "@tanne:3.2"],
+      beiwerk: ["@gras:0.45", "@stein:0.35", "@pilzrot:0.35"], kulisse: ["wald", "dorf", "wald"],
+      gelaende: { amp: 7.5, welle: 40, holperAmp: 0.15, holperWelle: 7, trend: 0.02,
+                  maxAuf: 30, maxAb: 40, schanzen: 0.9, buckel: 0.8, steil: 0.9, taeler: 2.4, berg: 0.8, sprung: 0.9, wellen: 1.2, klippe: 0.5, rampe: 0.6, kuppe: 1.0, stufe: 0.7, wildBasis: 0.4,
+                  abstandElemente: 26 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 760, seed: 1401 }, { laenge: 1000, seed: 1402 }, { laenge: 1250, seed: 1403 }, { laenge: 1500, seed: 1404 } ]
+    },
+    {
+      /* Riesengarten: Fiete ist winzig zwischen riesigen Blumen, Grashalmen und Käfern.
+         Hüpfpilze (Trampoline) schleudern das Auto hoch – darüber hängen Münzen. */
+      id: "garten", name: "Riesengarten", emoji: "🌻", hinweis: "Du bist winzig! Hüpfpilze schleudern dich hoch",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.02, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#74c8ff", "#eaf8ff"], berge: ["#86d06e", "#4fa94a"],
+        boden: ["#6e4a2a", "#4b321c"], oberflaeche: "#58b545", kante: "#a2e46e", punkte: "#8a6038"
+      },
+      sonne: "sonne", wetter: "pollen", kulisseGroesse: 1.5,
+      tipp: ["🍄 Fahr auf die rot-weißen Hüpfpilze – boing! In der Luft Gas und Bremse zum Drehen.", "Fahr auf die Hüpfpilze!"],
+      deko: ["@riesenblume:5.5", "@grashalm:3.2", "🐞:0.8", "@riesenblume:4.2", "@kleeblatt:1.4", "🐌:1.1", "@grashalm:2.6", "🐝:0.7:2.6",
+             "@riesenblume:6.5", "🐜:0.45", "@pilzrot:1.5", "🦋:0.8:3.2", "@kleeblatt:1.1", "@grashalm:3.8"],
+      beiwerk: ["@gras:0.7", "@stein:0.5", "@kleeblatt:0.6"], kulisse: ["zaun", "riesenblumen", "halme"],
+      gelaende: { amp: 7.0, welle: 40, holperAmp: 0.2, holperWelle: 6, trend: 0.02,
+                  maxAuf: 31, maxAb: 42, schanzen: 0.8, buckel: 1.0, steil: 0.8, taeler: 0.7, berg: 0.8, sprung: 0.6, wellen: 0.8, klippe: 0.6, rampe: 0.7, kuppe: 0.8, stufe: 1.0,
+                  trampolin: 1.5, wildBasis: 0.4,
+                  abstandElemente: 26 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 780, seed: 1501 }, { laenge: 1020, seed: 1502 }, { laenge: 1270, seed: 1503 }, { laenge: 1520, seed: 1504 } ]
+    },
+    {
+      /* Herbststurm: Windzonen (gelaende.windBei). Rückenwind schiebt und trägt weit,
+         Gegenwind bremst. Leichte Fahrzeuge (Moped) pustet er stärker, schwere weniger.
+         Die Berge sind etwas flacher, damit man auch gegen den Wind hochkommt. */
+      id: "herbst", name: "Herbststurm", emoji: "🍂", hinweis: "Sturm! Rückenwind schiebt, Gegenwind bremst",
+      schwerkraft: 9.81, grip: 0.9, rollwiderstand: 0.025, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#86a9d6", "#f6dcb8"], berge: ["#d0904e", "#a7663a"],
+        boden: ["#7a5230", "#553820"], oberflaeche: "#b47a32", kante: "#eba748", punkte: "#6b4a2a",
+        wolken: "rgba(255,244,232,0.85)"
+      },
+      sonne: "sonne", wetter: "laub",
+      wind: { staerke: 1.7, laenge: 85, bias: 0.25 },
+      tipp: ["🍂 Sturm! Rückenwind 💨 schiebt dich, bei Gegenwind 🌬️ mehr Gas geben.", "Sturm! Rückenwind schiebt, Gegenwind bremst!"],
+      deko: ["@herbstbaum:3.6", "@kuerbis:0.8", "@laubhaufen:0.9", "@herbstbaum:2.8", "🦔:0.55", "@pilzrot:0.7", "🐿️:0.55", "@vogelscheuche:2.3",
+             "@kuerbis:1.1", "@tanne:3.2", "@herbstbaum:4.0", "@laubhaufen:1.2"],
+      beiwerk: ["@laubhaufen:0.4", "@pilzrot:0.35", "@stein:0.35"], kulisse: ["windrad", "wald", "wald"],
+      gelaende: { amp: 8.0, welle: 42, holperAmp: 0.22, holperWelle: 6, trend: 0.02,
+                  maxAuf: 26, maxAb: 40, schanzen: 1.3, buckel: 0.8, steil: 0.9, taeler: 0.8, berg: 0.9, sprung: 1.3, wellen: 1.0, klippe: 0.7, rampe: 0.7, kuppe: 1.0, stufe: 0.8, wildBasis: 0.45,
+                  abstandElemente: 27 },
+      tankAbstand: 265, muenzAbstand: 22,
+      level: [ { laenge: 800, seed: 1601 }, { laenge: 1040, seed: 1602 }, { laenge: 1290, seed: 1603 }, { laenge: 1540, seed: 1604 } ]
+    },
+    {
+      /* Meeresgrund: Auftrieb (wenig Schwerkraft), Wasser bremst (dichtes Medium für den
+         Strömungswiderstand ½·ρ·cwA·v²) und dämpft Drehungen. Fiete trägt einen
+         Taucherhelm, aus dem Auspuff blubbern Blasen, der Klang ist dumpf. */
+      id: "meer", name: "Meeresgrund", emoji: "🐠", hinweis: "Unter Wasser: alles schwebt, aber das Wasser bremst",
+      schwerkraft: 4.6, grip: 0.85, rollwiderstand: 0.03, abprall: 0.05, luftdichte: 6, drehDaempfung: 1.1, unterwasser: true,
+      farben: {
+        himmel: ["#55cbe6", "#0d3d70"], berge: ["#22729a", "#185e80"],
+        boden: ["#e2c48a", "#bc9b62"], oberflaeche: "#f0d9a2", kante: "#fff2c8", punkte: "#b08d58"
+      },
+      sonne: "lichtstrahlen", wetter: "blasen",
+      tipp: ["🐠 Unter Wasser schwebt alles – aber das Wasser bremst. Gib ruhig mehr Gas!", "Unter Wasser schwebt alles!"],
+      deko: ["@koralle:1.6", "@seetang:3.0", "🐠:0.7:2.2", "@muschel:0.5", "@koralle:1.1", "🦀:0.6", "@seetang:2.2", "🐙:1.0",
+             "🐟:0.6:3.0", "@seestern:0.5", "@koralle:2.0", "🐢:1.1:2.6", "@anker:1.4", "🐡:0.7:1.8", "@seetang:3.6", "@schatzkiste:0.9"],
+      beiwerk: ["@muschel:0.35", "@seestern:0.35", "@stein:0.4"], kulisse: ["riff", "wrack", "tang"],
+      gelaende: { amp: 8.0, welle: 44, holperAmp: 0.25, holperWelle: 7, trend: 0.02,
+                  maxAuf: 28, maxAb: 40, schanzen: 1.2, buckel: 1.0, steil: 0.9, taeler: 1.0, berg: 0.9, sprung: 1.0, wellen: 1.0, klippe: 0.8, rampe: 0.6, kuppe: 0.8, stufe: 0.8, wildBasis: 0.45,
+                  abstandElemente: 28 },
+      tankAbstand: 270, muenzAbstand: 23,
+      level: [ { laenge: 800, seed: 1701 }, { laenge: 1050, seed: 1702 }, { laenge: 1300, seed: 1703 }, { laenge: 1550, seed: 1704 } ]
+    },
+    {
+      /* Nachtwald: Es ist dunkel (grafik.js zeichneNacht). Licht geben die Scheinwerfer,
+         Laternen, Lagerfeuer, Leuchtpilze und Glühwürmchen; Münzen und Kanister
+         schimmern, damit man sie findet. Das Abschluss-Abenteuer. */
+      id: "nacht", name: "Nachtwald", emoji: "🦉", hinweis: "Nachts im Wald: Scheinwerfer an! Glühwürmchen leuchten",
+      schwerkraft: 9.81, grip: 0.95, rollwiderstand: 0.022, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#0b1534", "#2e4378"], berge: ["#24365f", "#1a2848"],
+        boden: ["#3d302a", "#251c19"], oberflaeche: "#356a40", kante: "#6aa860", punkte: "#4d3c33",
+        wolken: "rgba(70,88,140,0.45)", fenster: "#ffd27a"
+      },
+      sonne: "vollmond", wetter: "gluehwuermchen",
+      nacht: { dunkel: 0.6 },
+      tipp: ["🔦 Im Dunkeln leuchten deine Scheinwerfer. Fahr lieber etwas langsamer!", "Im Dunkeln leuchten deine Scheinwerfer!"],
+      deko: ["@tanne:3.6", "@laterne:2.0", "@pilz:0.9", "@tanne:2.8", "@eule:1.6", "@laubbaum:3.4", "🦔:0.55", "@zelt:1.8",
+             "@pilz:1.2", "@tanne:3.2", "@stein:0.8", "🦊:0.8", "@laterne:2.2", "@laubbaum:2.8"],
+      beiwerk: ["@gras:0.4", "@pilz:0.4", "@stein:0.35"], kulisse: ["dorf", "tannen", "tannen"],
+      gelaende: { amp: 9.5, welle: 40, holperAmp: 0.25, holperWelle: 6, trend: 0.026,
+                  maxAuf: 32, maxAb: 42, schanzen: 1.2, buckel: 1.0, steil: 1.1, taeler: 1.0, berg: 1.2, sprung: 1.2, wellen: 1.0, klippe: 0.9, rampe: 0.9, kuppe: 1.1, stufe: 1.0, wildBasis: 0.5,
+                  abstandElemente: 26 },
+      tankAbstand: 320, muenzAbstand: 22,
+      level: [ { laenge: 820, seed: 1801 }, { laenge: 1080, seed: 1802 }, { laenge: 1340, seed: 1803 }, { laenge: 1600, seed: 1804 } ]
     }
   ],
 
@@ -641,6 +768,12 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "15", titel: "Fünf neue Welten", punkte: [
+      "🌧️ Pfützenland: Es regnet, in den Tälern stehen Pfützen – platsch! Das Wasser spritzt und bremst ein bisschen",
+      "🌻 Riesengarten: Du bist winzig zwischen Riesenblumen. Hüpfpilze schleudern dich hoch – boing!",
+      "🍂 Herbststurm: Rückenwind schiebt dich, Gegenwind bremst. Das Moped pustet der Wind am meisten weg",
+      "🐠 Meeresgrund: Unter Wasser schwebt alles, Fiete trägt einen Taucherhelm und der Auspuff blubbert",
+      "🦉 Nachtwald: Im Dunkeln leuchten deine Scheinwerfer, Laternen und Glühwürmchen" ] },
     { version: "14", titel: "Hochkant oder quer", punkte: [
       "📱 In der installierten App kannst du in den Einstellungen wählen: quer, hochkant oder mit dem Handy mitdrehen",
       "↕️ Wer hochkant spielt, bekommt keinen „Handy quer halten“-Hinweis mehr" ] },

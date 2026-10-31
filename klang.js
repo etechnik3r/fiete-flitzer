@@ -20,7 +20,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 (function () {
   "use strict";
 
-  var ctx = null, master = null, motor = null;
+  var ctx = null, master = null, motor = null, dumpf = null;
   var an = true, sprachAn = true;
 
   function init() {
@@ -30,7 +30,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = an ? 0.8 : 0;
-    master.connect(ctx.destination);
+    // Tiefpass hinter allem: offen (unhörbar) – unter Wasser klingt alles dumpf
+    dumpf = ctx.createBiquadFilter(); dumpf.type = "lowpass"; dumpf.frequency.value = 20000; dumpf.Q.value = 0.7;
+    master.connect(dumpf); dumpf.connect(ctx.destination);
   }
 
   function setzeAn(wert) {
@@ -384,8 +386,34 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (probe) { clearInterval(probe.timer); probe.m.stopp(); probe = null; }
     motor = new Motor(ctx, master, profil || FF.CONFIG.fahrzeuge[0].klang);
   }
-  function motorSetze(z) { if (motor) motor.setze(z); }
-  function motorStopp() { if (motor) { motor.stopp(); motor = null; } }
+  function motorSetze(z) {
+    if (motor) motor.setze(z);
+    if (umgebung) umgebung.g.gain.setTargetAtTime(z.stumm ? 0 : umgebung.laut * umgebung.staerke, ctx.currentTime, 0.2);
+  }
+  function motorStopp() { if (motor) { motor.stopp(); motor = null; } setzeUmgebung(null); }
+
+  /* Umgebungsgeräusch einer Welt (Rauschen, gefiltert, als Schleife):
+     regen = Prasseln, wind = Sturm (Stärke folgt dem Wind), meer = tiefes Rauschen.
+     Unter Wasser schließt sich außerdem der Tiefpass "dumpf" (alles klingt gedämpft). */
+  var umgebung = null;
+  var UMGEBUNG = { regen: ["bandpass", 2600, 0.5, 0.05], wind: ["lowpass", 520, 0.8, 0.06], meer: ["lowpass", 260, 0.7, 0.07] };
+  function setzeUmgebung(art) {
+    if (!ctx) return;
+    if (umgebung) { var alt = umgebung; alt.g.gain.setTargetAtTime(0, ctx.currentTime, 0.1); setTimeout(function () { try { alt.q.stop(); } catch (e) { /* schon aus */ } }, 600); umgebung = null; }
+    dumpf.frequency.setTargetAtTime(art === "meer" ? 750 : 20000, ctx.currentTime, 0.1);
+    var U = UMGEBUNG[art];
+    if (!U) return;
+    var q = rauschQuelle(ctx), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    f.type = U[0]; f.frequency.value = U[1]; f.Q.value = U[2]; g.gain.value = 0;
+    q.connect(f); f.connect(g); g.connect(master); q.start();
+    umgebung = { q: q, f: f, g: g, laut: U[3], staerke: 1, art: art };
+  }
+  /* Sturm: 0 … 1 (Betrag des Windes); der Filter öffnet bei starkem Wind */
+  function umgebungStaerke(v) {
+    if (!umgebung) return;
+    umgebung.staerke = 0.3 + 0.7 * v;
+    if (umgebung.art === "wind") umgebung.f.frequency.setTargetAtTime(380 + 500 * v, ctx.currentTime, 0.3);
+  }
 
   /* Garage: Motor kurz anhören – im Leerlauf (kein Gang): anlassen, zweimal
      Gas geben, ausdrehen lassen */
@@ -491,6 +519,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "extraBereit":              // Knopf ist voll aufgeladen
         ton(1047, 0, 0.1, "triangle", 0.14); ton(1568, 0.09, 0.25, "triangle", 0.14);
         break;
+      case "platsch":                  // durch eine Pfütze: Spritzen + ein paar Tropfen
+        rauschen(0, 0.25 + 0.2 * (wert || 0.5), 0.12 + 0.2 * (wert || 0.5), 1400);
+        ton(520, 0.02, 0.09, "sine", 0.08, 260); ton(780, 0.09, 0.07, "sine", 0.06, 420); ton(640, 0.16, 0.06, "sine", 0.05, 330);
+        break;
+      case "boing":                    // Hüpfpilz
+        ton(110, 0, 0.55, "sine", 0.32, 520); ton(220, 0.03, 0.45, "triangle", 0.1, 900);
+        ton(523, 0.1, 0.12, "triangle", 0.08); ton(784, 0.18, 0.16, "triangle", 0.08);
+        break;
+      case "windstoss":                // Wind dreht: kurzes Rauschen
+        rauschen(0, 0.9, 0.12, 600);
+        break;
       case "meilenstein":
         ton(784, 0, 0.12, "triangle", 0.14); ton(1175, 0.1, 0.25, "triangle", 0.14);
         break;
@@ -527,6 +566,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     setzeAn: setzeAn,
     setzeSprache: function (wert) { sprachAn = wert; if (!wert && window.speechSynthesis) window.speechSynthesis.cancel(); },
     motorStart: motorStart, motorSetze: motorSetze, motorStopp: motorStopp, motorProbe: motorProbe,
+    setzeUmgebung: setzeUmgebung, umgebungStaerke: umgebungStaerke,
     Motor: Motor,                       // für Tests (OfflineAudioContext)
     spiele: spiele,
     sprich: sprich

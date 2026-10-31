@@ -16,6 +16,7 @@
      node werkzeuge/testfahrt.js --vergleich     alle vier Fahrer je Level nebeneinander
      node werkzeuge/testfahrt.js --physik        Physik-Plausibilitätstests
      node werkzeuge/testfahrt.js --geist         Geisterrennen: Aufnahme, Wiedergabe, Sieger
+     node werkzeuge/testfahrt.js --spielideen    Pfützen, Hüpfpilze, Wind, Wasser der neuen Welten
 
    Drei Roboter-Fahrer:
      Profi    sagt in der Luft den Landepunkt voraus und stellt die Nase mit
@@ -283,7 +284,81 @@ function geistTests() {
 }
 
 /* ---------- Hauptprogramm ---------- */
+/* Spielideen der neuen Welten: Pfütze, Hüpfpilz, Wind, Wasser, Nacht – und dass
+   die alten Welten davon nichts abbekommen */
+function spielideenTests() {
+  var fehler = 0, C = FF.CONFIG;
+  function pruefe(bed, text, extra) { console.log((bed ? "✓ " : "✗ ") + text + (bed || extra === undefined ? "" : " → " + JSON.stringify(extra))); if (!bed) fehler++; }
+  function wi(id) { for (var i = 0; i < C.welten.length; i++) if (C.welten[i].id === id) return i; return -1; }
+  function neu(id, stufe) { return new FF.Fahrt({ weltIndex: wi(id), stufe: stufe || 0, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal" }); }
+  // Pfützen: liegen in Mulden, Wasserspiegel über dem Boden, nicht breiter als erlaubt
+  var f = neu("pfuetzen", 1), P = f.gelaende.pfuetzen, W = f.welt.wasser, ok = P.length > 5;
+  P.forEach(function (p, i) {
+    var mitte = (p.x0 + p.x1) / 2;
+    if (!(p.x1 - p.x0 <= W.maxBreite + 1 && f.gelaende.hoeheBei(mitte) < p.y && (i === 0 || P[i - 1].x1 < p.x0))) ok = false;
+  });
+  pruefe(ok, "Pfützenland: " + P.length + " Pfützen in Mulden, sortiert, höchstens " + W.maxBreite + " m breit");
+  // Durchfahren: spritzt und bremst
+  var p0 = P[0], x = p0.x0 - 6;
+  FF.Physik.setzeAufBoden(f.fz, f.gelaende, x, 0);
+  f.fz.chassis.vx = 10; f.fz.raeder.forEach(function (R) { R.k.vx = 10; });
+  var platsch = false, vMin = 99;
+  for (var i = 0; i < 240 * 2 && f.fz.chassis.x < p0.x1 + 3; i++) {
+    f.aktualisiere(1 / 240, { gas: false, bremse: false });
+    f.ereignisse.forEach(function (e) { if (e.typ === "platsch") platsch = true; });
+    f.ereignisse.length = 0;
+    if (f.imWasser) vMin = Math.min(vMin, f.fz.chassis.vx);
+  }
+  pruefe(platsch && vMin < 10, "Pfütze: spritzt (Ereignis „platsch“) und bremst (v im Wasser bis " + vMin.toFixed(1) + " m/s)");
+  // Hüpfpilz: schleudert hoch
+  var h = neu("garten", 1), T = h.gelaende.trampoline[0];
+  pruefe(h.gelaende.trampoline.length > 0, "Riesengarten: " + h.gelaende.trampoline.length + " Hüpfpilze in Level 2");
+  FF.Physik.setzeAufBoden(h.fz, h.gelaende, T.x0 - 4, 0);
+  h.fz.chassis.vx = 8; h.fz.raeder.forEach(function (R) { R.k.vx = 8; });
+  var boing = false, hoch = 0, y0 = h.fz.chassis.y;
+  for (i = 0; i < 240 * 3; i++) {
+    h.aktualisiere(1 / 240, { gas: true, bremse: false });
+    h.ereignisse.forEach(function (e) { if (e.typ === "boing") boing = true; });
+    h.ereignisse.length = 0;
+    hoch = Math.max(hoch, h.fz.chassis.y - y0);
+  }
+  pruefe(boing && hoch > 3, "Hüpfpilz: „boing“ und das Auto fliegt " + hoch.toFixed(1) + " m hoch");
+  pruefe(h.gelaende.gesperrt((T.x0 + T.x1) / 2), "Der Ballon setzt nie auf einem Hüpfpilz ab (Sperrzone)");
+  // Wind: Rücken- und Gegenwind kommen vor, am Start ist es ruhig, schiebt wirklich
+  var w = neu("herbst", 1), gel = w.gelaende, plus = 0, minus = 0;
+  for (x = 0; x < gel.ziel; x += 5) { var a = gel.windBei(x); if (a > 1) plus++; if (a < -1) minus++; }
+  pruefe(plus > 10 && minus > 5 && gel.windBei(10) === 0, "Herbststurm: Rückenwind (" + plus + "×) und Gegenwind (" + minus + "×), am Start windstill");
+  var xr = 0; for (x = 80; x < gel.ziel; x += 2) if (gel.windBei(x) > 1.5) { xr = x; break; }
+  function rollen(f2, xs) {
+    FF.Physik.setzeAufBoden(f2.fz, f2.gelaende, xs, 0);
+    var sc = { hoeheBei: function () { return 0; }, steigungBei: function () { return 0; } };   // ebener Boden, gleicher Wind
+    var ge = f2.gelaende; ge.hoeheBei = sc.hoeheBei; ge.steigungBei = sc.steigungBei;
+    FF.Physik.setzeAufBoden(f2.fz, ge, xs, 0);
+    for (var k = 0; k < 240; k++) FF.Physik.schritt(f2.fz, ge, f2.welt, 1 / 240);
+    return f2.fz.chassis.vx;
+  }
+  var vWind = rollen(neu("herbst", 1), xr), mo = new FF.Fahrt({ weltIndex: wi("herbst"), stufe: 1, fahrzeugId: "moped", upgrades: {}, schwierigkeit: "normal" });
+  var vMoped = rollen(mo, xr);
+  pruefe(vWind > 0.5 && vMoped > vWind, "Rückenwind schiebt ein stehendes Auto an (Flitzer " + vWind.toFixed(2) + " m/s, Moped stärker: " + vMoped.toFixed(2) + " m/s nach 1 s)");
+  // Unter Wasser: Drehung wird gedämpft
+  var m = neu("meer", 0), C0 = m.fz.chassis;
+  C0.y += 30; m.fz.raeder.forEach(function (R) { R.k.y += 30; }); C0.w = 3;
+  for (i = 0; i < 240; i++) FF.Physik.schritt(m.fz, m.gelaende, m.welt, 1 / 240);
+  pruefe(Math.abs(C0.w) < 3 * Math.exp(-0.8), "Meeresgrund: Drehung im Wasser gedämpft (3 → " + C0.w.toFixed(2) + " rad/s in 1 s)");
+  // Alte Welten: keine Pfützen, keine Hüpfpilze, kein Wind
+  var sauber = true;
+  C.welten.forEach(function (welt, j) {
+    if (welt.wasser || welt.wind || welt.gelaende.trampolin) return;
+    var q = new FF.Gelaende(welt, { stufe: 2, laenge: welt.level[2].laenge, seed: welt.level[2].seed });
+    if (q.pfuetzen.length || q.trampoline.length || q.windBei(200) !== 0) sauber = false;
+  });
+  pruefe(sauber, "Alle anderen Welten: keine Pfützen, keine Hüpfpilze, kein Wind");
+  console.log(fehler ? fehler + " Test(s) fehlgeschlagen." : "Alle Spielideen-Tests bestanden.");
+  return fehler;
+}
+
 if (arg("physik", false)) { physikTests(); process.exit(0); }
+if (arg("spielideen", false)) { process.exit(spielideenTests() ? 1 : 0); }
 if (arg("geist", false)) { process.exit(geistTests() ? 1 : 0); }
 
 if (arg("vergleich", false)) {

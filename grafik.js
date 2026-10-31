@@ -148,30 +148,50 @@ var FF = globalThis.FF = globalThis.FF || {};
     var r = Math.min(K.b, K.h) * 0.09;
     var x = K.b * 0.8, y = K.h * 0.3;
     if (welt.sonne === "sonne") {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(zeit * 0.15);
-      ctx.fillStyle = "rgba(255, 214, 80, 0.45)";
-      for (var i = 0; i < 10; i++) {
-        ctx.rotate(Math.PI / 5);
-        ctx.beginPath();
-        ctx.moveTo(r * 1.15, -r * 0.16); ctx.lineTo(r * 1.75, 0); ctx.lineTo(r * 1.15, r * 0.16);
-        ctx.fill();
+      sonneMalen(ctx, x, y, r, zeit);
+    } else if (welt.sonne === "wolkig") {
+      // Regen: die Sonne lugt hinter einer dicken Regenwolke hervor
+      sonneMalen(ctx, x + r * 0.7, y - r * 0.45, r * 0.85, zeit);
+      ctx.fillStyle = "#9aa8bf";
+      wolkeMalen(ctx, x - r * 0.2, y + r * 0.25, r * 4.2);
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      wolkeMalen(ctx, x - r * 0.4, y + r * 0.05, r * 2.6);
+    } else if (welt.sonne === "lichtstrahlen") {
+      // Unter Wasser: Licht fällt in Bahnen von der Oberfläche herein, die Oberfläche glitzert
+      for (var ls = 0; ls < 6; ls++) {
+        var lx = K.b * (0.08 + ls * 0.18) + Math.sin(zeit * 0.3 + ls * 1.7) * K.b * 0.03 - ((K.x * K.s * 0.03) % (K.b * 0.18));
+        var lb = K.b * (0.03 + 0.025 * ((ls * 7) % 3));
+        ctx.fillStyle = "rgba(220,250,255," + (0.07 + 0.05 * Math.sin(zeit * 0.7 + ls * 2.1)) + ")";
+        ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx + lb, 0); ctx.lineTo(lx + lb * 2.2 + K.h * 0.35, K.h * 0.85); ctx.lineTo(lx + K.h * 0.35, K.h * 0.85); ctx.closePath(); ctx.fill();
       }
-      ctx.restore();
-      var sg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
-      sg.addColorStop(0, "#fff6b8"); sg.addColorStop(1, "#ffcc33");
-      ctx.fillStyle = sg;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-      // freundliches Gesicht
-      ctx.fillStyle = "#8a5a00";
-      ctx.beginPath(); ctx.arc(x - r * 0.32, y - r * 0.12, r * 0.09, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x + r * 0.32, y - r * 0.12, r * 0.09, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#8a5a00"; ctx.lineWidth = r * 0.08; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.arc(x, y + r * 0.05, r * 0.38, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
-      ctx.fillStyle = "rgba(255,120,120,0.45)";
-      ctx.beginPath(); ctx.arc(x - r * 0.55, y + r * 0.2, r * 0.13, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x + r * 0.55, y + r * 0.2, r * 0.13, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(235,252,255,0.45)"; ctx.lineWidth = 2;
+      for (var wz = 0; wz < 2; wz++) {
+        ctx.beginPath();
+        for (var px = 0; px <= K.b + 20; px += 20) {
+          var py = K.h * (0.025 + wz * 0.03) + Math.sin(px * 0.03 + zeit * (1.2 + wz * 0.5) + wz * 2) * 4;
+          if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+    } else if (welt.sonne === "vollmond") {
+      // Nacht: funkelnde Sterne und ein freundlicher, schläfriger Vollmond
+      for (var st = 0; st < 60; st++) {
+        var stx = zufall01(st, 3) * K.b, sty = zufall01(st, 4) * K.h * 0.55;
+        ctx.fillStyle = "rgba(255,255,240," + (0.35 + 0.55 * Math.abs(Math.sin(zeit * 1.2 + st))) + ")";
+        ctx.fillRect(stx, sty, 1.5 + zufall01(st, 5) * 1.5, 1.5 + zufall01(st, 5) * 1.5);
+      }
+      var mr = r * 1.15, mh = ctx.createRadialGradient(x, y, mr * 0.8, x, y, mr * 2.6);
+      mh.addColorStop(0, "rgba(255,248,210,0.3)"); mh.addColorStop(1, "rgba(255,248,210,0)");
+      ctx.fillStyle = mh; ctx.beginPath(); ctx.arc(x, y, mr * 2.6, 0, Math.PI * 2); ctx.fill();
+      var mg2 = ctx.createRadialGradient(x - mr * 0.3, y - mr * 0.3, mr * 0.1, x, y, mr);
+      mg2.addColorStop(0, "#fffbe6"); mg2.addColorStop(1, "#f1e2a8");
+      ctx.fillStyle = mg2; ctx.beginPath(); ctx.arc(x, y, mr, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(200,180,120,0.35)";
+      [[-0.4, -0.35, 0.18], [0.35, 0.3, 0.14], [0.45, -0.4, 0.1]].forEach(function (k) { ctx.beginPath(); ctx.arc(x + k[0] * mr, y + k[1] * mr, k[2] * mr, 0, Math.PI * 2); ctx.fill(); });
+      ctx.strokeStyle = "#a08850"; ctx.lineWidth = mr * 0.07; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(x - mr * 0.3, y - mr * 0.05, mr * 0.13, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();   // schläfrige Augen
+      ctx.beginPath(); ctx.arc(x + mr * 0.3, y - mr * 0.05, mr * 0.13, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y + mr * 0.22, mr * 0.2, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
     } else if (welt.sonne === "erde") {
       var eg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
       eg.addColorStop(0, "#7cc8ff"); eg.addColorStop(1, "#1f5fbf");
@@ -233,21 +253,53 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Freundliche Sonne mit Strahlen und Gesicht */
+  function sonneMalen(ctx, x, y, r, zeit) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(zeit * 0.15);
+    ctx.fillStyle = "rgba(255, 214, 80, 0.45)";
+    for (var i = 0; i < 10; i++) {
+      ctx.rotate(Math.PI / 5);
+      ctx.beginPath();
+      ctx.moveTo(r * 1.15, -r * 0.16); ctx.lineTo(r * 1.75, 0); ctx.lineTo(r * 1.15, r * 0.16);
+      ctx.fill();
+    }
+    ctx.restore();
+    var sg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+    sg.addColorStop(0, "#fff6b8"); sg.addColorStop(1, "#ffcc33");
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#8a5a00";
+    ctx.beginPath(); ctx.arc(x - r * 0.32, y - r * 0.12, r * 0.09, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + r * 0.32, y - r * 0.12, r * 0.09, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#8a5a00"; ctx.lineWidth = r * 0.08; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(x, y + r * 0.05, r * 0.38, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+    ctx.fillStyle = "rgba(255,120,120,0.45)";
+    ctx.beginPath(); ctx.arc(x - r * 0.55, y + r * 0.2, r * 0.13, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + r * 0.55, y + r * 0.2, r * 0.13, 0, Math.PI * 2); ctx.fill();
+  }
+  /* Wolke aus drei Ellipsen, Breite w, Farbe = aktuelles fillStyle */
+  function wolkeMalen(ctx, x, y, w) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, w * 0.5, w * 0.22, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - w * 0.22, y - w * 0.08, w * 0.24, w * 0.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + w * 0.15, y - w * 0.14, w * 0.28, w * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   function zeichneWolken(ctx, K, welt, zeit) {
-    if (welt.sonne === "erde" || welt.decke) return;
+    if (welt.sonne === "erde" || welt.decke || welt.unterwasser) return;
+    var gross = welt.wetter === "regen" ? 1.9 : 1;           // Regen: dicke Wolken
     var breite = K.b + 400;
     var farbe = welt.farben.wolken || (welt.id === "vulkan" ? "rgba(120,90,100,0.55)" : "rgba(255,255,255,0.85)");
     for (var i = 0; i < 6; i++) {
       var basis = i * 337 + 60;
       var x = ((basis - K.x * K.s * 0.06 + zeit * 8 * (1 + i % 3 * 0.3)) % breite + breite) % breite - 200;
       var y = K.h * (0.08 + (i * 0.137) % 0.3);
-      var w = 60 + (i * 53) % 70;
+      var w = (60 + (i * 53) % 70) * gross;
       ctx.fillStyle = farbe;
-      ctx.beginPath();
-      ctx.ellipse(x, y, w * 0.5, w * 0.22, 0, 0, Math.PI * 2);
-      ctx.ellipse(x - w * 0.22, y - w * 0.08, w * 0.24, w * 0.2, 0, 0, Math.PI * 2);
-      ctx.ellipse(x + w * 0.15, y - w * 0.14, w * 0.28, w * 0.24, 0, 0, Math.PI * 2);
-      ctx.fill();
+      wolkeMalen(ctx, x, y, w);
     }
   }
 
@@ -352,6 +404,97 @@ var FF = globalThis.FF = globalThis.FF || {};
     wolkenberg: { abst: 22, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(x + (i - 1.5) * s * 0.22, y - s * (0.1 + 0.15 * R()), s * (0.15 + 0.1 * R()), 0, Math.PI * 2); ctx.fill(); }
     } },
+    dorf: { abst: 30, male: function (ctx, x, y, s, R, f) {
+      // Häuser mit Giebeldach, manchmal ein Kirchturm; nachts leuchten Fenster (f.fenster)
+      var alt = ctx.fillStyle, n = 2 + Math.floor(R() * 2), fenster = [];
+      for (var i = 0; i < n; i++) {
+        var b = s * (0.16 + 0.08 * R()), h = s * (0.13 + 0.09 * R()), xx = x + (i - (n - 1) / 2) * s * 0.28;
+        ctx.fillRect(xx - b / 2, y - h, b, h + 2);
+        ctx.beginPath(); ctx.moveTo(xx - b * 0.62, y - h + 1); ctx.lineTo(xx, y - h - b * 0.48); ctx.lineTo(xx + b * 0.62, y - h + 1); ctx.fill();
+        if (R() < 0.4) ctx.fillRect(xx + b * 0.18, y - h - b * 0.45, b * 0.1, b * 0.3);              // Schornstein
+        fenster.push([xx - b * 0.3, y - h * 0.68, b * 0.17], [xx + b * 0.12, y - h * 0.68, b * 0.17]);
+      }
+      if (R() < 0.35) {
+        var tx = x + s * 0.42, th = s * 0.42, tb = s * 0.07;
+        ctx.fillRect(tx - tb / 2, y - th, tb, th + 2);
+        ctx.beginPath(); ctx.moveTo(tx - tb * 0.7, y - th + 1); ctx.lineTo(tx, y - th - s * 0.16); ctx.lineTo(tx + tb * 0.7, y - th + 1); ctx.fill();
+        fenster.push([tx - tb * 0.2, y - th * 0.8, tb * 0.4]);
+      }
+      ctx.fillStyle = f.fenster || hell(alt, 0.16);
+      fenster.forEach(function (fe) { if (!f.fenster || R() < 0.7) ctx.fillRect(fe[0], fe[1], fe[2], fe[2] * 1.1); });
+      ctx.fillStyle = alt;
+    } },
+    zaun: { abst: 9, male: function (ctx, x, y, s, R) {
+      // Gartenzaun-Stück aus Latten mit Spitze (Riesengarten: riesig im Hintergrund)
+      var n = 6 + Math.floor(R() * 3), b = s * 0.05, h = s * (0.32 + 0.05 * R()), abst = s * 0.085;
+      for (var i = 0; i < n; i++) {
+        var xx = x + (i - (n - 1) / 2) * abst;
+        ctx.beginPath(); ctx.moveTo(xx - b / 2, y + 2); ctx.lineTo(xx - b / 2, y - h); ctx.lineTo(xx, y - h - b * 0.7); ctx.lineTo(xx + b / 2, y - h); ctx.lineTo(xx + b / 2, y + 2); ctx.fill();
+      }
+      ctx.fillRect(x - n * abst / 2, y - h * 0.8, n * abst, b * 0.6);
+      ctx.fillRect(x - n * abst / 2, y - h * 0.3, n * abst, b * 0.6);
+    } },
+    riesenblumen: { abst: 16, male: function (ctx, x, y, s, R) {
+      var n = 1 + Math.floor(R() * 2);
+      for (var i = 0; i < n; i++) {
+        var h = s * (0.6 + 0.6 * R()), xx = x + (i - (n - 1) / 2) * s * 0.4, r = s * (0.07 + 0.05 * R());
+        ctx.fillRect(xx - s * 0.012, y - h, s * 0.024, h + 2);
+        ctx.beginPath(); ctx.ellipse(xx - s * 0.06, y - h * 0.4, s * 0.07, s * 0.025, -0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        for (var k = 0; k < 8; k++) { var w = k * Math.PI / 4; ctx.moveTo(xx + Math.cos(w) * r * 1.5 + r * 0.6, y - h + Math.sin(w) * r * 1.5); ctx.arc(xx + Math.cos(w) * r * 1.5, y - h + Math.sin(w) * r * 1.5, r * 0.6, 0, Math.PI * 2); }
+        ctx.arc(xx, y - h, r, 0, Math.PI * 2); ctx.fill();
+      }
+    } },
+    halme: { abst: 5, male: function (ctx, x, y, s, R) {
+      for (var i = 0; i < 4; i++) {
+        var h = s * (0.3 + 0.6 * R()), xx = x + (i - 1.5) * s * 0.07, b = s * 0.022, k = (R() - 0.4) * s * 0.2;
+        ctx.beginPath(); ctx.moveTo(xx - b, y + 2); ctx.quadraticCurveTo(xx - b * 0.5, y - h * 0.6, xx + k, y - h); ctx.quadraticCurveTo(xx + b * 0.5, y - h * 0.55, xx + b, y + 2); ctx.fill();
+      }
+    } },
+    windrad: { abst: 55, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Windräder drehen sich mit dem Wind (Richtung und Tempo: windPhase)
+      var h = s * (1.0 + 0.4 * R()), b = s * 0.035, l = h * 0.42, w0 = windPhase * (0.8 + 0.4 * R()) + k * 1.3;
+      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x - b * 0.45, y - h); ctx.lineTo(x + b * 0.45, y - h); ctx.lineTo(x + b, y + 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + b * 0.4, y - h, b * 1.4, b * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+      for (var i = 0; i < 3; i++) {
+        var w = w0 + i * Math.PI * 2 / 3, cx = x, cy = y - h;
+        ctx.beginPath(); ctx.moveTo(cx + Math.cos(w + 1.57) * b * 0.5, cy + Math.sin(w + 1.57) * b * 0.5);
+        ctx.lineTo(cx + Math.cos(w) * l, cy + Math.sin(w) * l);
+        ctx.lineTo(cx + Math.cos(w - 1.57) * b * 0.5, cy + Math.sin(w - 1.57) * b * 0.5); ctx.fill();
+      }
+    } },
+    riff: { abst: 12, male: function (ctx, x, y, s, R) {
+      // Korallenstöcke und Felsen
+      ctx.beginPath(); ctx.ellipse(x, y, s * (0.22 + 0.15 * R()), s * (0.1 + 0.08 * R()), 0, Math.PI, 0); ctx.fill();
+      var alt = ctx.strokeStyle; ctx.strokeStyle = ctx.fillStyle; ctx.lineCap = "round";
+      for (var i = 0; i < 2; i++) {
+        var xx = x + (i - 0.5) * s * 0.25, h = s * (0.2 + 0.3 * R());
+        ctx.lineWidth = s * 0.03;
+        ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx, y - h);
+        ctx.moveTo(xx, y - h * 0.5); ctx.lineTo(xx - s * 0.08, y - h * 0.8); ctx.moveTo(xx, y - h * 0.6); ctx.lineTo(xx + s * 0.09, y - h * 0.95); ctx.stroke();
+      }
+      ctx.strokeStyle = alt;
+    } },
+    wrack: { abst: 70, male: function (ctx, x, y, s, R) {
+      // versunkenes Segelschiff, schräg im Sand
+      ctx.save(); ctx.translate(x, y); ctx.rotate(-0.12 + (R() - 0.5) * 0.1);
+      var b = s * 0.8, h = s * 0.22;
+      ctx.beginPath(); ctx.moveTo(-b, -h); ctx.lineTo(b * 0.85, -h * 1.1); ctx.lineTo(b, -h * 1.5); ctx.lineTo(b * 0.7, h * 0.3); ctx.lineTo(-b * 0.8, h * 0.3); ctx.closePath(); ctx.fill();
+      ctx.fillRect(-b * 0.15, -h - s * 0.55, s * 0.03, s * 0.55);
+      ctx.fillRect(-b * 0.4, -h - s * 0.4, s * 0.4, s * 0.025);
+      ctx.fillRect(b * 0.35, -h - s * 0.35, s * 0.025, s * 0.35);
+      ctx.restore();
+    } },
+    tang: { abst: 6, male: function (ctx, x, y, s, R, f, zeit, k) {
+      var alt = ctx.strokeStyle; ctx.strokeStyle = ctx.fillStyle; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, s * 0.025);
+      for (var i = 0; i < 3; i++) {
+        var h = s * (0.25 + 0.55 * R()), xx = x + (i - 1) * s * 0.07, ph = R() * 6;
+        ctx.beginPath(); ctx.moveTo(xx, y + 2);
+        for (var t = 0.1; t <= 1.001; t += 0.15) ctx.lineTo(xx + Math.sin(t * 5 + ph + zeit * 1.1 + k) * s * 0.04 * t, y - h * t);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = alt;
+    } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
         var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
@@ -411,6 +554,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Höhlendecke: Fels von oben bis gel.deckeBei(x), daran Tropfsteine, leuchtende
      Kristalle und Laternen an Seilen. Alles fest an Weltpositionen (Zufall aus x). */
   function zufall01(k, s) { var v = Math.sin(k * 127.1 + s * 311.7) * 43758.5453; return v - Math.floor(v); }
+  var windJetzt = 0, windPhase = 0;          // Herbststurm: Wind an der Kamera (−1 … 1), Drehwinkel der Windräder
   function zeichneDecke(ctx, K, gel, welt, zeit) {
     if (!welt.decke) return;
     var f = welt.farben, x0 = weltX(K, -30), x1 = weltX(K, K.b + 30), dxs = Math.max(0.5, 12 / K.s), x;
@@ -505,7 +649,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     return [i0, i1, x0, x1];
   }
 
-  function zeichneDeko(ctx, K, gel, x0, x1, q) {
+  function zeichneDeko(ctx, K, gel, x0, x1, q, zeit) {
     var D = gel.deko;
     for (var i = 0; i < D.length; i++) {
       var d = D[i];
@@ -517,8 +661,11 @@ var FF = globalThis.FF = globalThis.FF || {};
         var hb = d.groesse * (d.typ ? FF.Requisiten.breite(d.typ) : 0.8) * 0.45;
         d.fuss = Math.min(gel.hoeheBei(d.x - hb), gel.hoeheBei(d.x), gel.hoeheBei(d.x + hb), gel.hoeheBei(d.x - hb / 2), gel.hoeheBei(d.x + hb / 2));
       }
-      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, d.fuss), px, d.spiegeln, q);
-      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.fuss) - px * 0.42, px, d.spiegeln, q);
+      var yf = d.fuss;
+      if (d.hoch) yf += d.hoch + Math.sin(zeit * 1.3 + d.x) * 0.15;          // Fische, Bienen schweben
+      else if (d.schwimmt) yf += Math.sin(zeit * 2.2 + d.x) * 0.04;           // Ente in der Pfütze
+      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, yf), px, d.spiegeln, q);
+      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, yf) - px * 0.42, px, d.spiegeln, q);
     }
   }
 
@@ -574,7 +721,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     // Welt-typische Details
     var stil = welt.id;
-    if (stil === "wiese" || stil === "dschungel") {
+    if (stil === "wiese" || stil === "dschungel" || stil === "pfuetzen" || stil === "garten" || stil === "nacht") {
       ctx.strokeStyle = f.kante; ctx.lineWidth = Math.max(1, 0.06 * K.s);
       for (i = i0 - (i0 % 2); i <= i1; i += 2) {
         var hz2 = FF.rauschen(i * 1.37, 5);
@@ -602,6 +749,22 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.lineTo(X + 0.6 * K.s, Y + 1.7 * K.s);
         ctx.stroke();
       }
+    } else if (stil === "herbst") {
+      // buntes Laub auf dem Weg
+      var laub = ["#e8862e", "#d9532b", "#f2b233"];
+      for (i = i0 - (i0 % 3); i <= i1; i += 3) {
+        var hl = FF.rauschen(i * 1.91, 8) * 0.5 + 0.5;
+        X = sx(K, x0 + i * dx + hl); Y = sy(K, h[i]) + 0.02 * K.s;
+        ctx.fillStyle = laub[i % 3];
+        ctx.beginPath(); ctx.ellipse(X, Y, 0.12 * K.s, 0.05 * K.s, hl * 3, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (stil === "meer") {
+      // Rippel im Sand
+      ctx.strokeStyle = "rgba(150,115,60,0.35)"; ctx.lineWidth = Math.max(1, 0.05 * K.s);
+      for (i = i0 - (i0 % 4); i <= i1; i += 4) {
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 0.35);
+        ctx.beginPath(); ctx.arc(X, Y + 0.25 * K.s, 0.3 * K.s, 1.25 * Math.PI, 1.75 * Math.PI); ctx.stroke();
+      }
     } else if (stil === "mond") {
       for (i = i0 - (i0 % 11); i <= i1; i += 11) {
         var g2 = FF.rauschen(i * 0.37, 9) * 0.5 + 0.5;
@@ -609,6 +772,69 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "rgba(0,0,0,0.12)";
         ctx.beginPath(); ctx.ellipse(X, Y, (0.4 + g2 * 0.5) * K.s, (0.25 + g2 * 0.25) * K.s, 0, 0, Math.PI * 2); ctx.fill();
       }
+    }
+  }
+
+  /* Pfützen: Wasser von der Oberfläche (kleine Wellen) bis zum Boden; bei Regen
+     ploppen Ringe auf. Das Wasser ist leicht durchsichtig (der Boden schimmert durch). */
+  function zeichneWasser(ctx, K, gel, welt, zeit, x0, x1) {
+    var P = gel.pfuetzen, farbe = welt.farben.wasser || "#5fa8de";
+    for (var i = 0; i < P.length; i++) {
+      var p = P[i];
+      if (p.x1 < x0 - 1 || p.x0 > x1 + 1) continue;
+      var Y = sy(K, p.y), x, schritt = Math.max(0.25, Math.min(0.5, 6 / K.s));
+      ctx.beginPath(); ctx.moveTo(sx(K, p.x0), Y);
+      for (x = p.x0 + schritt; x < p.x1; x += schritt) ctx.lineTo(sx(K, x), Y + Math.sin(x * 2.3 + zeit * 3) * 0.03 * K.s);
+      ctx.lineTo(sx(K, p.x1), Y);
+      for (x = p.x1; x > p.x0; x -= schritt) ctx.lineTo(sx(K, x), sy(K, Math.min(gel.hoeheBei(x), p.y)));
+      ctx.closePath();
+      var gr = ctx.createLinearGradient(0, Y, 0, Y + 0.8 * K.s);
+      gr.addColorStop(0, hell(farbe, 0.25)); gr.addColorStop(1, dunkel(farbe, 0.25));
+      ctx.globalAlpha = 0.78; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
+      // Spiegelung: heller Rand und zwei Glanzstriche
+      ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = Math.max(1, 0.05 * K.s); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(sx(K, p.x0 + 0.1), Y); ctx.lineTo(sx(K, p.x1 - 0.1), Y); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      var w = p.x1 - p.x0;
+      ctx.beginPath(); ctx.moveTo(sx(K, p.x0 + w * 0.2), Y + 0.12 * K.s); ctx.lineTo(sx(K, p.x0 + w * 0.38), Y + 0.12 * K.s);
+      ctx.moveTo(sx(K, p.x0 + w * 0.55), Y + 0.22 * K.s); ctx.lineTo(sx(K, p.x0 + w * 0.66), Y + 0.22 * K.s); ctx.stroke();
+      if (welt.wetter === "regen") {                         // Regentropfen-Ringe
+        ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = Math.max(1, 0.03 * K.s);
+        for (var k = 0; k < w / 1.5; k++) {
+          var u = (zeit * 1.4 + zufall01(k + i * 17, 9)) % 1, xr = p.x0 + 0.3 + (w - 0.6) * zufall01(k + i * 17 + Math.floor(zeit * 1.4 + zufall01(k + i * 17, 9)), 10);
+          ctx.globalAlpha = 1 - u;
+          ctx.beginPath(); ctx.ellipse(sx(K, xr), Y, (0.05 + 0.3 * u) * K.s, (0.02 + 0.08 * u) * K.s, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  /* Hüpfpilze: roter Pilzhut mit weißen Tupfen auf der Kuppel im Boden. Nach dem
+     Abprall wabbelt er kurz (t = Sekunden seit "boing", Fahrtzeit). */
+  function zeichneTrampoline(ctx, K, gel, fahrzeit) {
+    var T = gel.trampoline;
+    for (var i = 0; i < T.length; i++) {
+      var t = T[i], X0 = sx(K, t.x0 - 0.35), X1 = sx(K, t.x1 + 0.35);
+      if (X1 < -20 || X0 > K.b + 20) continue;
+      var basis = gel.hoeheBei(t.x0 - 0.5), dt = fahrzeit - t.boing;
+      var wabbel = dt >= 0 && dt < 0.8 ? Math.sin(dt * 28) * Math.exp(-dt * 5) * 0.25 : 0;
+      var top = function (x) { var u = (x - t.x0) / (t.x1 - t.x0); return basis + (t.H + 0.12) * (1 - wabbel) * Math.sin(Math.PI * Math.max(0, Math.min(1, u)) * 0.92 + Math.PI * 0.04); };
+      ctx.beginPath(); ctx.moveTo(X0, sy(K, basis + 0.05));
+      for (var x = t.x0 - 0.35; x <= t.x1 + 0.35; x += 0.25) ctx.lineTo(sx(K, x), sy(K, top(x)));
+      ctx.lineTo(X1, sy(K, basis + 0.05));
+      ctx.quadraticCurveTo((X0 + X1) / 2, sy(K, basis - 0.12), X0, sy(K, basis + 0.05));
+      var gr = ctx.createLinearGradient(0, sy(K, basis + t.H + 0.2), 0, sy(K, basis));
+      gr.addColorStop(0, "#ff6a5a"); gr.addColorStop(1, "#c42a20");
+      ctx.fillStyle = gr; ctx.fill();
+      ctx.strokeStyle = "rgba(90,20,20,0.55)"; ctx.lineWidth = Math.max(1, 0.05 * K.s); ctx.stroke();
+      ctx.fillStyle = "#fffaf0";
+      [[0.18, 0.45, 0.2], [0.42, 0.7, 0.26], [0.68, 0.55, 0.22], [0.86, 0.3, 0.15], [0.3, 0.2, 0.12], [0.58, 0.25, 0.14]].forEach(function (d) {
+        var xd = t.x0 + (t.x1 - t.x0) * d[0], yd = basis + (top(xd) - basis) * d[1];
+        ctx.beginPath(); ctx.ellipse(sx(K, xd), sy(K, yd), d[2] * K.s, d[2] * 0.7 * K.s, 0, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = Math.max(1, 0.08 * K.s);
+      ctx.beginPath(); ctx.arc(sx(K, t.x0 + (t.x1 - t.x0) * 0.35), sy(K, basis + t.H * 0.55), (t.x1 - t.x0) * 0.22 * K.s, 1.15 * Math.PI, 1.45 * Math.PI); ctx.stroke();
     }
   }
 
@@ -1691,6 +1917,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
   }
 
+  var taucherHelm = false;                   // Meeresgrund: Fiete trägt einen Taucherhelm (Glaskugel)
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {
     var form = KAROSSERIE[def.form] ? def.form : "buggy";
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
@@ -1707,7 +1934,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var kopf = { x: kp.x, y: kp.y + kind.groesse, r: KOPF_R };
     var fahrer = function () {
       zeichneAnzug(ctx, o, tk, kopf, KOPF_R);
-      zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm, kind, Math.min(1, tempo / 12), zeit);
+      zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm || taucherHelm, kind, Math.min(1, tempo / 12), zeit);
     };
     teile.hinten();
     zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
@@ -1859,6 +2086,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (p.art === "funkel") {
         ctx.fillStyle = p.farbe;
         stern(ctx, X, Y, p.r0 * K.s * (1 - u * 0.5), 4, 0.35); ctx.fill();
+      } else if (p.art === "tropfen") {
+        ctx.fillStyle = p.farbe;
+        ctx.beginPath(); ctx.arc(X, Y, p.r0 * K.s * (1 - u * 0.4), 0, Math.PI * 2); ctx.fill();
+      } else if (p.art === "blase") {
+        var rb = (p.r0 + (p.r1 - p.r0) * u) * K.s;
+        ctx.strokeStyle = "rgba(225,248,255,0.85)"; ctx.lineWidth = Math.max(1, rb * 0.25);
+        ctx.beginPath(); ctx.arc(X, Y, rb, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.beginPath(); ctx.arc(X - rb * 0.35, Y - rb * 0.35, rb * 0.25, 0, Math.PI * 2); ctx.fill();
       } else if (p.art === "konfetti") {
         ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
         ctx.fillStyle = p.farbe; ctx.fillRect(-0.09 * K.s, -0.05 * K.s, 0.18 * K.s, 0.1 * K.s);
@@ -1874,9 +2109,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
     if (!art) return;
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
-    var n = art === "sterne" ? 70 : art === "feuerwerk" ? 40 : art === "schnee" ? 20 : art === "glitzer" ? 18 : 14;
+    var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16 }[art] || 14;
     for (var i = 0; i < n; i++) {
-      this.teile.push({ x: Math.random() * (K.b || 800), y: Math.random() * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
+      this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.6 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
   };
   Wetter.prototype.zeichne = function (ctx, K, dt, zeit, hinten) {
@@ -1900,6 +2135,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "funken") { t.y -= (30 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 10 * dt - dx * 0.6; }
       else if (art === "staub") { t.y += Math.sin(zeit * 0.7 + t.p) * 6 * dt; t.x += (-14 - 10 * t.g) * dt - dx * 0.8; }
       else if (art === "glitzer") { t.y += Math.sin(zeit * 0.5 + t.p) * 5 * dt - 3 * dt; t.x += Math.cos(zeit * 0.4 + t.p) * 4 * dt - dx * 0.7; }
+      else if (art === "regen") { t.y += (620 + 260 * t.g) * dt; t.x += -90 * dt - dx * 0.9; }
+      else if (art === "pollen") { t.y += Math.sin(zeit * 0.6 + t.p) * 8 * dt - 4 * dt; t.x += (10 + 6 * t.g) * dt - dx * 0.7; }
+      else if (art === "laub") {                                  // fliegt mit dem Wind (windJetzt: −1 … 1)
+        t.y += (18 + 14 * t.g) * dt + Math.sin(zeit * 1.7 + t.p) * 20 * dt;
+        t.x += (windJetzt * (160 + 120 * t.g) + Math.sin(zeit * 0.8 + t.p) * 25) * dt - dx * 0.7;
+      }
+      else if (art === "blasen") { t.y -= (28 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 9 * dt - dx * 0.6; }
+      else if (art === "gluehwuermchen") {
+        t.y += Math.sin(zeit * 0.9 + t.p * 2) * 16 * dt; t.x += Math.cos(zeit * 0.7 + t.p * 3) * 20 * dt - dx * 0.55;
+        if (t.y < H * 0.4) t.y += 40 * dt;                        // bleiben in Bodennähe
+      }
       if (t.y > H + 10) { t.y = -10; t.x = Math.random() * B; }
       if (t.y < -10) { t.y = H + 10; t.x = Math.random() * B; }
       t.x = ((t.x % (B + 20)) + B + 20) % (B + 20) - 10;
@@ -1924,6 +2170,38 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (art === "staub") {
         ctx.fillStyle = "rgba(196,150,92," + (0.22 + 0.18 * t.g) + ")";
         ctx.beginPath(); ctx.arc(t.x, t.y, 1.5 + 2.2 * t.g, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "regen") {
+        ctx.strokeStyle = "rgba(215,230,255," + (0.35 + 0.25 * t.g) + ")"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x - 3 - 2 * t.g, t.y - 12 - 8 * t.g); ctx.stroke();
+      } else if (art === "pollen") {
+        ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (var pk = 0; pk < 6; pk++) { var pw = pk * Math.PI / 3 + t.p; ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + Math.cos(pw) * 4 * t.g, t.y + Math.sin(pw) * 4 * t.g); }
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.beginPath(); ctx.arc(t.x, t.y, 1.3, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "laub") {
+        if (i % 4 === 0 && Math.abs(windJetzt) > 0.35) {          // Windstriche zeigen, woher der Wind kommt
+          var lw = 40 + 30 * t.g, rw = windJetzt > 0 ? 1 : -1;
+          ctx.strokeStyle = "rgba(255,255,255," + (0.35 * Math.abs(windJetzt)) + ")"; ctx.lineWidth = 2; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(t.x - rw * lw, t.y); ctx.quadraticCurveTo(t.x - rw * lw * 0.3, t.y - 6, t.x, t.y - 2); ctx.stroke();
+          continue;
+        }
+        ctx.fillStyle = ["#e8862e", "#d9532b", "#f2b233", "#b8682a"][i % 4];
+        ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(zeit * 2.5 * (0.5 + t.g) + t.p);
+        ctx.beginPath(); ctx.ellipse(0, 0, 5 * t.g + 2, 2.5 * t.g + 1, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      } else if (art === "blasen") {
+        var br = 1.5 + 3 * t.g;
+        ctx.strokeStyle = "rgba(225,248,255,0.6)"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(t.x, t.y, br, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.arc(t.x - br * 0.35, t.y - br * 0.35, br * 0.25, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "gluehwuermchen") {
+        var gw = Math.max(0, Math.sin(zeit * 1.6 + t.p * 5)) * 0.85 + 0.15;   // blinken langsam auf und ab
+        ctx.globalCompositeOperation = "lighter";
+        var gg = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 9 * t.g + 4);
+        gg.addColorStop(0, "rgba(210,255,110," + (0.5 * gw) + ")"); gg.addColorStop(1, "rgba(210,255,110,0)");
+        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(t.x, t.y, 9 * t.g + 4, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = "rgba(250,255,200," + gw + ")"; ctx.beginPath(); ctx.arc(t.x, t.y, 1.2 + 0.5 * t.g, 0, Math.PI * 2); ctx.fill();
       }
     }
   };
@@ -2062,19 +2340,110 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* =========================================================================
+     8b) NACHT (Nachtwald): Ein dunkler Schleier, in den die Lichter Löcher
+     schneiden – Scheinwerferkegel, Licht ums Auto, Laternen, Lagerfeuer,
+     Leuchtpilze, Mond, und ein Schimmer um Münzen und Kanister,
+     damit Kinder sie auch im Dunkeln finden. Gemalt in halber Auflösung in ein
+     eigenes Bild (weich und schnell), dann einmal über die Szene gelegt.
+     ========================================================================= */
+  // Leuchtende Requisiten: [Höhe der Lichtquelle (Anteil der Größe), Radius (× Größe), Stärke, Farbe für das warme Leuchten]
+  var LEUCHTEN = { laterne: [0.8, 2.2, 0.85, "255,190,90"], zelt: [0.12, 2.4, 0.8, "255,150,60"], pilz: [0.7, 1.6, 0.6, "143,232,255"] };
+  var nachtBild = null;
+  function zeichneNacht(ctx, K, f, sz) {
+    var N = f.welt.nacht;
+    if (!N || typeof document === "undefined") return;
+    var q = 0.5, w = Math.max(1, Math.ceil(K.b * q)), h = Math.max(1, Math.ceil(K.h * q));
+    if (!nachtBild) nachtBild = document.createElement("canvas");
+    if (nachtBild.width !== w || nachtBild.height !== h) { nachtBild.width = w; nachtBild.height = h; }
+    var g = nachtBild.getContext("2d"), s = K.s, gel = f.gelaende, i;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over";
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = "rgba(5,9,30," + N.dunkel + ")"; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = "destination-out";
+    g.setTransform(q, 0, 0, q, 0, 0);
+    function licht(X, Y, R, a) {
+      if (X < -R || X > K.b + R || Y < -R || Y > K.h + R) return;
+      var gr = g.createRadialGradient(X, Y, 0, X, Y, R);
+      gr.addColorStop(0, "rgba(0,0,0," + a + ")"); gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(X, Y, R, 0, Math.PI * 2); g.fill();
+    }
+    licht(K.b * 0.8, K.h * 0.3, Math.min(K.b, K.h) * 0.32, 0.55);                // Mond
+    // Auto: Licht rundherum und Scheinwerferkegel nach vorn
+    var fz = f.fz, C = fz.chassis, ca = Math.cos(C.a), sa = Math.sin(C.a), xv = 0;
+    f.def.huelle.forEach(function (p) { xv = Math.max(xv, p[0]); });
+    licht(sx(K, C.x), sy(K, C.y + 0.3), 4.2 * s, 0.85);
+    var kegel = null;
+    if (f.zustand !== "hilfe") {
+      var HX = sx(K, C.x + ca * (xv - 0.1) - sa * 0.1), HY = sy(K, C.y + sa * (xv - 0.1) + ca * 0.1), L = 17 * s, oeff = 0.34;
+      g.save();
+      g.beginPath(); g.moveTo(HX, HY);
+      for (var k = -1; k <= 1.001; k += 0.25) g.lineTo(HX + Math.cos(C.a + k * oeff) * L, HY - Math.sin(C.a + k * oeff) * L);
+      g.closePath(); g.clip();
+      var kg = g.createRadialGradient(HX, HY, 0, HX, HY, L);
+      kg.addColorStop(0, "rgba(0,0,0,0.95)"); kg.addColorStop(0.55, "rgba(0,0,0,0.7)"); kg.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = kg; g.fillRect(HX - L, HY - L, 2 * L, 2 * L);
+      g.restore();
+      kegel = [HX, HY, L * 0.8];
+    }
+    if (sz.geist) licht(sx(K, sz.geist.fz.chassis.x), sy(K, sz.geist.fz.chassis.y), 3.2 * s, 0.6);
+    // leuchtende Deko
+    var b = sichtbereich(K, gel), D = gel.deko, warm = [];
+    for (i = 0; i < D.length; i++) {
+      var d = D[i], Lq = d.typ && LEUCHTEN[d.typ];
+      if (!Lq || d.x < b[2] - 8 || d.x > b[3] + 8 || d.fuss === undefined) continue;
+      var X = sx(K, d.x), Y = sy(K, d.fuss + d.groesse * Lq[0]), R = d.groesse * Lq[1] * s;
+      licht(X, Y, R, Lq[2] * (0.9 + 0.1 * Math.sin(sz.zeit * 7 + d.x)));
+      warm.push([X, Y, R * 0.7, Lq[3]]);
+    }
+    // Münzen, Kanister, Raketen schimmern
+    var M = gel.muenzen;
+    for (i = 0; i < M.length; i++) if (!M[i].weg && M[i].x > b[2] - 2 && M[i].x < b[3] + 2) licht(sx(K, M[i].x), sy(K, M[i].y), (M[i].wert >= 100 ? 1.5 : 0.95) * s, 0.55);
+    [gel.tanks, gel.raketen || []].forEach(function (Lst) {
+      for (var j = 0; j < Lst.length; j++) if (!Lst[j].weg && Lst[j].x > b[2] - 2 && Lst[j].x < b[3] + 2) licht(sx(K, Lst[j].x), sy(K, Lst[j].y + 0.5), 1.6 * s, 0.7);
+    });
+    if (isFinite(gel.ziel)) licht(sx(K, gel.ziel), sy(K, gel.hoeheBei(gel.ziel) + 2.5), 6 * s, 0.9);
+    // (Glühwürmchen leuchten selbst: Wetter "gluehwuermchen" wird danach obendrauf gemalt)
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over";
+    ctx.drawImage(nachtBild, 0, 0, K.b, K.h);
+    ctx.globalCompositeOperation = "lighter";
+    if (kegel) {                                  // sichtbarer Lichtstrahl der Scheinwerfer
+      ctx.save(); ctx.beginPath(); ctx.moveTo(kegel[0], kegel[1]);
+      for (var kk = -1; kk <= 1.001; kk += 0.25) ctx.lineTo(kegel[0] + Math.cos(C.a + kk * 0.3) * kegel[2], kegel[1] - Math.sin(C.a + kk * 0.3) * kegel[2]);
+      ctx.closePath();
+      var sg = ctx.createRadialGradient(kegel[0], kegel[1], 0, kegel[0], kegel[1], kegel[2]);
+      sg.addColorStop(0, "rgba(255,244,200,0.2)"); sg.addColorStop(1, "rgba(255,244,200,0)");
+      ctx.fillStyle = sg; ctx.fill(); ctx.restore();
+    }
+    // warmes Leuchten um Laternen und Feuer
+    warm.forEach(function (l) {
+      var gr = ctx.createRadialGradient(l[0], l[1], 0, l[0], l[1], l[2]);
+      gr.addColorStop(0, "rgba(" + l[3] + ",0.3)"); gr.addColorStop(1, "rgba(" + l[3] + ",0)");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(l[0], l[1], l[2], 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  /* =========================================================================
      9) GESAMTE SZENE
      sz = { fahrt, kamera, zeit, dt, partikel, texte, wetter, aussehen, kraefte, instrumente, ausdruck }
      ========================================================================= */
   function zeichneSzene(ctx, sz) {
     var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit;
+    taucherHelm = !!welt.unterwasser;
+    if (welt.wind) {                                      // Wind an der Kamera: Laub, Windstriche, Windräder
+      windJetzt = gel.windBei(K.x) / welt.wind.staerke;
+      windPhase += windJetzt * 2.2 * (sz.dt || 0);
+    }
     zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
     zeichneWolken(ctx, K, welt, z);
     sz.wetter.zeichne(ctx, K, sz.dt, z, true);
     zeichneBerge(ctx, K, welt, z, gel);
     zeichneDecke(ctx, K, gel, welt, z);
     var b = sichtbereich(K, gel);
-    zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1);
+    zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
     zeichneGelaende(ctx, K, gel, welt, z);
+    if (gel.pfuetzen.length) zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
+    if (gel.trampoline.length) zeichneTrampoline(ctx, K, gel, f.zeit);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
@@ -2083,6 +2452,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
     sz.partikel.zeichne(ctx, K);
+    if (welt.nacht) zeichneNacht(ctx, K, f, sz);
     zeichneTexte(ctx, K, sz.texte);
     sz.wetter.zeichne(ctx, K, sz.dt, z, false);
     if (sz.geist && !geistSichtbar) zeichneGeistPfeil(ctx, K, sz.geist, f.fz.chassis);
@@ -2093,6 +2463,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Vorschau in der Garage: Fahrzeug auf kleinem Boden, leicht wippend */
   var vorschauCache = {};
   function zeichneVorschau(ctx, b, h, def, aussehen, zeit, ohneBuehne) {
+    taucherHelm = false;
     var c = vorschauCache[def.id];
     if (!c) {
       var w = FF.berechneWerte(def, {}, "normal");

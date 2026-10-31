@@ -10,6 +10,8 @@
      • Bruchlandung: nach einem Sprung zu schief zum Hang gelandet → ebenso
        Ballon-Hilfe (siehe CONFIG.schwierigkeit.bruchWinkel)
      • Ziel erreicht / Tank leer → Ergebnis
+     • Besondere Welten: Pfützen (bremsen, spritzen), Hüpfpilze (Trampolin),
+       Sturm (Meldung bei Rücken-/Gegenwind; die Kraft selbst rechnet physik.js)
 
    Was passiert, wird als Ereignis in fahrt.ereignisse gemeldet
    (z. B. {typ:"muenze", wert:5}); spiel.js macht daraus Ton und Effekte.
@@ -139,6 +141,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Zusatz-Knöpfe: 🚀 Boost (Ladungen aus Raketen-Kanistern), 🦘 Sprungfeder (lädt sich mit Saltos auf)
     this.boostLadung = 0; this.boostZeit = 0;
     this.federLadung = 0; this.federZeit = 0; this.federSperre = 0;
+    this.imWasser = false; this.letztesPlatsch = -9;
+    this.windZone = 0; this.letzterWind = -99;
   }
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
@@ -241,8 +245,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
+    if (this.welt.wasser) this.wasser(h);
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (this.welt.decke) this.deckenStoss();
+    if (this.gelaende.trampoline.length) this.pruefeTrampolin();
+    if (this.welt.wind) this.pruefeWind();
 
     // Tankverbrauch: Leerlauf + Gasstellung + abgegebene Leistung
     if (this.zustand === "fahrt" && this.tank > 0) {
@@ -364,6 +371,59 @@ var FF = globalThis.FF = globalThis.FF || {};
       C.vy -= 1.3 * vyPunkt; C.w *= 0.5;
       fz.raeder.forEach(function (R) { if (R.k.vy > C.vy) R.k.vy = C.vy; });
       if (vyPunkt > 1.5) this.melde("decke", { x: px, y: py, staerke: Math.min(1, vyPunkt / 8) });
+    }
+  };
+
+  /* Pfützen: Räder, die ins Wasser tauchen, spritzen (Ereignis "platsch") und
+     bremsen das Auto: a = bremse · v² · Eintauchtiefe (Mittel über alle Räder).
+     Die Bremse wirkt auf Karosserie und Räder gleich (wie die Schwerkraft). */
+  Fahrt.prototype.wasser = function (h) {
+    var gel = this.gelaende, W = this.welt.wasser, fz = this.fz, C = fz.chassis, self = this, tief = 0;
+    fz.raeder.forEach(function (R) {
+      var d = gel.wasserBei(R.k.x) - (R.k.y - R.r), drin = d > 0.03;
+      if (drin) tief += Math.min(1, d / (1.4 * R.r));
+      if (drin && !R.imWasser && Math.abs(R.k.vx) > 2.5 && self.zeit - self.letztesPlatsch > 0.3 && self.zustand === "fahrt") {
+        self.letztesPlatsch = self.zeit;
+        self.melde("platsch", { x: R.k.x, y: gel.wasserBei(R.k.x), staerke: Math.min(1, Math.abs(R.k.vy) / 6 + Math.abs(R.k.vx) / 14) });
+      }
+      R.imWasser = drin;
+    });
+    this.imWasser = tief > 0;
+    if (!tief) return;
+    tief /= fz.raeder.length;
+    var v = C.vx, dv = Math.min(Math.abs(v), W.bremse * tief * v * v * h) * (v > 0 ? -1 : 1);
+    C.vx += dv;
+    fz.raeder.forEach(function (R) { R.k.vx += dv; });
+  };
+
+  /* Hüpfpilz (Trampolin): Berührt ein Rad den Pilzhut, fliegt das Auto senkrecht mit
+     T.v hoch und mindestens mit 6 m/s nach vorn (damit es nicht auf demselben Pilz
+     landet und ewig hüpft). Die Drehung wird gedämpft, damit es gerade hochgeht.
+     Erst nach dem Abflug oder wenn das Auto den Pilz verlassen hat, geht er wieder. */
+  Fahrt.prototype.pruefeTrampolin = function () {
+    var T = this.gelaende.trampoline, fz = this.fz, C = fz.chassis;
+    if (this.zustand !== "fahrt") return;
+    for (var i = 0; i < T.length; i++) {
+      var t = T[i];
+      if (C.x < t.x0 - 8 || C.x > t.x1 + 8) { t.benutzt = false; continue; }
+      if (t.benutzt) { if (this.luftZeit > 0.6) t.benutzt = false; continue; }
+      var drauf = fz.raeder.some(function (R) { return R.kontakt.aktiv && R.kontakt.pen > -0.02 && R.k.x > t.x0 + 0.3 && R.k.x < t.x1 - 0.3; });
+      if (!drauf) continue;
+      t.benutzt = true; t.boing = this.zeit;
+      var vx = C.vx < -1 ? Math.min(C.vx, -4) : Math.max(C.vx, 6), dvx = vx - C.vx, dvy = t.v - C.vy;
+      C.vx += dvx; C.vy += dvy; C.w *= 0.3;
+      fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; });
+      this.melde("boing", { x: (t.x0 + t.x1) / 2, y: this.gelaende.hoeheBei((t.x0 + t.x1) / 2) });
+    }
+  };
+
+  /* Sturm: Meldung, wenn kräftiger Rücken- oder Gegenwind beginnt (höchstens alle 6 s) */
+  Fahrt.prototype.pruefeWind = function () {
+    var n = this.gelaende.windBei(this.fz.chassis.x) / this.welt.wind.staerke;
+    var zone = n > 0.6 ? 1 : (n < -0.6 ? -1 : (Math.abs(n) < 0.25 ? 0 : this.windZone));
+    if (zone !== this.windZone) {
+      if (zone && this.zeit - this.letzterWind > 6 && this.zustand === "fahrt") { this.letzterWind = this.zeit; this.melde("wind", { richtung: zone }); }
+      this.windZone = zone;
     }
   };
 

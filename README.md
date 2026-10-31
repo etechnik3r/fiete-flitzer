@@ -61,11 +61,12 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **13 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **18 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
-  🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle.
+  🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle ·
+  🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -94,6 +95,33 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     werden geprüft), und der Ballon bleibt darunter.
   - **Grubensprünge** im Freizeitpark: Steiler Absprung, eine Grube und auf
     der anderen Seite ein Landehang. Wer zu kurz springt, landet in der Grube.
+- **Fünf Welten mit eigener Spielidee** (Version 15, Felder in `config.js`
+  oben bei „Ab hier: fünf Welten …“). Beim Start erklärt ein Tipp (auch
+  vorgelesen) die neue Idee, die ersten beiden Male je Welt.
+  - **🌧️ Pfützenland** (`welt.wasser`): Es regnet, in jeder Mulde steht Wasser
+    (`gelaende.suchePfuetzen`: bis 0,6 m tief, höchstens 16 m breit, zu flache
+    Mulden bleiben trocken; kein Zufall, die Strecke bleibt gleich). Räder im
+    Wasser spritzen („Platsch!“) und bremsen: a = 0,055 · v² · Eintauchtiefe.
+    Kanister schwimmen, in Pfützen paddeln Enten statt Bäumen. Regenrauschen.
+  - **🌻 Riesengarten** (`gelaende.trampolin`): Fiete ist winzig zwischen
+    Riesenblumen, Grashalmen und Käfern. **Hüpfpilze** sind Trampoline: Berührt
+    ein Rad den Pilzhut, fliegt das Auto mit 9,5–10 m/s senkrecht hoch und
+    mindestens 6 m/s nach vorn (es landet nie wieder auf demselben Pilz).
+    Danach kommt eine flache Landewiese, über dem Hut hängen Münzen.
+  - **🍂 Herbststurm** (`welt.wind`, `gelaende.windBei`): Rückenwind- und
+    Gegenwindzonen (bis 1,7 m/s², nur vom Ort abhängig, im Geisterrennen also
+    fair). Leichte Fahrzeuge mit viel Fläche pustet er stärker (Faktor cw·A/m
+    gegenüber dem Flitzer, begrenzt auf 0,6–1,5: Moped 1,5, Blitz-Rakete 0,6).
+    Laub, Windstriche und Windräder zeigen Richtung und Stärke, das Sturm-
+    rauschen folgt dem Wind. Die Berge sind etwas flacher.
+  - **🐠 Meeresgrund** (`welt.unterwasser`): Auftrieb (g = 4,6 m/s²), Wasser
+    bremst (ρ = 6 im Strömungswiderstand) und dämpft Drehungen
+    (`drehDaempfung` 1,1/s). Fiete trägt einen Taucherhelm, der Auspuff
+    blubbert, Licht fällt in Strahlen herein, alles klingt dumpf (Tiefpass).
+  - **🦉 Nachtwald** (`welt.nacht`): Ein dunkler Schleier (halbe Auflösung,
+    einmal pro Bild darübergelegt), in den Scheinwerferkegel, Laternen,
+    Lagerfeuer, Leuchtpilze und der Mond Licht schneiden. Münzen und Kanister
+    schimmern, damit man sie findet; Glühwürmchen leuchten.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
@@ -126,7 +154,8 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   steht `"@art:Höhe"` für eine Requisite, `"🐄:1.6"` für ein Emoji.
   Der Hintergrund hat drei Ebenen (die hinterste im Dunst) mit Silhouetten je
   Welt (`welt.kulisse`: wald, tannen, tafelberg, stadt, kran, gipfel, vulkan,
-  dschungel, brachio, riesenrad, bonbon, wolkenberg, stalagmiten).
+  dschungel, brachio, riesenrad, bonbon, wolkenberg, stalagmiten, dorf, zaun,
+  riesenblumen, halme, windrad, riff, wrack, tang).
   Jede Requisite steht auf dem tiefsten Bodenpunkt unter ihrer Breite (am
   Hang steckt der Rest im Boden, nichts schwebt). Die Ebenen ziehen
   verschieden schnell vorbei (Parallaxe 0,08 / 0,2 / 0,42).
@@ -465,6 +494,7 @@ node werkzeuge/testfahrt.js --schwierigkeit leicht
 node werkzeuge/testfahrt.js --fahrzeug moped --welt 3
 node werkzeuge/testfahrt.js --physik              # Physik-Plausibilitätstests
 node werkzeuge/testfahrt.js --geist               # Geisterrennen: Aufnahme, Wiedergabe, Sieger
+node werkzeuge/testfahrt.js --spielideen          # Pfützen, Hüpfpilze, Wind, Wasser der neuen Welten
 ```
 
 Die Ausgabe zeigt je Level: Ziel erreicht oder Tank leer, Strecke, Münzen,
@@ -473,7 +503,10 @@ Profi außerdem, wie oft er abgehoben ist und wie viel Zeit er am Boden Gas
 weggenommen oder gebremst hat.
 
 **Messung** (Schwierigkeit Normal, Upgrades „auto“, 40 Level je Fahrzeug,
-`--vergleich` mit `--welt 0` … `--welt 9`). „im Ziel“ zählt Level, Ballon-Hilfen
+`--vergleich` mit `--welt 0` … `--welt 9`). Die fünf neuen Welten
+(`--welt 13` … `--welt 17`): Der Profi kommt mit jedem der 8 Fahrzeuge in
+allen 20 Leveln ins Ziel (niedrigster Tankstand meist 20–70 %, wie in
+Freizeitpark und Kristallhöhle), „Kind“ im Modus Leicht ebenfalls in allen 20. „im Ziel“ zählt Level, Ballon-Hilfen
 sind je Level gemittelt.
 
 | Fahrzeug | Profi im Ziel | Kind | Loslassen | Loslassen in Level 2–4 | Vollgas | Ballon-Hilfen Profi | Ballon-Hilfen Loslassen |
@@ -524,7 +557,7 @@ node werkzeuge/browsertest.js layout --bilder fotos   # mit Bildschirmfotos
 | `layout` | 17 Bildschirme in 7 Formaten (Handy quer/hoch, kleines Handy quer, sehr schmales Handy mit 320 px, Tablet quer/hoch, PC): Knöpfe mind. 44 px, erreichbar, ohne Überlappung, mit Namen; Fenster passen ohne Scrollen |
 | `robust` | kaputter, alter (v1, v2 mit alter Welten-Reihenfolge: offene Welten bleiben offen) und unsinniger Spielstand, gesperrter Speicher (Privatmodus), Drehen während der Fahrt, App im Hintergrund, Neustart/Abbruch im Duell, Unentschieden, Endlos-Duell |
 | `offline` | Cache-Liste vollständig, Versionen passen, Service Worker aktiv, Spielen ohne Internet |
-| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle 44 Level starten, nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
+| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle 72 Level (18 Welten × 4) starten, neue Spielideen (Pfütze spritzt und bremst, Hüpfpilz schleudert hoch, Wind schiebt, Wasser dämpft, Nacht ohne Fehler), nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
 | `leistung` | Bildrate normal und bei 4× gedrosselter CPU |
 
 Stand der Messung (Chromium ohne Grafikkarte, also ungünstigster Fall): ohne
@@ -563,7 +596,10 @@ Physik (Schwerkraft, Grip, Rollwiderstand, Abprall), Farben, Deko
 (`"🌳:2.8"` = Emoji und Größe in Metern), Gelände-Parameter (Gewichte der
 Bau-Elemente, `wildBasis`, Kanister-Abstand) und vier Level mit Länge und
 Seed (das vierte ist das Profi-Level). Alte Spielstände merken sich die
-Welten per Name, eine neue Welt dazwischen sperrt also nichts.
+Welten per Name, eine neue Welt dazwischen sperrt also nichts. Optional:
+`wasser`, `wind`, `unterwasser` (+ `drehDaempfung`), `nacht`, `tipp`,
+`gelaende.trampolin`, `kulisseGroesse` und schwebende Deko `"🐠:0.7:2.2"`
+(drittes Feld = Höhe über dem Boden).
 
 ### Eigenes Fahrzeug bauen
 
