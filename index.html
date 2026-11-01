@@ -40,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 
 <body>
@@ -238,6 +238,8 @@
             <div class="farb-liste" id="farb-liste"></div>
             <h3 class="werkstatt-titel">✨ Muster</h3>
             <div class="muster-liste" id="muster-liste"></div>
+            <h3 class="werkstatt-titel" id="spur-titel">💫 Spur</h3>
+            <div class="muster-liste" id="spur-liste"></div>
           </div>
         </div>
       </section>
@@ -427,6 +429,24 @@
           <p class="opt-untertitel">Nur zum Testen: Münzen für beide Kinder, „Alle Level“ öffnet jede Welt, ohne den Fortschritt zu verändern.</p>
         </section>
 
+        <section class="opt-gruppe" id="sicherung-gruppe">
+          <h3 class="opt-titel">💾 Spielstand sichern</h3>
+          <p class="opt-info">Mit diesem Code holst du den Fortschritt von Fiete und Jonte zurück – auf einem neuen Handy oder wenn der Browser die Daten gelöscht hat. Am besten kopieren und dir selbst schicken.</p>
+          <p class="opt-info code-warnung" id="safari-warnung" hidden>⚠️ Im Safari-Browser löscht das iPhone gespeicherte Spiele nach einigen Tagen ohne Besuch. Sichere den Code – oder installiere die App.</p>
+          <div class="code-box" id="spielstand-code" aria-label="Spielstand-Code"></div>
+          <div class="code-knoepfe">
+            <button type="button" class="code-knopf" id="code-kopieren">📋 Kopieren</button>
+            <button type="button" class="code-knopf" id="code-teilen" hidden>📤 Teilen</button>
+            <button type="button" class="code-knopf" id="code-eingeben">⌨️ Code eingeben</button>
+          </div>
+          <div class="code-eingabe" id="code-eingabe" hidden>
+            <textarea id="code-feld" rows="4" placeholder="Code hier einfügen oder abtippen" aria-label="Spielstand-Code eingeben"
+                      autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"></textarea>
+            <button type="button" class="install-button" id="code-laden">✅ Spielstand laden</button>
+            <p class="code-fehler" id="code-fehler" role="alert"></p>
+          </div>
+        </section>
+
         <section class="opt-gruppe">
           <button type="button" class="reset-button" id="knopf-zuruecksetzen">♻️ Spielstand zurücksetzen</button>
         </section>
@@ -525,15 +545,17 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=15"></script>
-  <script src="gelaende.js?v=15"></script>
-  <script src="physik.js?v=15"></script>
-  <script src="fahrt.js?v=15"></script>
-  <script src="geist.js?v=15"></script>
-  <script src="kinder.js?v=15"></script>
-  <script src="requisiten.js?v=15"></script>
-  <script src="grafik.js?v=15"></script>
-  <script src="klang.js?v=15"></script>
-  <script src="spiel.js?v=15"></script>
+  <script src="config.js?v=16"></script>
+  <script src="gelaende.js?v=16"></script>
+  <script src="physik.js?v=16"></script>
+  <script src="fahrt.js?v=16"></script>
+  <script src="geist.js?v=16"></script>
+  <script src="kinder.js?v=16"></script>
+  <script src="spielstand.js?v=16"></script>
+  <script src="requisiten.js?v=16"></script>
+  <script src="grafik.js?v=16"></script>
+  <script src="grafik-welt.js?v=16"></script>
+  <script src="klang.js?v=16"></script>
+  <script src="spiel.js?v=16"></script>
 </body>
 </html>

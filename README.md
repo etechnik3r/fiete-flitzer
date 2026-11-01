@@ -205,7 +205,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   und auf Gipfeln.
 - **Tricks**: Salto (+50), Luftsprung (Flugzeit-Bonus).
 - **Ziel 🏁** erreicht → Ziel-Bonus und **Sterne**: ⭐ Ziel, ⭐⭐ ab 60 %,
-  ⭐⭐⭐ ab 90 % der Münzen. Das nächste Level wird freigeschaltet.
+  ⭐⭐⭐ ab 85 % der Münzen. Das nächste Level wird freigeschaltet.
 - Gesammelte Münzen darf man **immer behalten**, auch bei leerem Tank oder
   Abbruch.
 
@@ -276,6 +276,10 @@ Auf der Tür des Flitzers steht der Anfangsbuchstabe des Fahrers.
 **Optik**: 14 Lackfarben (darunter Gold und Regenbogen) und 6 Muster (Streifen,
 Punkte, Sterne, Flammen, Blitze, Karo). Farben und Muster kauft man einmal und
 kann sie dann für alle Fahrzeuge nutzen.
+**💫 Spur** (jedes Kind hat seine eigene, für alle Fahrzeuge): Sternenstaub,
+Seifenblasen, Herzen, Funken, Konfetti oder Regenbogen fliegen beim Fahren
+hinter dem Auto her (1.500–10.000 Münzen, `spuren` in `config.js`) – damit
+Münzen auch dann noch etwas wert sind, wenn alle Fahrzeuge gekauft sind.
 
 ## ⚙️ Einstellungen
 
@@ -283,12 +287,28 @@ kann sie dann für alle Fahrzeuge nutzen.
   🐇 Normal, 🚀 Profi (weniger Benzin, Hoppla kostet mehr)
 - 🔊 Töne · 🗣️ Vorlesen (für Kinder, die noch nicht lesen) · ⏱️ Tacho und
   Drehzahlmesser (zeigt die Motordrehzahl und den Gang, wie man sie hört)
+- 💡 **Tipps**: Erklär-Tipps (Luftsteuerung, Turbo, Welt-Ideen …) kommen nur die
+  ersten zwei bis drei Male und merken sich das im Spielstand (`gesehen`).
+  Tipps, die während der Start-Ampel anfallen, warten und kommen danach der
+  Reihe nach.
 - 🔬 **Kräfte**: zeigt beim Fahren Gewichtskraft (lila), Normalkräfte (grün) und
   Reibung/Antrieb (orange) als Pfeile
 - 💥 Bruchlandung an/aus (siehe oben)
 - 📲 App installieren. Gibt es eine neue Version, holt die App sie beim Start
   oder beim Zurückkehren selbst, lädt neu (nie mitten in einer Fahrt) und
   zeigt oben kurz „Fiete Flitzer wurde aktualisiert: Version … → …“.
+- 💾 **Spielstand sichern**: Ein Code (Crockford-Base32, etwa 190–310 Zeichen
+  in Fünfergruppen) enthält den Fortschritt beider Kinder: Münzen, Level und
+  Sterne, Endlos-Rekorde, Fahrzeuge mit Tuning, Farben, Muster, Outfits, Look,
+  Spuren, Statistik und Duell-Siege – Einstellungen gehören zum Gerät und
+  bleiben draußen. **📋 Kopieren** oder **📤 Teilen** (z. B. an sich selbst
+  schicken), auf dem anderen Gerät **⌨️ Code eingeben**; Groß-/Klein-
+  schreibung, Leerzeichen und Bindestriche sind egal, O gilt als 0, I/L als 1.
+  Eine 16-Bit-Prüfsumme erkennt Tippfehler, bevor etwas überschrieben wird;
+  das Laden fragt (Rechenaufgabe) nach Erwachsenen. Auf dem iPhone im Safari-
+  Tab steht ein Hinweis, dass iOS Daten nach einigen Tagen ohne Besuch löscht.
+  Neue Welten, Fahrzeuge, Farben … müssen in `config.js` **hinten** angehängt
+  werden, sonst passen alte Codes nicht mehr (`spielstand.js`).
 - ♻️ Spielstand zurücksetzen (mit einer Rechenaufgabe
   für Erwachsene gesichert)
 - 🛠️ **Versteckter Entwickler-Bereich** zum Testen: In den Einstellungen
@@ -496,6 +516,7 @@ node werkzeuge/testfahrt.js --fahrzeug moped --welt 3
 node werkzeuge/testfahrt.js --physik              # Physik-Plausibilitätstests
 node werkzeuge/testfahrt.js --geist               # Geisterrennen: Aufnahme, Wiedergabe, Sieger
 node werkzeuge/testfahrt.js --spielideen          # Pfützen, Hüpfpilze, Wind, Wasser der neuen Welten
+node werkzeuge/testfahrt.js --spielstand          # Spielstand-Code: hin und zurück, Tippfehler
 ```
 
 Die Ausgabe zeigt je Level: Ziel erreicht oder Tank leer, Strecke, Münzen,
@@ -582,7 +603,9 @@ wird in einer kleinen eigenen Ebene gemalt.
 | `fahrt.js` | Regeln einer Fahrt: Pedale, Tank und Akku, Saltos, Bruchlandung, Ballon-Hilfe, Festgefahren-Hilfe, virtuelles Getriebe, Ziel, Ergebnis |
 | `geist.js` | Geisterrennen: Fahrt aufzeichnen, als Geist abspielen, Sieger bestimmen |
 | `kinder.js` | So sehen Fiete und Jonte aus: Gesicht, Haare, Brille und die Looks (Cap, Dutt), nach einem Foto der beiden. Steckbrief und Bilder: [`docs/KINDER.md`](docs/KINDER.md), Vorschau: `werkzeuge/kinder-vorschau.html` |
-| `grafik.js` | Zeichnen: Himmel, Parallax-Berge, Strecke, Fahrzeuge mit Fiete und Jonte (Körper und Outfit; den Kopf malt `kinder.js`), Geist, Partikel, Wetter, Kräfte-Pfeile, Tacho |
+| `grafik.js` | Zeichnen: Fahrzeuge mit Fiete und Jonte (Körper und Outfit; den Kopf malt `kinder.js`), Münzen, Kanister, Ziel, Geist, Partikel, Kräfte-Pfeile, Tacho und der Ablauf einer Szene |
+| `grafik-welt.js` | Zeichnen der Welt: Himmel, Hintergrund-Ebenen mit Silhouetten, Höhlendecke, Boden, Pfützen, Hüpfpilze, Wetter, Nacht |
+| `spielstand.js` | Profile, Laden alter Spielstände, Spielstand-Code (ohne Browser, in Node testbar) |
 | `klang.js` | Motorsound und Effekte per WebAudio, Vorlesen per Sprachsynthese |
 | `spiel.js` | Spielerwahl, Profile je Kind, Menüs, Garage, Geisterrennen-Ablauf (Lobby, Würfeln, Übergabe, Siegerehrung), Speicherstand (localStorage), Eingabe, Kamera, Spielschleife |
 | `index.html`, `style.css` | Bildschirme und Aussehen im JONFIE-STUDIOS-Stil |

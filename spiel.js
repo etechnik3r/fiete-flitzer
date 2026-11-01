@@ -41,110 +41,17 @@
      1) SPEICHERSTAND + PROFILE
      ========================================================================= */
   var SCHLUESSEL = "fiete-flitzer-spielstand-v1";
-
-  function neuesFahrzeug(f) { return { gekauft: f.preis === 0, upgrades: {}, farbe: f.farbe, muster: "keins" }; }
-
-  function neuesProfil() {
-    var p = {
-      muenzen: C.startMuenzen,
-      fahrzeug: "flitzer",
-      fahrzeuge: {},
-      farben: C.farben.filter(function (f) { return f.preis === 0; }).map(function (f) { return f.id; }),
-      muster: ["keins"],
-      outfit: C.outfits[0].id,
-      outfits: [C.outfits[0].id],
-      look: null,                  // Variante aus kinder.js (z. B. Fiete mit Cap); null = Grundform
-      level: {},
-      endlos: {},
-      freigeschaltet: [],          // Welten (ids), die offen bleiben – z. B. aus alten Spielständen
-      statistik: { fahrten: 0, meter: 0, salti: 0, muenzen: 0 }
-    };
-    C.fahrzeuge.forEach(function (f) { p.fahrzeuge[f.id] = neuesFahrzeug(f); });
-    return p;
-  }
-
-  function neuerSpielstand() {
-    var s = {
-      version: 3,
-      aktiv: C.kinder[0].id,
-      spieler: {},
-      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true, ausrichtung: "quer" },
-      duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
-      entwickler: { alleOffen: false }      // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
-    };
-    C.kinder.forEach(function (k) { s.spieler[k.id] = neuesProfil(); s.duell.siege[k.id] = 0; });
-    return s;
-  }
-
-  /* Gespeicherte Daten vorsichtig in ein frisches Profil übernehmen */
-  function uebernimmProfil(ziel, d) {
-    if (!d || typeof d !== "object") return;
-    Object.keys(ziel).forEach(function (k) {
-      if (d[k] === undefined || d[k] === null) return;
-      if (k === "fahrzeuge" || k === "statistik") {
-        if (typeof d[k] === "object") Object.keys(d[k]).forEach(function (kk) { ziel[k][kk] = d[k][kk]; });
-      } else ziel[k] = d[k];
-    });
-    C.fahrzeuge.forEach(function (f) { if (!ziel.fahrzeuge[f.id]) ziel.fahrzeuge[f.id] = neuesFahrzeug(f); });
-    var frisch = neuesProfil();
-    ["farben", "muster", "outfits", "freigeschaltet"].forEach(function (k) { if (!Array.isArray(ziel[k])) ziel[k] = frisch[k]; });
-    frisch.farben.forEach(function (f) { if (ziel.farben.indexOf(f) < 0) ziel.farben.push(f); });   // neue Gratis-Farben
-    if (typeof ziel.muenzen !== "number" || !isFinite(ziel.muenzen) || ziel.muenzen < 0) ziel.muenzen = 0;
-    if (!ziel.fahrzeuge[ziel.fahrzeug] || !ziel.fahrzeuge[ziel.fahrzeug].gekauft) ziel.fahrzeug = "flitzer";
-    if (ziel.outfits.indexOf(ziel.outfit) < 0) ziel.outfit = C.outfits[0].id;
-  }
-
-  /* Bis Spielstand-Version 2 gab es diese acht Welten in dieser Reihenfolge (je
-     drei Level). Damals öffnete Level 3 die nächste Welt. Inzwischen liegen
-     Baustelle und Achterbahn-Park dazwischen – was schon offen war, bleibt offen. */
-  var ALTE_WELTEN = ["wiese", "wueste", "schnee", "mond", "bonbon", "dschungel", "vulkan", "regenbogen"];
-  function weltIndex(id) {
-    for (var i = 0; i < C.welten.length; i++) if (C.welten[i].id === id) return i;
-    return -1;
-  }
-  function alteFreischaltungen(p) {
-    for (var k = 1; k < ALTE_WELTEN.length; k++) {
-      var vorher = p.level[ALTE_WELTEN[k - 1] + "-3"];
-      if (vorher && vorher.geschafft && p.freigeschaltet.indexOf(ALTE_WELTEN[k]) < 0) p.freigeschaltet.push(ALTE_WELTEN[k]);
-    }
-  }
+  // Profile, Laden alter Stände und der Spielstand-Code stehen in spielstand.js
+  var SP = FF.Spielstand, neuerSpielstand = SP.neuerSpielstand;
 
   function lade() {
-    var s = neuerSpielstand();
-    try {
-      var roh = window.localStorage.getItem(SCHLUESSEL);
-      if (roh) {
-        var d = JSON.parse(roh);
-        var alt = !d || !(d.version >= 3);
-        if (d && d.spieler) {
-          C.kinder.forEach(function (k) { uebernimmProfil(s.spieler[k.id], d.spieler[k.id]); });
-          if (s.spieler[d.aktiv]) s.aktiv = d.aktiv;
-          if (d.duell) {
-            ["welt", "stufe", "endlos"].forEach(function (k) { if (d.duell[k] !== undefined) s.duell[k] = d.duell[k]; });
-            // Welt per Name (ab Version 3), alte Stände: Index der alten Reihenfolge
-            var wid = alt ? ALTE_WELTEN[d.duell.welt] : d.duell.weltId;
-            if (wid && weltIndex(wid) >= 0) s.duell.welt = weltIndex(wid);
-            if (!(s.duell.welt >= 0 && s.duell.welt < C.welten.length)) s.duell.welt = 0;
-            if (!(s.duell.stufe >= 0 && s.duell.stufe < C.welten[s.duell.welt].level.length)) s.duell.stufe = 0;
-            s.duell.endlos = s.duell.endlos === true;
-            if (d.duell.siege) C.kinder.forEach(function (k) { s.duell.siege[k.id] = +d.duell.siege[k.id] || 0; });
-          }
-        } else if (d) {
-          uebernimmProfil(s.spieler[C.kinder[0].id], d);       // alter Spielstand (v1) gehört Fiete
-        }
-        if (d && d.einstellungen) Object.keys(s.einstellungen).forEach(function (k) {
-          if (d.einstellungen[k] !== undefined) s.einstellungen[k] = d.einstellungen[k];
-        });
-        if (d && d.entwickler) s.entwickler.alleOffen = d.entwickler.alleOffen === true;
-        if (alt) C.kinder.forEach(function (k) { alteFreischaltungen(s.spieler[k.id]); });
-      }
-    } catch (e) { /* kaputter Speicher → frisch anfangen */ }
-    return s;
+    var roh = null;
+    try { roh = window.localStorage.getItem(SCHLUESSEL); } catch (e) { /* gesperrter Speicher */ }
+    return SP.lade(roh);
   }
 
   function speichere() {
-    S.duell.weltId = C.welten[S.duell.welt] ? C.welten[S.duell.welt].id : C.welten[0].id;
-    try { window.localStorage.setItem(SCHLUESSEL, JSON.stringify(S)); } catch (e) { /* privat-Modus o. ä. */ }
+    try { window.localStorage.setItem(SCHLUESSEL, SP.alsText(S)); } catch (e) { /* privat-Modus o. ä. */ }
   }
 
   var S = lade();
@@ -236,10 +143,9 @@
   var zeit = 0, letzteZeit = 0;
   var ausdruck = "normal", ausdruckBis = 0;
   var spruchBis = 0;               // bis dahin läuft ein wichtiger gesprochener Hinweis (nicht überreden)
-  var luftTippGezeigt = false;     // "Gas hebt die Nase, Bremse senkt sie" – einmal pro Spielstart
   var pedaleLuft = false;          // Pedale zeigen gerade die Luft-Pfeile
   var auspuffTakt = 0, staubTakt = 0;
-  var weltTipps = {};                        // wie oft der Welt-Tipp in dieser Sitzung schon kam
+  var luftTippDieseFahrt = false;            // "Gas hebt die Nase" wurde in dieser Fahrt schon geprüft
 
   function groesseAnpassen() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -295,7 +201,6 @@
   document.addEventListener("contextmenu", function (e) { if (modus === "fahrt") e.preventDefault(); });
 
   /* Zusatz-Knöpfe 🚀 Boost und 🦘 Sprungfeder. Noch nicht bereit → kurzer Tipp, wie man sie auflädt. */
-  var extraTipps = { boost: false, feder: false };
   function extraDruecken(art) {
     if (!fahrt || modus !== "fahrt" || pausiert || ergebnisOffen) return;
     FF.Klang.init();
@@ -384,10 +289,13 @@
   /* Tipps zur Bedienung: dezent oben links, abschaltbar (Einstellung „Tipps“).
      sag: dazu vorlesen (nur wenn Tipps an sind) */
   var tippTimer = null;
-  var tippWartet = null;
+  var tippSchlange = [];             // Tipps, die während der Start-Ampel kommen, warten hier – keiner geht verloren
   function tipp(text, dauer, sag) {
     if (!S.einstellungen.tipps) return;
-    if (countdown) { tippWartet = [text, dauer, sag]; return; }      // erst nach der Start-Ampel
+    if (countdown) {                                                    // erst nach der Start-Ampel, der Reihe nach
+      if (!tippSchlange.some(function (t) { return t[0] === text; })) tippSchlange.push([text, dauer, sag]);
+      return;
+    }
     tippZeigen(text, dauer, sag);
   }
   function tippZeigen(text, dauer, sag) {
@@ -395,7 +303,18 @@
     var el = $("tipp");
     el.textContent = text; el.hidden = false;
     clearTimeout(tippTimer);
-    tippTimer = setTimeout(function () { el.hidden = true; }, dauer || 3500);
+    tippTimer = setTimeout(function () {
+      el.hidden = true;
+      if (tippSchlange.length && !countdown && modus === "fahrt") tippTimer = setTimeout(function () { tippZeigen.apply(null, tippSchlange.shift()); }, 350);
+    }, dauer || 3500);
+  }
+  function tippsLeeren() { tippSchlange = []; clearTimeout(tippTimer); $("tipp").hidden = true; }
+  /* Erklär-Tipps nur die ersten Male (gemerkt im Spielstand, auch nach einem Neustart der App) */
+  function ersteMale(id, n) {
+    var k = S.gesehen[id] || 0;
+    if (k >= n) return false;
+    S.gesehen[id] = k + 1; speichere();
+    return true;
   }
 
   function konfetti(anzahl) {
@@ -473,6 +392,37 @@
       partikel.neu({ art: "rauch", x: ch.x + cb * xb, y: ch.y + sb * xb,
                      vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
                      t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
+    }
+  }
+
+  /* Gekaufte Spur (config.spuren): Teilchen am Heck, solange das Auto fährt */
+  var spurTakt = 0, REGENBOGEN = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
+  function spurZiehen(dt) {
+    var art = P.spur, ch = fahrt.fz.chassis;
+    if (!art || art === "keine" || fahrt.zustand !== "fahrt" || Math.hypot(ch.vx, ch.vy) < 2.5) return;
+    spurTakt -= dt;
+    if (spurTakt > 0) return;
+    spurTakt = art === "regenbogen" ? 0.025 : 0.06;
+    var L = fahrt.werte.groesse.laenge, ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.48, ly = 0.15;
+    var x = ch.x + ca * lx - sa * ly, y = ch.y + sa * lx + ca * ly, zf = Math.random;
+    if (art === "regenbogen") {
+      for (var i = 0; i < 6; i++) partikel.neu({ art: "staub", x: x - sa * (0.3 - i * 0.12), y: y + ca * (0.3 - i * 0.12), vx: 0, vy: 0,
+                                                 t: 0, dauer: 0.9, r0: 0.1, r1: 0.08, farbe: REGENBOGEN[i], alpha: 1 });
+    } else if (art === "sterne") {
+      partikel.neu({ art: "funkel", x: x, y: y + (zf() - 0.5) * 0.4, vx: (zf() - 0.5), vy: (zf() - 0.5), t: 0, dauer: 0.8,
+                     r0: 0.16 + zf() * 0.1, farbe: zf() < 0.5 ? "#fff3a0" : "#ffffff", reibung: 2 });
+    } else if (art === "blasen") {
+      partikel.neu({ art: "blase", x: x, y: y + (zf() - 0.5) * 0.3, vx: (zf() - 0.5) * 0.6, vy: 0.4 + zf() * 0.4, t: 0, dauer: 1.3,
+                     r0: 0.08, r1: 0.22 + zf() * 0.1, schwer: -0.05, reibung: 1 });
+    } else if (art === "herzen") {
+      partikel.neu({ art: "herz", x: x, y: y + (zf() - 0.5) * 0.3, vx: (zf() - 0.5) * 0.5, vy: 0.6 + zf() * 0.5, t: 0, dauer: 1.1,
+                     r0: 0.16 + zf() * 0.08, farbe: zf() < 0.6 ? "#ff5b8a" : "#ff9ec4", reibung: 1 });
+    } else if (art === "funken") {
+      for (var k = 0; k < 2; k++) partikel.neu({ art: "funkel", x: x, y: y, vx: -ca * (1 + zf() * 2) + (zf() - 0.5) * 2, vy: zf() * 2.5, t: 0, dauer: 0.55,
+                                                 r0: 0.1 + zf() * 0.08, farbe: zf() < 0.5 ? "#ff8a2e" : "#ffd23f", schwer: 0.6, reibung: 1 });
+    } else if (art === "konfetti") {
+      partikel.neu({ art: "konfetti", x: x, y: y, vx: (zf() - 0.5) * 2, vy: 1 + zf() * 1.5, t: 0, dauer: 1.2,
+                     farbe: REGENBOGEN[Math.floor(zf() * 6)], schwer: 0.3, reibung: 1, w: zf() * 6, dreh: (zf() - 0.5) * 10 });
     }
   }
 
@@ -571,16 +521,14 @@
           funkeln(e.x, e.y + 0.6, "#c9a8ff", 10);
           schwebeText(e.x, e.y + 1.4, e.voll ? "🚀 schon voll" : "🚀 Turbo +1", "#c9a8ff", true);
           plopp($("knopf-boost"));
-          if (!e.voll && !extraTipps.boost) {
-            extraTipps.boost = true;
+          if (!e.voll && ersteMale("tipp-boost", 2)) {
             tipp("🚀 Rakete eingesammelt! Drück den 🚀-Knopf links – dann gibt es Turbo!", 4500, "Rakete! Drück den Raketen-Knopf für Turbo!"); spruchBis = zeit + 3;
           }
           break;
         case "extraBereit":
           FF.Klang.spiele("extraBereit");
           plopp($("knopf-feder"));
-          if (!extraTipps.feder) {
-            extraTipps.feder = true;
+          if (ersteMale("tipp-feder", 2)) {
             tipp("🦘 Sprungfeder bereit! Oben auf dem Berg drücken – dann fliegst du weit!", 4500, "Sprungfeder bereit!"); spruchBis = zeit + 3;
           }
           break;
@@ -599,23 +547,21 @@
                            t: 0, dauer: 0.7 + Math.random() * 0.3, r0: 0.07 + Math.random() * 0.07, farbe: "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.4 });
           }
           if (e.staerke > 0.55) { schwebeText(e.x, e.y + 1.6, "Platsch! 💦", "#bfe4ff", false); setzeAusdruck("freude", 1.2); }
-          if (!extraTipps.platsch) { extraTipps.platsch = true; FF.Klang.sprich("Platsch!"); }
+          if (ersteMale("tipp-platsch", 2)) FF.Klang.sprich("Platsch!");
           break;
         case "boing":                    // Hüpfpilz
           FF.Klang.spiele("boing");
           schwebeText(e.x, e.y + 2.2, "Boing! 🍄", "#ffd23f", true);
           funkeln(e.x, e.y + 0.8, "#ffffff", 8);
           setzeAusdruck("freude", 2.5);
-          if (!extraTipps.boing) {
-            extraTipps.boing = true;
+          if (ersteMale("tipp-boing", 2)) {
             tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
           }
           break;
         case "wind":                     // Sturm: Rückenwind oder Gegenwind beginnt
           FF.Klang.spiele("windstoss");
           schwebeText(ch.x, ch.y + 2, e.richtung > 0 ? "Rückenwind! 💨" : "Gegenwind! 🌬️", e.richtung > 0 ? "#7dffb8" : "#ffd6a0", true);
-          if (!extraTipps["wind" + e.richtung]) {
-            extraTipps["wind" + e.richtung] = true;
+          if (ersteMale("tipp-wind" + e.richtung, 2)) {
             if (e.richtung > 0) tipp("💨 Rückenwind schiebt dich – und trägt dich bei Sprüngen weit!", 4000, "Rückenwind!");
             else tipp("🌬️ Gegenwind bremst – gib mehr Gas!", 4000, "Gegenwind! Gib mehr Gas!");
             spruchBis = zeit + 3;
@@ -745,7 +691,8 @@
                   name: kindDef(erster).name, aussehen: duell.aufnahme.info.aussehen, vorne: null, zielGemeldet: false };
       }
     }
-    partikel.liste.length = 0; texte.length = 0;
+    partikel.liste.length = 0; texte.length = 0; luftTippDieseFahrt = false;
+    tippsLeeren();
     wetter.setze(fahrt.welt.wetter, kamera);
     if (!fahrt.welt.nacht) $("nacht-ebene").style.display = "none";
     kameraNachfuehren(0, true);
@@ -774,8 +721,7 @@
     if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000, mondHinweis.trim());
     FF.Klang.setzeUmgebung(w.wetter === "regen" ? "regen" : w.wind ? "wind" : w.unterwasser ? "meer" : null);
     // Neue Spielidee der Welt erklären – die ersten beiden Male je Welt (pro Spielsitzung)
-    weltTipps[w.id] = (weltTipps[w.id] || 0) + 1;
-    if (w.tipp && weltTipps[w.id] <= 2) tipp(w.tipp[0], 5500, w.tipp[1]);
+    if (w.tipp && S.einstellungen.tipps && ersteMale("welt-" + w.id, 2)) tipp(w.tipp[0], 5500, w.tipp[1]);
     if (H > B && S.einstellungen.ausrichtung !== "hoch") { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
     hudCache = {};
     hudAktualisieren(true);
@@ -787,7 +733,6 @@
   var countdown = null, COUNTDOWN_SCHRITT = 0.8;
   function starteCountdown(titel) {
     $("ampel-titel").textContent = titel; $("ampel-titel").style.visibility = "";
-    tippWartet = null;
     if (window.FF_OHNE_COUNTDOWN) { countdown = null; $("ampel").hidden = true; return; }
     countdown = { t: 0, stufe: -1 };
     $("ampel").hidden = false;
@@ -816,7 +761,8 @@
         if (stufe === 3) {
           FF.Klang.sprich("Los!");
           $("ampel-titel").style.visibility = "hidden";
-          if (tippWartet) { tippZeigen.apply(null, tippWartet); tippWartet = null; }
+          $("hochkant-hinweis").hidden = true;
+          if (tippSchlange.length) tippZeigen.apply(null, tippSchlange.shift());
         }
       }
     }
@@ -1063,7 +1009,7 @@
     if (name !== "fahrt") { countdown = null; $("ampel").hidden = true; }
     pedaleLuft = false; $("pedale").classList.remove("luft");
     if (name !== "fahrt") {
-      $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true;
+      $("meldung").hidden = true; tippsLeeren(); $("hochkant-hinweis").hidden = true;
       FF.Klang.motorStopp();
       $("nacht-ebene").style.display = "none";
       fahrt = null; aufnahme = null; geist = null;
@@ -1689,6 +1635,26 @@
         fs.muster = id; speichere(); baueGarage();
       });
     });
+
+    // Spur (gilt für alle Fahrzeuge, jedes Kind hat seine eigene): fliegt beim Fahren hinterher
+    $("spur-titel").textContent = "💫 " + genitiv(name) + " Spur";
+    var sl = $("spur-liste");
+    sl.innerHTML = C.spuren.map(function (sp) {
+      var hat = P.spuren.indexOf(sp.id) >= 0;
+      return '<button type="button" class="muster-knopf' + (P.spur === sp.id ? " aktiv" : "") + '" data-spur="' + sp.id + '">' +
+             sp.icon + " " + sp.name + (hat ? "" : ' <span class="preis">🪙' + zahl(sp.preis) + "</span>") + "</button>";
+    }).join("");
+    sl.querySelectorAll("[data-spur]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var id = b.dataset.spur, sp = C.spuren.filter(function (x) { return x.id === id; })[0];
+        if (P.spuren.indexOf(id) < 0) {
+          kaufe(sp.preis, function () { P.spuren.push(id); P.spur = id; }, b);
+          return;
+        }
+        FF.Klang.spiele("klick");
+        P.spur = id; speichere(); baueGarage();
+      });
+    });
   }
 
   $("fz-zurueck").addEventListener("click", function () {
@@ -1771,7 +1737,54 @@
       if (k === "sprache" && S.einstellungen.sprache) FF.Klang.sprich("Ich lese dir vor!");
     });
   });
-  function oeffneEinstellungen() { FF.Klang.init(); FF.Klang.spiele("klick"); einstellungenAnzeigen(); oeffneModal("einstellungen"); }
+  function oeffneEinstellungen() { FF.Klang.init(); FF.Klang.spiele("klick"); einstellungenAnzeigen(); codeAnzeigen(); oeffneModal("einstellungen"); }
+
+  /* Spielstand-Code (spielstand.js): anzeigen, kopieren, teilen, eingeben */
+  function codeAnzeigen() {
+    $("spielstand-code").textContent = SP.codeErzeugen(S);
+    $("code-eingabe").hidden = true; $("code-fehler").textContent = "";
+  }
+  $("code-teilen").hidden = !navigator.share;
+  $("safari-warnung").hidden = !(/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone && !ALS_APP);
+  function codeText() { return $("spielstand-code").textContent; }
+  $("code-kopieren").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    var fertig = function () { popover("📋 Code kopiert! Schick ihn dir selbst, dann ist er sicher.", 2600); };
+    var notfall = function () {                                   // ältere Browser: Text markieren und kopieren
+      var t = document.createElement("textarea"); t.value = codeText(); t.setAttribute("readonly", "");
+      t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); fertig(); } catch (e) { popover("Bitte den Code markieren und kopieren.", 2600); }
+      t.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(codeText()).then(fertig, notfall);
+    else notfall();
+  });
+  $("code-teilen").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    navigator.share({ title: "Fiete Flitzer – Spielstand", text: "Spielstand-Code für Fiete Flitzer (Einstellungen → 💾 → Code eingeben):\n" + codeText() })
+      .catch(function () { /* abgebrochen */ });
+  });
+  $("code-eingeben").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    $("code-eingabe").hidden = !$("code-eingabe").hidden;
+    if (!$("code-eingabe").hidden) $("code-feld").focus();
+  });
+  $("code-laden").addEventListener("click", function () {
+    var r = SP.codeLesen($("code-feld").value, S);
+    if (!r.ok) { FF.Klang.spiele("fehler"); $("code-fehler").textContent = r.fehler; wackeln($("code-feld")); return; }
+    $("code-fehler").textContent = "";
+    var info = C.kinder.map(function (k) { return k.name + " " + zahl(r.stand.spieler[k.id].muenzen) + " 🪙"; }).join(", ");
+    elternFrage("Spielstand aus dem Code laden (" + info + ")? Der jetzige wird ersetzt.", function () {
+      S = r.stand; P = S.spieler[S.aktiv]; speichere();
+      bildCache = {};
+      $("code-feld").value = "";
+      schliesseModal("einstellungen");
+      einstellungenAnwenden();
+      FF.Klang.spiele("kauf");
+      popover("💾 Spielstand geladen – willkommen zurück!", 3000);
+      if (modus === "menue" || modus === "wahl") zeigeSpielerwahl();
+    });
+  });
   $("knopf-einstellungen").addEventListener("click", oeffneEinstellungen);
   $("knopf-titel-einstellungen").addEventListener("click", oeffneEinstellungen);
   $("knopf-spielerwahl-einstellungen").addEventListener("click", oeffneEinstellungen);
@@ -1980,6 +1993,7 @@
         verarbeiteEreignisse();
         if (!fahrt) return;
         fahrEffekte(dt);
+        if (!wartet) spurZiehen(dt);
         kameraNachfuehren(dt, false);
         hudAktualisieren(false);
         var st = fahrt.fz.status, hilfe = fahrt.zustand === "hilfe";
@@ -2000,10 +2014,12 @@
         // In der Luft zeigen die Pedale, wohin sie die Nase drehen (⤴ Gas, ⤵ Bremse)
         var luftPedale = inLuft && fahrt.luftZeit > 0.3;
         if (luftPedale !== pedaleLuft) { pedaleLuft = luftPedale; $("pedale").classList.toggle("luft", luftPedale); }
-        if (luftPedale && !luftTippGezeigt && fahrt.luftZeit > 0.5) {
-          luftTippGezeigt = true;
-          tipp("✈️ In der Luft: GAS hebt die Nase ⤴, BREMSE senkt sie ⤵", 4500, "In der Luft: Gas hebt die Nase, Bremse senkt sie!");
-          spruchBis = zeit + 3;
+        if (luftPedale && fahrt.luftZeit > 0.5 && !luftTippDieseFahrt) {
+          luftTippDieseFahrt = true;                     // je Fahrt einmal prüfen, insgesamt die ersten 3 Male zeigen
+          if (S.einstellungen.tipps && ersteMale("tipp-luft", 3)) {
+            tipp("✈️ In der Luft: GAS hebt die Nase ⤴, BREMSE senkt sie ⤵", 4500, "In der Luft: Gas hebt die Nase, Bremse senkt sie!");
+            spruchBis = zeit + 3;
+          }
         }
       }
       partikel.aktualisiere(pausiert ? 0 : dt, fahrt.welt.schwerkraft);

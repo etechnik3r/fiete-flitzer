@@ -17,6 +17,7 @@
      node werkzeuge/testfahrt.js --physik        Physik-Plausibilitätstests
      node werkzeuge/testfahrt.js --geist         Geisterrennen: Aufnahme, Wiedergabe, Sieger
      node werkzeuge/testfahrt.js --spielideen    Pfützen, Hüpfpilze, Wind, Wasser der neuen Welten
+     node werkzeuge/testfahrt.js --spielstand    Spielstand-Code: hin und zurück, Tippfehler erkennen
 
    Drei Roboter-Fahrer:
      Profi    sagt in der Luft den Landepunkt voraus und stellt die Nase mit
@@ -37,7 +38,7 @@ var path = require("path");
 var vm = require("vm");
 
 var basis = path.join(__dirname, "..");
-["config.js", "gelaende.js", "physik.js", "fahrt.js", "geist.js"].forEach(function (datei) {
+["config.js", "gelaende.js", "physik.js", "fahrt.js", "geist.js", "spielstand.js"].forEach(function (datei) {
   vm.runInThisContext(fs.readFileSync(path.join(basis, datei), "utf8"), { filename: datei });
 });
 var FF = globalThis.FF;
@@ -357,7 +358,54 @@ function spielideenTests() {
   return fehler;
 }
 
+/* Spielstand-Code: alles kommt genau so zurück, Fehler werden erkannt */
+function spielstandTests() {
+  var fehler = 0, C = FF.CONFIG, SP = FF.Spielstand;
+  function pruefe(bed, text) { console.log((bed ? "✓ " : "✗ ") + text); if (!bed) fehler++; }
+  function sortiert(o) { return JSON.stringify(o, function (k, v) { return v && typeof v === "object" && !Array.isArray(v) ? Object.keys(v).sort().reduce(function (a, kk) { a[kk] = v[kk]; return a; }, {}) : v; }); }
+  var S = SP.neuerSpielstand(), z = FF.zufallsQuelle(7);
+  C.kinder.forEach(function (k, ki) {
+    var p = S.spieler[k.id];
+    p.muenzen = Math.floor(z() * 200000);
+    C.fahrzeuge.forEach(function (f, fi) {
+      var fs = p.fahrzeuge[f.id]; fs.gekauft = fs.gekauft || z() < 0.6;
+      if (fs.gekauft) { fs.upgrades = { motor: 1 + fi % 5, reifen: fi % 6 }; if (z() < 0.5) fs.upgrades.allrad = 1; fs.farbe = C.farben[fi].id; fs.muster = C.muster[fi % C.muster.length].id; }
+      if (fs.gekauft && !fs.upgrades.reifen) delete fs.upgrades.reifen;
+    });
+    p.fahrzeug = "moped"; p.fahrzeuge.moped.gekauft = true;
+    p.farben = C.farben.map(function (f) { return f.id; });
+    p.muster.push("sterne"); p.outfits.push("schild"); p.outfit = "schild"; p.look = ki ? "lang" : "cap";
+    p.spuren.push("regenbogen"); p.spur = "regenbogen";
+    C.welten.forEach(function (w, wi) {
+      for (var l = 1; l <= 4; l++) if (z() < 0.8) p.level[w.id + "-" + l] = { geschafft: true, sterne: 1 + Math.floor(z() * 3) };
+      if (z() < 0.5) p.endlos[w.id] = Math.floor(z() * 9000) + 1;
+    });
+    p.freigeschaltet = ["mond", "vulkan"];
+    p.statistik = { fahrten: 321, meter: 4567890, salti: 999, muenzen: 7654321 };
+    S.duell.siege[k.id] = 4 + ki;
+  });
+  S.aktiv = "jonte";
+  var code = SP.codeErzeugen(S);
+  pruefe(/^[0-9A-Z-]+$/.test(code), "Code besteht nur aus 0–9, A–Z und Bindestrichen (" + code.replace(/-/g, "").length + " Zeichen)");
+  var r = SP.codeLesen(code.toLowerCase().replace(/-/g, " ").replace(/0/g, "o"), S);
+  var vorher = SP.lade(SP.alsText(S));
+  pruefe(r.ok && sortiert(r.stand.spieler) === sortiert(vorher.spieler), "Code hin und zurück: beide Profile genau gleich (Kleinbuchstaben, O statt 0, Leerzeichen egal)");
+  pruefe(r.ok && r.stand.aktiv === "jonte" && r.stand.duell.siege.jonte === 5, "Aktives Kind und Duell-Siege kommen mit");
+  var falsch = 0, kurz = SP.codeLesen(code.slice(0, -5));
+  for (var i = 0; i < code.length; i++) {
+    if (code[i] === "-") continue;
+    var c = code.slice(0, i) + (code[i] === "7" ? "8" : "7") + code.slice(i + 1);
+    if (!SP.codeLesen(c).ok) falsch++;
+  }
+  var anzahl = code.replace(/-/g, "").length;
+  pruefe(falsch >= anzahl - 1 && !kurz.ok, "Ein falsches Zeichen (" + falsch + " von " + anzahl + " Stellen) oder ein abgeschnittener Code wird erkannt");
+  pruefe(!SP.codeLesen("HALLO").ok && !SP.codeLesen("").ok, "Unsinn wird abgelehnt");
+  console.log(fehler ? fehler + " Test(s) fehlgeschlagen." : "Alle Spielstand-Tests bestanden.");
+  return fehler;
+}
+
 if (arg("physik", false)) { physikTests(); process.exit(0); }
+if (arg("spielstand", false)) { process.exit(spielstandTests() ? 1 : 0); }
 if (arg("spielideen", false)) { process.exit(spielideenTests() ? 1 : 0); }
 if (arg("geist", false)) { process.exit(geistTests() ? 1 : 0); }
 

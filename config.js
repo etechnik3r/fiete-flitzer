@@ -91,7 +91,7 @@ FF.CONFIG = {
     luftBonusProSekunde: 15,   // Münzen pro Sekunde Flugzeit
     sammelRadius: 0.75,        // Münze/Kanister wird eingesammelt, wenn so nah [m] an Rad, Kopf oder Karosserie
     sterne2: 0.6,              // ab 60 % der Münzen (Wert) gibt es 2 Sterne
-    sterne3: 0.9,              // ab 90 % 3 Sterne
+    sterne3: 0.85,             // ab 85 % 3 Sterne (bis Version 15: 90 % – selbst der Roboter-Profi schaffte meist nur 2)
     zielBonusBasis: 100,       // Ziel-Bonus = (Basis + Welt-Nr · Zuschlag) · Sterne
     zielBonusZuschlag: 60,
     siegBonus: 100,            // Geisterrennen zu zweit: Extra-Münzen für den Sieg (Unentschieden: die Hälfte für beide)
@@ -344,6 +344,17 @@ FF.CONFIG = {
     { id: "flammen", name: "Flammen",   icon: "🔥", preis: 500 },
     { id: "blitze",  name: "Blitze",    icon: "⚡", preis: 600 },
     { id: "zielflagge", name: "Karo",   icon: "🏁", preis: 400 }
+  ],
+  /* Spuren: Was hinter dem Auto herfliegt, solange es fährt (spiel.js spurZiehen).
+     Einmal kaufen, für alle Fahrzeuge – damit Münzen auch später noch etwas wert sind. */
+  spuren: [
+    { id: "keine",      name: "Ohne",         icon: "⬜", preis: 0 },
+    { id: "sterne",     name: "Sternenstaub", icon: "✨", preis: 1500 },
+    { id: "blasen",     name: "Seifenblasen", icon: "🧼", preis: 2500 },
+    { id: "herzen",     name: "Herzen",       icon: "💖", preis: 3500 },
+    { id: "funken",     name: "Funken",       icon: "🔥", preis: 5000 },
+    { id: "konfetti",   name: "Konfetti",     icon: "🎊", preis: 7000 },
+    { id: "regenbogen", name: "Regenbogen",   icon: "🌈", preis: 10000 }
   ],
 
   /* -------------------------------------------------------------------------
@@ -768,6 +779,12 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "16", titel: "Spielstand sichern und Spuren", punkte: [
+      "💾 Spielstand-Code: In den Einstellungen steht ein Code. Kopieren, dir selbst schicken – und auf jedem Handy wieder eingeben",
+      "💫 Neu in der Garage: Spuren! Sternenstaub, Seifenblasen, Herzen, Funken, Konfetti oder ein Regenbogen fliegen hinter dir her",
+      "⭐ Drei Sterne gibt es jetzt schon ab 85 % der Münzen",
+      "💡 Erklär-Tipps kommen nur die ersten Male – auch nach einem Neustart. Und keiner geht mehr verloren",
+      "📱 Hochkant verdeckt der Hinweis „Handy quer halten“ den Tacho nicht mehr" ] },
     { version: "15", titel: "Fünf neue Welten", punkte: [
       "🌧️ Pfützenland: Es regnet, in den Tälern stehen Pfützen – platsch! Das Wasser spritzt und bremst ein bisschen",
       "🌻 Riesengarten: Du bist winzig zwischen Riesenblumen. Hüpfpilze schleudern dich hoch – boing!",
