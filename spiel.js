@@ -668,12 +668,12 @@
   /* =========================================================================
      7) FAHRT STARTEN / BEENDEN + HUD
      ========================================================================= */
-  function starteFahrt(wi, li, endlos) {
+  function starteFahrt(wi, li, endlos, strecke) {
     FF.Klang.init();
-    fahrtInfo = { weltIndex: wi, stufe: li, endlos: !!endlos };
+    fahrtInfo = { weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null };
     var fs = P.fahrzeuge[P.fahrzeug];
     fahrt = new FF.Fahrt({
-      weltIndex: wi, stufe: li, endlos: !!endlos,
+      weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null,
       fahrzeugId: P.fahrzeug, upgrades: fs.upgrades, schwierigkeit: S.einstellungen.schwierigkeit,
       bruchlandung: S.einstellungen.bruchlandung
     });
@@ -716,12 +716,13 @@
     var w = fahrt.welt;
     // Kaum Schwerkraft: schon wenig Gas hebt die Nase (besonders beim Trecker) – gleich sagen
     var mondHinweis = w.schwerkraft < 3 ? " Auf dem Mond nur sanft Gas geben!" : "";
-    var titel = geist ? "👻 Gegen " + genitiv(geist.name) + " Geist!" : (endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
+    var titel = geist ? "👻 Gegen " + genitiv(geist.name) + " Geist!" : strecke ? "✏️ " + strecke.name :
+                (endlos ? "♾️ Wie weit kommst du?" : w.emoji + " " + w.name + " " + (li + 1));
     starteCountdown(titel);
     if (mondHinweis) tipp("🌙 Kaum Schwerkraft: nur sanft Gas geben – sonst kippt das Auto nach hinten!", 5000, mondHinweis.trim());
     FF.Klang.setzeUmgebung(w.wetter === "regen" ? "regen" : w.wind ? "wind" : w.unterwasser ? "meer" : null);
     // Neue Spielidee der Welt erklären – die ersten beiden Male je Welt (pro Spielsitzung)
-    if (w.tipp && S.einstellungen.tipps && ersteMale("welt-" + w.id, 2)) tipp(w.tipp[0], 5500, w.tipp[1]);
+    if (w.tipp && !strecke && S.einstellungen.tipps && ersteMale("welt-" + w.id, 2)) tipp(w.tipp[0], 5500, w.tipp[1]);
     if (H > B && S.einstellungen.ausrichtung !== "hoch") { $("hochkant-hinweis").hidden = false; setTimeout(function () { $("hochkant-hinweis").hidden = true; }, 4500); }
     hudCache = {};
     hudAktualisieren(true);
@@ -838,7 +839,7 @@
     FF.Klang.spiele("klick");
     schliesseModal("pause");
     gutschreibenAbbruch();
-    starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos);
+    starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos, fahrtInfo.strecke);
   });
   $("knopf-menue").addEventListener("click", function () {
     FF.Klang.spiele("klick");
@@ -866,6 +867,7 @@
     prof.muenzen += e.gesamt;
     prof.statistik.fahrten++; prof.statistik.meter += e.strecke; prof.statistik.salti += e.salti; prof.statistik.muenzen += e.gesamt;
     var rekord = false;
+    if (fahrtInfo.strecke) { speichere(); return false; }      // eigene Strecke: Münzen ja, Level-Fortschritt nein
     if (e.endlos) {
       rekord = e.strecke > (prof.endlos[welt.id] || 0);
       prof.endlos[welt.id] = Math.max(prof.endlos[welt.id] || 0, e.strecke);
@@ -949,11 +951,16 @@
     else if (e.endlos) tippText = "Bester Wert hier: " + zahl(P.endlos[welt.id]) + " m";
     $("ergebnis-tipp").textContent = tippText;
 
-    var nl = naechstesLevel(wi, li);
+    var nl = fahrtInfo.strecke ? null : naechstesLevel(wi, li);
     var weiterKnopf = $("knopf-ergebnis-weiter"), nochmalKnopf = $("knopf-ergebnis-nochmal");
     // Level 3 geschafft: Profi-Level als freiwillige zweite Wahl
     $("knopf-ergebnis-profi").hidden = !(e.ziel && li === PROFI - 1 && nl && nl[1] !== PROFI && levelOffen(wi, PROFI));
-    if (e.ziel && nl && levelOffen(nl[0], nl[1])) {
+    if (fahrtInfo.strecke) {                       // eigene Strecke: zurück in den Editor oder nochmal
+      weiterKnopf.textContent = "✏️ Weiter malen";
+      weiterKnopf.dataset.ziel = "editor";
+      nochmalKnopf.hidden = false;
+      $("knopf-ergebnis-profi").hidden = true;
+    } else if (e.ziel && nl && levelOffen(nl[0], nl[1])) {
       weiterKnopf.textContent = nl[0] !== wi ? "▶️ Neue Welt: " + C.welten[nl[0]].emoji : (nl[1] === PROFI ? "🔥 Profi-Level" : "▶️ Nächstes Level");
       weiterKnopf.dataset.ziel = nl.join(",");
       nochmalKnopf.hidden = false;
@@ -980,7 +987,8 @@
     FF.Klang.spiele("klick");
     schliesseModal("ergebnis");
     var z = this.dataset.ziel;
-    if (z === "nochmal") starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos);
+    if (z === "nochmal") starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos, fahrtInfo.strecke);
+    else if (z === "editor") { zeigeMenue("fahren"); oeffneEditor(fahrtInfo.strecke); }
     else { var t = z.split(",").map(Number); starteFahrt(t[0], t[1], false); }
   });
   $("knopf-ergebnis-profi").addEventListener("click", function () {
@@ -991,7 +999,7 @@
   $("knopf-ergebnis-nochmal").addEventListener("click", function () {
     FF.Klang.spiele("klick");
     schliesseModal("ergebnis");
-    starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos);
+    starteFahrt(fahrtInfo.weltIndex, fahrtInfo.stufe, fahrtInfo.endlos, fahrtInfo.strecke);
   });
   $("knopf-ergebnis-garage").addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseModal("ergebnis"); zeigeMenue("garage"); });
   $("knopf-ergebnis-menue").addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseModal("ergebnis"); zeigeMenue("fahren"); });
@@ -1134,6 +1142,17 @@
       html += '<div class="entwickler-hinweis">🛠️ Entwickler-Modus: alle Level offen' +
               '<button type="button" id="dev-alle-zu">Ausschalten</button></div>';
     }
+    if (S.entwickler.editor) {                      // Strecken-Editor (noch versteckt: nur über den Entwickler-Bereich)
+      var eigene = (S.strecken || []).slice(0, 4);
+      html += '<div class="welt-karte editor-karte"><div class="welt-kopf" style="background:linear-gradient(135deg,#ffd23f,#ff8a5c 70%,#8e5bd8)">' +
+        '<span class="welt-emoji">✏️</span><div><div class="welt-name">Eigene Strecke</div>' +
+        '<div class="welt-hinweis">Male deine Strecke mit dem Finger – und fahr sie!</div></div></div><div class="welt-level">' +
+        '<button type="button" class="level-knopf editor-oeffnen" data-strecke="-1" aria-label="Strecke malen">🖌️<small>Malen</small></button>' +
+        eigene.map(function (st, i) {
+          return '<button type="button" class="level-knopf editor-oeffnen" data-strecke="' + i + '" data-fahren="1" aria-label="' + st.name + ' fahren">' +
+                 C.welten[Math.max(0, SP.weltIndex(st.welt))].emoji + "<small>" + st.name.replace("Strecke ", "Nr. ") + "</small></button>";
+        }).join("") + "</div></div>";
+    }
     C.welten.forEach(function (w, wi) {
       for (var li = 0; li < PROFI && !naechstes; li++) if (levelOffen(wi, li) && !levelStand(wi, li).geschafft) naechstes = wi + "," + li;
     });
@@ -1167,7 +1186,15 @@
       S.entwickler.alleOffen = false;
       speichere(); entwicklerAnzeigen(); baueWelten();
     });
-    el.querySelectorAll(".level-knopf").forEach(function (b) {
+    el.querySelectorAll(".editor-oeffnen").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick");
+        var st = (S.strecken || [])[+b.dataset.strecke];
+        if (st && b.dataset.fahren) starteFahrt(Math.max(0, SP.weltIndex(st.welt)), 1, false, st);
+        else oeffneEditor(st || null);
+      });
+    });
+    el.querySelectorAll(".level-knopf:not(.editor-oeffnen)").forEach(function (b) {
       b.addEventListener("click", function () {
         var wi = +b.dataset.welt, li = +(b.dataset.level || 0), endlos = !!b.dataset.endlos;
         if (endlos ? !endlosOffen(wi) : !levelOffen(wi, li)) {
@@ -1179,6 +1206,18 @@
         FF.Klang.spiele("klick");
         starteFahrt(wi, li, endlos);
       });
+    });
+  }
+
+  /* Strecken-Editor (editor.js) */
+  function oeffneEditor(strecke) {
+    if (!Array.isArray(S.strecken)) S.strecken = [];
+    FF.Editor.oeffne({
+      strecken: S.strecken, strecke: strecke,
+      speichern: function () { speichere(); },
+      fahren: function (st) { starteFahrt(Math.max(0, SP.weltIndex(st.welt)), 1, false, st); },
+      schliessen: function () { baueWelten(); },
+      klick: function () { FF.Klang.init(); FF.Klang.spiele("klick"); }
     });
   }
 
@@ -1873,7 +1912,16 @@
       popover("🛠️ Entwickler-Bereich ist offen", 1600);
     });
   });
-  function entwicklerAnzeigen() { $("dev-alle-offen").classList.toggle("aktiv", S.entwickler.alleOffen); }
+  function entwicklerAnzeigen() {
+    $("dev-alle-offen").classList.toggle("aktiv", S.entwickler.alleOffen);
+    $("dev-editor").classList.toggle("aktiv", !!S.entwickler.editor);
+  }
+  $("dev-editor").addEventListener("click", function () {
+    S.entwickler.editor = !S.entwickler.editor;
+    speichere(); entwicklerAnzeigen();
+    FF.Klang.spiele("klick");
+    popover(S.entwickler.editor ? "✏️ Strecken-Editor an: oben in der Weltenliste" : "✏️ Strecken-Editor aus", 1800);
+  });
   $("dev-muenzen").addEventListener("click", function () {
     C.kinder.forEach(function (k) { S.spieler[k.id].muenzen += 10000; });
     speichere(); kontoAktualisieren();
@@ -2058,6 +2106,7 @@
     get duell() { return duell; },
     get geist() { return geist; },
     get modus() { return modus; },
+    oeffneEditor: oeffneEditor,
     starteFahrt: starteFahrt,
     zeigeMenue: zeigeMenue,
     zeigeSpielerwahl: zeigeSpielerwahl,

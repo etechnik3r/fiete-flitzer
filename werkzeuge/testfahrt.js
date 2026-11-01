@@ -354,6 +354,12 @@ function spielideenTests() {
     if (q.pfuetzen.length || q.trampoline.length || q.windBei(200) !== 0) sauber = false;
   });
   pruefe(sauber, "Alle anderen Welten: keine Pfützen, keine Hüpfpilze, kein Wind");
+  // Strecken-Editor: gemalte Strecke wird befahrbar (Steigung begrenzt), Inhalte verteilt, Ziel erreichbar
+  var hh = []; for (i = 0; i <= 150; i++) hh.push(i * 2 < 60 ? 0 : (i * 2 < 120 ? (i * 2 - 60) * 1.5 : 90 - (i * 2 - 120) * 0.4));
+  var e = new FF.Fahrt({ weltIndex: 0, stufe: 1, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal", strecke: { dx: 2, h: hh, laenge: 300 } });
+  var steil = 0; for (x = 0; x < 300; x++) steil = Math.max(steil, Math.atan(e.gelaende.steigungBei(x)) * 180 / Math.PI);
+  pruefe(e.gelaende.ziel === 300 && e.gelaende.bauplan.length === 0 && steil < 40 && e.gelaende.muenzWertGesamt > 0 && e.gelaende.tanks.length > 0,
+    "Eigene Strecke: 56° gemalt → höchstens " + steil.toFixed(0) + "° befahrbar, keine Bau-Elemente, Münzen und Kanister verteilt");
   console.log(fehler ? fehler + " Test(s) fehlgeschlagen." : "Alle Spielideen-Tests bestanden.");
   return fehler;
 }

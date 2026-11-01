@@ -27,6 +27,7 @@ var DATEIEN = [
   "grafik.js?v=16",
   "grafik-welt.js?v=16",
   "klang.js?v=16",
+  "editor.js?v=16",
   "spiel.js?v=16",
   "manifest.webmanifest",
   "icon-192.png",

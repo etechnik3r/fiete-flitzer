@@ -318,6 +318,16 @@ Münzen auch dann noch etwas wert sind, wenn alle Fahrzeuge gekauft sind.
   Kinder und den Schalter „🔓 Alle Level“, der jede Welt öffnet, ohne den
   Fortschritt zu verändern. Solange er an ist, steht über den Welten ein
   Hinweis mit „Ausschalten“. „🙈 Verstecken“ blendet den Bereich wieder aus.
+  **✏️ Strecken-Editor** (in Arbeit, deshalb nur hier einschaltbar): Oben in
+  der Weltenliste erscheint „Eigene Strecke“. Mit dem Finger ein Höhenprofil
+  malen (2,5-fach überhöht, damit große Bewegungen reichen), Welt und Länge
+  (300/500/800 m) wählen, „▶️ Fahren!“. Die Vorschau zeigt, was wirklich
+  gefahren wird: `gelaende.js` nimmt die gemalten Höhen (`optionen.strecke`)
+  statt Rauschen und Bau-Elementen, begrenzt die Steigung auf das, was die
+  Reifen in der Welt halten, glättet und verteilt Münzen und Kanister (in
+  Pfützenland stehen in den Mulden Pfützen, im Herbststurm weht Wind). Die
+  letzten 8 Strecken liegen im Spielstand (`S.strecken`, nicht im Code).
+  Münzen zählen, Level-Fortschritt nicht. Code: `editor.js`.
 
 ## 🔊 Motorklang
 
@@ -606,6 +616,7 @@ wird in einer kleinen eigenen Ebene gemalt.
 | `grafik.js` | Zeichnen: Fahrzeuge mit Fiete und Jonte (Körper und Outfit; den Kopf malt `kinder.js`), Münzen, Kanister, Ziel, Geist, Partikel, Kräfte-Pfeile, Tacho und der Ablauf einer Szene |
 | `grafik-welt.js` | Zeichnen der Welt: Himmel, Hintergrund-Ebenen mit Silhouetten, Höhlendecke, Boden, Pfützen, Hüpfpilze, Wetter, Nacht |
 | `spielstand.js` | Profile, Laden alter Spielstände, Spielstand-Code (ohne Browser, in Node testbar) |
+| `editor.js` | Strecken-Editor (noch versteckt, Entwickler-Bereich) |
 | `klang.js` | Motorsound und Effekte per WebAudio, Vorlesen per Sprachsynthese |
 | `spiel.js` | Spielerwahl, Profile je Kind, Menüs, Garage, Geisterrennen-Ablauf (Lobby, Würfeln, Übergabe, Siegerehrung), Speicherstand (localStorage), Eingabe, Kamera, Spielschleife |
 | `index.html`, `style.css` | Bildschirme und Aussehen im JONFIE-STUDIOS-Stil |
