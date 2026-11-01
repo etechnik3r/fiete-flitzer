@@ -912,6 +912,53 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, 0.18, 0.34, 0.42], arme: [0.05, 0.5, 0.36, 0.36] };
     },
 
+    sofa: function (ctx, a, z, fz) {
+      // Sofa auf Möbelrollen, hinten an der Lehne eine Flugzeugturbine mit Flammenstrahl
+      var c = basisFarbe(a), o = outfitVon(a), lauf = fz.turbine || 0;
+      var hinten = function () {
+        // Turbine: Gondel, Einlass mit Fan (vorne, zur Lehne), Düse hinten
+        rohr(ctx, [[-1.25, 0.62], [-1.45, 0.72]], 0.08, "#6f7686");
+        rohr(ctx, [[-1.25, 0.92], [-1.45, 0.88]], 0.06, "#6f7686");
+        if (lauf > 0.02) {                                                   // Flammenstrahl
+          var fl = 0.3 + 1.2 * lauf * (0.85 + 0.15 * Math.sin(z * 47));
+          [["rgba(80,140,255,0.55)", 1, 0.17], ["rgba(255,150,40,0.85)", 0.75, 0.12], ["rgba(255,245,200,0.95)", 0.45, 0.06]].forEach(function (f) {
+            ctx.fillStyle = f[0]; ctx.beginPath(); ctx.moveTo(-2.0, 0.8 - f[2]);
+            ctx.quadraticCurveTo(-2.0 - fl * f[1] * 0.6, 0.8 - f[2] * 0.6, -2.0 - fl * f[1], 0.8);
+            ctx.quadraticCurveTo(-2.0 - fl * f[1] * 0.6, 0.8 + f[2] * 0.6, -2.0, 0.8 + f[2]); ctx.fill();
+          });
+        }
+        var tg = ctx.createLinearGradient(0, 1.02, 0, 0.58); tg.addColorStop(0, "#e9edf5"); tg.addColorStop(0.5, "#aab3c5"); tg.addColorStop(1, "#6f7686");
+        ctx.fillStyle = tg; rundRechteck(ctx, -1.98, 0.58, 0.72, 0.44, 0.2); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.ellipse(-2.0, 0.8, 0.05, 0.15, 0, 0, Math.PI * 2); ctx.fill();   // Düse
+        ctx.fillStyle = "#2b2f3a"; ctx.beginPath(); ctx.ellipse(-1.27, 0.8, 0.06, 0.2, 0, 0, Math.PI * 2); ctx.fill();   // Einlass
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.025;                          // Fan dreht
+        for (var k = 0; k < 3; k++) { var w = z * (8 + 60 * lauf) + k * 2.1; ctx.beginPath(); ctx.moveTo(-1.27, 0.8); ctx.lineTo(-1.27 + Math.cos(w) * 0.04, 0.8 + Math.sin(w) * 0.17); ctx.stroke(); }
+        ctx.fillStyle = "#e8453c"; ctx.fillRect(-1.75, 0.95, 0.25, 0.04);           // Warnstreifen
+      };
+      var sockel = function () { rundRechteck(ctx, -1.3, -0.3, 2.6, 0.38, 0.1); };
+      var vorne = function () {
+        ctx.fillStyle = "#7a5232";                                                   // Holzfüße zu den Rollen
+        fz.raeder.forEach(function (R) { ctx.fillRect(R.lokalX - 0.06, R.lokalY, 0.12, -0.3 - R.lokalY); });
+        karosserie(ctx, a, z, sockel, -1.3, 1.3, -0.3, 0.08);
+        var lehne = function () { rundRechteck(ctx, -1.32, 0.0, 0.38, 1.08, 0.16); };
+        karosserie(ctx, a, z, lehne, -1.32, -0.94, 0.0, 1.08, true);
+        ctx.fillStyle = hell(c, 0.12); rundRechteck(ctx, -0.98, 0.06, 2.05, 0.26, 0.12); ctx.fill();    // Sitzkissen
+        ctx.strokeStyle = dunkel(c, 0.25); ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0.05, 0.08); ctx.lineTo(0.05, 0.3); ctx.stroke();
+        ctx.fillStyle = dunkel(c, 0.3);                                              // Knopfpolsterung
+        [[-1.13, 0.85], [-1.13, 0.55], [-1.13, 0.25]].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 0.035, 0, Math.PI * 2); ctx.fill(); });
+        // Fietes Beine liegen auf dem Kissen
+        ctx.lineCap = "round"; ctx.strokeStyle = o.seiten || o.anzug; ctx.lineWidth = 0.15;
+        ctx.beginPath(); ctx.moveTo(-0.15, 0.4); ctx.lineTo(0.5, 0.42); ctx.lineTo(0.62, 0.05); ctx.stroke();
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, 0.56, -0.02, 0.24, 0.1, 0.04); ctx.fill();
+        var arm = function () { rundRechteck(ctx, 1.02, -0.05, 0.36, 0.5, 0.16); };    // vordere Armlehne
+        karosserie(ctx, a, z, arm, 1.02, 1.38, -0.05, 0.45, true);
+        glanz(ctx, -0.9, 0.27, 0.9, 0.29, 0.03);
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.4, 0.3, 0.5, 0.42], arme: [-0.05, 0.6, 0.55, 0.62], fahrerNachVorneNicht: true };
+    },
+
     flugzeug: function (ctx, a, z, fz) {
       // Kleiner Doppelsitzer-Flieger mit offenem Cockpit, Propeller dreht sich
       var c = basisFarbe(a);
@@ -1568,7 +1615,9 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* =========================================================================
      8) RUNDINSTRUMENTE (Tacho + Drehzahl), unten in der Mitte
      ========================================================================= */
-  function zeichneInstrument(ctx, x, y, r, wert, max, titel, beschriftung, rotAb) {
+  /* Rundinstrument. skala = Zahlen an den großen Strichen (z. B. [0, 20, 40 …] km/h
+     oder [0, 2, 4 …] tausend U/min), einheit = kleine Zeile unter dem Wert */
+  function zeichneInstrument(ctx, x, y, r, wert, max, titel, beschriftung, rotAb, skala, einheit) {
     ctx.save();
     ctx.translate(x, y);
     ctx.fillStyle = "rgba(29,44,84,0.88)";
@@ -1581,23 +1630,40 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 1.5;
     for (var i = 0; i <= 10; i++) {
-      var a = a0 + (a1 - a0) * i / 10;
-      var l = i % 5 === 0 ? 0.68 : 0.76;
+      var a = a0 + (a1 - a0) * i / 10, l = i % 5 === 0 ? 0.68 : 0.76;
       ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * l, Math.sin(a) * r * l); ctx.lineTo(Math.cos(a) * r * 0.88, Math.sin(a) * r * 0.88); ctx.stroke();
+    }
+    if (skala && r >= 30) {                                     // Zahlen an der Skala
+      ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.font = "700 " + Math.round(r * 0.15) + "px 'Nunito', sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      skala.forEach(function (z) { var az = a0 + (a1 - a0) * z / max; ctx.fillText(String(z), Math.cos(az) * r * 0.6, Math.sin(az) * r * 0.6); });
     }
     var w = a0 + (a1 - a0) * Math.max(0, Math.min(1, wert / max));
     ctx.strokeStyle = "#ff9e2c"; ctx.lineWidth = 3; ctx.lineCap = "round";
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(w) * r * 0.78, Math.sin(w) * r * 0.78); ctx.stroke();
     ctx.fillStyle = "#f3c44a"; ctx.beginPath(); ctx.arc(0, 0, r * 0.1, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#ffffff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "800 " + Math.round(r * 0.36) + "px 'Baloo 2', sans-serif";
-    ctx.fillText(beschriftung, 0, r * 0.36);
-    ctx.font = "700 " + Math.round(r * 0.2) + "px 'Nunito', sans-serif";
-    ctx.fillStyle = "#aebce6";
-    ctx.fillText(titel, 0, -r * 0.35);
+    ctx.font = "800 " + Math.round(r * (beschriftung.length > 4 ? 0.3 : 0.36)) + "px 'Baloo 2', sans-serif";
+    ctx.fillText(beschriftung, 0, r * 0.3);
+    ctx.font = "800 " + Math.round(r * 0.17) + "px 'Nunito', sans-serif";
+    ctx.fillStyle = "#ffd27a";
+    ctx.fillText(titel, 0, -r * 0.14);
+    if (einheit) { ctx.fillStyle = "#aebce6"; ctx.font = "700 " + Math.round(r * 0.17) + "px 'Nunito', sans-serif"; ctx.fillText(einheit, 0, r * 0.5); }
     ctx.restore();
   }
 
+  /* „Schöne“ Schrittweite für die Skala, etwa 4–6 Zahlen */
+  function skalaSchritte(max) {
+    var roh = max / 5, p = Math.pow(10, Math.floor(Math.log(roh) / Math.LN10)), n = roh / p;
+    var st = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p, aus = [];
+    for (var z = 0; z <= max + 1e-6; z += st) aus.push(Math.round(z * 10) / 10);
+    return aus;
+  }
+
+  /* Tacho und Drehzahlmesser. Drehzahl wie beim Klang aus dem virtuellen Getriebe:
+     Verbrenner mit Gang darüber und rotem Bereich, Elektromotor ohne Gänge (dreht bis
+     15 000–22 000 U/min), Flieger ohne Getriebe (Propellerdrehzahl). Die Skala zeigt
+     tausend U/min, in der Mitte steht die volle Zahl. */
   function zeichneInstrumente(ctx, K, fahrt) {
     if (!fahrt.getriebe) return;
     var st = fahrt.fz.status;
@@ -1605,12 +1671,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     var y = K.h - r * 0.75 - 8;
     var kmh = Math.round(Math.abs(st.vorwaerts) * 3.6);
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
-    zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "km/h", String(kmh), 0);
-    // Motordrehzahl aus dem virtuellen Getriebe (wie der Motorklang): Skala bis zur
-    // Höchstdrehzahl, Anzeige in 1000 U/min; beim Verbrenner steht der Gang darüber
-    var G = fahrt.getriebe, skala = Math.ceil(G.max / 1000);
-    zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, skala, G.elektro ? "Drehzahl" : G.gang + ". Gang",
-                      (G.rpm / 1000).toFixed(1).replace(".", ","), G.elektro ? 0 : 0.9 * G.max / 1000 / skala);
+    zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "", String(kmh), 0, skalaSchritte(vmaxKmh), "km/h");
+    var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
+    var titel = G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
+                      G.elektro || G.turbine ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
   }
 
   /* =========================================================================

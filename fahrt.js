@@ -66,9 +66,11 @@ var FF = globalThis.FF = globalThis.FF || {};
   function Getriebe(klang) {
     this.P = klang || {};
     this.elektro = this.P.art === "elektro";
+    this.turbine = this.P.art === "turbine";
     this.gaenge = this.elektro ? 1 : (this.P.gaenge || 4);
     this.leerlauf = this.elektro ? 0 : (this.P.leerlauf || 800);
     this.max = this.P.max || (this.elektro ? 12000 : 6000);
+    if (this.turbine) { this.gaenge = 1; this.leerlauf = this.P.leerlauf || 8000; }
     this.gang = 1; this.schaltZeit = 0;
     this.rf = 0;                  // Drehzahl relativ zur Höchstdrehzahl im Gang (> 1: Begrenzer)
     this.schalten = false; this.begrenzer = false;
@@ -211,6 +213,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.getriebe.schritt(hilfe ? 0 : st.drehzahl, hilfe ? 0 : st.tempo / this.werte.motor.vmax,
                           this.gas + (this.rueckwaerts ? 0.6 * this.bremse : 0), !hilfe && st.radKontakte > 0,
                           this.tank > 0 && this.zustand !== "ende", Math.min(dt, 0.05));
+    if (this.getriebe.turbine) {                        // Turbine: Drehzahl folgt dem Hochlaufen, nicht den Rädern
+      var Gt = this.getriebe, an = this.tank > 0 && this.zustand !== "ende";
+      Gt.rpm = an ? Gt.leerlauf + (Gt.max - Gt.leerlauf) * this.turbinenLauf : Gt.rpm * 0.95;
+      Gt.rf = this.turbinenLauf; Gt.begrenzer = false;
+    }
     this.sammle();
     if (this.endlos) {
       var x = this.fz.chassis.x;
@@ -251,6 +258,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     if (this.welt.wasser) this.wasser(h);
     if (w.auftrieb) this.fliegen(h);
+    if (w.turbine) this.turbinenSchub(h);
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (this.welt.decke) this.deckenStoss();
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
@@ -283,7 +291,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       var gasWirk = this.gas + (this.rueckwaerts ? 0.6 * this.bremse : 0);
       var pAnteil = Math.min(1, st.leistung / this.leistungMax);
       var L = w.leerlauf !== undefined ? w.leerlauf : Rg.leerlaufAnteil;
-      this.tank -= (L + (1 - L) * (0.55 * Math.min(1, gasWirk) + 0.45 * pAnteil)) / w.tankSekunden * h;
+      var last = w.turbine ? 0.25 + 0.75 * (this.turbinenLauf || 0) : 0.55 * Math.min(1, gasWirk) + 0.45 * pAnteil;   // Turbine: Verbrauch nach Drehzahl
+      this.tank -= (L + (1 - L) * last) / w.tankSekunden * h;
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
     }
@@ -403,6 +412,24 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.raeder.forEach(function (R) { if (R.k.vy > C.vy) R.k.vy = C.vy; });
       if (vyPunkt > 1.5) this.melde("decke", { x: px, y: py, staerke: Math.min(1, vyPunkt / 8) });
     }
+  };
+
+  /* Turbinen-Sofa: Die Turbine dreht mit Gas langsam hoch (turbine.anlauf Sekunden bis
+     voll), ohne Gas langsam herunter – sie schiebt also noch nach, wenn man loslässt.
+     Schub entlang der Sofa-Längsachse, auch in der Luft, bis turbine.vmax. */
+  Fahrt.prototype.turbinenSchub = function (h) {
+    var T = this.werte.turbine, fz = this.fz, C = fz.chassis, st = fz.status;
+    var ziel = this.zustand === "fahrt" && this.tank > 0 ? this.gas : 0;
+    var lauf = this.turbinenLauf || 0;
+    lauf += (ziel > lauf ? h / T.anlauf : -h / (T.anlauf * 1.8)) ;
+    lauf = Math.max(0, Math.min(1, lauf)); if (ziel > lauf - 0.001 && ziel < lauf) lauf = ziel;
+    this.turbinenLauf = lauf; fz.turbine = lauf;
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var schub = T.schub * Math.pow(lauf, 1.6) * (0.4 + 0.6 * gRel);   // erst wenig, dann kräftig; bei wenig Schwerkraft gedrosselt
+    if (schub < 0.01 || st.vorwaerts > T.vmax) return;
+    var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
+    C.vx += ax * h; C.vy += ay * h;
+    fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
   };
 
   /* Flugzeug: Bodeneffekt-Auftrieb und Propeller. Auftrieb a = g · max · (v/vRef)²,

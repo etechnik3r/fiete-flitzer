@@ -376,7 +376,13 @@
         }
       });
     }
-    if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro) {   // Elektro: kein Auspuff
+    if (fahrt.werte.turbine && (fahrt.turbinenLauf || 0) > 0.25 && auspuffTakt <= 0) {     // Turbine: heiße Abgase hinter der Düse
+      auspuffTakt = 0.05;
+      var ct = Math.cos(ch.a), stt = Math.sin(ch.a), xt = -2.1 - fahrt.turbinenLauf * 0.8, yt = 0.8;
+      partikel.neu({ art: "rauch", x: ch.x + ct * xt - stt * yt, y: ch.y + stt * xt + ct * yt,
+                     vx: -ct * 3 + ch.vx * 0.4, vy: -stt * 3 + ch.vy * 0.4 + 0.3, t: 0, dauer: 0.5, r0: 0.15, r1: 0.6,
+                     farbe: "rgba(210,215,230,0.8)", alpha: 0.45, reibung: 1.5 });
+    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro && !fahrt.werte.turbine) {   // Elektro: kein Auspuff
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
@@ -498,6 +504,8 @@
           konfettiWelt(e.x, e.y + 1, 14);
           setzeAusdruck("freude", 1.6);
           FF.Klang.sprich("Looping!");
+          break;
+        case "turbineVoll":
           break;
         case "boost":
           FF.Klang.spiele("boost");

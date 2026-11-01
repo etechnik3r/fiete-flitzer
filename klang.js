@@ -155,7 +155,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.quellen = [];
     this.rpm = 0; this.t0 = ac.currentTime;
     this.zz = 99991;
-    if (P.art === "elektro") this.baueElektro(); else this.baueVerbrenner();
+    if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine(); else this.baueVerbrenner();
     this.baueFahrgeraeusch();
   }
   Motor.prototype.zufall = function () { this.zz = (this.zz * 16807) % 2147483647; return this.zz / 2147483647; };
@@ -240,6 +240,36 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.v = { surr: surr, heul: heul, pwm: pwm, gS: gS, gH: gH, gP: gP, aG: aG, a1: a1, a2: a2, tremG: tremG };
   };
 
+  /* Flugzeugturbine (Turbinen-Sofa): hohes Jaulen der Welle, das mit der Drehzahl
+     steigt (zwei Töne, leicht verstimmt), Fauchen des Abgasstrahls (Bandpass-Rauschen,
+     ∝ Drehzahl²) und tiefes Grollen. Die Drehzahl kommt aus fahrt.turbinenLauf. */
+  Motor.prototype.baueTurbine = function () {
+    var ac = this.ac;
+    var j1 = ac.createOscillator(), j2 = ac.createOscillator(); j1.type = "sine"; j2.type = "triangle";
+    var gJ = ac.createGain(); gJ.gain.value = 0;
+    j1.connect(gJ); j2.connect(gJ); gJ.connect(this.bus);
+    var q = rauschQuelle(ac);
+    var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 0.7; bp.frequency.value = 500;
+    var gF = ac.createGain(); gF.gain.value = 0;
+    var tp = ac.createBiquadFilter(); tp.type = "lowpass"; tp.frequency.value = 140;
+    var gG = ac.createGain(); gG.gain.value = 0;
+    q.connect(bp); bp.connect(gF); gF.connect(this.bus);
+    q.connect(tp); tp.connect(gG); gG.connect(this.bus);
+    [j1, j2, q].forEach(this.starte, this);
+    this.v = { j1: j1, j2: j2, gJ: gJ, bp: bp, gF: gF, gG: gG };
+  };
+  Motor.prototype.setzeTurbine = function (z, gt, t) {
+    var P = this.P, V = this.v, L = P.lautstaerke || 1;
+    var rel = z.laeuft ? Math.max(0, Math.min(1, (gt.rpm - P.leerlauf) / (P.max - P.leerlauf))) : 0;
+    var an = z.laeuft ? 1 : Math.max(0, gt.rpm / P.max);
+    V.j1.frequency.setTargetAtTime(500 + 3600 * Math.max(rel, 0.05), t, 0.05);
+    V.j2.frequency.setTargetAtTime((500 + 3600 * Math.max(rel, 0.05)) * 1.51, t, 0.05);
+    V.gJ.gain.setTargetAtTime(L * an * (0.006 + 0.012 * rel), t, 0.08);
+    V.bp.frequency.setTargetAtTime(400 + 1400 * rel, t, 0.1);
+    V.gF.gain.setTargetAtTime(L * an * (0.015 + 0.16 * rel * rel), t, 0.1);
+    V.gG.gain.setTargetAtTime(L * an * 0.12 * rel, t, 0.1);
+  };
+
   Motor.prototype.baueFahrgeraeusch = function () {
     var ac = this.ac;
     var q = rauschQuelle(ac);
@@ -283,6 +313,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var gt = z.probe ? this.leerlaufGetriebe(r, dt)
            : z.getriebe || (this.getriebe = this.getriebe || new FF.Getriebe(P)).schritt(r, v, gas, z.boden, z.laeuft, dt);
     if (P.art === "elektro") return this.setzeElektro(z, gt, tempo, gas, t, dt);
+    if (P.art === "turbine") return this.setzeTurbine(z, gt, t);
 
     var abgeregelt = gt.begrenzer && Math.sin(t * 2 * Math.PI * 12) < 0;   // Begrenzer unterbricht die Zündung
     var last = gt.schalten ? gas * 0.45 : (abgeregelt ? gas * 0.3 : gas);
@@ -365,7 +396,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.gH.gain.setTargetAtTime(L * 0.0045 * an * (0.2 + 0.8 * strom), t, 0.04);
     V.gP.gain.setTargetAtTime(L * 0.004 * an * strom * (1 - Math.min(1, rm * 2)), t, 0.04);
     // AVAS: hörbar von 0 bis ca. 20 km/h (5,6 m/s), danach übertönen Reifen und Wind
-    var kmh = tempo * 3.6, avas = z.laeuft ? Math.max(0, 1 - kmh / 20) * (kmh < 0.5 ? 0.5 : 1) : 0;
+    // Im Stand ist ein Elektromotor still (kein „Standgas“); der Warnton setzt erst beim Rollen ein
+    var kmh = tempo * 3.6, avas = z.laeuft && !z.probe ? Math.max(0, 1 - kmh / 20) * Math.min(1, Math.max(0, (kmh - 0.8) / 2.5)) : 0;
     V.aG.gain.setTargetAtTime(L * 0.013 * avas, t, 0.1);
     V.tremG.gain.setTargetAtTime(L * 0.005 * avas, t, 0.1);
     V.a1.frequency.setTargetAtTime(P.avasTon * (1 + 0.25 * Math.min(1, kmh / 20)), t, 0.1);

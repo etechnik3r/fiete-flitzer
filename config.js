@@ -214,7 +214,7 @@ FF.CONFIG = {
       dach: [[-0.80, 0.76], [0.10, 0.72]],
       kopf: { x: -0.14, y: 0.5, r: 0.26 },
       farbe: "eisblau", form: "eauto",
-      klang: { art: "elektro", surren: 2100, avasTon: 330, max: 12000, lautstaerke: 1.0, abrollen: 1.1 },
+      klang: { art: "elektro", surren: 2100, avasTon: 330, max: 15000, lautstaerke: 1.0, abrollen: 1.1 },
       upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     },
     {
@@ -291,7 +291,7 @@ FF.CONFIG = {
       dach: [[-0.05, 1.16]],
       kopf: { x: -0.05, y: 0.70, r: 0.32 },
       farbe: "weiss", form: "mond",
-      klang: { art: "elektro", surren: 900, avasTon: 220, max: 8000, weltraum: true, lautstaerke: 1.0, abrollen: 1.0 },
+      klang: { art: "elektro", surren: 900, avasTon: 220, max: 9000, weltraum: true, lautstaerke: 1.0, abrollen: 1.0 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     },
     {
@@ -313,7 +313,7 @@ FF.CONFIG = {
       dach: [[0.0, 0.62], [-0.05, 0.3]],
       kopf: { x: 0.02, y: 0.86, r: 0.28 },
       farbe: "lila", form: "skateboard",
-      klang: { art: "elektro", surren: 3200, avasTon: 440, max: 15000, lautstaerke: 0.8, abrollen: 0.9 },
+      klang: { art: "elektro", surren: 3200, avasTon: 440, max: 22000, lautstaerke: 0.8, abrollen: 0.9 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     },
     {
@@ -338,6 +338,29 @@ FF.CONFIG = {
       farbe: "rot", form: "flugzeug",
       klang: { art: "verbrenner", zylinder: 4, takte: 4, leerlauf: 800, max: 2900, gaenge: 1, abkling: 8, ungleich: 0.2,
                rohr: 0.005, rueck: 0.4, koerper: 140, hell: 1.15, diesel: 0.05, unruhe: 10, traegheit: 8, lautstaerke: 1.0, abrollen: 0.8 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* Turbinen-Sofa: ein Sofa auf Möbelrollen, hinten eine Flugzeugturbine. Die Räder
+         treiben kaum an – die Turbine schiebt (turbine.schub [m/s²] entlang des Sofas,
+         auch in der Luft), braucht aber erst „anlauf“ Sekunden zum Hochdrehen.
+         Weiche, hüpfende Polster (wenig Dämpfung). Durstig! */
+      id: "sofa", name: "Turbinen-Sofa", emoji: "🛋️", preis: 18000, preisBasis: 380,
+      text: "Ein Sofa mit Flugzeugturbine! Erst jault sie, dann faucht sie – und dann geht's ab. Festhalten!",
+      masse: 230, groesse: { laenge: 2.6, hoehe: 1.3 },
+      raeder: [
+        { x: -0.95, y: -0.28, r: 0.24, masse: 5, antrieb: true },
+        { x:  0.95, y: -0.28, r: 0.24, masse: 5, antrieb: false }
+      ],
+      federung: { ruhe: 0.2, weg: 0.18, frequenz: 1.4, daempfung: 0.22 },
+      motor: { drehmoment: 260, vmax: 31 }, bremse: 1100, grip: 0.95,
+      tankSekunden: 23, luftsteuerung: 6.0, cwA: 0.9, abtrieb: 0,
+      turbine: { schub: 7.5, anlauf: 0.9, vmax: 31 },
+      huelle: [[-1.3, -0.3], [1.3, -0.3], [1.35, 0.25], [1.05, 0.3], [-0.95, 0.3], [-1.2, 1.05], [-1.95, 1.0], [-1.95, 0.6], [-1.3, 0.45]],
+      dach: [[-0.95, 1.05], [0.3, 0.95]],
+      kopf: { x: -0.1, y: 0.82, r: 0.28 },
+      farbe: "pink", form: "sofa",
+      klang: { art: "turbine", max: 40000, leerlauf: 9000, traegheit: 1.5, lautstaerke: 1.0, abrollen: 0.7 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     }
   ],
@@ -999,6 +1022,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "22", titel: "Turbinen-Sofa und echter Drehzahlmesser", punkte: [
+      "🛋️ Neues Fahrzeug Turbinen-Sofa: Erst jault die Turbine, dann faucht sie – und dann geht's ab!",
+      "⏱️ Der Drehzahlmesser zeigt jetzt die ganze Drehzahl (z. B. 4.600 U/min) und den Gang",
+      "⚡ Elektromotoren drehen bis 22.000 U/min, haben keine Gänge – und sind im Stand ganz leise" ] },
     { version: "21", titel: "Geheime Welten und besseres Skateboard", punkte: [
       "🤫 Im ❓ siehst du nur die Welten, die du schon freigespielt hast – die anderen bleiben eine Überraschung",
       "🛹 Das Skateboard kippt am Berg nicht mehr so leicht nach hinten: Meistens kannst du auf dem Gas bleiben",
