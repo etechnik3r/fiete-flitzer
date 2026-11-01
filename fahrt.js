@@ -253,6 +253,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.decke) this.deckenStoss();
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
     if (this.welt.wind) this.pruefeWind();
+    if (this.gelaende.baender.length) this.pruefeBand();
 
     // Tankverbrauch: Leerlauf + Gasstellung + abgegebene Leistung
     if (this.zustand === "fahrt" && this.tank > 0) {
@@ -418,6 +419,13 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; });
       this.melde("boing", { x: (t.x0 + t.x1) / 2, y: this.gelaende.hoeheBei((t.x0 + t.x1) / 2) });
     }
+  };
+
+  /* Förderband: Meldung beim Auffahren (Richtung und Tempo zeigt spiel.js) */
+  Fahrt.prototype.pruefeBand = function () {
+    var v = this.fz.status.radKontakte > 0 ? this.gelaende.bandBei(this.fz.chassis.x) : 0;
+    if (v && !this.letztesBand && this.zustand === "fahrt") this.melde("band", { v: v });   // nur beim Auffahren
+    if (v || this.fz.status.radKontakte > 0) this.letztesBand = v;
   };
 
   /* Sturm: Meldung, wenn kräftiger Rücken- oder Gegenwind beginnt (höchstens alle 6 s) */

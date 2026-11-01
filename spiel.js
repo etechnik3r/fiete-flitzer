@@ -558,6 +558,15 @@
             tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
           }
           break;
+        case "band":                     // Förderband
+          FF.Klang.spiele("band", e.v > 0);
+          schwebeText(ch.x, ch.y + 2, e.v > 0 ? "Förderband ⏩" : "Förderband ⏪", e.v > 0 ? "#7dffb8" : "#ffd6a0", true);
+          if (ersteMale("tipp-band" + (e.v > 0 ? "+" : "-"), 2)) {
+            if (e.v > 0) tipp("⏩ Das Förderband fährt mit – mit Gas bist du doppelt so schnell!", 4000, "Förderband! Gib Gas!");
+            else tipp("⏪ Dieses Band läuft rückwärts – gib kräftig Gas!", 4000, "Das Band läuft rückwärts! Gib Gas!");
+            spruchBis = zeit + 3;
+          }
+          break;
         case "wind":                     // Sturm: Rückenwind oder Gegenwind beginnt
           FF.Klang.spiele("windstoss");
           schwebeText(ch.x, ch.y + 2, e.richtung > 0 ? "Rückenwind! 💨" : "Gegenwind! 🌬️", e.richtung > 0 ? "#7dffb8" : "#ffd6a0", true);
@@ -1843,6 +1852,7 @@
              "</span>" + n.titel + (aktuell ? ' <span class="neu-marke">⭐ deine Version</span>' : "") + "</div><ul>" +
              n.punkte.map(function (p) { return "<li>" + p + "</li>"; }).join("") + "</ul></div>";
     }).join("");
+    $("hilfe-weltenzahl").textContent = C.welten.length + " Welten";
     oeffneModal("hilfe");
     $("hilfe-inhalt").scrollTop = 0;
   }

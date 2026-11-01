@@ -646,6 +646,7 @@ FF.CONFIG = {
                   bremst) und drehDaempfung [1/s] (Drehungen werden langsamer)
          nacht    Dunkelheit (dunkel 0..1): Scheinwerfer, Laternen, Glühwürmchen
          gelaende.trampolin  Hüpfpilze: wer drauffährt, fliegt hoch
+         gelaende.band       Förderbänder (Spielzeugfabrik)
          tipp     [Text, vorgelesener Satz] beim Start eines Levels
        --------------------------------------------------------------------- */
     {
@@ -757,6 +758,29 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 320, muenzAbstand: 22,
       level: [ { laenge: 820, seed: 1801 }, { laenge: 1080, seed: 1802 }, { laenge: 1340, seed: 1803 }, { laenge: 1600, seed: 1804 } ]
+    },
+    {
+      /* Spielzeugfabrik: Förderbänder (Bau-Element "band" in gelaende.js,
+         physik.js: Reifen haften relativ zum laufenden Band). Vorwärtsbänder machen
+         schnell, gegen Rückwärtsbänder muss man anfahren. */
+      id: "fabrik", name: "Spielzeugfabrik", emoji: "🧸", hinweis: "Förderbänder schieben dich – oder laufen dir entgegen!",
+      schwerkraft: 9.81, grip: 0.95, rollwiderstand: 0.018, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#8fd0f5", "#fdf0d5"], berge: ["#c9b8e8", "#a593d1"],
+        boden: ["#8a8fa0", "#5c6170"], oberflaeche: "#6f7686", kante: "#ffd23f", punkte: "#5c6370",
+        wolken: "rgba(255,255,255,0.8)"
+      },
+      sonne: "sonne", wetter: "konfetti",
+      tipp: ["⏩ Förderbänder! Vorwärts machen sie dich schnell, rückwärts musst du kräftig Gas geben.", "Förderbänder!"],
+      deko: ["@bauklotz:1.4", "🧸:1.1", "@zahnrad:1.6", "@kiste:1.0", "🚂:1.5", "@kreisel:0.9", "@bauklotz:1.0", "🎁:0.9", "🤖:1.2",
+             "@kiste:1.4", "@zahnrad:1.1", "🎈:1.3", "@kreisel:0.7"],
+      beiwerk: ["@stein:0.3", "@bauklotz:0.45"], kulisse: ["fabrik", "zahnraeder", "kran"],
+      gelaende: { amp: 7.0, welle: 40, holperAmp: 0.15, holperWelle: 6, trend: 0.02,
+                  maxAuf: 31, maxAb: 42, schanzen: 1.1, buckel: 0.8, steil: 0.9, taeler: 0.8, berg: 0.9, sprung: 0.9, wellen: 0.8, klippe: 0.8, rampe: 0.9, kuppe: 0.9, stufe: 1.2,
+                  band: 2.2, wildBasis: 0.5,
+                  abstandElemente: 25 },
+      tankAbstand: 310, muenzAbstand: 22,
+      level: [ { laenge: 840, seed: 1901 }, { laenge: 1100, seed: 1902 }, { laenge: 1360, seed: 1903 }, { laenge: 1620, seed: 1904 } ]
     }
   ],
 
@@ -779,6 +803,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "17", titel: "Spielzeugfabrik", punkte: [
+      "🧸 Neue Welt Spielzeugfabrik: Bauklötze, Kreisel, Zahnräder und bunter Dampf aus den Schornsteinen",
+      "⏩ Förderbänder! Vorwärts machen sie dich doppelt so schnell, gegen Rückwärtsbänder musst du kräftig Gas geben" ] },
     { version: "16", titel: "Spielstand sichern und Spuren", punkte: [
       "💾 Spielstand-Code: In den Einstellungen steht ein Code. Kopieren, dir selbst schicken – und auf jedem Handy wieder eingeben",
       "💫 Neu in der Garage: Spuren! Sternenstaub, Seifenblasen, Herzen, Funken, Konfetti oder ein Regenbogen fliegen hinter dir her",

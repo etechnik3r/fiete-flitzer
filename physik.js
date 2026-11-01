@@ -53,6 +53,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.jn = 0; this.jt = 0; this.jr = 0;   // aufsummierte Impulse (normal, tangential, Rollwiderstand)
     this.mn = 0; this.mt = 0; this.ziel = 0; this.mu = 0; this.rollMax = 0;
     this.kraftN = 0; this.kraftT = 0;        // für die Kräfte-Anzeige [N]
+    this.vBand = 0;                          // Förderband: der Boden bewegt sich tangential mit dieser Geschwindigkeit
   }
 
   /* -------------------------------------------------------------------------
@@ -192,7 +193,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function loeseReibung(b, ko) {
     var tx = ko.ny, ty = -ko.nx;
     var vx = b.vx - b.w * ko.ry, vy = b.vy + b.w * ko.rx;
-    var vt = vx * tx + vy * ty;
+    var vt = vx * tx + vy * ty - ko.vBand;          // Haften RELATIV zum Boden (Förderband: Boden läuft mit vBand)
     var dj = -ko.mt * vt;
     var max = ko.mu * ko.jn, j0 = ko.jt;
     ko.jt = Math.max(-max, Math.min(max, j0 + dj));
@@ -256,6 +257,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     var grip = w.grip * welt.grip, crr = welt.rollwiderstand, abprall = welt.abprall;
+    var band = gel.baender && gel.baender.length > 0;
 
     /* 2) Kontakte erkennen + 3) vorbereiten (inkl. Warmstart) */
     for (i = 0; i < nR; i++) {
@@ -266,6 +268,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         ko.pen = tmp.pen; ko.nx = tmp.nx; ko.ny = tmp.ny;
         ko.rx = -R.r * ko.nx; ko.ry = -R.r * ko.ny;
         ko.rollMax = crr * R.r;
+        ko.vBand = band ? gel.bandBei(k.x) : 0;
         vorbereiteKontakt(k, ko, h, abprall, grip, P);
       } else { ko.jn = ko.jt = ko.jr = 0; }
     }
@@ -277,6 +280,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       ko.aktiv = gel.punktKontakt(C.x + rx, C.y + ry, P.kontaktRand, tmp);
       if (ko.aktiv) {
         ko.pen = tmp.pen; ko.nx = tmp.nx; ko.ny = tmp.ny; ko.rx = rx; ko.ry = ry; ko.rollMax = 0;
+        ko.vBand = band ? gel.bandBei(C.x + rx) : 0;
         vorbereiteKontakt(C, ko, h, Math.max(P.huellAbprall, abprall * 0.5), muH, P);
       } else { ko.jn = ko.jt = 0; }
     }

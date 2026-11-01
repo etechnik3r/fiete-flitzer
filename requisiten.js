@@ -606,6 +606,56 @@
       g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(-b, -u * 0.55, b * 2, u * 0.55);
     } },
 
+    /* ---- Spielzeugfabrik ---- */
+    bauklotz: { breite: 1.0, sinken: 0, male: function (g, u, R) {
+      // gestapelte bunte Holzklötze mit Buchstaben-Punkten
+      var farben = ["#e8453c", "#2f6fd6", "#ffd23f", "#3cc35a", "#ff8a2e", "#8e5bd8"], y = 0, n = 2 + Math.floor(R() * 2);
+      for (var i = 0; i < n; i++) {
+        var b = u * (0.42 - i * 0.06), hb = u * (0.32 - i * 0.03), x = (R() - 0.5) * u * 0.08, f = farben[Math.floor(R() * 6)];
+        var gr = g.createLinearGradient(x - b, 0, x + b, 0); gr.addColorStop(0, hell(f, 0.2)); gr.addColorStop(1, dunkel(f, 0.15));
+        g.fillStyle = gr; g.fillRect(x - b, y - hb, b * 2, hb);
+        g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.015); g.strokeRect(x - b, y - hb, b * 2, hb);
+        g.fillStyle = "rgba(255,255,255,0.85)"; g.beginPath(); g.arc(x, y - hb / 2, hb * 0.22, 0, Math.PI * 2); g.fill();
+        y -= hb;
+      }
+      if (R() < 0.5) {                                   // ein Dreieck obendrauf
+        g.fillStyle = farben[Math.floor(R() * 6)]; g.beginPath(); g.moveTo(-u * 0.2, y); g.lineTo(u * 0.2, y); g.lineTo(0, y - u * 0.25); g.closePath(); g.fill();
+      }
+    } },
+    zahnrad: { breite: 1.0, sinken: 0.15, male: function (g, u, R) {
+      var f = ["#9aa3b5", "#c9a24a", "#b8784a"][Math.floor(R() * 3)], r = u * 0.48, n = 8 + Math.floor(R() * 4), y = -u * 0.5;
+      g.beginPath();
+      for (var i = 0; i < n * 2; i++) { var a = i * Math.PI / n, rr = i % 2 ? r * 0.8 : r; g.lineTo(Math.cos(a - 0.13) * rr, y + Math.sin(a - 0.13) * rr); g.lineTo(Math.cos(a + 0.13) * rr, y + Math.sin(a + 0.13) * rr); }
+      g.closePath();
+      var gr = g.createRadialGradient(-r * 0.3, y - r * 0.3, r * 0.1, 0, y, r); gr.addColorStop(0, hell(f, 0.3)); gr.addColorStop(1, dunkel(f, 0.2));
+      g.fillStyle = gr; g.fill(); g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.015); g.stroke();
+      g.fillStyle = dunkel(f, 0.35); g.beginPath(); g.arc(0, y, r * 0.25, 0, Math.PI * 2); g.fill();
+      g.fillStyle = dunkel(f, 0.1); for (i = 0; i < 4; i++) { g.beginPath(); g.arc(Math.cos(i * 1.57 + 0.7) * r * 0.52, y + Math.sin(i * 1.57 + 0.7) * r * 0.52, r * 0.1, 0, Math.PI * 2); g.fill(); }
+    } },
+    kiste: { breite: 1.1, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.52, f = "#c9955a";
+      var gr = g.createLinearGradient(-b, 0, b, 0); gr.addColorStop(0, hell(f, 0.15)); gr.addColorStop(1, dunkel(f, 0.2));
+      g.fillStyle = gr; g.fillRect(-b, -u, b * 2, u);
+      g.strokeStyle = dunkel(f, 0.4); g.lineWidth = Math.max(1, u * 0.04); g.strokeRect(-b, -u, b * 2, u);
+      g.beginPath(); g.moveTo(-b, -u); g.lineTo(b, 0); g.moveTo(b, -u); g.lineTo(-b, 0); g.stroke();
+      if (R() < 0.7) {                                    // Aufkleber: Herz, Stern oder Teddy-Kopf
+        g.fillStyle = ["#e8453c", "#ffd23f", "#2f6fd6"][Math.floor(R() * 3)];
+        g.beginPath(); g.arc(0, -u * 0.5, u * 0.16, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#fff"; g.beginPath(); g.arc(0, -u * 0.5, u * 0.07, 0, Math.PI * 2); g.fill();
+      }
+    } },
+    kreisel: { breite: 0.8, sinken: 0, male: function (g, u, R) {
+      var farben = [["#e8453c", "#ffd23f"], ["#2f6fd6", "#ffffff"], ["#3cc35a", "#ff8a2e"]][Math.floor(R() * 3)], b = u * 0.38;
+      g.save(); g.rotate((R() - 0.5) * 0.25);
+      g.beginPath(); g.moveTo(0, 0); g.lineTo(-b, -u * 0.5); g.quadraticCurveTo(0, -u * 0.78, b, -u * 0.5); g.closePath();
+      g.save(); g.clip();
+      for (var i = 0; i < 6; i++) { g.fillStyle = farben[i % 2]; g.beginPath(); g.moveTo(0, 0); g.lineTo(-b + i * b / 3, -u); g.lineTo(-b + (i + 1) * b / 3, -u); g.closePath(); g.fill(); }
+      g.restore();
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.stroke();
+      g.fillStyle = "#7a5232"; g.fillRect(-u * 0.025, -u * 0.85, u * 0.05, u * 0.22);
+      g.restore();
+    } },
+
     /* ---- Nachtwald (das Licht malt grafik.js zeichneNacht dazu) ---- */
     laterne: { breite: 0.45, sinken: 0, male: function (g, u, R) {
       g.fillStyle = "#2e3442"; g.fillRect(-u * 0.025, -u * 0.82, u * 0.05, u * 0.82);

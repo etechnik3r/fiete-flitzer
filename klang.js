@@ -527,6 +527,9 @@ var FF = globalThis.FF = globalThis.FF || {};
         ton(110, 0, 0.55, "sine", 0.32, 520); ton(220, 0.03, 0.45, "triangle", 0.1, 900);
         ton(523, 0.1, 0.12, "triangle", 0.08); ton(784, 0.18, 0.16, "triangle", 0.08);
         break;
+      case "band":                     // Förderband: Rattern, auf- oder absteigend
+        for (var bi = 0; bi < 5; bi++) ton(wert ? 300 + bi * 60 : 540 - bi * 60, bi * 0.06, 0.05, "square", 0.04);
+        break;
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;
