@@ -1537,7 +1537,7 @@ var FF = globalThis.FF = globalThis.FF || {};
      ========================================================================= */
   function zeichneSzene(ctx, sz) {
     var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit, W = FF.GrafikWelt;
-    taucherHelm = !!welt.unterwasser;
+    taucherHelm = !!(welt.unterwasser || welt.helm);
     W.windAktualisieren(K, welt, gel, sz.dt);
     W.zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
     W.zeichneWolken(ctx, K, welt, z);

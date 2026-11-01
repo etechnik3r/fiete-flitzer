@@ -61,13 +61,13 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **19 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **20 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle ·
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
-  🧸 Spielzeugfabrik.
+  🧸 Spielzeugfabrik · 🪐 Roter Planet.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -131,6 +131,9 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     lässt, steht wie auf einem Laufband fast still, wer bremst, fährt mit. An
     den Enden steigt das Tempo über 2,5 m an, sonst würde der Sprung das Auto
     aushebeln (wie eine Vollbremsung).
+  - **🪐 Roter Planet** (Version 18): Mars mit g = 3,71 m/s² und Staubstürmen
+    (`wind` wie im Herbststurm, aber nur 0,75 m/s², weil man so leicht ist),
+    zwei Monde, Rover und Kuppel-Station, Fiete mit Raumhelm (`welt.helm`).
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring

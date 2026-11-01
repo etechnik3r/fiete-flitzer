@@ -606,6 +606,39 @@
       g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(-b, -u * 0.55, b * 2, u * 0.55);
     } },
 
+    /* ---- Mars ---- */
+    marsstein: { breite: 1.6, sinken: 0.12, male: function (g, u, R) {
+      var f = ["#a4502f", "#b8603a", "#8f4431", "#c06a40"][Math.floor(R() * 4)];
+      facetten(g, u, R, felsForm(g, u, R, 1.5, 0.85, f, R() < 0.6), f);
+    } },
+    rover: { breite: 1.4, sinken: 0, male: function (g, u, R) {
+      // kleiner Mars-Rover mit sechs Rädern, Mast mit Kamera-Kopf und Solarflügel
+      var b = u * 0.62;
+      g.fillStyle = "#3a3f4b";
+      for (var i = -1; i <= 1; i++) { g.beginPath(); g.arc(i * b * 0.75, -u * 0.12, u * 0.12, 0, Math.PI * 2); g.fill(); }
+      g.strokeStyle = "#6f7686"; g.lineWidth = Math.max(1, u * 0.03);
+      g.beginPath(); g.moveTo(-b * 0.75, -u * 0.12); g.lineTo(-b * 0.4, -u * 0.32); g.lineTo(b * 0.75, -u * 0.12); g.moveTo(0, -u * 0.12); g.lineTo(-b * 0.4, -u * 0.32); g.stroke();
+      var gr = g.createLinearGradient(0, -u * 0.5, 0, -u * 0.3); gr.addColorStop(0, "#f4f6fb"); gr.addColorStop(1, "#b9c1d4");
+      g.fillStyle = gr; g.fillRect(-b * 0.7, -u * 0.48, b * 1.4, u * 0.17);
+      g.fillStyle = "#2f4f8f"; g.fillRect(-b * 0.95, -u * 0.53, b * 0.6, u * 0.05); g.fillRect(b * 0.35, -u * 0.53, b * 0.6, u * 0.05);
+      g.fillStyle = "#c9cfdb"; g.fillRect(b * 0.35, -u * 0.95, u * 0.04, u * 0.47);
+      g.fillStyle = "#f4f6fb"; g.fillRect(b * 0.25, -u * 1.02, u * 0.22, u * 0.12);
+      g.fillStyle = "#2b2f3a"; g.beginPath(); g.arc(b * 0.25 + u * 0.16, -u * 0.96, u * 0.035, 0, Math.PI * 2); g.fill();
+    } },
+    marsbasis: { breite: 1.8, sinken: 0, male: function (g, u, R) {
+      // Kuppel-Station mit Fenstern, Schleuse und Antenne
+      var b = u * 0.8;
+      var gr = g.createLinearGradient(-b, -u * 0.7, b, 0); gr.addColorStop(0, "#ffffff"); gr.addColorStop(1, "#aeb6c8");
+      g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, b, u * 0.62, 0, Math.PI, 0); g.fill();
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.015); g.stroke();
+      g.strokeStyle = "rgba(60,70,90,0.35)";
+      for (var i = 1; i < 4; i++) { g.beginPath(); g.ellipse(0, 0, b * i / 4, u * 0.62, 0, Math.PI, 0); g.stroke(); }
+      g.fillStyle = "#6fc3ff"; [-0.45, 0.1, 0.5].forEach(function (x) { g.beginPath(); g.arc(x * b, -u * 0.3, u * 0.06, 0, Math.PI * 2); g.fill(); });
+      g.fillStyle = "#c9cfdb"; g.fillRect(b * 0.75, -u * 0.22, b * 0.35, u * 0.22);
+      g.fillStyle = "#e8453c"; g.fillRect(-u * 0.02, -u * 0.95, u * 0.04, u * 0.35);
+      g.beginPath(); g.arc(0, -u * 0.97, u * 0.05, 0, Math.PI * 2); g.fill();
+    } },
+
     /* ---- Spielzeugfabrik ---- */
     bauklotz: { breite: 1.0, sinken: 0, male: function (g, u, R) {
       // gestapelte bunte Holzklötze mit Buchstaben-Punkten
