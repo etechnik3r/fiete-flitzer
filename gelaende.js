@@ -135,6 +135,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.trampoline = [];          // Hüpfpilze {x0, x1, H, v, …} – wer drauffährt, fliegt hoch (fahrt.js)
     this.baender = [];             // Förderbänder {x0, x1, v} – der Boden bewegt sich mit v [m/s] (physik.js)
     this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
+    this.objekte = [];             // Dinge auf der Strecke, die man umfährt (welt.objekte): Glas, Bausteine, Säulen
+    this.objektX = 35;             // bis hierhin sind Objekte verteilt
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
@@ -836,6 +838,22 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
 
+    // Objekte auf der Strecke (Glasblöcke, Bausteine, Säulen): eigener Zufall aus der Position,
+    // damit Münzen und Kanister gleich bleiben; nur auf flachem Boden, nie in Sperrzonen
+    var OB = welt.objekte;
+    while (OB && this.objektX < bis - 10 && this.objektX < ende - 25) {
+      var xo = this.objektX, ho = hash01(Math.round(xo * 7), this.seed + 61), ho2 = hash01(Math.round(xo * 7), this.seed + 62);
+      var saeule = OB.saeule && ho2 < OB.saeule;
+      this.objektX += OB.abstand * (0.55 + 0.9 * ho) * (saeule ? 1.6 : 1);
+      var flach = Math.abs(this.steigungBei(xo - 1)) < 0.3 && Math.abs(this.steigungBei(xo + 1)) < 0.3;
+      if (!flach || this.gesperrt(xo) || this.wasserBei(xo) > -Infinity || this.nahAnTank(xo, 5)) continue;
+      var art = saeule ? "saeule" : OB.art, ob = { x: xo, y: this.hoeheBei(xo), art: art, kaputt: false, v: Math.floor(ho2 * 1000) };
+      if (art === "glas") { ob.form = ["block", "kugel", "turm"][Math.floor(ho * 3)]; ob.b = 0.9 + 0.6 * ho2; ob.h = ob.form === "turm" ? 1.8 + ho : 0.9 + 0.6 * ho; }
+      else if (art === "stein") { ob.b = 0.7 + 0.5 * ho2; ob.h = 0.38 * (1 + Math.floor(ho * 3)); }
+      else { ob.b = 1.3; ob.h = 3.6 + 1.6 * ho; }                    // Säule
+      this.objekte.push(ob);
+    }
+
     // Hüpfpilze: Münzen steigen über dem Hut auf (früh im Flug liegen alle Flugbahnen
     // nah beieinander – egal wie schnell man kommt), oben ein Stern
     for (i = 0; i < this.trampoline.length; i++) {
@@ -925,6 +943,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
+    filter(this.objekte);
     var n = 0;
     while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
     if (n > 0) this.pfuetzen.splice(0, n);

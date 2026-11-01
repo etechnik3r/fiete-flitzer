@@ -444,6 +444,26 @@ var FF = globalThis.FF = globalThis.FF || {};
       licht.forEach(function (l) { for (var k2 = -1; k2 <= 1; k2++) ctx.fillRect(l[0] + k2 * s * 0.06 - s * 0.012, l[1] - s * 0.012, s * 0.024, s * 0.024); });
       ctx.fillStyle = alt;
     } },
+    glastuerme: { abst: 22, male: function (ctx, x, y, s, R) {
+      // durchsichtige Glastürme mit Lichtkante
+      var alt = ctx.fillStyle, n = 1 + Math.floor(R() * 3);
+      for (var i = 0; i < n; i++) {
+        var b = s * (0.08 + 0.08 * R()), h = s * (0.4 + 0.7 * R()), xx = x + (i - (n - 1) / 2) * s * 0.22;
+        ctx.globalAlpha = 0.55; ctx.fillStyle = alt;
+        ctx.beginPath(); ctx.moveTo(xx - b, y + 2); ctx.lineTo(xx - b, y - h); ctx.lineTo(xx, y - h - b * 0.8); ctx.lineTo(xx + b, y - h); ctx.lineTo(xx + b, y + 2); ctx.fill();
+        ctx.globalAlpha = 0.7; ctx.fillStyle = "#ffffff"; ctx.fillRect(xx - b * 0.7, y - h, b * 0.18, h);
+      }
+      ctx.globalAlpha = 1; ctx.fillStyle = alt;
+    } },
+    bausteine: { abst: 18, male: function (ctx, x, y, s, R) {
+      // Türme und Mauern aus Klemmbausteinen (Silhouette mit Noppen)
+      var n = 1 + Math.floor(R() * 3), hs = s * 0.07;
+      for (var i = 0; i < n; i++) {
+        var b = s * (0.12 + 0.12 * R()), lagen = 2 + Math.floor(R() * 7), xx = x + (i - (n - 1) / 2) * s * 0.3;
+        ctx.fillRect(xx - b / 2, y - lagen * hs, b, lagen * hs + 2);
+        for (var k = 0; k < 3; k++) ctx.fillRect(xx - b / 2 + (k + 0.2) * b / 3, y - lagen * hs - hs * 0.3, b / 3 * 0.55, hs * 0.3);
+      }
+    } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
         var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
@@ -617,7 +637,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.lineTo(sx(K, x0 + i1 * dx), K.h + 10);
     ctx.closePath();
     ctx.fillStyle = gr;
+    if (welt.glas) ctx.globalAlpha = 0.5;                   // Glaswelt: der Boden ist fast durchsichtig
     ctx.fill();
+    ctx.globalAlpha = 1;
 
     // Steinchen/Krümel im Boden (fest an die Abtastpunkte gebunden)
     ctx.fillStyle = f.punkte;
@@ -695,6 +717,30 @@ var FF = globalThis.FF = globalThis.FF || {};
         X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
         ctx.beginPath(); ctx.moveTo(X, Y + 0.05 * K.s); ctx.lineTo(X, Y + 0.6 * K.s); ctx.stroke();
       }
+    } else if (stil === "glas") {
+      // Glaskanten im Boden: helle Lichtreflexe
+      ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1, 0.05 * K.s);
+      for (i = i0 - (i0 % 8); i <= i1; i += 8) {
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
+        ctx.beginPath(); ctx.moveTo(X, Y + 0.4 * K.s); ctx.lineTo(X + 0.7 * K.s, Y + 1.6 * K.s); ctx.stroke();
+      }
+    } else if (stil === "bausteine") {
+      // Noppen auf der Oberfläche und Steinfugen im Boden
+      ctx.fillStyle = f.oberflaeche;
+      var np = Math.max(2, Math.round(0.8 / dx));
+      ctx.beginPath();
+      for (i = i0 - (i0 % np); i <= i1; i += np) {
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
+        ctx.rect(X - 0.17 * K.s, Y - 0.14 * K.s, 0.34 * K.s, 0.16 * K.s);
+      }
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.16)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
+      ctx.beginPath();                                       // alle Fugen in EINEM Pfad (schneller)
+      for (var reihe = 1; reihe <= 3; reihe++) {
+        for (i = i0; i <= i1; i += 4) { X = sx(K, x0 + i * dx); Y = sy(K, h[i] - reihe * 0.9); if (i === i0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); }
+        for (i = i0 - (i0 % 8) + (reihe % 2) * 4; i <= i1; i += 8) { X = sx(K, x0 + i * dx); Y = sy(K, h[i] - reihe * 0.9); ctx.moveTo(X, Y); ctx.lineTo(X, Y - 0.9 * K.s); }
+      }
+      ctx.stroke();
     } else if (stil === "station") {
       ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
       for (i = i0 - (i0 % 5); i <= i1; i += 5) {                   // Bodenplatten mit Nieten
@@ -1113,11 +1159,47 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Objekte auf der Strecke: Glas (Block, Kugel, Turm), Bausteine, Baustein-Säulen */
+  var STEIN_FARBEN = ["#e8453c", "#2f6fd6", "#ffd23f", "#3cc35a", "#ff8a2e", "#8e5bd8", "#f4f6fb"];
+  function baustein(ctx, X, Y, b, h, farbe, s) {           // X, Y = unten links (Bildschirm), b, h in Pixeln
+    ctx.fillStyle = farbe; ctx.fillRect(X, Y - h, b, h);
+    ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.fillRect(X, Y - h, b, h * 0.25);
+    ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.fillRect(X, Y - h * 0.15, b, h * 0.15);
+    var n = Math.max(1, Math.round(b / (0.4 * s)));
+    ctx.fillStyle = farbe;
+    for (var k = 0; k < n; k++) ctx.fillRect(X + (k + 0.25) * b / n, Y - h - 0.1 * s, b / n * 0.5, 0.1 * s);
+  }
+  function zeichneObjekte(ctx, K, gel, x0, x1) {
+    var O = gel.objekte, s = K.s;
+    for (var i = 0; i < O.length; i++) {
+      var o = O[i];
+      if (o.kaputt || o.x < x0 - 3 || o.x > x1 + 3) continue;
+      var X = sx(K, o.x), Y = sy(K, o.y) + 0.05 * s, b = o.b * s, h = o.h * s;
+      if (o.art === "glas") {
+        ctx.fillStyle = "rgba(150,215,245,0.5)"; ctx.strokeStyle = "rgba(50,130,195,0.85)"; ctx.lineWidth = Math.max(1.5, 0.06 * s);
+        ctx.beginPath();
+        if (o.form === "kugel") { ctx.arc(X, Y - h / 2, Math.min(b, h) / 2, 0, Math.PI * 2); }
+        else if (o.form === "turm") { ctx.moveTo(X - b * 0.35, Y); ctx.lineTo(X - b * 0.2, Y - h); ctx.lineTo(X + b * 0.2, Y - h); ctx.lineTo(X + b * 0.35, Y); ctx.closePath(); }
+        else ctx.rect(X - b / 2, Y - h, b, h);
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = Math.max(1.5, 0.1 * s);
+        ctx.beginPath(); ctx.moveTo(X - b * 0.22, Y - h * 0.62); ctx.lineTo(X - b * 0.05, Y - h * 0.82); ctx.stroke();
+        ctx.fillStyle = "rgba(143,232,255,0.25)"; ctx.fillRect(X - b * 0.4, Y - 0.08 * s, b * 0.8, 0.08 * s);
+      } else if (o.art === "stein") {
+        var lagen = Math.round(o.h / 0.38);
+        for (var k = 0; k < lagen; k++) baustein(ctx, X - b / 2 + (k % 2) * 0.1 * s, Y - k * 0.38 * s, b - 0.1 * s, 0.38 * s, STEIN_FARBEN[(o.v + k) % 7], s);
+      } else {                                                    // Säule aus Bausteinen
+        var n = Math.round(o.h / 0.45);
+        for (k = 0; k < n; k++) baustein(ctx, X - b / 2 + ((k % 2) - 0.5) * 0.08 * s, Y - k * 0.45 * s, b, 0.45 * s, STEIN_FARBEN[(o.v + k * 3) % 6], s);
+      }
+    }
+  }
+
   FF.GrafikWelt = {
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
-    zeichneSchwebezonen: zeichneSchwebezonen
+    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

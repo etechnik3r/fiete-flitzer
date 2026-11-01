@@ -1404,6 +1404,19 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (p.art === "tropfen") {
         ctx.fillStyle = p.farbe;
         ctx.beginPath(); ctx.arc(X, Y, p.r0 * K.s * (1 - u * 0.4), 0, Math.PI * 2); ctx.fill();
+      } else if (p.art === "scherbe") {                       // Glasscherbe: Dreieck, dreht sich
+        var sr = p.r0 * K.s;
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.fillStyle = "rgba(170,225,250,0.85)"; ctx.strokeStyle = "rgba(50,130,195,0.8)"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(-sr, -sr * 0.6); ctx.lineTo(sr * 0.9, -sr * 0.2); ctx.lineTo(-sr * 0.1, sr); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      } else if (p.art === "klotz") {                         // fliegender Baustein
+        var kb = p.r0 * K.s, kh = kb * 0.55;
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.fillStyle = p.farbe; ctx.fillRect(-kb / 2, -kh / 2, kb, kh);
+        ctx.fillRect(-kb * 0.35, -kh / 2 - kh * 0.25, kb * 0.25, kh * 0.25); ctx.fillRect(kb * 0.1, -kh / 2 - kh * 0.25, kb * 0.25, kh * 0.25);
+        ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.fillRect(-kb / 2, kh * 0.25, kb, kh * 0.25);
+        ctx.restore();
       } else if (p.art === "herz") {
         var hr = p.r0 * K.s;
         ctx.fillStyle = p.farbe;
@@ -1551,6 +1564,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
     if (gel.schwebezonen.length) W.zeichneSchwebezonen(ctx, K, gel, z);
+    if (gel.objekte.length) W.zeichneObjekte(ctx, K, gel, b[2], b[3]);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);

@@ -254,6 +254,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
+    if (this.gelaende.objekte.length) this.pruefeObjekte();
     if (this.gelaende.schwebezonen.length) {                 // Schwebe-Säule betreten?
       var leicht = this.gelaende.schwereBei(C.x) < 0.5;
       if (leicht && !this.schwebt && this.zustand === "fahrt") this.melde("schwebe", { x: C.x, y: C.y });
@@ -423,6 +424,27 @@ var FF = globalThis.FF = globalThis.FF || {};
       C.vx += dvx; C.vy += dvy; C.w *= 0.3;
       fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; });
       this.melde("boing", { x: (t.x0 + t.x1) / 2, y: this.gelaende.hoeheBei((t.x0 + t.x1) / 2) });
+    }
+  };
+
+  /* Objekte auf der Strecke: Wer hindurchfährt (nicht drüberfliegt), zerbricht sie.
+     Glas zerspringt (das Auto verliert 7 % Tempo), kleine Bausteine fliegen weg (3 %),
+     eine Baustein-Säule hält das Auto fast an (70 % Tempo weg) und zerfällt. */
+  var OBJEKT_BREMSE = { glas: 0.93, stein: 0.97, saeule: 0.3 };
+  Fahrt.prototype.pruefeObjekte = function () {
+    var O = this.gelaende.objekte, fz = this.fz, C = fz.chassis, L = this.werte.groesse.laenge * 0.5;
+    if (this.zustand !== "fahrt" && this.zustand !== "ziel") return;
+    var unten = Infinity;
+    fz.raeder.forEach(function (R) { unten = Math.min(unten, R.k.y - R.r); });
+    unten = Math.min(unten, C.y - 0.2);
+    for (var i = 0; i < O.length; i++) {
+      var o = O[i];
+      if (o.kaputt || o.x + o.b / 2 < C.x - L || o.x - o.b / 2 > C.x + L) continue;
+      if (unten > o.y + o.h - 0.05) continue;                     // drübergeflogen
+      o.kaputt = true;
+      var f = OBJEKT_BREMSE[o.art] || 1;
+      if (C.vx > 0) { var dv = C.vx * (f - 1); C.vx += dv; fz.raeder.forEach(function (R) { R.k.vx += dv; R.k.w *= f; }); }
+      this.melde("objekt", { art: o.art, x: o.x, y: o.y, b: o.b, h: o.h, v: o.v, tempo: Math.abs(C.vx) });
     }
   };
 

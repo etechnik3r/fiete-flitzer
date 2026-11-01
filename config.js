@@ -647,6 +647,8 @@ FF.CONFIG = {
          nacht    Dunkelheit (dunkel 0..1): Scheinwerfer, Laternen, Glühwürmchen
          gelaende.trampolin  Hüpfpilze: wer drauffährt, fliegt hoch
          gelaende.band       Förderbänder (Spielzeugfabrik)
+         objekte  Dinge auf der Strecke, die man umfährt: { art: "glas"|"stein", abstand [m],
+                  saeule: Anteil Baustein-Säulen }; glas: Boden halb durchsichtig
          tipp     [Text, vorgelesener Satz] beim Start eines Levels
        --------------------------------------------------------------------- */
     {
@@ -825,6 +827,47 @@ FF.CONFIG = {
                   abstandElemente: 25 },
       tankAbstand: 300, muenzAbstand: 22,
       level: [ { laenge: 880, seed: 2101 }, { laenge: 1140, seed: 2102 }, { laenge: 1400, seed: 2103 }, { laenge: 1660, seed: 2104 } ]
+    },
+    {
+      /* Glaswelt: Boden, Kulisse und Deko sind halb durchsichtig (welt.glas). Auf der
+         Strecke stehen Glasblöcke, -kugeln und -türme (welt.objekte): Wer hindurchfährt,
+         lässt sie in Scherben zerspringen und verliert ein bisschen Tempo. */
+      id: "glas", name: "Glaswelt", emoji: "🔷", hinweis: "Alles ist aus Glas – fahr durch, dann klirrt es!",
+      schwerkraft: 9.81, grip: 0.82, rollwiderstand: 0.015, abprall: 0.08, luftdichte: 1.2,
+      farben: {
+        himmel: ["#a9dcf7", "#f2fbff"], berge: ["#cdebf8", "#a9d7ef"],
+        boden: ["#9fd9f2", "#5fb2dc"], oberflaeche: "#e9fbff", kante: "#ffffff", punkte: "#bfe8f8"
+      },
+      sonne: "sonne", wetter: "glitzer", glas: true,
+      objekte: { art: "glas", abstand: 24 },
+      tipp: ["🔷 Alles ist aus Glas! Fahr durch die Glasblöcke – klirr! Das bremst dich nur ein bisschen.", "Fahr durch das Glas!"],
+      deko: ["@glasbaum:2.6", "@glasskulptur:1.6", "@kristall:1.1", "@glasbaum:3.4", "@glasskulptur:2.2", "@kristall:0.8", "@glasbaum:2.0", "@glasskulptur:1.2"],
+      beiwerk: ["@kristall:0.4"], kulisse: ["glastuerme", "glastuerme", null],
+      gelaende: { amp: 8.0, welle: 42, holperAmp: 0.15, holperWelle: 6, trend: 0.022,
+                  maxAuf: 30, maxAb: 42, schanzen: 1.3, buckel: 0.9, steil: 1.0, taeler: 0.9, berg: 1.0, sprung: 1.2, wellen: 1.0, klippe: 0.8, rampe: 0.9, kuppe: 1.0, stufe: 0.8, wildBasis: 0.55,
+                  abstandElemente: 25 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 880, seed: 2201 }, { laenge: 1140, seed: 2202 }, { laenge: 1400, seed: 2203 }, { laenge: 1660, seed: 2204 } ]
+    },
+    {
+      /* Klemmbaustein-Land: alles aus Bausteinen mit Noppen. Kleine Steine auf der
+         Strecke fliegen weg, große Säulen bremsen das Auto fast ganz ab und zerfallen. */
+      id: "bausteine", name: "Klemmbaustein-Land", emoji: "🧱", hinweis: "Alles aus Bausteinen – Säulen zerfallen beim Durchfahren!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.02, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#6fc3ff", "#e4f5ff"], berge: ["#ffd23f", "#e8453c"],
+        boden: ["#3cc35a", "#2a8f42"], oberflaeche: "#4fd068", kante: "#8ff09f", punkte: "#2a8f42"
+      },
+      sonne: "sonne", wetter: null,
+      objekte: { art: "stein", abstand: 20, saeule: 0.18 },
+      tipp: ["🧱 Bausteine fliegen weg, wenn du sie anstupst. Die großen Säulen bremsen dich – nimm Anlauf oder spring drüber!", "Alles aus Bausteinen!"],
+      deko: ["@steinbaum:2.6", "@steinhaus:2.4", "@steinblume:0.9", "@steinbaum:3.2", "@steinblume:1.2", "@steinhaus:3.0", "@steinbaum:2.0"],
+      beiwerk: ["@steinblume:0.5"], kulisse: ["bausteine", "bausteine", "bausteine"],
+      gelaende: { amp: 7.5, welle: 40, holperAmp: 0.1, holperWelle: 6, trend: 0.02,
+                  maxAuf: 31, maxAb: 42, schanzen: 1.2, buckel: 0.6, steil: 1.0, taeler: 0.9, berg: 1.0, sprung: 1.1, wellen: 0.8, klippe: 0.9, rampe: 1.0, kuppe: 0.9, stufe: 1.6, wildBasis: 0.55,
+                  abstandElemente: 26 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 900, seed: 2301 }, { laenge: 1160, seed: 2302 }, { laenge: 1420, seed: 2303 }, { laenge: 1680, seed: 2304 } ]
     }
   ],
 

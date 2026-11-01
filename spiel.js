@@ -558,6 +558,26 @@
             tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
           }
           break;
+        case "objekt":                   // Glas zerspringt, Bausteine fliegen, Säule zerfällt
+          var FO = FF.GrafikWelt.STEIN_FARBEN, vo = Math.max(3, e.tempo);
+          if (e.art === "glas") {
+            FF.Klang.spiele("klirr");
+            for (var gs = 0; gs < 11; gs++) partikel.neu({ art: "scherbe", x: e.x + (Math.random() - 0.5) * e.b, y: e.y + Math.random() * e.h,
+              vx: vo * (0.3 + Math.random() * 0.6) + (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, t: 0, dauer: 0.9 + Math.random() * 0.4,
+              r0: 0.12 + Math.random() * 0.14, schwer: 1, reibung: 0.3, w: Math.random() * 6, dreh: (Math.random() - 0.5) * 16 });
+            if (ersteMale("tipp-glas", 1)) schwebeText(e.x, e.y + 2, "Klirr! 💎", "#cdf4ff", true);
+          } else {
+            var saeule = e.art === "saeule", nk = saeule ? 16 : Math.max(2, Math.round(e.h / 0.38) + 1);
+            FF.Klang.spiele(saeule ? "einsturz" : "klack");
+            for (var ks = 0; ks < nk; ks++) partikel.neu({ art: "klotz", x: e.x + (Math.random() - 0.5) * e.b, y: e.y + Math.random() * e.h,
+              vx: (saeule ? 1.5 : vo * 0.6) * (0.4 + Math.random()) + (Math.random() - 0.5) * 3, vy: 2 + Math.random() * (saeule ? 5 : 4), t: 0, dauer: 1.1,
+              r0: 0.45 + Math.random() * 0.25, farbe: FO[(e.v + ks) % 6], schwer: 1, reibung: 0.2, w: Math.random() * 6, dreh: (Math.random() - 0.5) * 12 });
+            if (saeule) {
+              schwebeText(e.x, e.y + e.h + 0.5, "Krawumm! 🧱", "#ffd23f", true);
+              if (ersteMale("tipp-saeule", 2)) { tipp("🧱 Baustein-Säulen bremsen dich fast ganz ab – spring drüber oder nimm Anlauf!", 4500, "Krawumm!"); spruchBis = zeit + 3; }
+            }
+          }
+          break;
         case "schwebe":                  // Schwebe-Säule betreten
           FF.Klang.spiele("schwebe");
           schwebeText(e.x, e.y + 2, "Schwerelos! ✨", "#9ff6ff", true);
