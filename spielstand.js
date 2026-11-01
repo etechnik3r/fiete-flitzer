@@ -44,6 +44,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       look: null,                  // Variante aus kinder.js (z. B. Fiete mit Cap); null = Grundform
       spur: "keine",               // was hinter dem Auto herfliegt (config.spuren)
       spuren: ["keine"],
+      felge: "standard",           // Felgen (config.felgen)
+      felgen: ["standard"],
+      beifahrer: "keiner",         // Tier, das mitfährt (config.beifahrer)
+      beifahrerListe: ["keiner"],
       level: {},
       endlos: {},
       freigeschaltet: [],          // Welten (ids), die offen bleiben – z. B. aus alten Spielständen
@@ -78,7 +82,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
     C.fahrzeuge.forEach(function (f) { if (!ziel.fahrzeuge[f.id]) ziel.fahrzeuge[f.id] = neuesFahrzeug(f); });
     var frisch = neuesProfil();
-    ["farben", "muster", "outfits", "freigeschaltet", "spuren"].forEach(function (k) { if (!Array.isArray(ziel[k])) ziel[k] = frisch[k]; });
+    ["farben", "muster", "outfits", "freigeschaltet", "spuren", "felgen", "beifahrerListe"].forEach(function (k) { if (!Array.isArray(ziel[k])) ziel[k] = frisch[k]; });
+    if (ziel.felgen.indexOf("standard") < 0) ziel.felgen.unshift("standard");
+    if (ziel.felgen.indexOf(ziel.felge) < 0) ziel.felge = "standard";
+    if (ziel.beifahrerListe.indexOf("keiner") < 0) ziel.beifahrerListe.unshift("keiner");
+    if (ziel.beifahrerListe.indexOf(ziel.beifahrer) < 0) ziel.beifahrer = "keiner";
     frisch.farben.forEach(function (f) { if (ziel.farben.indexOf(f) < 0) ziel.farben.push(f); });   // neue Gratis-Farben
     if (ziel.spuren.indexOf("keine") < 0) ziel.spuren.unshift("keine");
     if (ziel.spuren.indexOf(ziel.spur) < 0) ziel.spur = "keine";
@@ -146,7 +154,7 @@ var FF = globalThis.FF = globalThis.FF || {};
      Spielstand-Code
      ------------------------------------------------------------------------- */
   var ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  var CODE_VERSION = 1;
+  var CODE_VERSION = 2;               // 2: mit Felgen und Beifahrern (Codes der Version 1 werden weiter gelesen)
   var UPG = ["motor", "reifen", "federung", "tank"];
 
   function Schreiber() { this.bits = []; }
@@ -202,6 +210,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.feld(CODE_VERSION, 4);
     w.feld(C.kinder.length, 2); w.feld(W.length, 7); w.feld(F.length, 5);
     w.feld(C.farben.length, 5); w.feld(C.muster.length, 4); w.feld(C.outfits.length, 4); w.feld(C.spuren.length, 4);
+    w.feld(C.felgen.length, 4); w.feld(C.beifahrer.length, 4);
     w.feld(index(C.kinder, S.aktiv), 2);
     C.kinder.forEach(function (kind) {
       var p = S.spieler[kind.id];
@@ -219,6 +228,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       w.maske(C.outfits, p.outfits); w.feld(index(C.outfits, p.outfit), 4);
       w.text(p.look || "");
       w.maske(C.spuren, p.spuren || ["keine"]); w.feld(index(C.spuren, p.spur), 4);
+      w.maske(C.felgen, p.felgen || ["standard"]); w.feld(index(C.felgen, p.felge), 4);
+      w.maske(C.beifahrer, p.beifahrerListe || ["keiner"]); w.feld(index(C.beifahrer, p.beifahrer), 4);
       W.forEach(function (welt) {
         for (var li = 0; li < 4; li++) {
           var l = p.level[welt.id + "-" + (li + 1)] || {};
@@ -263,8 +274,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     try {
       var r = new Leser(bitsDaten);
       var version = r.feld(4);
-      if (version !== CODE_VERSION) return { ok: false, fehler: "Dieser Code ist von einer neueren Version des Spiels. Bitte erst die App aktualisieren." };
+      if (version < 1 || version > CODE_VERSION) return { ok: false, fehler: "Dieser Code ist von einer neueren Version des Spiels. Bitte erst die App aktualisieren." };
       var nK = r.feld(2), nW = r.feld(7), nF = r.feld(5), nFarben = r.feld(5), nMuster = r.feld(4), nOutfits = r.feld(4), nSpuren = r.feld(4);
+      var nFelgen = version >= 2 ? r.feld(4) : 0, nBeif = version >= 2 ? r.feld(4) : 0;
       var aktiv = r.feld(2);
       var S = neuerSpielstand();
       if (alterStand) {                                   // Einstellungen des Geräts behalten
@@ -294,6 +306,10 @@ var FF = globalThis.FF = globalThis.FF || {};
         p.look = r.text() || null;
         p.spuren = r.maske(nSpuren, C.spuren);
         var sI = r.feld(4); if (C.spuren[sI]) p.spur = C.spuren[sI].id;
+        if (version >= 2) {
+          p.felgen = r.maske(nFelgen, C.felgen); var feI = r.feld(4); if (C.felgen[feI]) p.felge = C.felgen[feI].id;
+          p.beifahrerListe = r.maske(nBeif, C.beifahrer); var bI = r.feld(4); if (C.beifahrer[bI]) p.beifahrer = C.beifahrer[bI].id;
+        }
         for (var wi = 0; wi < nW; wi++) {
           var welt = C.welten[wi];
           for (var li = 0; li < 4; li++) {

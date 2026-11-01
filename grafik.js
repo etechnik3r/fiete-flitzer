@@ -631,6 +631,37 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.fillRect(kp.x - r * 0.25 * b, kp.y - r * 1.05 - g, r * 0.45 * b, r * 0.3 + g);
   }
 
+  /* Gekaufte Felgen (config.felgen) über die normale Felge malen; rr = Felgenradius */
+  var felgeJetzt = "standard";
+  function felgenStil(ctx, rr) {
+    var st = felgeJetzt, i;
+    if (!st || st === "standard") return;
+    if (st === "gold") {
+      var g = ctx.createRadialGradient(-rr * 0.3, rr * 0.3, rr * 0.05, 0, 0, rr);
+      g.addColorStop(0, "#fff6c8"); g.addColorStop(0.6, "#f3c44a"); g.addColorStop(1, "#b9851c");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#a8781a"; ctx.lineWidth = rr * 0.12;
+      for (i = 0; i < 6; i++) { var w = i * Math.PI / 3; ctx.beginPath(); ctx.moveTo(Math.cos(w) * rr * 0.2, Math.sin(w) * rr * 0.2); ctx.lineTo(Math.cos(w) * rr * 0.9, Math.sin(w) * rr * 0.9); ctx.stroke(); }
+    } else if (st === "stern") {
+      ctx.fillStyle = "#2f6fd6"; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+      stern(ctx, 0, 0, rr * 0.85, 5, 0.45); ctx.fillStyle = "#ffd23f"; ctx.fill();
+    } else if (st === "blume") {
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ff6fb5";
+      for (i = 0; i < 6; i++) { var wb = i * Math.PI / 3; ctx.beginPath(); ctx.arc(Math.cos(wb) * rr * 0.5, Math.sin(wb) * rr * 0.5, rr * 0.32, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(0, 0, rr * 0.3, 0, Math.PI * 2); ctx.fill();
+    } else if (st === "neon") {
+      ctx.fillStyle = "#1e2c52"; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#6ff3ff"; ctx.lineWidth = rr * 0.16; ctx.beginPath(); ctx.arc(0, 0, rr * 0.75, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = "#ff6fd8"; ctx.lineWidth = rr * 0.1;
+      for (i = 0; i < 3; i++) { var wn = i * Math.PI * 2 / 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(wn) * rr * 0.6, Math.sin(wn) * rr * 0.6); ctx.stroke(); }
+    } else if (st === "regenbogen") {
+      var fb = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
+      for (i = 0; i < 6; i++) { ctx.fillStyle = fb[i]; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, rr, i * Math.PI / 3, (i + 1) * Math.PI / 3); ctx.closePath(); ctx.fill(); }
+    }
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(0, 0, rr * 0.16, 0, Math.PI * 2); ctx.fill();
+  }
+
   function zeichneRad(ctx, R, lx, ly, art) {
     var r = R.r, a = R.k.a;
     ctx.save();
@@ -656,6 +687,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "#9aa3b8";
       for (i = 0; i < 3; i++) { ctx.save(); ctx.rotate(i * Math.PI * 2 / 3); rundRechteck(ctx, r * 0.2, -r * 0.05, r * 0.24, r * 0.1, r * 0.05); ctx.fill(); ctx.restore(); }
       ctx.fillStyle = "#3b4566"; ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      felgenStil(ctx, r * 0.66);
       ctx.restore();
       return;
     }
@@ -681,6 +713,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     ctx.fillStyle = "#ffcf3a";
     ctx.beginPath(); ctx.arc(0, 0, r * 0.15, 0, Math.PI * 2); ctx.fill();
+    felgenStil(ctx, r * rf);
     ctx.restore();
   }
 
@@ -1382,8 +1415,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "rgba(220,240,255,0.18)"; ctx.fill();
       ctx.restore();
     }
+    // Beifahrer: ein Tier sitzt hinter dem Kind (beim Skateboard vorne auf dem Brett)
+    if (aussehen.beifahrer) {
+      var bx = form === "skateboard" ? 0.45 : kp.x - 0.52, by = form === "skateboard" ? -0.05 : kp.y - 0.08 + kind.groesse * 0.5;
+      var spr = emojiSprite(aussehen.beifahrer, 64, 1);
+      ctx.save(); ctx.translate(bx, by + Math.abs(Math.sin(zeit * 6)) * 0.03); ctx.scale(-1, -1);   // schaut nach vorn
+      ctx.drawImage(spr, -0.3, -0.3, 0.6, 0.6); ctx.restore();
+    }
     // Räder zuletzt (vorn)
+    felgeJetzt = aussehen.felge || "standard";
     fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
+    felgeJetzt = "standard";
   }
 
   /* Ballon-Hilfe nach einem Überschlag */
