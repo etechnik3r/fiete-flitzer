@@ -747,6 +747,7 @@
     }
     partikel.liste.length = 0; texte.length = 0;
     wetter.setze(fahrt.welt.wetter, kamera);
+    if (!fahrt.welt.nacht) $("nacht-ebene").style.display = "none";
     kameraNachfuehren(0, true);
     ausdruck = "normal"; ausdruckBis = 0;
     pausiert = false; ergebnisOffen = false;
@@ -1064,6 +1065,7 @@
     if (name !== "fahrt") {
       $("meldung").hidden = true; $("tipp").hidden = true; $("hochkant-hinweis").hidden = true;
       FF.Klang.motorStopp();
+      $("nacht-ebene").style.display = "none";
       fahrt = null; aufnahme = null; geist = null;
     }
   }
@@ -2014,7 +2016,8 @@
         aussehen: aussehenVon(S.aktiv), ausdruck: ausdruck,
         geist: geist ? { fz: geist.obj.fz, def: geist.obj.def, aussehen: geist.aussehen, ausdruck: geist.obj.ausdruck,
                          hilfe: geist.obj.hilfe, name: geist.name } : null,
-        kraefte: S.einstellungen.kraefte, instrumente: S.einstellungen.instrumente
+        kraefte: S.einstellungen.kraefte, instrumente: S.einstellungen.instrumente,
+        nachtEbene: fahrt.welt.nacht ? $("nacht-ebene") : null
       });
     } else if (modus === "menue" && aktiverTab === "garage") {
       zeichneKleinCanvas("vorschau");

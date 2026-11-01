@@ -2111,7 +2111,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
     var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16 }[art] || 14;
     for (var i = 0; i < n; i++) {
-      this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.6 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
+      this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.35 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
   };
   Wetter.prototype.zeichne = function (ctx, K, dt, zeit, hinten) {
@@ -2144,7 +2144,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "blasen") { t.y -= (28 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 9 * dt - dx * 0.6; }
       else if (art === "gluehwuermchen") {
         t.y += Math.sin(zeit * 0.9 + t.p * 2) * 16 * dt; t.x += Math.cos(zeit * 0.7 + t.p * 3) * 20 * dt - dx * 0.55;
-        if (t.y < H * 0.4) t.y += 40 * dt;                        // bleiben in Bodennähe
+        if (t.y < H * 0.4) t.y += 40 * dt;                        // bleiben über dem Boden, nicht im Himmel
+        if (t.y > H * 0.75) t.y -= 40 * dt;
       }
       if (t.y > H + 10) { t.y = -10; t.x = Math.random() * B; }
       if (t.y < -10) { t.y = H + 10; t.x = Math.random() * B; }
@@ -2196,11 +2197,10 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.arc(t.x - br * 0.35, t.y - br * 0.35, br * 0.25, 0, Math.PI * 2); ctx.fill();
       } else if (art === "gluehwuermchen") {
         var gw = Math.max(0, Math.sin(zeit * 1.6 + t.p * 5)) * 0.85 + 0.15;   // blinken langsam auf und ab
-        ctx.globalCompositeOperation = "lighter";
-        var gg = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, 9 * t.g + 4);
-        gg.addColorStop(0, "rgba(210,255,110," + (0.5 * gw) + ")"); gg.addColorStop(1, "rgba(210,255,110,0)");
-        ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(t.x, t.y, 9 * t.g + 4, 0, Math.PI * 2); ctx.fill();
-        ctx.globalCompositeOperation = "source-over";
+        var gr2 = 9 * t.g + 4;
+        ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.5 * gw;
+        ctx.drawImage(fleck("210,255,110"), t.x - gr2, t.y - gr2, 2 * gr2, 2 * gr2);
+        ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
         ctx.fillStyle = "rgba(250,255,200," + gw + ")"; ctx.beginPath(); ctx.arc(t.x, t.y, 1.2 + 0.5 * t.g, 0, Math.PI * 2); ctx.fill();
       }
     }
@@ -2348,79 +2348,105 @@ var FF = globalThis.FF = globalThis.FF || {};
      ========================================================================= */
   // Leuchtende Requisiten: [Höhe der Lichtquelle (Anteil der Größe), Radius (× Größe), Stärke, Farbe für das warme Leuchten]
   var LEUCHTEN = { laterne: [0.8, 2.2, 0.85, "255,190,90"], zelt: [0.12, 2.4, 0.8, "255,150,60"], pilz: [0.7, 1.6, 0.6, "143,232,255"] };
+  /* Lichtfleck (weich, Farbe "r,g,b") und Scheinwerferkegel werden EINMAL vorgemalt und
+     danach nur noch kopiert – Farbverläufe in jedem Bild neu anzulegen ist auf alten
+     Tablets teuer (gemessen: halbe Bildrate). */
+  var fleckCache = {}, kegelBild = null, KEGEL_OEFF = 0.34;
+  function fleck(farbe) {
+    var c = fleckCache[farbe];
+    if (c) return c;
+    c = fleckCache[farbe] = document.createElement("canvas"); c.width = c.height = 64;
+    var g = c.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, "rgba(" + farbe + ",1)"); gr.addColorStop(0.5, "rgba(" + farbe + ",0.45)"); gr.addColorStop(1, "rgba(" + farbe + ",0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    return c;
+  }
+  function kegel() {                         // zeigt nach rechts, Spitze bei (0, 128)
+    if (kegelBild) return kegelBild;
+    var c = kegelBild = document.createElement("canvas"); c.width = 256; c.height = 256;
+    var g = c.getContext("2d");
+    g.beginPath(); g.moveTo(0, 128);
+    for (var k = -1; k <= 1.001; k += 0.125) g.lineTo(Math.cos(k * KEGEL_OEFF) * 256, 128 + Math.sin(k * KEGEL_OEFF) * 256);
+    g.closePath();
+    var gr = g.createRadialGradient(0, 128, 0, 0, 128, 256);
+    gr.addColorStop(0, "rgba(0,0,0,0.95)"); gr.addColorStop(0.55, "rgba(0,0,0,0.7)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.fill();
+    return c;
+  }
+  /* sz.nachtEbene: eigenes <canvas> über dem Spielfeld (spiel.js). Dann legt der Browser
+     den Schleier selbst darüber und skaliert ihn (auf Tablets per Grafikchip) – das
+     Darübermalen auf dem großen Spielfeld kostete gemessen ein Drittel der Bildzeit.
+     Ohne Ebene (Tests, Vorschau) wird er wie früher aufs Spielfeld gemalt. */
   var nachtBild = null;
   function zeichneNacht(ctx, K, f, sz) {
     var N = f.welt.nacht;
     if (!N || typeof document === "undefined") return;
-    var q = 0.5, w = Math.max(1, Math.ceil(K.b * q)), h = Math.max(1, Math.ceil(K.h * q));
-    if (!nachtBild) nachtBild = document.createElement("canvas");
+    var q = 0.4, w = Math.max(1, Math.ceil(K.b * q)), h = Math.max(1, Math.ceil(K.h * q));
+    if (sz.nachtEbene) nachtBild = sz.nachtEbene;
+    else if (!nachtBild || nachtBild === sz.nachtEbene) nachtBild = document.createElement("canvas");
     if (nachtBild.width !== w || nachtBild.height !== h) { nachtBild.width = w; nachtBild.height = h; }
-    var g = nachtBild.getContext("2d"), s = K.s, gel = f.gelaende, i;
-    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over";
+    var g = nachtBild.getContext("2d"), s = K.s, gel = f.gelaende, i, schwarz = fleck("0,0,0"), warm = [];
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
     g.clearRect(0, 0, w, h);
     g.fillStyle = "rgba(5,9,30," + N.dunkel + ")"; g.fillRect(0, 0, w, h);
+    // 1) Löcher in den Schleier schneiden
     g.globalCompositeOperation = "destination-out";
     g.setTransform(q, 0, 0, q, 0, 0);
     function licht(X, Y, R, a) {
       if (X < -R || X > K.b + R || Y < -R || Y > K.h + R) return;
-      var gr = g.createRadialGradient(X, Y, 0, X, Y, R);
-      gr.addColorStop(0, "rgba(0,0,0," + a + ")"); gr.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = gr; g.beginPath(); g.arc(X, Y, R, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = Math.min(1, a); g.drawImage(schwarz, X - R, Y - R, 2 * R, 2 * R);
     }
     licht(K.b * 0.8, K.h * 0.3, Math.min(K.b, K.h) * 0.32, 0.55);                // Mond
-    // Auto: Licht rundherum und Scheinwerferkegel nach vorn
-    var fz = f.fz, C = fz.chassis, ca = Math.cos(C.a), sa = Math.sin(C.a), xv = 0;
+    var fz = f.fz, C = fz.chassis, ca = Math.cos(C.a), sa = Math.sin(C.a), xv = 0, strahl = null;
     f.def.huelle.forEach(function (p) { xv = Math.max(xv, p[0]); });
-    licht(sx(K, C.x), sy(K, C.y + 0.3), 4.2 * s, 0.85);
-    var kegel = null;
-    if (f.zustand !== "hilfe") {
-      var HX = sx(K, C.x + ca * (xv - 0.1) - sa * 0.1), HY = sy(K, C.y + sa * (xv - 0.1) + ca * 0.1), L = 17 * s, oeff = 0.34;
-      g.save();
-      g.beginPath(); g.moveTo(HX, HY);
-      for (var k = -1; k <= 1.001; k += 0.25) g.lineTo(HX + Math.cos(C.a + k * oeff) * L, HY - Math.sin(C.a + k * oeff) * L);
-      g.closePath(); g.clip();
-      var kg = g.createRadialGradient(HX, HY, 0, HX, HY, L);
-      kg.addColorStop(0, "rgba(0,0,0,0.95)"); kg.addColorStop(0.55, "rgba(0,0,0,0.7)"); kg.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = kg; g.fillRect(HX - L, HY - L, 2 * L, 2 * L);
-      g.restore();
-      kegel = [HX, HY, L * 0.8];
+    licht(sx(K, C.x), sy(K, C.y + 0.3), 4.2 * s, 0.9);                         // ums Auto
+    if (f.zustand !== "hilfe") {                                               // Scheinwerferkegel
+      var HX = sx(K, C.x + ca * (xv - 0.1) - sa * 0.1), HY = sy(K, C.y + sa * (xv - 0.1) + ca * 0.1), L = 17 * s;
+      strahl = [HX, HY, L];
+      g.globalAlpha = 1; g.save(); g.translate(HX, HY); g.rotate(-C.a); g.drawImage(kegel(), 0, -L / 2, L, L); g.restore();
     }
     if (sz.geist) licht(sx(K, sz.geist.fz.chassis.x), sy(K, sz.geist.fz.chassis.y), 3.2 * s, 0.6);
-    // leuchtende Deko
-    var b = sichtbereich(K, gel), D = gel.deko, warm = [];
-    for (i = 0; i < D.length; i++) {
+    var b = sichtbereich(K, gel), D = gel.deko;
+    for (i = 0; i < D.length; i++) {                                           // Laternen, Lagerfeuer, Leuchtpilze
       var d = D[i], Lq = d.typ && LEUCHTEN[d.typ];
       if (!Lq || d.x < b[2] - 8 || d.x > b[3] + 8 || d.fuss === undefined) continue;
       var X = sx(K, d.x), Y = sy(K, d.fuss + d.groesse * Lq[0]), R = d.groesse * Lq[1] * s;
       licht(X, Y, R, Lq[2] * (0.9 + 0.1 * Math.sin(sz.zeit * 7 + d.x)));
-      warm.push([X, Y, R * 0.7, Lq[3]]);
+      warm.push([X, Y, R * 0.75, Lq[3]]);
     }
-    // Münzen, Kanister, Raketen schimmern
-    var M = gel.muenzen;
-    for (i = 0; i < M.length; i++) if (!M[i].weg && M[i].x > b[2] - 2 && M[i].x < b[3] + 2) licht(sx(K, M[i].x), sy(K, M[i].y), (M[i].wert >= 100 ? 1.5 : 0.95) * s, 0.55);
+    var M = gel.muenzen;                                                       // Münzen, Kanister, Raketen schimmern
+    for (i = 0; i < M.length; i++) if (!M[i].weg && M[i].x > b[2] - 2 && M[i].x < b[3] + 2) licht(sx(K, M[i].x), sy(K, M[i].y), (M[i].wert >= 100 ? 1.6 : 1.05) * s, 0.6);
     [gel.tanks, gel.raketen || []].forEach(function (Lst) {
-      for (var j = 0; j < Lst.length; j++) if (!Lst[j].weg && Lst[j].x > b[2] - 2 && Lst[j].x < b[3] + 2) licht(sx(K, Lst[j].x), sy(K, Lst[j].y + 0.5), 1.6 * s, 0.7);
+      for (var j = 0; j < Lst.length; j++) if (!Lst[j].weg && Lst[j].x > b[2] - 2 && Lst[j].x < b[3] + 2) licht(sx(K, Lst[j].x), sy(K, Lst[j].y + 0.5), 1.8 * s, 0.75);
     });
     if (isFinite(gel.ziel)) licht(sx(K, gel.ziel), sy(K, gel.hoeheBei(gel.ziel) + 2.5), 6 * s, 0.9);
-    // (Glühwürmchen leuchten selbst: Wetter "gluehwuermchen" wird danach obendrauf gemalt)
-    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = "source-over";
-    ctx.drawImage(nachtBild, 0, 0, K.b, K.h);
-    ctx.globalCompositeOperation = "lighter";
-    if (kegel) {                                  // sichtbarer Lichtstrahl der Scheinwerfer
-      ctx.save(); ctx.beginPath(); ctx.moveTo(kegel[0], kegel[1]);
-      for (var kk = -1; kk <= 1.001; kk += 0.25) ctx.lineTo(kegel[0] + Math.cos(C.a + kk * 0.3) * kegel[2], kegel[1] - Math.sin(C.a + kk * 0.3) * kegel[2]);
-      ctx.closePath();
-      var sg = ctx.createRadialGradient(kegel[0], kegel[1], 0, kegel[0], kegel[1], kegel[2]);
-      sg.addColorStop(0, "rgba(255,244,200,0.2)"); sg.addColorStop(1, "rgba(255,244,200,0)");
-      ctx.fillStyle = sg; ctx.fill(); ctx.restore();
+    if (sz.nachtEbene) {
+      // Die Ebene liegt über ALLEM auf dem Spielfeld: Schwebetexte und Instrumente frei lassen
+      for (i = 0; i < sz.texte.length; i++) {
+        var tx = sz.texte[i];
+        licht(sx(K, tx.x), sy(K, tx.y) - tx.t / tx.dauer * 1.4 * s, (tx.gross ? 2.6 : 1.8) * s, 0.95);
+      }
+      g.globalAlpha = 1;
+      if (sz.instrumente) { var ri = Math.max(26, Math.min(44, K.h * 0.085)); g.drawImage(schwarz, K.b / 2 - 3.6 * ri, K.h - 2.3 * ri, 7.2 * ri, 3.4 * ri); g.drawImage(schwarz, K.b / 2 - 2.6 * ri, K.h - 1.9 * ri, 5.2 * ri, 2.4 * ri); }
+      if (sz.kraefte) { g.fillStyle = "#000"; g.fillRect(4, 64, 150, 70); }
     }
-    // warmes Leuchten um Laternen und Feuer
-    warm.forEach(function (l) {
-      var gr = ctx.createRadialGradient(l[0], l[1], 0, l[0], l[1], l[2]);
-      gr.addColorStop(0, "rgba(" + l[3] + ",0.3)"); gr.addColorStop(1, "rgba(" + l[3] + ",0)");
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(l[0], l[1], l[2], 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalCompositeOperation = "source-over";
+    // 2) warmes Licht in denselben Schleier malen: Scheinwerferstrahl und Laternen-Schein
+    g.globalCompositeOperation = "source-over";
+    if (strahl) {
+      g.globalAlpha = 0.16; g.save(); g.translate(strahl[0], strahl[1]); g.rotate(-C.a);
+      g.drawImage(fleck("255,240,190"), -strahl[2] * 0.15, -strahl[2] * 0.22, strahl[2] * 0.9, strahl[2] * 0.44); g.restore();
+    }
+    for (i = 0; i < warm.length; i++) { g.globalAlpha = 0.28; g.drawImage(fleck(warm[i][3]), warm[i][0] - warm[i][2], warm[i][1] - warm[i][2], 2 * warm[i][2], 2 * warm[i][2]); }
+    if (sz.nachtEbene && sz.wetter.art === "gluehwuermchen") {        // Glühwürmchen leuchten über dem Schleier
+      var T = sz.wetter.teile;
+      for (i = 0; i < T.length; i++) {
+        var gw = Math.max(0, Math.sin(sz.zeit * 1.6 + T[i].p * 5)) * 0.85 + 0.15, gr2 = 6 * T[i].g + 3;
+        g.globalAlpha = 0.5 * gw; g.drawImage(fleck("210,255,110"), T[i].x - gr2, T[i].y - gr2, 2 * gr2, 2 * gr2);
+      }
+    }
+    g.globalAlpha = 1; g.setTransform(1, 0, 0, 1, 0, 0);
+    if (sz.nachtEbene) { if (sz.nachtEbene.style.display !== "block") sz.nachtEbene.style.display = "block"; }
+    else ctx.drawImage(nachtBild, 0, 0, K.b, K.h);
   }
 
   /* =========================================================================

@@ -82,6 +82,12 @@ button { font: inherit; color: inherit; }
   display: block;
   touch-action: none;            /* Wischen/Halten geht ans Spiel, nicht an den Browser */
 }
+#nacht-ebene {                   /* Nachtwald: Schleier in halber Auflösung, der Browser skaliert ihn */
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: none;
+  pointer-events: none;
+}
 
 
 /* 3) CHIPS + RUNDE KNÖPFE --------------------------------------------------- */

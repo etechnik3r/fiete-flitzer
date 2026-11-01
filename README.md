@@ -118,8 +118,9 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     bremst (ρ = 6 im Strömungswiderstand) und dämpft Drehungen
     (`drehDaempfung` 1,1/s). Fiete trägt einen Taucherhelm, der Auspuff
     blubbert, Licht fällt in Strahlen herein, alles klingt dumpf (Tiefpass).
-  - **🦉 Nachtwald** (`welt.nacht`): Ein dunkler Schleier (halbe Auflösung,
-    einmal pro Bild darübergelegt), in den Scheinwerferkegel, Laternen,
+  - **🦉 Nachtwald** (`welt.nacht`): Ein dunkler Schleier (40 % Auflösung, in
+    einer eigenen `<canvas>`-Ebene über dem Spielfeld, die der Browser selbst
+    skaliert; Lichtflecken und Kegel sind einmal vorgemalt), in den Scheinwerferkegel, Laternen,
     Lagerfeuer, Leuchtpilze und der Mond Licht schneiden. Münzen und Kanister
     schimmern, damit man sie findet; Glühwürmchen leuchten.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
@@ -561,7 +562,10 @@ node werkzeuge/browsertest.js layout --bilder fotos   # mit Bildschirmfotos
 | `leistung` | Bildrate normal und bei 4× gedrosselter CPU |
 
 Stand der Messung (Chromium ohne Grafikkarte, also ungünstigster Fall): ohne
-Drosselung durchgehend 60 Bilder/s. Bei 4× gedrosselter CPU (wie ein altes
+Drosselung durchgehend 60 Bilder/s, auch in Pfützenland, Meeresgrund und
+Nachtwald. Der Nacht-Schleier kostete zuerst ein Drittel der Bildzeit (4×
+gedrosselt 15 statt 26 Bilder/s); als eigene Ebene mit vorgemalten
+Lichtflecken sind es 23 Bilder/s. Bei 4× gedrosselter CPU (wie ein altes
 Tablet) je nach Welt 27–33 Bilder/s allein und 24 im Geisterrennen. Die Werte
 schwanken stark mit dem Rechner und seiner Auslastung, ein anderer Rechner
 maß 18–26 Bilder/s. Damit es flüssig bleibt, liegt der Himmelsverlauf als CSS
