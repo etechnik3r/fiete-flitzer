@@ -781,6 +781,28 @@ FF.CONFIG = {
                   abstandElemente: 25 },
       tankAbstand: 310, muenzAbstand: 22,
       level: [ { laenge: 840, seed: 1901 }, { laenge: 1100, seed: 1902 }, { laenge: 1360, seed: 1903 }, { laenge: 1620, seed: 1904 } ]
+    },
+    {
+      /* Mars: wenig Schwerkraft (3,71 m/s²), dünne Luft und trotzdem Staubstürme. Weil
+         man so leicht ist, schiebt der Wind kräftig – deshalb ist er schwächer
+         eingestellt als im Herbststurm. Zwei kleine Monde (Phobos, Deimos). */
+      id: "mars", name: "Roter Planet", emoji: "🪐", hinweis: "Mars: weite Sprünge und Staubstürme",
+      schwerkraft: 3.71, grip: 0.85, rollwiderstand: 0.04, abprall: 0.06, luftdichte: 0.02,
+      farben: {
+        himmel: ["#c8744e", "#f3c9a4"], berge: ["#b4603f", "#8f4431"],
+        boden: ["#a4502f", "#6e3220"], oberflaeche: "#c9663e", kante: "#eda070", punkte: "#7a3a24",
+        wolken: "rgba(245,200,170,0.45)"
+      },
+      sonne: "zweimonde", wetter: "marsstaub", helm: true,
+      wind: { staerke: 0.75, laenge: 110, bias: 0.3 },
+      tipp: ["🪐 Auf dem Mars fliegst du weit – nur sanft Gas geben! Staubstürme schieben dich mal vor, mal zurück.", "Mars! Nur sanft Gas geben!"],
+      deko: ["@marsstein:1.2", "@rover:1.3", "@marsstein:0.8", "@marsbasis:2.4", "@marsstein:1.8", "🚩:1.1", "@marsstein:1.0", "👽:0.8", "@rover:1.0", "@marsstein:2.2"],
+      beiwerk: ["@marsstein:0.35", "@marsstein:0.5"], kulisse: ["gipfel", "tafelberg", null],
+      gelaende: { amp: 8.0, welle: 44, holperAmp: 0.28, holperWelle: 7, trend: 0.015,
+                  maxAuf: 26, maxAb: 38, schanzen: 1.4, buckel: 0.8, steil: 0.6, taeler: 1.1, berg: 0.8, sprung: 1.3, wellen: 0.9, klippe: 1.0, rampe: 0.4, kuppe: 1.0, stufe: 0.9, wildBasis: 0.5,
+                  abstandElemente: 30 },
+      tankAbstand: 230, muenzAbstand: 25,
+      level: [ { laenge: 860, seed: 2001 }, { laenge: 1120, seed: 2002 }, { laenge: 1380, seed: 2003 }, { laenge: 1640, seed: 2004 } ]
     }
   ],
 
@@ -803,6 +825,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "18", titel: "Roter Planet", punkte: [
+      "🪐 Neue Welt auf dem Mars: wenig Schwerkraft, riesige Sprünge und zwei kleine Monde am Himmel",
+      "🌪️ Staubstürme schieben dich mal nach vorn, mal zurück – und Fiete trägt einen Raumhelm" ] },
     { version: "17", titel: "Spielzeugfabrik", punkte: [
       "🧸 Neue Welt Spielzeugfabrik: Bauklötze, Kreisel, Zahnräder und bunter Dampf aus den Schornsteinen",
       "⏩ Förderbänder! Vorwärts machen sie dich doppelt so schnell, gegen Rückwärtsbänder musst du kräftig Gas geben" ] },

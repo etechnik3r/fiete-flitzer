@@ -71,6 +71,15 @@ var FF = globalThis.FF = globalThis.FF || {};
         }
         ctx.stroke();
       }
+    } else if (welt.sonne === "zweimonde") {
+      // Mars: kleine, blasse Sonne und die beiden Monde Phobos und Deimos
+      var mg3 = ctx.createRadialGradient(x, y, 0, x, y, r * 1.6);
+      mg3.addColorStop(0, "rgba(255,250,235,0.95)"); mg3.addColorStop(0.35, "rgba(255,240,215,0.6)"); mg3.addColorStop(1, "rgba(255,230,200,0)");
+      ctx.fillStyle = mg3; ctx.beginPath(); ctx.arc(x, y, r * 1.6, 0, Math.PI * 2); ctx.fill();
+      [[x - K.b * 0.32, K.h * 0.16, r * 0.32, "#d9c6b6"], [x - K.b * 0.14, K.h * 0.1, r * 0.2, "#e6d7c8"]].forEach(function (m) {
+        ctx.fillStyle = m[3]; ctx.beginPath(); ctx.ellipse(m[0], m[1], m[2] * 1.25, m[2], 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(120,90,70,0.3)"; ctx.beginPath(); ctx.arc(m[0] + m[2] * 0.3, m[1] - m[2] * 0.2, m[2] * 0.3, 0, Math.PI * 2); ctx.fill();
+      });
     } else if (welt.sonne === "vollmond") {
       // Nacht: funkelnde Sterne und ein freundlicher, schläfriger Vollmond
       for (var st = 0; st < 60; st++) {
@@ -668,6 +677,13 @@ var FF = globalThis.FF = globalThis.FF || {};
         X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
         ctx.beginPath(); ctx.moveTo(X, Y + 0.05 * K.s); ctx.lineTo(X, Y + 0.6 * K.s); ctx.stroke();
       }
+    } else if (stil === "mars") {
+      for (i = i0 - (i0 % 9); i <= i1; i += 9) {
+        var gm = FF.rauschen(i * 0.53, 4) * 0.5 + 0.5;
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 0.8 - gm * 1.6);
+        ctx.fillStyle = "rgba(60,20,10,0.15)";
+        ctx.beginPath(); ctx.ellipse(X, Y, (0.35 + gm * 0.4) * K.s, (0.2 + gm * 0.2) * K.s, 0, 0, Math.PI * 2); ctx.fill();
+      }
     } else if (stil === "meer") {
       // Rippel im Sand
       ctx.strokeStyle = "rgba(150,115,60,0.35)"; ctx.lineWidth = Math.max(1, 0.05 * K.s);
@@ -757,7 +773,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
     if (!art) return;
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
-    var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16 }[art] || 14;
+    var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26 }[art] || 14;
     for (var i = 0; i < n; i++) {
       this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.35 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
@@ -788,6 +804,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "laub") {                                  // fliegt mit dem Wind (windJetzt: −1 … 1)
         t.y += (18 + 14 * t.g) * dt + Math.sin(zeit * 1.7 + t.p) * 20 * dt;
         t.x += (windJetzt * (160 + 120 * t.g) + Math.sin(zeit * 0.8 + t.p) * 25) * dt - dx * 0.7;
+      }
+      else if (art === "marsstaub") {                             // Staubsturm: fliegt mit dem Wind
+        t.y += Math.sin(zeit * 0.9 + t.p) * 10 * dt; t.x += (windJetzt * (240 + 160 * t.g) - 15) * dt - dx * 0.8;
       }
       else if (art === "blasen") { t.y -= (28 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 9 * dt - dx * 0.6; }
       else if (art === "gluehwuermchen") {
@@ -838,6 +857,10 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = ["#e8862e", "#d9532b", "#f2b233", "#b8682a"][i % 4];
         ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(zeit * 2.5 * (0.5 + t.g) + t.p);
         ctx.beginPath(); ctx.ellipse(0, 0, 5 * t.g + 2, 2.5 * t.g + 1, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      } else if (art === "marsstaub") {
+        var ms = Math.abs(windJetzt);
+        ctx.fillStyle = "rgba(214,140,95," + (0.18 + 0.3 * ms * t.g) + ")";
+        ctx.beginPath(); ctx.ellipse(t.x, t.y, 2 + 9 * ms * t.g, 1.5 + 1.5 * t.g, 0, 0, Math.PI * 2); ctx.fill();
       } else if (art === "blasen") {
         var br = 1.5 + 3 * t.g;
         ctx.strokeStyle = "rgba(225,248,255,0.6)"; ctx.lineWidth = 1.2;
