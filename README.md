@@ -61,12 +61,13 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **18 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **19 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle ·
-  🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald.
+  🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
+  🧸 Spielzeugfabrik.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -123,6 +124,13 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     skaliert; Lichtflecken und Kegel sind einmal vorgemalt), in den Scheinwerferkegel, Laternen,
     Lagerfeuer, Leuchtpilze und der Mond Licht schneiden. Münzen und Kanister
     schimmern, damit man sie findet; Glühwürmchen leuchten.
+  - **🧸 Spielzeugfabrik** (`gelaende.band`, Version 17): **Förderbänder** auf
+    ebenem Boden, vorwärts (5–8 m/s) oder rückwärts (3–5,5 m/s). Die Reifen
+    haften relativ zum laufenden Band (`physik.js`, `kontakt.vBand`): Wer Gas
+    gibt, ist um die Bandgeschwindigkeit schneller oder langsamer; wer rollen
+    lässt, steht wie auf einem Laufband fast still, wer bremst, fährt mit. An
+    den Enden steigt das Tempo über 2,5 m an, sonst würde der Sprung das Auto
+    aushebeln (wie eine Vollbremsung).
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
@@ -589,7 +597,7 @@ node werkzeuge/browsertest.js layout --bilder fotos   # mit Bildschirmfotos
 | `layout` | 17 Bildschirme in 7 Formaten (Handy quer/hoch, kleines Handy quer, sehr schmales Handy mit 320 px, Tablet quer/hoch, PC): Knöpfe mind. 44 px, erreichbar, ohne Überlappung, mit Namen; Fenster passen ohne Scrollen |
 | `robust` | kaputter, alter (v1, v2 mit alter Welten-Reihenfolge: offene Welten bleiben offen) und unsinniger Spielstand, gesperrter Speicher (Privatmodus), Drehen während der Fahrt, App im Hintergrund, Neustart/Abbruch im Duell, Unentschieden, Endlos-Duell |
 | `offline` | Cache-Liste vollständig, Versionen passen, Service Worker aktiv, Spielen ohne Internet |
-| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle 72 Level (18 Welten × 4) starten, neue Spielideen (Pfütze spritzt und bremst, Hüpfpilz schleudert hoch, Wind schiebt, Wasser dämpft, Nacht ohne Fehler), nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
+| `inhalte` | Entwickler-Bereich (ohne sichtbaren Zähler, mit Rechenaufgabe), alle Level aller Welten starten und fahren (auch Pfützen, Hüpfpilze, Wind, Unterwasser, Nacht, Förderbänder), nach Level 3 „Neue Welt“ plus Profi-Knopf, Pedal-Pfeile und Tipps in der Luft und bei Bruchlandung, Looks der Kinder, E-Auto mit Akku-Anzeige und Rekuperation (Bremsen und Rollen), Motorklang aller Fahrzeuge (offline gerendert: kein NaN, nicht übersteuert, hörbar) |
 | `leistung` | Bildrate normal und bei 4× gedrosselter CPU |
 
 Stand der Messung (Chromium ohne Grafikkarte, also ungünstigster Fall): ohne

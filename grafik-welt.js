@@ -393,6 +393,30 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
       ctx.strokeStyle = alt;
     } },
+    fabrik: { abst: 34, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Fabrikhalle mit Sägezahndach und Schornstein, aus dem bunter Dampf steigt
+      var b = s * (0.7 + 0.4 * R()), h = s * (0.25 + 0.12 * R()), n = 3 + Math.floor(R() * 2), alt = ctx.fillStyle;
+      ctx.fillRect(x - b / 2, y - h, b, h + 2);
+      ctx.beginPath(); ctx.moveTo(x - b / 2, y - h + 1);
+      for (var i = 0; i < n; i++) { var x0 = x - b / 2 + b * i / n; ctx.lineTo(x0, y - h - s * 0.1); ctx.lineTo(x0 + b / n, y - h + 1); }
+      ctx.fill();
+      var kx = x + b * (0.2 + 0.2 * R()), kh = h + s * (0.3 + 0.15 * R());
+      ctx.fillRect(kx - s * 0.03, y - kh, s * 0.06, kh);
+      var farben = ["rgba(255,140,180,", "rgba(140,200,255,", "rgba(255,220,120,"];
+      for (var q = 0; q < 3; q++) {
+        var t = (zeit * 0.15 + q / 3 + k * 0.29) % 1;
+        ctx.fillStyle = farben[(q + k) % 3] + (0.55 * (1 - t)) + ")";
+        ctx.beginPath(); ctx.arc(kx + t * s * 0.35, y - kh - t * s * 0.6, s * (0.04 + t * 0.1), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = alt;
+    } },
+    zahnraeder: { abst: 26, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // zwei ineinandergreifende Zahnräder auf Gestellen, die sich drehen
+      var r1 = s * (0.16 + 0.08 * R()), r2 = r1 * (0.55 + 0.2 * R()), h = s * (0.35 + 0.25 * R());
+      ctx.fillRect(x - s * 0.02, y - h, s * 0.04, h + 2);
+      zahnrad(ctx, x, y - h, r1, 10, zeit * 0.8 * (k % 2 ? 1 : -1));
+      zahnrad(ctx, x + (r1 + r2) * 0.92, y - h + r1 * 0.3, r2, 6, -zeit * 0.8 * r1 / r2 * (k % 2 ? 1 : -1));
+    } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
         var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
@@ -400,6 +424,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     } }
   };
+  /* Zahnrad-Silhouette (Farbe = fillStyle), Loch in der Mitte */
+  function zahnrad(ctx, x, y, r, n, w) {
+    ctx.beginPath();
+    for (var i = 0; i < n * 2; i++) {
+      var a = w + i * Math.PI / n, rr = i % 2 ? r * 0.78 : r;
+      ctx.lineTo(x + Math.cos(a - 0.12) * rr, y + Math.sin(a - 0.12) * rr); ctx.lineTo(x + Math.cos(a + 0.12) * rr, y + Math.sin(a + 0.12) * rr);
+    }
+    ctx.closePath(); ctx.moveTo(x + r * 0.28, y); ctx.arc(x, y, r * 0.28, 0, Math.PI * 2, true); ctx.fill("evenodd");
+  }
   function zeichneBerge(ctx, K, welt, zeit, gel) {
     var f = welt.farben, ku = welt.kulisse || [], dunst = f.himmel[1];
     // [Parallaxe, Farbe, Grundlinie, Wellenlänge, Zufall, Höhe, Silhouetten-Größe]
@@ -628,6 +661,12 @@ var FF = globalThis.FF = globalThis.FF || {};
         X = sx(K, x0 + i * dx + hl); Y = sy(K, h[i]) + 0.02 * K.s;
         ctx.fillStyle = laub[i % 3];
         ctx.beginPath(); ctx.ellipse(X, Y, 0.12 * K.s, 0.05 * K.s, hl * 3, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (stil === "fabrik") {
+      ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
+      for (i = i0 - (i0 % 6); i <= i1; i += 6) {
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
+        ctx.beginPath(); ctx.moveTo(X, Y + 0.05 * K.s); ctx.lineTo(X, Y + 0.6 * K.s); ctx.stroke();
       }
     } else if (stil === "meer") {
       // Rippel im Sand
@@ -959,10 +998,41 @@ var FF = globalThis.FF = globalThis.FF || {};
     windPhase += windJetzt * 2.2 * (dt || 0);
   }
 
+  /* Förderbänder: Gummiband mit laufenden Pfeilen (Richtung und Tempo), Rollen an
+     den Enden, gelb-schwarzer Rand. Die Oberkante liegt genau auf dem Boden. */
+  function zeichneBaender(ctx, K, gel, zeit) {
+    var B = gel.baender, s = K.s;
+    for (var i = 0; i < B.length; i++) {
+      var b = B[i], X0 = sx(K, b.x0), X1 = sx(K, b.x1);
+      if (X1 < -20 || X0 > K.b + 20) continue;
+      var y = gel.hoeheBei((b.x0 + b.x1) / 2), Yo = sy(K, y), Yu = sy(K, y - 0.45), r = (Yu - Yo) / 2;
+      ctx.fillStyle = "#3a3f4b";
+      ctx.beginPath(); ctx.moveTo(X0, Yo); ctx.lineTo(X1, Yo); ctx.arc(X1, Yo + r, r, -Math.PI / 2, Math.PI / 2); ctx.lineTo(X0, Yu); ctx.arc(X0, Yo + r, r, Math.PI / 2, Math.PI * 1.5); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.rect(X0, Yo - 1, X1 - X0, Yu - Yo + 2); ctx.clip();
+      var abst = 1.4, vers = ((zeit * b.v) % abst + abst) % abst, rt = b.v > 0 ? 1 : -1;
+      ctx.strokeStyle = b.v > 0 ? "#7dffb8" : "#ffb35c"; ctx.lineWidth = Math.max(2, 0.09 * s); ctx.lineCap = "round"; ctx.lineJoin = "round";
+      for (var x = b.x0 - abst + vers; x < b.x1 + abst; x += abst) {
+        var Xp = sx(K, x);
+        ctx.beginPath(); ctx.moveTo(Xp - rt * 0.18 * s, Yo + r * 0.45); ctx.lineTo(Xp + rt * 0.12 * s, Yo + r); ctx.lineTo(Xp - rt * 0.18 * s, Yo + r * 1.55); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = "#c7ccd8";
+      [X0, X1].forEach(function (Xr) {
+        ctx.beginPath(); ctx.arc(Xr, Yo + r, r * 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.save(); ctx.translate(Xr, Yo + r); ctx.rotate(zeit * b.v * 3);
+        ctx.strokeStyle = "#7d8597"; ctx.lineWidth = Math.max(1, r * 0.18);
+        ctx.beginPath(); ctx.moveTo(-r * 0.5, 0); ctx.lineTo(r * 0.5, 0); ctx.moveTo(0, -r * 0.5); ctx.lineTo(0, r * 0.5); ctx.stroke(); ctx.restore();
+      });
+      // gelb-schwarzer Warnstreifen als Kante
+      var hs = Math.max(2, 0.08 * s);
+      for (var k = 0, xs = X0; xs < X1; k++, xs += 0.5 * s) { ctx.fillStyle = k % 2 ? "#2b2f3a" : "#ffd23f"; ctx.fillRect(xs, Yo - hs, Math.min(0.5 * s, X1 - xs), hs); }
+    }
+  }
+
   FF.GrafikWelt = {
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
-    zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE
+    zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

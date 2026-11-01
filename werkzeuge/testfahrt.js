@@ -354,6 +354,19 @@ function spielideenTests() {
     if (q.pfuetzen.length || q.trampoline.length || q.windBei(200) !== 0) sauber = false;
   });
   pruefe(sauber, "Alle anderen Welten: keine Pfützen, keine Hüpfpilze, kein Wind");
+  // Förderband: Gas auf einem Vorwärtsband macht schneller, rückwärts langsamer, ohne Ruck an der Kante
+  function aufBand(v) {
+    var fb = neu("fabrik", 1), ge = fb.gelaende;
+    ge.h = ge.h.map(function () { return 0; });                     // ebener Boden
+    ge.baender = [{ x0: 40, x1: 400, v: v }];
+    FF.Physik.setzeAufBoden(fb.fz, ge, 30, 0);
+    var maxW = 0;
+    for (var k = 0; k < 240 * 4; k++) { fb.aktualisiere(1 / 240, { gas: true, bremse: false }); maxW = Math.max(maxW, Math.abs(FF.normWinkel(fb.fz.chassis.a))); }
+    return [fb.fz.chassis.vx, maxW];
+  }
+  var b0 = aufBand(0), bv = aufBand(6), br = aufBand(-4);
+  pruefe(bv[0] > b0[0] + 2 && br[0] < b0[0] - 1 && bv[1] < 0.6 && br[1] < 0.6,
+    "Förderband: mit Gas vorwärts " + bv[0].toFixed(1) + ", ohne Band " + b0[0].toFixed(1) + ", rückwärts " + br[0].toFixed(1) + " m/s; kein Überschlag beim Auffahren");
   // Strecken-Editor: gemalte Strecke wird befahrbar (Steigung begrenzt), Inhalte verteilt, Ziel erreichbar
   var hh = []; for (i = 0; i <= 150; i++) hh.push(i * 2 < 60 ? 0 : (i * 2 < 120 ? (i * 2 - 60) * 1.5 : 90 - (i * 2 - 120) * 0.4));
   var e = new FF.Fahrt({ weltIndex: 0, stufe: 1, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal", strecke: { dx: 2, h: hh, laenge: 300 } });

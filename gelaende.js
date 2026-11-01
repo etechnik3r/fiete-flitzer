@@ -96,7 +96,7 @@ var FF = globalThis.FF = globalThis.FF || {};
                   berg: g.berg * wild, sprung: g.sprung * wild, wellen: g.wellen * wild, klippe: g.klippe * wild,
                   rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild,
                   looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
-                  trampolin: (g.trampolin || 0) * (0.6 + wild) },
+                  trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild) },
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -132,6 +132,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.loopings = [];            // Loopings {xc, R, …} – Kreisbahn, die das Auto von innen fährt (fahrt.js)
     this.sperrzonen = [];          // [von, bis]: dort setzt der Ballon nie ab, dort liegt kein Kanister (Grube, Looping)
     this.trampoline = [];          // Hüpfpilze {x0, x1, H, v, …} – wer drauffährt, fliegt hoch (fahrt.js)
+    this.baender = [];             // Förderbänder {x0, x1, v} – der Boden bewegt sich mit v [m/s] (physik.js)
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
@@ -171,7 +172,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin"];
+               "looping", "luecke", "trampolin", "band"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -320,6 +321,18 @@ var FF = globalThis.FF = globalThis.FF || {};
       var xt = xs + el.La;
       this.trampoline.push({ x0: xt, x1: xt + el.Lt, H: el.Ht, v: 9.5 + 1.5 * p.wild, benutzt: false, platziert: false, boing: -9 });
       this.sperrzonen.push([xt - 1, xt + el.Lt + 1]);
+    } else if (typ === "band") {
+      // Förderband auf ebenem Boden: vorwärts (schiebt mit) oder rückwärts (dagegen anfahren!).
+      // Rückwärts nur so schnell, dass jedes Fahrzeug dagegen ankommt.
+      el.flach = true;
+      el.La = 8;
+      el.Lb = 16 + 12 * r() + 6 * p.wild;
+      var vor = r() < 0.62;
+      el.v = vor ? 5 + 3 * r() : -Math.min(5.5, 3 + 1.5 * r() + 1 * p.wild);
+      el.Lflach = el.La + el.Lb + 6;
+      el.Lo = 18;
+      el.xe = xs + el.Lflach + el.Lo;
+      this.baender.push({ x0: xs + el.La, x1: xs + el.La + el.Lb, v: el.v });
     } else {
       // Klippe: hinauf auf ein Plateau, dann senkrecht hinunter
       el.D = (2.6 + r() * 2.6) * stark;
@@ -404,6 +417,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         sl -= el.Lp;
         if (sl < el.Lf) return el.Hl * (1 - glatt(0, el.Lf, sl));
         return 0;
+      case "band":
+        return 0;                                   // nur ebener Boden – das Band selbst steht in baender
       case "trampolin":
         var st = (s - el.La) / el.Lt;
         return st > 0 && st < 1 ? el.Ht * Math.sin(Math.PI * st) : 0;
@@ -538,6 +553,16 @@ var FF = globalThis.FF = globalThis.FF || {};
     var v = Math.max(-1, Math.min(1, 1.8 * n + (W.bias || 0)));
     var ruhig = glatt(25, 70, x) * (this.endlos ? 1 : 1 - glatt(this.ziel - 40, this.ziel - 10, x));
     return W.staerke * v * ruhig;
+  };
+
+  /* Geschwindigkeit des Förderbands bei x [m/s] (0: kein Band) */
+  Gelaende.prototype.bandBei = function (x) {
+    var B = this.baender;
+    for (var i = 0; i < B.length; i++) {
+      // an den Enden steigt das Tempo über 2,5 m an – ein Sprung würde das Auto aushebeln
+      if (x >= B[i].x0 && x <= B[i].x1) return B[i].v * Math.min(1, (x - B[i].x0) / 2.5, (B[i].x1 - x) / 2.5);
+    }
+    return 0;
   };
 
   /* Wasserspiegel einer Pfütze bei x, sonst -Infinity */
