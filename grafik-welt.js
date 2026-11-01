@@ -477,6 +477,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       [[-0.3, -0.75], [0.12, -0.75], [-0.3, -0.35], [0.12, -0.35]].forEach(function (p) { if (R() < 0.6) ctx.fillRect(p[0] * b, p[1] * h, b * 0.16, h * 0.18); });
       ctx.restore(); ctx.fillStyle = alt;
     } },
+    burg: { abst: 70, male: function (ctx, x, y, s, R, f) {
+      // Burg mit Türmen und Zinnen, Fähnchen
+      var alt = ctx.fillStyle, b = s * (0.6 + 0.3 * R()), h = s * 0.35, z = s * 0.04;
+      ctx.fillRect(x - b / 2, y - h, b, h + 2);
+      for (var k = 0; k < 7; k++) if (k % 2 === 0) ctx.fillRect(x - b / 2 + k * b / 7, y - h - z, b / 7, z);
+      [-1, 1].forEach(function (sd) {
+        var tx = x + sd * b / 2, th = h * 1.6, tb = s * 0.12;
+        ctx.fillRect(tx - tb / 2, y - th, tb, th + 2);
+        ctx.beginPath(); ctx.moveTo(tx - tb * 0.65, y - th); ctx.lineTo(tx, y - th - s * 0.16); ctx.lineTo(tx + tb * 0.65, y - th); ctx.fill();
+        ctx.fillRect(tx - s * 0.005, y - th - s * 0.28, s * 0.01, s * 0.12);
+        ctx.fillStyle = "#e8453c"; ctx.fillRect(tx, y - th - s * 0.28, s * 0.07, s * 0.04); ctx.fillStyle = alt;
+      });
+      ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.arc(x, y + 2, s * 0.08, Math.PI, 0); ctx.fill(); ctx.fillStyle = alt;
+    } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
         var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
@@ -831,6 +845,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       var basis = gel.hoeheBei(t.x0 - 0.5), dt = fahrzeit - t.boing;
       var wabbel = dt >= 0 && dt < 0.8 ? Math.sin(dt * 28) * Math.exp(-dt * 5) * 0.25 : 0;
       var top = function (x) { var u = (x - t.x0) / (t.x1 - t.x0); return basis + (t.H + 0.12) * (1 - wabbel) * Math.sin(Math.PI * Math.max(0, Math.min(1, u)) * 0.92 + Math.PI * 0.04); };
+      if (gel.welt.trampolinStil === "matte") {                     // echtes Trampolin: Beine, Rahmen, blaue Matte
+        ctx.strokeStyle = "#3a4152"; ctx.lineWidth = Math.max(2, 0.12 * K.s); ctx.lineCap = "round";
+        ctx.beginPath();
+        [0.05, 0.5, 0.95].forEach(function (q) { var xq = t.x0 + (t.x1 - t.x0) * q; ctx.moveTo(sx(K, xq), sy(K, basis)); ctx.lineTo(sx(K, xq), sy(K, top(xq))); });
+        ctx.stroke();
+        ctx.beginPath();
+        for (var xm = t.x0; xm <= t.x1 + 0.01; xm += 0.25) { var Ym = sy(K, top(xm) + 0.05); if (xm === t.x0) ctx.moveTo(sx(K, xm), Ym); else ctx.lineTo(sx(K, xm), Ym); }
+        ctx.strokeStyle = "#2f6fd6"; ctx.lineWidth = Math.max(4, 0.26 * K.s); ctx.stroke();
+        ctx.strokeStyle = "#ffd23f"; ctx.lineWidth = Math.max(2, 0.08 * K.s); ctx.stroke();
+        continue;
+      }
       ctx.beginPath(); ctx.moveTo(X0, sy(K, basis + 0.05));
       for (var x = t.x0 - 0.35; x <= t.x1 + 0.35; x += 0.25) ctx.lineTo(sx(K, x), sy(K, top(x)));
       ctx.lineTo(X1, sy(K, basis + 0.05));
@@ -1266,11 +1291,45 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Katapult: Holzgestell auf Rädern, A-Bock mit Drehpunkt, Wurfarm mit Schale.
+     Nach dem Schuss (k.schuss, Fahrtzeit) schwingt der Arm in 0,25 s nach oben. */
+  function zeichneKatapulte(ctx, K, gel, fahrzeit) {
+    var KA = gel.katapulte, s = K.s;
+    for (var i = 0; i < KA.length; i++) {
+      var k = KA[i], X = sx(K, k.x);
+      if (X < -6 * s || X > K.b + 6 * s) continue;
+      var yb = gel.hoeheBei(k.x), P = { x: k.x - 1.6, y: yb + 2.2 };
+      var dt = fahrzeit - k.schuss, u = dt >= 0 && k.schuss > 0 ? Math.min(1, dt / 0.25) : 0;
+      var ruhe = Math.atan2(yb + 0.9 - P.y, k.x + 0.6 - P.x), oben = 1.35;           // Arm zur Schale / steil nach oben
+      var w = ruhe + (oben - ruhe) * (1 - (1 - u) * (1 - u)), L = 2.4;
+      var cx = P.x + Math.cos(w) * L, cy = P.y + Math.sin(w) * L;
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = "#6a4528"; ctx.lineWidth = Math.max(3, 0.24 * s);         // Gestell und A-Bock
+      ctx.beginPath(); ctx.moveTo(sx(K, k.x - 2.9), sy(K, yb + 0.55)); ctx.lineTo(sx(K, k.x + 1.0), sy(K, yb + 0.55));
+      ctx.moveTo(sx(K, P.x - 0.9), sy(K, yb + 0.55)); ctx.lineTo(sx(K, P.x), sy(K, P.y)); ctx.lineTo(sx(K, P.x + 0.9), sy(K, yb + 0.55)); ctx.stroke();
+      ctx.strokeStyle = "#8a6238"; ctx.lineWidth = Math.max(3, 0.2 * s);          // Wurfarm
+      ctx.beginPath(); ctx.moveTo(sx(K, P.x - Math.cos(w) * 0.7), sy(K, P.y - Math.sin(w) * 0.7)); ctx.lineTo(sx(K, cx), sy(K, cy)); ctx.stroke();
+      ctx.fillStyle = "#5a3a22";                                                    // Schale
+      ctx.beginPath(); ctx.arc(sx(K, cx), sy(K, cy), 0.55 * s, w - Math.PI * 0.1 + Math.PI / 2, w + Math.PI * 1.1 + Math.PI / 2); ctx.fill();
+      ctx.strokeStyle = "#c9a26a"; ctx.lineWidth = Math.max(1, 0.06 * s);           // Spannseil
+      ctx.beginPath(); ctx.moveTo(sx(K, P.x - Math.cos(w) * 0.7), sy(K, P.y - Math.sin(w) * 0.7)); ctx.lineTo(sx(K, k.x - 2.8), sy(K, yb + 0.6)); ctx.stroke();
+      ctx.fillStyle = "#3a2a1a";                                                    // Räder und Drehpunkt
+      [k.x - 2.3, k.x + 0.5].forEach(function (xr) { ctx.beginPath(); ctx.arc(sx(K, xr), sy(K, yb + 0.45), 0.45 * s, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = "#c9a26a";
+      [k.x - 2.3, k.x + 0.5].forEach(function (xr) { ctx.beginPath(); ctx.arc(sx(K, xr), sy(K, yb + 0.45), 0.15 * s, 0, Math.PI * 2); ctx.fill(); });
+      ctx.beginPath(); ctx.arc(sx(K, P.x), sy(K, P.y), 0.14 * s, 0, Math.PI * 2); ctx.fill();
+      // Fahne mit Zielscheibe
+      ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(sx(K, P.x), sy(K, P.y + 0.75), 0.32 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(sx(K, P.x), sy(K, P.y + 0.75), 0.2 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(sx(K, P.x), sy(K, P.y + 0.75), 0.09 * s, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
   FF.GrafikWelt = {
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
-    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
+    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, zeichneKatapulte: zeichneKatapulte, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

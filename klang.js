@@ -536,6 +536,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "spuk":                     // freundliches „Huuu“ mit Vibrato
         ton(330, 0, 0.7, "sine", 0.1, 520); ton(495, 0.05, 0.6, "triangle", 0.04, 700);
         break;
+      case "spannen":                  // Katapult spannt: knarzendes Ratschen
+        for (var sp = 0; sp < 6; sp++) ton(180 + sp * 25, sp * 0.07, 0.05, "sawtooth", 0.05);
+        break;
       case "klirr":                    // Glas zerspringt
         rauschen(0, 0.35, 0.12, 6000);
         [2637, 3136, 2349, 3520, 2794].forEach(function (f, i) { ton(f, i * 0.035, 0.18, "triangle", 0.05); });

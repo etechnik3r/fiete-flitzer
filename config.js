@@ -909,6 +909,28 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 310, muenzAbstand: 22,
       level: [ { laenge: 900, seed: 2501 }, { laenge: 1180, seed: 2502 }, { laenge: 1440, seed: 2503 }, { laenge: 1700, seed: 2504 } ]
+    },
+    {
+      /* Katapultwelt: Katapulte vor Burggräben (Bau-Element "katapult", fahrt.js
+         katapultSchritt): Das Auto wird in der Schale festgehalten, Gas drücken
+         schleudert es über den Graben. Dazu Trampoline (Sprungmatten) und Rampen. */
+      id: "katapult", name: "Katapultwelt", emoji: "🏰", hinweis: "Katapulte schleudern dich über Burggräben!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.02, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#78c4f5", "#fff1d6"], berge: ["#9cc58a", "#78a86a"],
+        boden: ["#8a6a48", "#5e4630"], oberflaeche: "#6fae4a", kante: "#a2d46e", punkte: "#6e5238", wasser: "#4f9bd6"
+      },
+      sonne: "sonne", wetter: null, trampolinStil: "matte",
+      wasser: { tiefe: 0.6, maxBreite: 20, bremse: 0.055 },
+      tipp: ["🎯 Fahr ins Katapult – dann drück Gas und du fliegst über den Burggraben! Trampoline schleudern dich auch hoch.", "Fahr ins Katapult und drück Gas!"],
+      deko: ["@laubbaum:3.2", "🛡️:0.9", "@busch:1.0", "@kiste:1.0", "@laubbaum:2.6", "🏹:0.9", "@stein:1.0", "@blumen:0.6", "@tanne:3.0", "🎪:2.6"],
+      beiwerk: ["@gras:0.4", "@blumen:0.4", "@stein:0.35"], kulisse: ["burg", "wald", "wald"],
+      gelaende: { amp: 7.0, welle: 40, holperAmp: 0.15, holperWelle: 6, trend: 0.02,
+                  maxAuf: 30, maxAb: 42, schanzen: 1.3, buckel: 0.7, steil: 0.8, taeler: 0.6, berg: 0.8, sprung: 0.9, wellen: 0.7, klippe: 0.6, rampe: 1.4, kuppe: 0.8, stufe: 0.8,
+                  katapult: 1.6, trampolin: 0.9, wildBasis: 0.5,
+                  abstandElemente: 25 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 920, seed: 2601 }, { laenge: 1200, seed: 2602 }, { laenge: 1460, seed: 2603 }, { laenge: 1720, seed: 2604 } ]
     }
   ],
 

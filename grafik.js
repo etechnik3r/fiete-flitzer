@@ -1566,6 +1566,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.schwebezonen.length) W.zeichneSchwebezonen(ctx, K, gel, z);
     if (gel.objekte.length) W.zeichneObjekte(ctx, K, gel, b[2], b[3]);
     if (gel.spuk.length) W.zeichneSpuk(ctx, K, gel, f.fz.chassis.x, z);
+    if (gel.katapulte.length) W.zeichneKatapulte(ctx, K, gel, f.zeit);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);

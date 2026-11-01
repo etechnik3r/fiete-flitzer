@@ -578,6 +578,16 @@
             }
           }
           break;
+        case "katapultBereit":           // im Katapult eingefangen
+          FF.Klang.spiele("spannen");
+          meldung("🎯 Drück Gas!");
+          if (ersteMale("tipp-katapult", 3)) FF.Klang.sprich("Drück Gas, dann fliegst du!");
+          break;
+        case "katapult":                 // abgeschossen
+          FF.Klang.spiele("boing");
+          schwebeText(e.x + 2, e.y + 2, "Wuuusch! 🎯", "#ffd23f", true);
+          setzeAusdruck("freude", 2.5);
+          break;
         case "spuk":                     // Geisterwelt: ein Geist taucht auf
           FF.Klang.spiele("spuk");
           if (Math.random() < 0.5) setzeAusdruck("staunen", 1.2);

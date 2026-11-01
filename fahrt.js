@@ -232,6 +232,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.bremse = naehern(this.bremse, zielBremse, (zielBremse > this.bremse ? S.gasAnstieg : S.gasAbfall) * h);
 
     if (this.zustand === "hilfe") { this.hilfeSchritt(h); return; }
+    if (this.katapult) { this.katapultSchritt(h, eingabe); return; }
 
     this.setzeAntrieb();
     this.setzeZusatzMoment();
@@ -255,6 +256,17 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
     if (this.gelaende.objekte.length) this.pruefeObjekte();
+    if (this.gelaende.katapulte.length && this.zustand === "fahrt") {          // in die Katapult-Schale gefahren?
+      var KA = this.gelaende.katapulte;
+      for (var ki = 0; ki < KA.length; ki++) {
+        if (!KA[ki].benutzt && C.x > KA[ki].x - 0.6 && C.x < KA[ki].x + 1.5 && st.radKontakte > 0) {
+          KA[ki].benutzt = true;
+          this.katapult = { k: KA[ki], zeit: 0, gasVorher: eingabe.gas };
+          this.melde("katapultBereit", { x: KA[ki].x });
+          break;
+        }
+      }
+    }
     var SP = this.gelaende.spuk;                              // Geisterwelt: Geist taucht auf
     for (var si = 0; si < SP.length; si++) {
       if (!SP[si].gesehen && C.x > SP[si].x - 13 && C.x < SP[si].x) { SP[si].gesehen = true; this.melde("spuk", { x: SP[si].x }); }
@@ -386,6 +398,25 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.raeder.forEach(function (R) { if (R.k.vy > C.vy) R.k.vy = C.vy; });
       if (vyPunkt > 1.5) this.melde("decke", { x: px, y: py, staerke: Math.min(1, vyPunkt / 8) });
     }
+  };
+
+  /* Katapult: Das Auto liegt in der Schale (Lage fest, Nase leicht hoch). Gas drücken
+     (neu drücken – wer schon Gas hält, lässt kurz los) schleudert es los; spätestens
+     nach 4 s geht es von selbst, damit niemand hängen bleibt. */
+  Fahrt.prototype.katapultSchritt = function (h, eingabe) {
+    var K = this.katapult, k = K.k, fz = this.fz, gel = this.gelaende;
+    K.zeit += h;
+    var a = 0.18;
+    FF.Physik.setzePose(fz, k.x, gel.hoeheBei(k.x) + 1.2 + this.werte.groesse.hoehe * 0.3, a);
+    fz.status.tempo = 0; fz.status.vorwaerts = 0; fz.status.drehzahl = 0;
+    var neu = eingabe.gas && !K.gasVorher;
+    K.gasVorher = eingabe.gas;
+    if (!((neu && K.zeit > 0.35) || K.zeit > 4)) return;
+    this.katapult = null; k.schuss = this.zeit;
+    var vx = k.v * Math.cos(k.winkel), vy = k.v * Math.sin(k.winkel), C = fz.chassis;
+    C.vx = vx; C.vy = vy; C.w = 0;
+    fz.raeder.forEach(function (R) { R.k.vx = vx; R.k.vy = vy; });
+    this.melde("katapult", { x: k.x, y: C.y });
   };
 
   /* Pfützen: Räder, die ins Wasser tauchen, spritzen (Ereignis "platsch") und
