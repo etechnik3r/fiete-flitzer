@@ -534,8 +534,13 @@ button { font: inherit; color: inherit; }
   .top-bar { padding-left: 8px; padding-right: 8px; gap: 6px; }
   .tab { padding: 5px 8px; font-size: 0.95rem; }
   .konto-chip { font-size: 1rem; padding-right: 8px; }
+  .top-rechts { gap: 4px; }                      /* Platz für ❓ und ⚙️ */
+  .tab-wort { display: none; }                   /* Reiter nur mit Symbol, sonst passt ❓ ⚙️ nicht neben viele Münzen */
+  .tab { min-width: 48px; font-size: 1.15rem; }
 }
 @media (max-width: 360px) {                        /* sehr schmale Handys: Reiter nur mit Symbol */
+  .konto-chip { font-size: 0.88rem; padding-left: 6px; padding-right: 6px; gap: 3px; }
+  .top-bar { gap: 4px; }
   .tab-wort { display: none; }
   .tab { min-width: 48px; padding: 5px 10px; font-size: 1.15rem; }
 }
@@ -1206,6 +1211,26 @@ button { font: inherit; color: inherit; }
   padding: 6px 12px; border: none; border-radius: 999px; cursor: pointer;
   background: #e7f0fe; color: #2f4a7a; font-weight: 800; font-size: 0.9rem;
 }
+.hilfe-reiter { display: flex; gap: 6px; margin-bottom: 10px; position: sticky; top: -14px; z-index: 2; background: #fff; padding: 4px 0 6px; }
+.hilfe-reiter button {
+  flex: 1; min-height: 44px; padding: 0 10px; border: none; border-radius: 14px; cursor: pointer;
+  background: #e7f0fe; color: #2f4a7a; font-family: var(--font-display); font-weight: 800; font-size: 1rem;
+}
+.hilfe-reiter button.aktiv { background: #2f6fd6; color: #fff; }
+.hilfe-seite[hidden] { display: none; }
+.kurz-liste { display: grid; gap: 6px; }
+.kurz-liste div { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-radius: 12px; background: #f4f7ff; font-size: 0.95rem; line-height: 1.3; }
+.kurz-liste span { font-size: 1.3rem; line-height: 1; }
+.kurz-liste b { margin-right: 4px; }
+.welt-info-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 8px; }
+.welt-info { border-radius: 16px; overflow: hidden; background: #f4f7ff; box-shadow: 0 2px 0 #dfe5f2; }
+.welt-info img { display: block; width: 100%; aspect-ratio: 32 / 15; object-fit: cover; background: #dfe5f2; }
+.welt-info-text { padding: 8px 10px 10px; }
+.welt-info-name { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; display: flex; justify-content: space-between; gap: 6px; }
+.welt-info-name small { font-family: var(--font-body, sans-serif); font-size: 0.75rem; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.welt-info-hinweis { font-size: 0.88rem; line-height: 1.3; margin-top: 2px; }
+.welt-info-marken { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.welt-info-marken span { padding: 2px 8px; border-radius: 999px; background: #fff; font-size: 0.75rem; font-weight: 800; color: #4a5679; box-shadow: 0 1px 0 #dfe5f2; }
 .hilfe-liste { margin: 6px 0 0; padding-left: 20px; line-height: 1.4; font-size: 0.95rem; }
 .hilfe-liste li { margin-bottom: 5px; }
 .neu-version { margin: 8px 0 12px; padding: 10px 12px; border-radius: 14px; background: #f4f7ff; }

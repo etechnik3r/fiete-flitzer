@@ -999,6 +999,15 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "20", titel: "Fünf neue Welten, Skateboard und Flugzeug", punkte: [
+      "⛰️ Gebirge: steile Felsen, tiefe Abgründe, große Schanzen, Steinböcke und Adler",
+      "👻 Geisterwelt: dunkel, Vollmond, Fledermäuse – und freundliche Geister, die plötzlich auftauchen",
+      "🏰 Katapultwelt: Fahr ins Katapult, drück Gas – und du fliegst über den Burggraben! Dazu Trampoline",
+      "🔷 Glaswelt: alles fast durchsichtig, Glasblöcke zerspringen beim Durchfahren in Scherben",
+      "🧱 Klemmbaustein-Land: Bausteine fliegen weg, große Säulen zerfallen – und bremsen dich ab",
+      "🛹 Neues Fahrzeug E-Skateboard: Du stehst drauf!",
+      "✈️ Neues Fahrzeug Propeller-Flieger: segelt knapp über dem Boden",
+      "❓ Neuer Knopf „So geht's“: das Spiel kurz erklärt und alle Welten mit Bild" ] },
     { version: "19", titel: "Raumstation", punkte: [
       "🛸 Neue Welt Raumstation: Antennen, Solarflügel, die Erde am Himmel",
       "✨ In den leuchtenden Säulen ist die Schwerkraft fast weg – du schwebst und holst dir die Münzen ganz oben" ] },

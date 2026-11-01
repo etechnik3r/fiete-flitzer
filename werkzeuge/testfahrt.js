@@ -380,6 +380,53 @@ function spielideenTests() {
   }
   pruefe(st.gelaende.schwereBei(mitte) < 0.2 && st.gelaende.schwereBei(Zs.x1 + 10) === 1 && schwebe && hoechst > 3 && keinTank,
     "Schwebe-Säule: 18 % Schwerkraft, Meldung „schwebe“, bis " + hoechst.toFixed(1) + " m über dem Boden, kein Kanister in der Säule");
+  // Objekte: Glas zerspringt (wenig Bremse), Baustein-Säule bremst stark
+  function objektTest(welt, art) {
+    var fo = neu(welt, 1), O = fo.gelaende.objekte.filter(function (o) { return o.art === art; })[0];
+    FF.Physik.setzeAufBoden(fo.fz, fo.gelaende, O.x - 8, 0);
+    fo.fz.chassis.vx = 10; fo.fz.raeder.forEach(function (R) { R.k.vx = 10; });
+    var ev = null, vVor = 0;
+    for (var k = 0; k < 240 * 3 && !ev; k++) {
+      vVor = fo.fz.chassis.vx;
+      fo.aktualisiere(1 / 240, { gas: true, bremse: false });
+      fo.ereignisse.forEach(function (e) { if (e.typ === "objekt") ev = e; }); fo.ereignisse.length = 0;
+    }
+    return { ev: ev, kaputt: O.kaputt, faktor: fo.fz.chassis.vx / vVor };
+  }
+  var og = objektTest("glas", "glas"), os = objektTest("bausteine", "saeule");
+  pruefe(og.ev && og.kaputt && og.faktor > 0.85 && os.ev && os.faktor < 0.45,
+    "Glas zerspringt (Tempo × " + (og.faktor || 0).toFixed(2) + "), Baustein-Säule bremst stark (× " + (os.faktor || 0).toFixed(2) + ")");
+  // Katapult: einfangen, nach Gas abschießen, hinter dem Graben landen
+  var fk = neu("katapult", 0), KK = fk.gelaende.katapulte[0], spK = fk.gelaende.sperrzonen.filter(function (z) { return z[0] < KK.x + 2 && z[1] > KK.x; })[0];
+  FF.Physik.setzeAufBoden(fk.fz, fk.gelaende, KK.x - 6, 0); fk.fz.chassis.vx = 5;
+  var bereit = -1, schuss = -1, land = null;
+  for (i = 0; i < 240 * 10 && land === null; i++) {
+    var gasK = bereit < 0 || fk.zeit - bereit > 1;                // erst Gas, dann loslassen, dann neu drücken
+    if (bereit >= 0 && fk.zeit - bereit > 0.5 && fk.zeit - bereit < 1) gasK = false;
+    fk.aktualisiere(1 / 240, { gas: gasK, bremse: false });
+    fk.ereignisse.forEach(function (ev) { if (ev.typ === "katapultBereit") bereit = fk.zeit; if (ev.typ === "katapult") schuss = fk.zeit; if (ev.typ === "landung" && schuss > 0) land = fk.fz.chassis.x; });
+    fk.ereignisse.length = 0;
+  }
+  pruefe(bereit > 0 && schuss - bereit < 1.3 && land > spK[1], "Katapult: hält fest, schießt auf Gas ab (nach " + (schuss - bereit).toFixed(1) + " s), Landung hinter dem Graben (" + Math.round(land) + " > " + Math.round(spK[1]) + ")");
+  // Geisterwelt: Geister tauchen auf
+  var fg = neu("geister", 1), spukZahl = 0;
+  FF.Physik.setzeAufBoden(fg.fz, fg.gelaende, 40, 0);
+  for (i = 0; i < 240 * 8; i++) { fg.aktualisiere(1 / 240, { gas: true, bremse: false }); fg.ereignisse.forEach(function (ev) { if (ev.typ === "spuk") spukZahl++; }); fg.ereignisse.length = 0; }
+  pruefe(spukZahl >= 1, "Geisterwelt: " + spukZahl + " Geister tauchen in 8 s auf");
+  // Flugzeug: trägt nahe am Boden, aber nicht höher als ~3 m (kein Steigflug)
+  var ff = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "flugzeug", upgrades: {}, schwierigkeit: "normal" }), maxFrei = 0;
+  ff.gelaende.h = ff.gelaende.h.map(function () { return 0; });
+  FF.Physik.setzeAufBoden(ff.fz, ff.gelaende, 20, 0);
+  ff.fz.chassis.vx = 22; ff.fz.chassis.vy = 6; ff.fz.raeder.forEach(function (R) { R.k.vx = 22; R.k.vy = 6; });
+  for (i = 0; i < 240 * 6; i++) { ff.aktualisiere(1 / 240, { gas: true, bremse: false }); maxFrei = Math.max(maxFrei, ff.fz.chassis.y - ff.gelaende.hoeheBei(ff.fz.chassis.x)); }
+  var ohne = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal" });
+  pruefe(maxFrei < 4.6, "Flugzeug: mit Schwung nach oben höchstens " + maxFrei.toFixed(1) + " m über dem Boden – kein Steigflug");
+  // Skateboard: Anfahren mit Vollgas auf ebener Strecke ohne Umkippen
+  var fs2 = new FF.Fahrt({ weltIndex: 0, stufe: 0, fahrzeugId: "skateboard", upgrades: {}, schwierigkeit: "normal" }), maxA = 0;
+  fs2.gelaende.h = fs2.gelaende.h.map(function () { return 0; });
+  FF.Physik.setzeAufBoden(fs2.fz, fs2.gelaende, 10, 0);
+  for (i = 0; i < 240 * 4; i++) { fs2.aktualisiere(1 / 240, { gas: true, bremse: false }); maxA = Math.max(maxA, Math.abs(FF.normWinkel(fs2.fz.chassis.a))); }
+  pruefe(maxA < 0.5 && fs2.hoppla === 0 && fs2.fz.chassis.vx > 8, "Skateboard: Vollgas aus dem Stand ohne Umkippen (höchstens " + (maxA * 57.3).toFixed(0) + "°, " + fs2.fz.chassis.vx.toFixed(1) + " m/s nach 4 s)");
   // Strecken-Editor: gemalte Strecke wird befahrbar (Steigung begrenzt), Inhalte verteilt, Ziel erreichbar
   var hh = []; for (i = 0; i <= 150; i++) hh.push(i * 2 < 60 ? 0 : (i * 2 < 120 ? (i * 2 - 60) * 1.5 : 90 - (i * 2 - 120) * 0.4));
   var e = new FF.Fahrt({ weltIndex: 0, stufe: 1, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal", strecke: { dx: 2, h: hh, laenge: 300 } });

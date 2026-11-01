@@ -61,13 +61,14 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **21 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **26 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle ·
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
-  🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation.
+  🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
+  🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -139,6 +140,28 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     3 m weicher Rand). Davor eine kleine Sprungkante, darunter eine Senke, oben
     ein Münzbogen mit Diamant. In und kurz hinter den Säulen liegen keine
     Kanister (man schwebt darüber) und setzt der Ballon nie ab.
+  - **Objekte auf der Strecke** (`welt.objekte`, Version 20): `gelaende.objekte`
+    verteilt sie mit eigenem Zufall auf flachem Boden, `fahrt.pruefeObjekte`
+    merkt, wenn das Auto hindurchfährt (nicht drüberfliegt). **🔷 Glaswelt**:
+    Glasblöcke, -kugeln, -türme zerspringen in Scherben (−7 % Tempo), Boden und
+    Deko halb durchsichtig (`welt.glas`). **🧱 Klemmbaustein-Land**: kleine
+    Bausteine fliegen weg (−3 %), große **Säulen** bremsen das Auto auf 30 %
+    seines Tempos und zerfallen in einzelne Steine. Scherben und Steine sind
+    gewöhnliche Partikel (11 bzw. bis 16 je Objekt) – gemessen kein spürbarer
+    Unterschied zur Bildrate anderer Welten.
+  - **⛰️ Gebirge**: sehr hohe, steile Berge ohne Schnee, viele Klippen,
+    Grubensprünge (Abgründe) und große Schanzen; Steinböcke, Gipfelkreuze,
+    Adler kreisen am Himmel (Wetter `adler`).
+  - **👻 Geisterwelt** (`welt.spuk`): dunkel (Nacht-Schleier), Vollmond,
+    Fledermäuse, Spukhäuser, Laternenkürbisse. Alle 40–70 m steigt 13 m vor
+    dem Auto ein freundlicher Geist aus dem Boden („Buh!“) und verblasst
+    wieder – nur Grafik und Klang, abhängig allein von der Position des Autos.
+  - **🏰 Katapultwelt** (`gelaende.katapult`): Katapult vor einem Burggraben.
+    Fährt das Auto in die Schale, wird es festgehalten (`fahrt.katapultSchritt`),
+    „Drück Gas!“ – neu gedrücktes Gas schleudert es im Bogen über den Graben
+    (Weite aus Grabenbreite + 10 m berechnet), nach 4 s geht es von selbst.
+    Münzen liegen entlang der Flugbahn. Dazu Trampoline (`trampolinStil:
+    "matte"`), Rampen und Wasser im Graben.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
@@ -159,10 +182,14 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   absolut nur ~290°, gegenüber dem Boden aber eine ganze Umdrehung. Ein Flug
   endet erst, wenn das Auto 0,1 s ruhig auf den Rädern steht. Abpraller und
   kurzes Aufsetzen mit Karosserie oder Kopf gehören noch zum Flug.
-- **❓ Hilfe** (Einstellungen → „Hilfe & Was ist neu?“): erklärt Fahren, Tricks,
-  Extras, Garage und Welten und zeigt den **Changelog** (`neuigkeiten` in
-  `config.js`) mit der eigenen Version hervorgehoben. Ein Klick auf den
-  Update-Hinweis nach einem App-Update öffnet sie auch.
+- **❓ So geht's** (Knopf oben im Menü, auf dem Titelbild und in den
+  Einstellungen) mit drei Reitern: **🎮 So geht's** (das Spiel in sieben
+  Sätzen, darunter Fahren, Turbo, Garage, Spielarten), **🗺️ Welten** (jede
+  Welt mit Bildschirmfoto, Kurzbeschreibung und Merkmalen wie „💧 Pfützen“,
+  „🎯 Katapulte“ – die Merkmale leitet `spiel.js weltMerkmale` aus
+  `config.js` ab) und **✨ Neu** (Changelog, `neuigkeiten`). Die Fotos
+  erzeugt `node werkzeuge/weltbilder.js` (bilder/welten/*.jpg, 640 × 300);
+  der Service Worker merkt sie sich beim ersten Anschauen für offline.
 - **Kulisse** (`requisiten.js`, `grafik.js`): Bäume, Tannen, Palmen, Kakteen,
   Felsen, Farne, Vulkankegel, Kristalle, Pilze, Dinosaurier (4 Arten × 3
   Farben) … werden gezeichnet, nicht als Emoji. Jede Art gibt es in mehreren
@@ -271,6 +298,8 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🛻 Monster-Max | 10.000 | gigantische Räder, Allrad, hoher Schwerpunkt |
 | 🏎️ Blitz-Rakete | 15.000 | superschnell, Heckflügel mit echtem Abtrieb |
 | 🚀 Mondmobil | 22.000 | sechs angetriebene Räder, superweiche Federn, fährt mit Akku wie die echten Mondautos |
+| 🛹 E-Skateboard | 8.000 | das Kind steht drauf: leicht, wendig, wackelig (Schwerpunkt hoch). Drehmoment bewusst klein (55 Nm), sonst kippt es beim Anfahren nach hinten (a > g·½Radstand/Schwerpunkthöhe ≈ 5,5 m/s²); `balance`: das Kind hält am Boden selbst das Gleichgewicht. Akku |
+| ✈️ Propeller-Flieger | 30.000 | offenes Cockpit. Fährt wie ein Auto, aber der **Bodeneffekt** trägt: Auftrieb g·0,5·(v/22 m/s)², voll bis 1 m über normaler Höhe, bei 3,2 m weg – höher kommt er nicht. In der Luft schiebt der Propeller mit 3,5 m/s² (weniger als g, kein Steigflug). Ohne Luft (Mond) kein Auftrieb |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und

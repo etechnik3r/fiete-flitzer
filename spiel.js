@@ -1888,8 +1888,42 @@
     });
   });
 
-  /* Hilfe: alles, was man im Spiel machen kann, und „Was ist neu?“ (aus C.neuigkeiten) */
-  function oeffneHilfe() {
+  /* Anleitung (❓): Kurzfassung und Details, alle Welten mit Bildschirmfoto und
+     Merkmalen (aus config.js abgeleitet), „Was ist neu?“ (C.neuigkeiten) */
+  function weltMerkmale(w) {
+    var g = w.gelaende || {}, m = [];
+    if (w.schwerkraft < 5) m.push("🪶 wenig Schwerkraft");
+    if (w.grip < 0.8) m.push("🧊 rutschig");
+    if (w.rollwiderstand >= 0.05) m.push("🐌 Boden bremst");
+    if (w.abprall > 0.3) m.push("🍮 alles federt");
+    if (w.wasser) m.push("💧 Pfützen");
+    if (w.wind) m.push("💨 Wind");
+    if (w.unterwasser) m.push("🫧 unter Wasser");
+    if (w.nacht) m.push("🔦 dunkel");
+    if (w.decke) m.push("🪨 Höhlendecke");
+    if (w.spuk) m.push("👻 Geister");
+    if (g.looping) m.push("🎢 Loopings");
+    if (g.luecke) m.push("🕳️ Abgründe");
+    if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : "🍄 Hüpfpilze");
+    if (g.band) m.push("⏩ Förderbänder");
+    if (g.schwebe) m.push("✨ Schwebe-Säulen");
+    if (g.katapult) m.push("🎯 Katapulte");
+    if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : "🧱 Bausteine fliegen");
+    if (w.objekte && w.objekte.saeule) m.push("🏛️ Säulen");
+    if ((g.klippe || 0) >= 1.5) m.push("⛰️ Klippen");
+    if ((g.sprung || 0) >= 1.4 || (g.schanzen || 0) >= 1.5) m.push("🛫 große Schanzen");
+    return m;
+  }
+  var hilfeSeite = "anleitung";
+  function zeigeHilfeSeite(seite) {
+    hilfeSeite = seite;
+    document.querySelectorAll(".hilfe-reiter [data-seite]").forEach(function (b) {
+      var an = b.dataset.seite === seite; b.classList.toggle("aktiv", an); b.setAttribute("aria-selected", an ? "true" : "false");
+    });
+    document.querySelectorAll("[data-seite-inhalt]").forEach(function (d) { d.hidden = d.dataset.seiteInhalt !== seite; });
+    $("hilfe-inhalt").scrollTop = 0;
+  }
+  function oeffneHilfe(seite) {
     FF.Klang.init(); FF.Klang.spiele("klick");
     $("hilfe-neuigkeiten").innerHTML = C.neuigkeiten.map(function (n, i) {
       var aktuell = n.version === VERSION;
@@ -1898,18 +1932,27 @@
              n.punkte.map(function (p) { return "<li>" + p + "</li>"; }).join("") + "</ul></div>";
     }).join("");
     $("hilfe-weltenzahl").textContent = C.welten.length + " Welten";
+    $("hilfe-fahrzeuge").textContent = C.fahrzeuge.length + " Fahrzeuge: " + C.fahrzeuge.map(function (f) { return f.emoji + " " + f.name; }).join(", ");
+    $("welt-info-liste").innerHTML = C.welten.map(function (w, wi) {
+      var sterne = 0, offen = levelOffen(wi, 0);
+      for (var li = 0; li < w.level.length; li++) sterne += levelStand(wi, li).sterne || 0;
+      return '<div class="welt-info"><img src="bilder/welten/' + w.id + '.jpg" alt="Bild aus der Welt ' + w.name + '" loading="lazy" width="320" height="150">' +
+        '<div class="welt-info-text"><div class="welt-info-name"><span>' + w.emoji + " " + w.name + "</span><small>" +
+        (offen ? "⭐ " + sterne + "/" + 3 * w.level.length : "🔒 noch zu") + "</small></div>" +
+        '<div class="welt-info-hinweis">' + w.hinweis + "</div>" +
+        '<div class="welt-info-marken">' + weltMerkmale(w).map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div></div></div>";
+    }).join("");
     oeffneModal("hilfe");
-    $("hilfe-inhalt").scrollTop = 0;
+    zeigeHilfeSeite(typeof seite === "string" ? seite : "anleitung");
   }
-  $("knopf-hilfe").addEventListener("click", oeffneHilfe);
+  $("knopf-hilfe").addEventListener("click", function () { oeffneHilfe("neu"); });
+  $("knopf-anleitung").addEventListener("click", function () { oeffneHilfe("anleitung"); });
+  $("knopf-titel-anleitung").addEventListener("click", function () { oeffneHilfe("anleitung"); });
   ["hilfe-zu", "hilfe-fertig"].forEach(function (id) {
     $(id).addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseModal("hilfe"); });
   });
-  document.querySelectorAll(".hilfe-sprung button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var z = $(b.dataset.ziel), box = $("hilfe-inhalt");
-      box.scrollTo({ top: box.scrollTop + z.getBoundingClientRect().top - box.getBoundingClientRect().top - 4, behavior: "smooth" });
-    });
+  document.querySelectorAll(".hilfe-reiter [data-seite]").forEach(function (b) {
+    b.addEventListener("click", function () { FF.Klang.spiele("klick"); zeigeHilfeSeite(b.dataset.seite); });
   });
 
   /* Frage für Erwachsene: kleine Rechenaufgabe (6–9 × 6–9), erst dann geht es weiter */
@@ -2028,7 +2071,7 @@
       var b = $("update-banner");
       b.textContent = "✨ Fiete Flitzer wurde aktualisiert: Version " + alt + " → " + VERSION + " · Was ist neu? ❓";
       b.hidden = false;
-      b.addEventListener("click", function () { b.hidden = true; if (modus !== "fahrt") oeffneHilfe(); });
+      b.addEventListener("click", function () { b.hidden = true; if (modus !== "fahrt") oeffneHilfe("neu"); });
       setTimeout(function () { b.hidden = true; }, 7000);
     }
   })();
