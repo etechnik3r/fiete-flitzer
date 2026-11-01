@@ -900,14 +900,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       };
       var deck = function () {
         ctx.beginPath();
-        ctx.moveTo(-0.6, -0.3); ctx.lineTo(0.6, -0.3); ctx.quadraticCurveTo(0.74, -0.3, 0.76, -0.2);
-        ctx.lineTo(0.62, -0.38); ctx.lineTo(-0.62, -0.38); ctx.lineTo(-0.76, -0.2); ctx.quadraticCurveTo(-0.74, -0.3, -0.6, -0.3); ctx.closePath();
+        ctx.moveTo(-0.7, -0.3); ctx.lineTo(0.7, -0.3); ctx.quadraticCurveTo(0.84, -0.3, 0.86, -0.2);
+        ctx.lineTo(0.72, -0.38); ctx.lineTo(-0.72, -0.38); ctx.lineTo(-0.86, -0.2); ctx.quadraticCurveTo(-0.84, -0.3, -0.7, -0.3); ctx.closePath();
       };
       var vorne = function () {
-        karosserie(ctx, a, z, deck, -0.76, 0.76, -0.38, -0.2);
+        karosserie(ctx, a, z, deck, -0.86, 0.86, -0.38, -0.2);
         ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, -0.25, -0.47, 0.5, 0.09, 0.03); ctx.fill();      // Akku unter dem Brett
         ctx.fillStyle = "#7dffb8"; ctx.fillRect(-0.18, -0.44, 0.06, 0.03); ctx.fillRect(-0.09, -0.44, 0.06, 0.03);
-        ctx.fillStyle = "#c9cfdb"; [-0.38, 0.38].forEach(function (x) { ctx.fillRect(x - 0.06, -0.42, 0.12, 0.05); });   // Achsen
+        ctx.fillStyle = "#c9cfdb"; [-0.52, 0.52].forEach(function (x) { ctx.fillRect(x - 0.06, -0.42, 0.12, 0.05); });   // Achsen
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, 0.18, 0.34, 0.42], arme: [0.05, 0.5, 0.36, 0.36] };
     },

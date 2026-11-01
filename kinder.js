@@ -43,7 +43,9 @@ var FF = globalThis.FF = globalThis.FF || {};
        frisur                "pony" (Fiete) | "dutt" | "lang" (Jonte)
        gesicht.breite        < 1 = schmaleres Gesicht
        gesicht.hoehe         > 1 = längeres Gesicht (Kinn tiefer)
-       gesicht.kinn          0..0.3: Kinn schmaler, spitzer
+       gesicht.kinn          0..0.3: Kinn schmaler, spitzer; < 0: breiterer, kantiger Kiefer
+       brauenDicke           Dicke der Augenbrauen (1 = normal), brauenBogen: 1 = gewölbt, 0 = gerade
+       wimpern               Stärke des Wimpernkranzes (1 = normal)
        ohr                   Ohrgröße (1 = normal, größer = abstehend)
        brille                null = keine, sonst Rahmen- und Glasfarbe
        mund                  "verschmitzt" | "schief" (Form des Lächelns)
@@ -63,13 +65,14 @@ var FF = globalThis.FF = globalThis.FF || {};
     },
     // Jonte: hellbraun (etwas aschig), lange Haare, hier zum Dutt gebunden,
     // hohe freie Stirn mit feinen Härchen, runde schwarze Brille, Ohren
-    // stehen etwas ab, schmaleres und längeres Gesicht, braune Augen
+    // stehen etwas ab, braune Augen. Ein Junge: kantiger Kiefer, kräftige
+    // gerade Augenbrauen, kaum Bäckchen, dünner Wimpernkranz
     jonte: {
-      haut: "#ffdcc9", hautRand: "#d69c84", wangen: "rgba(255,120,110,0.24)",
+      haut: "#ffdcc9", hautRand: "#d69c84", wangen: "rgba(255,120,110,0.1)",
       haar: "#9a7a5e", haarHell: "#c6a888", haarDunkel: "#64493a",
-      brauen: "#8c6a52", augen: "#563520",
-      frisur: "dutt",                // "dutt" wie auf dem Foto, "lang" = offen bis zur Schulter
-      gesicht: { breite: 0.9, hoehe: 1.09, kinn: 0.18 },
+      brauen: "#5e4434", augen: "#563520", brauenDicke: 1.6, brauenBogen: 0.3, wimpern: 0.45,
+      frisur: "dutt",                // "dutt" wie auf dem Foto, "lang" = offen, glatt bis zur Rückenmitte
+      gesicht: { breite: 0.96, hoehe: 1.05, kinn: -0.06 },
       ohr: 1.18,
       brille: { rahmen: "#1d1918", glas: "rgba(214,236,255,0.22)" },
       mund: "schief"
@@ -233,17 +236,18 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "#ffffff";
       ctx.beginPath(); ctx.arc(ax + 0.09 * f, ay + 0.04, 0.035 * f, 0, Math.PI * 2); ctx.fill();
       // Wimpernkranz oben
-      ctx.strokeStyle = "#3b2416"; ctx.lineWidth = lw * 0.9;
+      ctx.strokeStyle = "#3b2416"; ctx.lineWidth = lw * 0.9 * (A.wimpern === undefined ? 1 : A.wimpern);
       ctx.beginPath(); ctx.ellipse(ax, ay, rx, ry, 0, Math.PI * 0.18, Math.PI * 0.82); ctx.stroke();
     });
   }
 
   function zeichneBrauen(ctx, A, brauen, ausdruck, lw) {
     var hoch = ausdruck === "staunen" ? 0.07 : 0;
-    ctx.strokeStyle = A.brauen; ctx.lineWidth = lw * 1.15;
+    var bogen = A.brauenBogen === undefined ? 1 : A.brauenBogen;
+    ctx.strokeStyle = A.brauen; ctx.lineWidth = lw * 1.15 * (A.brauenDicke || 1);
     brauen.forEach(function (b) {
       ctx.beginPath(); ctx.moveTo(b[0], b[1] + hoch);
-      ctx.quadraticCurveTo((b[0] + b[2]) / 2, Math.max(b[1], b[3]) + 0.06 + hoch, b[2], b[3] + hoch); ctx.stroke();
+      ctx.quadraticCurveTo((b[0] + b[2]) / 2, Math.max(b[1], b[3]) + 0.06 * bogen + hoch, b[2], b[3] + hoch); ctx.stroke();
     });
   }
 
@@ -392,17 +396,18 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.beginPath(); ctx.arc(bx, by, br * 0.94, 4.35, 5.0); ctx.stroke();
   }
 
-  /* Offene lange Haare: fallen hinter dem Kopf bis auf die Schultern, wehen
-     bei Tempo nach hinten. Vorne wie "dutt" glatt hinters Ohr gestrichen. */
+  /* Offene lange Haare: glatt hinter dem Kopf über den Rücken bis etwa zur
+     Rückenmitte, unten leicht ungleiche Spitzen; wehen bei Tempo nach hinten.
+     Vorne wie "dutt" hinters Ohr gestrichen. */
   function haareLangHinten(ctx, A, wind, zeit, lw) {
-    var w = wind * 0.42, u = wind * 0.3, welle = Math.sin(zeit * 9) * 0.07 * wind;
+    var w = wind * 0.5, u = wind * 0.35, welle = Math.sin(zeit * 9) * 0.08 * wind;
     var P = [
-      pol(95, 1.06), pol(140, 1.12), [-1.12, 0.14], [-1.14, -0.5],
-      [-1.06, -1.22, true], [-0.86, -1.08], [-0.7, -1.26, true], [-0.52, -1.08], [-0.36, -1.18, true],
-      [-0.3, -0.7], [-0.3, -0.1], [0.1, 0.6]
+      pol(95, 1.06), pol(140, 1.13), [-1.13, 0.12], [-1.12, -0.6], [-1.08, -1.4],
+      [-1.02, -2.02, true], [-0.88, -1.9], [-0.76, -2.08, true], [-0.62, -1.92], [-0.5, -2.0, true],
+      [-0.38, -1.5], [-0.32, -0.7], [-0.3, -0.1], [0.1, 0.6]
     ];
     P = verschiebe(P, function (p) {
-      var t = Math.max(0, Math.min(1, (0.2 - p[1]) / 1.4));              // unten weht es am stärksten
+      var t = Math.max(0, Math.min(1, (0.2 - p[1]) / 2.2));              // unten weht es am stärksten
       return [-w * t + welle * t, u * t * t];
     });
     ctx.beginPath(); kurve(ctx, P, true);
