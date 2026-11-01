@@ -639,6 +639,40 @@
       g.beginPath(); g.arc(0, -u * 0.97, u * 0.05, 0, Math.PI * 2); g.fill();
     } },
 
+    /* ---- Geisterwelt ---- */
+    laternenkuerbis: { breite: 1.4, sinken: 0.04, male: function (g, u, R) {
+      // Kürbis mit freundlich geschnitztem, leuchtendem Gesicht
+      MALER.kuerbis.male(g, u, R);
+      var h = u * 0.82, gl = "#ffe27a";
+      g.fillStyle = gl; g.shadowColor = "#ffb02e"; g.shadowBlur = u * 0.1;
+      [-1, 1].forEach(function (sd) { g.beginPath(); g.moveTo(sd * u * 0.22, -h * 0.55); g.lineTo(sd * u * 0.1, -h * 0.55); g.lineTo(sd * u * 0.16, -h * 0.68); g.closePath(); g.fill(); });
+      g.beginPath(); g.moveTo(-u * 0.25, -h * 0.35); g.quadraticCurveTo(0, -h * 0.12, u * 0.25, -h * 0.35); g.quadraticCurveTo(0, -h * 0.25, -u * 0.25, -h * 0.35); g.fill();
+      g.shadowBlur = 0;
+    } },
+
+    /* ---- Gebirge ---- */
+    steinbock: { breite: 1.2, sinken: 0, male: function (g, u, R) {
+      // Steinbock auf einem Felsen, mit großen gebogenen Hörnern (Blick nach rechts)
+      var f = R() < 0.5 ? "#9a7a58" : "#8a6c4c";
+      felsForm(g, u, R, 1.1, 0.35, "#8d8a86", false);
+      var y0 = -u * 0.3;
+      g.fillStyle = f;
+      g.beginPath(); g.ellipse(0, y0 - u * 0.25, u * 0.3, u * 0.15, 0, 0, Math.PI * 2); g.fill();     // Körper
+      g.strokeStyle = f; g.lineWidth = u * 0.06; g.lineCap = "round";
+      [-0.2, -0.1, 0.12, 0.22].forEach(function (x) { g.beginPath(); g.moveTo(x * u, y0 - u * 0.15); g.lineTo(x * u + (R() - 0.5) * u * 0.05, y0); g.stroke(); });
+      g.beginPath(); g.moveTo(u * 0.22, y0 - u * 0.3); g.lineTo(u * 0.33, y0 - u * 0.48); g.stroke();                 // Hals
+      g.beginPath(); g.ellipse(u * 0.38, y0 - u * 0.5, u * 0.09, u * 0.06, 0.3, 0, Math.PI * 2); g.fill();          // Kopf
+      g.strokeStyle = "#5a4a3a"; g.lineWidth = u * 0.035;
+      g.beginPath(); g.moveTo(u * 0.34, y0 - u * 0.55); g.quadraticCurveTo(u * 0.2, y0 - u * 0.85, u * 0.08, y0 - u * 0.62); g.stroke();   // Horn
+      g.fillStyle = "#2a1a10"; g.beginPath(); g.arc(u * 0.4, y0 - u * 0.52, u * 0.015, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = f; g.lineWidth = u * 0.025; g.beginPath(); g.moveTo(u * 0.42, y0 - u * 0.45); g.lineTo(u * 0.43, y0 - u * 0.38); g.stroke();   // Bart
+    } },
+    gipfelkreuz: { breite: 0.6, sinken: 0, male: function (g, u, R) {
+      felsForm(g, u, R, 0.9, 0.2, "#8d8a86", true);
+      g.fillStyle = "#7a5232"; g.fillRect(-u * 0.035, -u, u * 0.07, u * 0.85); g.fillRect(-u * 0.22, -u * 0.8, u * 0.44, u * 0.06);
+      g.fillStyle = "#ffd23f"; g.beginPath(); g.arc(0, -u * 0.77, u * 0.04, 0, Math.PI * 2); g.fill();
+    } },
+
     /* ---- Glaswelt (halb durchsichtig) ---- */
     glasskulptur: { breite: 1.0, sinken: 0, male: function (g, u, R, v) {
       var art = v % 3;

@@ -464,6 +464,19 @@ var FF = globalThis.FF = globalThis.FF || {};
         for (var k = 0; k < 3; k++) ctx.fillRect(xx - b / 2 + (k + 0.2) * b / 3, y - lagen * hs - hs * 0.3, b / 3 * 0.55, hs * 0.3);
       }
     } },
+    spukhaus: { abst: 60, male: function (ctx, x, y, s, R, f) {
+      // schiefes Spukhaus mit Türmchen auf einem Hügel, ein paar Fenster leuchten
+      var alt = ctx.fillStyle, b = s * 0.45, h = s * 0.35;
+      ctx.beginPath(); ctx.ellipse(x, y + 2, b * 1.4, s * 0.12, 0, Math.PI, 0); ctx.fill();
+      ctx.save(); ctx.translate(x, y - s * 0.08); ctx.rotate((R() - 0.5) * 0.08);
+      ctx.fillRect(-b / 2, -h, b, h);
+      ctx.beginPath(); ctx.moveTo(-b * 0.62, -h); ctx.lineTo(-b * 0.1, -h - s * 0.22); ctx.lineTo(b * 0.62, -h); ctx.fill();
+      ctx.fillRect(b * 0.25, -h - s * 0.3, s * 0.08, s * 0.32);
+      ctx.beginPath(); ctx.moveTo(b * 0.2, -h - s * 0.3); ctx.lineTo(b * 0.25 + s * 0.04, -h - s * 0.45); ctx.lineTo(b * 0.25 + s * 0.12, -h - s * 0.3); ctx.fill();
+      ctx.fillStyle = f.fenster || "#ffd27a";
+      [[-0.3, -0.75], [0.12, -0.75], [-0.3, -0.35], [0.12, -0.35]].forEach(function (p) { if (R() < 0.6) ctx.fillRect(p[0] * b, p[1] * h, b * 0.16, h * 0.18); });
+      ctx.restore(); ctx.fillStyle = alt;
+    } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
         var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
@@ -845,7 +858,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
     if (!art) return;
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
-    var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26 }[art] || 14;
+    var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26, adler: 3, fledermaeuse: 7 }[art] || 14;
     for (var i = 0; i < n; i++) {
       this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.35 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
@@ -879,6 +892,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
       else if (art === "marsstaub") {                             // Staubsturm: fliegt mit dem Wind
         t.y += Math.sin(zeit * 0.9 + t.p) * 10 * dt; t.x += (windJetzt * (240 + 160 * t.g) - 15) * dt - dx * 0.8;
+      }
+      else if (art === "adler") {                                  // kreisen langsam am Himmel
+        t.x += (12 + 10 * t.g) * dt - dx * 0.15; t.y = H * (0.12 + 0.12 * t.g) + Math.sin(zeit * 0.4 + t.p) * H * 0.05;
+      }
+      else if (art === "fledermaeuse") {                           // flattern im Zickzack
+        t.x += (35 + 30 * t.g) * dt * (t.p > 3 ? 1 : -1) - dx * 0.5; t.y = H * (0.15 + 0.3 * ((t.p * 7) % 1)) + Math.sin(zeit * 3 + t.p * 5) * 18;
       }
       else if (art === "blasen") { t.y -= (28 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 9 * dt - dx * 0.6; }
       else if (art === "gluehwuermchen") {
@@ -933,6 +952,21 @@ var FF = globalThis.FF = globalThis.FF || {};
         var ms = Math.abs(windJetzt);
         ctx.fillStyle = "rgba(214,140,95," + (0.18 + 0.3 * ms * t.g) + ")";
         ctx.beginPath(); ctx.ellipse(t.x, t.y, 2 + 9 * ms * t.g, 1.5 + 1.5 * t.g, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "adler") {
+        var aw = 18 + 10 * t.g, fl = Math.sin(zeit * 2 + t.p) * 0.25;
+        ctx.fillStyle = "#4a3a2e";
+        ctx.beginPath(); ctx.moveTo(t.x - aw, t.y - aw * (0.15 + fl)); ctx.quadraticCurveTo(t.x - aw * 0.4, t.y - aw * 0.3, t.x, t.y);
+        ctx.quadraticCurveTo(t.x + aw * 0.4, t.y - aw * 0.3, t.x + aw, t.y - aw * (0.15 + fl)); ctx.quadraticCurveTo(t.x + aw * 0.4, t.y - aw * 0.05, t.x, t.y + aw * 0.12);
+        ctx.quadraticCurveTo(t.x - aw * 0.4, t.y - aw * 0.05, t.x - aw, t.y - aw * (0.15 + fl)); ctx.fill();
+        ctx.fillStyle = "#f4f6fb"; ctx.beginPath(); ctx.arc(t.x + aw * 0.12, t.y - aw * 0.05, aw * 0.08, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "fledermaeuse") {
+        var fw = 9 + 6 * t.g, fs = Math.sin(zeit * 14 + t.p * 3);
+        ctx.fillStyle = "#1a1426";
+        ctx.beginPath(); ctx.moveTo(t.x, t.y);
+        ctx.quadraticCurveTo(t.x - fw * 0.5, t.y - fw * fs * 0.6, t.x - fw, t.y - fw * fs * 0.3); ctx.lineTo(t.x - fw * 0.6, t.y + fw * 0.15); ctx.lineTo(t.x - fw * 0.3, t.y + fw * 0.05);
+        ctx.lineTo(t.x, t.y + fw * 0.2); ctx.lineTo(t.x + fw * 0.3, t.y + fw * 0.05); ctx.lineTo(t.x + fw * 0.6, t.y + fw * 0.15);
+        ctx.lineTo(t.x + fw, t.y - fw * fs * 0.3); ctx.quadraticCurveTo(t.x + fw * 0.5, t.y - fw * fs * 0.6, t.x, t.y); ctx.fill();
+        ctx.fillStyle = "#ffd23f"; ctx.fillRect(t.x - 2, t.y + 1, 1.5, 1.5); ctx.fillRect(t.x + 1, t.y + 1, 1.5, 1.5);
       } else if (art === "blasen") {
         var br = 1.5 + 3 * t.g;
         ctx.strokeStyle = "rgba(225,248,255,0.6)"; ctx.lineWidth = 1.2;
@@ -983,7 +1017,8 @@ var FF = globalThis.FF = globalThis.FF || {};
      eigenes Bild (weich und schnell), dann einmal über die Szene gelegt.
      ========================================================================= */
   // Leuchtende Requisiten: [Höhe der Lichtquelle (Anteil der Größe), Radius (× Größe), Stärke, Farbe für das warme Leuchten]
-  var LEUCHTEN = { laterne: [0.8, 2.2, 0.85, "255,190,90"], zelt: [0.12, 2.4, 0.8, "255,150,60"], pilz: [0.7, 1.6, 0.6, "143,232,255"] };
+  var LEUCHTEN = { laterne: [0.8, 2.2, 0.85, "255,190,90"], zelt: [0.12, 2.4, 0.8, "255,150,60"], pilz: [0.7, 1.6, 0.6, "143,232,255"],
+                   laternenkuerbis: [0.45, 1.8, 0.75, "255,170,60"] };
   /* Lichtfleck (weich, Farbe "r,g,b") und Scheinwerferkegel werden EINMAL vorgemalt und
      danach nur noch kopiert – Farbverläufe in jedem Bild neu anzulegen ist auf alten
      Tablets teuer (gemessen: halbe Bildrate). */
@@ -1056,6 +1091,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       for (var j = 0; j < Lst.length; j++) if (!Lst[j].weg && Lst[j].x > b[2] - 2 && Lst[j].x < b[3] + 2) licht(sx(K, Lst[j].x), sy(K, Lst[j].y + 0.5), 1.8 * s, 0.75);
     });
     if (isFinite(gel.ziel)) licht(sx(K, gel.ziel), sy(K, gel.hoeheBei(gel.ziel) + 2.5), 6 * s, 0.9);
+    for (i = 0; i < gel.spuk.length; i++) {                                     // Geister leuchten
+      var sa = spukZustand(gel.spuk[i], C.x);
+      if (sa > 0) licht(sx(K, gel.spuk[i].x), sy(K, gel.hoeheBei(gel.spuk[i].x) + 0.6 + 2.2 * sa), 2.4 * s, 0.9 * sa);
+    }
     if (sz.nachtEbene) {
       // Die Ebene liegt über ALLEM auf dem Spielfeld: Schwebetexte und Instrumente frei lassen
       for (i = 0; i < sz.texte.length; i++) {
@@ -1195,11 +1234,43 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Geisterwelt: freundliche Geister steigen 13 m vor dem Auto aus dem Boden,
+     schweben kurz und verblassen, wenn das Auto vorbei ist. Sichtbarkeit nur aus der
+     Position des Autos – keine Zeit nötig, im Geisterrennen für beide gleich. */
+  function spukZustand(g, autoX) {
+    var ein = Math.max(0, Math.min(1, (autoX - (g.x - 13)) / 4)), aus = Math.max(0, Math.min(1, (g.x + 6 - autoX) / 5));
+    return Math.min(ein, aus);
+  }
+  function zeichneSpuk(ctx, K, gel, autoX, zeit) {
+    var S = gel.spuk, s = K.s;
+    for (var i = 0; i < S.length; i++) {
+      var g = S[i], a = spukZustand(g, autoX);
+      if (a <= 0) continue;
+      var X = sx(K, g.x + Math.sin(zeit * 1.3 + g.v) * 0.4), Y = sy(K, gel.hoeheBei(g.x) + 0.6 + 2.2 * a + Math.sin(zeit * 2 + g.v) * 0.2), r = 0.75 * s;
+      ctx.globalAlpha = 0.85 * a;
+      ctx.fillStyle = "#f4f6ff";
+      ctx.beginPath(); ctx.arc(X, Y, r, Math.PI, 0);
+      ctx.lineTo(X + r, Y + r * 1.1);
+      for (var k = 0; k < 4; k++) { var xw = X + r - (k + 0.5) * r / 2; ctx.quadraticCurveTo(xw, Y + r * (k % 2 ? 1.35 : 0.85) + Math.sin(zeit * 6 + k) * r * 0.08, xw - r / 4, Y + r * 1.1); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#2b2140";
+      ctx.beginPath(); ctx.ellipse(X - r * 0.32, Y - r * 0.1, r * 0.13, r * 0.18, 0, 0, Math.PI * 2); ctx.ellipse(X + r * 0.32, Y - r * 0.1, r * 0.13, r * 0.18, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(X, Y + r * 0.35, r * 0.15, r * 0.2 * (0.6 + 0.4 * Math.abs(Math.sin(zeit * 4 + g.v))), 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,140,170,0.6)";
+      ctx.beginPath(); ctx.arc(X - r * 0.55, Y + r * 0.2, r * 0.12, 0, Math.PI * 2); ctx.arc(X + r * 0.55, Y + r * 0.2, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      if (a > 0.7) {
+        ctx.font = "800 " + Math.round(0.55 * s) + "px 'Baloo 2', sans-serif"; ctx.textAlign = "center";
+        ctx.fillStyle = "#ffffff"; ctx.fillText("Buh!", X + r * 1.4, Y - r * 1.1);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
   FF.GrafikWelt = {
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
-    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
+    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

@@ -578,6 +578,11 @@
             }
           }
           break;
+        case "spuk":                     // Geisterwelt: ein Geist taucht auf
+          FF.Klang.spiele("spuk");
+          if (Math.random() < 0.5) setzeAusdruck("staunen", 1.2);
+          if (ersteMale("tipp-spuk", 1)) { tipp("👻 Keine Angst – die Geister sind freundlich und wollen nur spielen!", 4000, "Keine Angst, die Geister sind lieb!"); spruchBis = zeit + 3; }
+          break;
         case "schwebe":                  // Schwebe-Säule betreten
           FF.Klang.spiele("schwebe");
           schwebeText(e.x, e.y + 2, "Schwerelos! ✨", "#9ff6ff", true);

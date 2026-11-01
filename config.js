@@ -868,6 +868,47 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 300, muenzAbstand: 22,
       level: [ { laenge: 900, seed: 2301 }, { laenge: 1160, seed: 2302 }, { laenge: 1420, seed: 2303 }, { laenge: 1680, seed: 2304 } ]
+    },
+    {
+      /* Gebirge: hohe, steile Berge ohne Schnee, Abgründe (Grubensprünge, Klippen) und
+         Sprungschanzen. Steinböcke stehen auf Felsen, Adler kreisen am Himmel. */
+      id: "gebirge", name: "Gebirge", emoji: "⛰️", hinweis: "Steile Felsen, tiefe Abgründe und große Schanzen",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.025, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#5fb2ef", "#e2f3ff"], berge: ["#8c97a8", "#6c7686"],
+        boden: ["#7d7468", "#544c43"], oberflaeche: "#6f9a4a", kante: "#9cc36a", punkte: "#5e564c"
+      },
+      sonne: "sonne", wetter: "adler",
+      tipp: ["⛰️ Achtung, Abgründe! Nimm vor den Schanzen Schwung, sonst fällst du hinunter.", "Achtung, Abgründe!"],
+      deko: ["@tanne:3.4", "@stein:1.4", "@steinbock:1.4", "@tanne:2.6", "@stein:2.2", "@gipfelkreuz:2.2", "@busch:0.9", "@stein:1.0", "@steinbock:1.1", "@tanne:3.0", "@blumen:0.5"],
+      beiwerk: ["@stein:0.4", "@gras:0.4", "@stein:0.6"], kulisse: ["gipfel", "gipfel", "tannen"],
+      gelaende: { amp: 13.0, welle: 44, holperAmp: 0.3, holperWelle: 6, trend: 0.04,
+                  maxAuf: 33, maxAb: 46, schanzen: 1.6, buckel: 0.6, steil: 1.3, taeler: 0.8, berg: 1.5, sprung: 1.8, wellen: 0.6, klippe: 2.0, rampe: 1.0, kuppe: 1.2, stufe: 1.0,
+                  luecke: 0.9, wildBasis: 0.6,
+                  abstandElemente: 24 },
+      tankAbstand: 320, muenzAbstand: 21,
+      level: [ { laenge: 900, seed: 2401 }, { laenge: 1180, seed: 2402 }, { laenge: 1440, seed: 2403 }, { laenge: 1700, seed: 2404 } ]
+    },
+    {
+      /* Geisterwelt: dunkel (Nacht-Schleier wie im Nachtwald), Vollmond, Fledermäuse,
+         Spukhäuser. Freundliche Geister tauchen kurz vor dem Auto auf (welt.spuk). */
+      id: "geister", name: "Geisterwelt", emoji: "👻", hinweis: "Dunkel und spukig – Geister tauchen plötzlich auf!",
+      schwerkraft: 9.81, grip: 0.92, rollwiderstand: 0.022, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#1a1035", "#4a2f6e"], berge: ["#3a2a55", "#2a1d40"],
+        boden: ["#3a2f3f", "#221a26"], oberflaeche: "#4a3f5c", kante: "#9a7bd0", punkte: "#2f2638",
+        wolken: "rgba(90,70,130,0.45)", fenster: "#ffd27a"
+      },
+      sonne: "vollmond", wetter: "fledermaeuse", spuk: true,
+      nacht: { dunkel: 0.5 },
+      tipp: ["👻 In der Geisterwelt tauchen plötzlich Geister auf – keine Angst, die sind lieb!", "Keine Angst, die Geister sind lieb!"],
+      deko: ["@baumtot:2.8", "@laternenkuerbis:0.9", "@pilz:0.9", "@baumtot:2.2", "@laterne:2.0", "@laternenkuerbis:1.2", "🕸️:1.0", "@stein:0.9", "@baumtot:3.2", "🦉:0.7", "@pilz:1.2"],
+      beiwerk: ["@gras:0.35", "@stein:0.35", "@pilz:0.35"], kulisse: ["spukhaus", "tannen", "tannen"],
+      gelaende: { amp: 9.0, welle: 40, holperAmp: 0.25, holperWelle: 6, trend: 0.025,
+                  maxAuf: 31, maxAb: 42, schanzen: 1.1, buckel: 1.0, steil: 1.0, taeler: 1.0, berg: 1.1, sprung: 1.1, wellen: 1.0, klippe: 0.9, rampe: 0.9, kuppe: 1.1, stufe: 1.0, wildBasis: 0.55,
+                  abstandElemente: 26 },
+      tankAbstand: 310, muenzAbstand: 22,
+      level: [ { laenge: 900, seed: 2501 }, { laenge: 1180, seed: 2502 }, { laenge: 1440, seed: 2503 }, { laenge: 1700, seed: 2504 } ]
     }
   ],
 

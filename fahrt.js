@@ -255,6 +255,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
     if (this.gelaende.objekte.length) this.pruefeObjekte();
+    var SP = this.gelaende.spuk;                              // Geisterwelt: Geist taucht auf
+    for (var si = 0; si < SP.length; si++) {
+      if (!SP[si].gesehen && C.x > SP[si].x - 13 && C.x < SP[si].x) { SP[si].gesehen = true; this.melde("spuk", { x: SP[si].x }); }
+    }
     if (this.gelaende.schwebezonen.length) {                 // Schwebe-Säule betreten?
       var leicht = this.gelaende.schwereBei(C.x) < 0.5;
       if (leicht && !this.schwebt && this.zustand === "fahrt") this.melde("schwebe", { x: C.x, y: C.y });

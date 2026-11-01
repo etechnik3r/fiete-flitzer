@@ -1565,6 +1565,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
     if (gel.schwebezonen.length) W.zeichneSchwebezonen(ctx, K, gel, z);
     if (gel.objekte.length) W.zeichneObjekte(ctx, K, gel, b[2], b[3]);
+    if (gel.spuk.length) W.zeichneSpuk(ctx, K, gel, f.fz.chassis.x, z);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);

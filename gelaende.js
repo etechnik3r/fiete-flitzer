@@ -137,6 +137,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
     this.objekte = [];             // Dinge auf der Strecke, die man umfährt (welt.objekte): Glas, Bausteine, Säulen
     this.objektX = 35;             // bis hierhin sind Objekte verteilt
+    this.spuk = [];                // Geister (welt.spuk), die kurz vor dem Auto auftauchen {x, gesehen}
+    this.spukX = 60;
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
@@ -854,6 +856,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.objekte.push(ob);
     }
 
+    // Geister (nur Grafik und Klang): alle ~40–70 m einer, eigener Zufall
+    while (welt.spuk && this.spukX < bis && this.spukX < ende - 20) {
+      this.spuk.push({ x: this.spukX, gesehen: false, v: Math.floor(hash01(Math.round(this.spukX), this.seed + 71) * 1000) });
+      this.spukX += 40 + 30 * hash01(Math.round(this.spukX), this.seed + 72);
+    }
+
     // Hüpfpilze: Münzen steigen über dem Hut auf (früh im Flug liegen alle Flugbahnen
     // nah beieinander – egal wie schnell man kommt), oben ein Stern
     for (i = 0; i < this.trampoline.length; i++) {
@@ -943,7 +951,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
-    filter(this.objekte);
+    filter(this.objekte); filter(this.spuk);
     var n = 0;
     while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
     if (n > 0) this.pfuetzen.splice(0, n);
