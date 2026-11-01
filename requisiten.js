@@ -639,6 +639,90 @@
       g.beginPath(); g.arc(0, -u * 0.97, u * 0.05, 0, Math.PI * 2); g.fill();
     } },
 
+    /* ---- Geisterwelt ---- */
+    laternenkuerbis: { breite: 1.4, sinken: 0.04, male: function (g, u, R) {
+      // Kürbis mit freundlich geschnitztem, leuchtendem Gesicht
+      MALER.kuerbis.male(g, u, R);
+      var h = u * 0.82, gl = "#ffe27a";
+      g.fillStyle = gl; g.shadowColor = "#ffb02e"; g.shadowBlur = u * 0.1;
+      [-1, 1].forEach(function (sd) { g.beginPath(); g.moveTo(sd * u * 0.22, -h * 0.55); g.lineTo(sd * u * 0.1, -h * 0.55); g.lineTo(sd * u * 0.16, -h * 0.68); g.closePath(); g.fill(); });
+      g.beginPath(); g.moveTo(-u * 0.25, -h * 0.35); g.quadraticCurveTo(0, -h * 0.12, u * 0.25, -h * 0.35); g.quadraticCurveTo(0, -h * 0.25, -u * 0.25, -h * 0.35); g.fill();
+      g.shadowBlur = 0;
+    } },
+
+    /* ---- Gebirge ---- */
+    steinbock: { breite: 1.2, sinken: 0, male: function (g, u, R) {
+      // Steinbock auf einem Felsen, mit großen gebogenen Hörnern (Blick nach rechts)
+      var f = R() < 0.5 ? "#9a7a58" : "#8a6c4c";
+      felsForm(g, u, R, 1.1, 0.35, "#8d8a86", false);
+      var y0 = -u * 0.3;
+      g.fillStyle = f;
+      g.beginPath(); g.ellipse(0, y0 - u * 0.25, u * 0.3, u * 0.15, 0, 0, Math.PI * 2); g.fill();     // Körper
+      g.strokeStyle = f; g.lineWidth = u * 0.06; g.lineCap = "round";
+      [-0.2, -0.1, 0.12, 0.22].forEach(function (x) { g.beginPath(); g.moveTo(x * u, y0 - u * 0.15); g.lineTo(x * u + (R() - 0.5) * u * 0.05, y0); g.stroke(); });
+      g.beginPath(); g.moveTo(u * 0.22, y0 - u * 0.3); g.lineTo(u * 0.33, y0 - u * 0.48); g.stroke();                 // Hals
+      g.beginPath(); g.ellipse(u * 0.38, y0 - u * 0.5, u * 0.09, u * 0.06, 0.3, 0, Math.PI * 2); g.fill();          // Kopf
+      g.strokeStyle = "#5a4a3a"; g.lineWidth = u * 0.035;
+      g.beginPath(); g.moveTo(u * 0.34, y0 - u * 0.55); g.quadraticCurveTo(u * 0.2, y0 - u * 0.85, u * 0.08, y0 - u * 0.62); g.stroke();   // Horn
+      g.fillStyle = "#2a1a10"; g.beginPath(); g.arc(u * 0.4, y0 - u * 0.52, u * 0.015, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = f; g.lineWidth = u * 0.025; g.beginPath(); g.moveTo(u * 0.42, y0 - u * 0.45); g.lineTo(u * 0.43, y0 - u * 0.38); g.stroke();   // Bart
+    } },
+    gipfelkreuz: { breite: 0.6, sinken: 0, male: function (g, u, R) {
+      felsForm(g, u, R, 0.9, 0.2, "#8d8a86", true);
+      g.fillStyle = "#7a5232"; g.fillRect(-u * 0.035, -u, u * 0.07, u * 0.85); g.fillRect(-u * 0.22, -u * 0.8, u * 0.44, u * 0.06);
+      g.fillStyle = "#ffd23f"; g.beginPath(); g.arc(0, -u * 0.77, u * 0.04, 0, Math.PI * 2); g.fill();
+    } },
+
+    /* ---- Glaswelt (halb durchsichtig) ---- */
+    glasskulptur: { breite: 1.0, sinken: 0, male: function (g, u, R, v) {
+      var art = v % 3;
+      g.fillStyle = "rgba(160,220,248,0.5)"; g.strokeStyle = "rgba(60,140,200,0.8)"; g.lineWidth = Math.max(1, u * 0.02);
+      g.beginPath();
+      if (art === 0) {                                     // Spirale aus Glas
+        for (var i = 0; i <= 30; i++) { var t = i / 30, r = u * (0.4 - 0.3 * t); g.lineTo(Math.cos(t * 12) * r, -u * t); }
+        g.lineWidth = Math.max(2, u * 0.08); g.strokeStyle = "rgba(120,195,240,0.75)"; g.stroke();
+        g.lineWidth = Math.max(1, u * 0.02); g.strokeStyle = "rgba(255,255,255,0.95)"; g.stroke();
+      } else if (art === 1) {                              // Vase
+        g.moveTo(-u * 0.12, 0); g.quadraticCurveTo(-u * 0.45, -u * 0.35, -u * 0.12, -u * 0.75); g.lineTo(-u * 0.18, -u); g.lineTo(u * 0.18, -u);
+        g.lineTo(u * 0.12, -u * 0.75); g.quadraticCurveTo(u * 0.45, -u * 0.35, u * 0.12, 0); g.closePath(); g.fill(); g.stroke();
+      } else {                                             // gestapelte Kugeln
+        [0.18, 0.5, 0.8].forEach(function (y, k) { g.beginPath(); g.arc(0, -u * y, u * (0.2 - k * 0.04), 0, Math.PI * 2); g.fill(); g.stroke(); });
+      }
+      g.strokeStyle = "rgba(255,255,255,0.8)"; g.lineWidth = Math.max(1, u * 0.03);
+      g.beginPath(); g.moveTo(-u * 0.08, -u * 0.6); g.lineTo(-u * 0.02, -u * 0.72); g.stroke();
+    } },
+    glasbaum: { breite: 1.1, sinken: 0, male: function (g, u, R) {
+      g.fillStyle = "rgba(170,225,250,0.6)"; g.strokeStyle = "rgba(60,140,200,0.75)"; g.lineWidth = Math.max(1, u * 0.02);
+      g.fillRect(-u * 0.04, -u * 0.4, u * 0.08, u * 0.4); g.strokeRect(-u * 0.04, -u * 0.4, u * 0.08, u * 0.4);
+      var f = ["rgba(150,230,255,0.45)", "rgba(200,170,255,0.45)", "rgba(170,255,220,0.45)"][Math.floor(R() * 3)];
+      for (var i = 0; i < 3; i++) {                       // drei Glas-Dreiecke übereinander
+        var y = -u * (0.35 + i * 0.2), b = u * (0.45 - i * 0.1);
+        g.fillStyle = f; g.beginPath(); g.moveTo(-b, y); g.lineTo(0, y - u * 0.32); g.lineTo(b, y); g.closePath(); g.fill(); g.stroke();
+      }
+    } },
+
+    /* ---- Klemmbaustein-Land ---- */
+    steinbaum: { breite: 1.0, sinken: 0, male: function (g, u, R) {
+      var st = u * 0.11, gruen = ["#3cc35a", "#2f9e48", "#5fd06a"];
+      for (var y = 0; y < 4; y++) bausteinR(g, -u * 0.07, -u * 0.11 * (y + 1), u * 0.14, u * 0.11, "#8a5a2a", u);
+      var lagen = [[0.48, 4], [0.38, 5], [0.28, 6], [0.16, 7]];
+      lagen.forEach(function (l, k) { bausteinR(g, -u * l[0], -st * l[1], u * l[0] * 2, st, gruen[k % 3], u); });
+    } },
+    steinhaus: { breite: 1.2, sinken: 0, male: function (g, u, R) {
+      var wand = ["#ffd23f", "#f4f6fb", "#e8453c"][Math.floor(R() * 3)], b = u * 0.5, st = u * 0.12;
+      for (var y = 0; y < 5; y++) bausteinR(g, -b + (y % 2) * u * 0.04, -st * (y + 1), b * 2 - u * 0.04, st, wand, u);
+      g.fillStyle = "#6fc3ff"; g.fillRect(-b * 0.6, -st * 3.6, b * 0.45, st * 1.6); g.fillRect(b * 0.15, -st * 3.6, b * 0.45, st * 1.6);
+      g.fillStyle = "#8a5a2a"; g.fillRect(-b * 0.15, -st * 2.2, b * 0.3, st * 2.2);
+      for (var d = 0; d < 3; d++) bausteinR(g, -b * (1.05 - d * 0.32), -st * (6 + d), b * 2 * (1.05 - d * 0.32), st, "#e8453c", u);
+    } },
+    steinblume: { breite: 0.6, sinken: 0, male: function (g, u, R) {
+      g.fillStyle = "#3cc35a"; g.fillRect(-u * 0.04, -u * 0.7, u * 0.08, u * 0.7);
+      bausteinR(g, -u * 0.25, -u * 0.35, u * 0.2, u * 0.08, "#2f9e48", u);
+      var f = ["#e8453c", "#ffd23f", "#ff6fb5", "#2f6fd6"][Math.floor(R() * 4)];
+      bausteinR(g, -u * 0.22, -u * 0.86, u * 0.44, u * 0.16, f, u);
+      bausteinR(g, -u * 0.1, -u * 0.98, u * 0.2, u * 0.12, "#ffd23f", u);
+    } },
+
     /* ---- Raumstation ---- */
     antenne: { breite: 0.9, sinken: 0, male: function (g, u, R) {
       // Parabolantenne auf einem Gestell, mit blinkendem Licht an der Spitze
@@ -756,6 +840,17 @@
       });
     } }
   };
+
+  /* Klemmbaustein: x, y = oben links (y nach oben negativ), b × h, mit Noppen obendrauf */
+  function bausteinR(g, x, y, b, h, farbe, u) {
+    g.fillStyle = farbe; g.fillRect(x, y, b, h);
+    g.fillStyle = "rgba(255,255,255,0.25)"; g.fillRect(x, y, b, h * 0.25);
+    g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(x, y + h * 0.82, b, h * 0.18);
+    var n = Math.max(1, Math.round(b / (u * 0.1)));
+    g.fillStyle = farbe;
+    for (var k = 0; k < n; k++) g.fillRect(x + (k + 0.25) * b / n, y - h * 0.22, b / n * 0.5, h * 0.22);
+    g.strokeStyle = "rgba(0,0,0,0.25)"; g.lineWidth = Math.max(1, u * 0.008); g.strokeRect(x, y, b, h);
+  }
 
   function rundRechteckG(g, x, y, w, h, r) {
     g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
@@ -900,7 +995,7 @@
   /* ---------------------------------------------------------------------------
      Bild-Zwischenspeicher
      --------------------------------------------------------------------------- */
-  var VARIANTEN = { dino: 12, riesenblume: 6 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
+  var VARIANTEN = { dino: 12, riesenblume: 6, glasskulptur: 6 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
   var cache = {}, anzahl = 0;
   function sprite(typ, variante, px, q) {
     var M = MALER[typ];

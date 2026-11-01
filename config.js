@@ -293,6 +293,52 @@ FF.CONFIG = {
       farbe: "weiss", form: "mond",
       klang: { art: "elektro", surren: 900, avasTon: 220, max: 8000, weltraum: true, lautstaerke: 1.0, abrollen: 1.0 },
       upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* E-Skateboard: Das Kind steht drauf (Schwerpunkt hoch, Kopf oben) – leicht,
+         flott, sehr wendig in der Luft, aber wackelig. Akku im Brett. */
+      id: "skateboard", name: "E-Skateboard", emoji: "🛹", preis: 8000, preisBasis: 200,
+      text: "Elektro-Skateboard: Du stehst drauf! Flink und wendig – aber wackelig.",
+      masse: 75, groesse: { laenge: 1.2, hoehe: 1.6 },
+      raeder: [
+        { x: -0.42, y: -0.40, r: 0.17, masse: 2.5, antrieb: true },
+        { x:  0.42, y: -0.40, r: 0.17, masse: 2.5, antrieb: false }
+      ],
+      federung: { ruhe: 0.12, weg: 0.09, frequenz: 2.6, daempfung: 0.6 },
+      motor: { drehmoment: 55, vmax: 15.5, eck: 0.5 }, bremse: 140, grip: 1.1,
+      tankSekunden: 25, luftsteuerung: 7.0, cwA: 0.5, abtrieb: 0,
+      balance: 1.0,                     // das Kind balanciert am Boden selbst (wie der Stabilisator bei „Leicht“)
+      leerlauf: 0, rekuperation: 0.4, akku: true,
+      huelle: [[-0.6, -0.40], [0.6, -0.40], [0.66, -0.30], [-0.66, -0.30]],
+      dach: [[0.0, 0.62], [-0.05, 0.3]],
+      kopf: { x: 0.02, y: 0.86, r: 0.28 },
+      farbe: "lila", form: "skateboard",
+      klang: { art: "elektro", surren: 3200, avasTon: 440, max: 15000, lautstaerke: 0.8, abrollen: 0.9 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* Propeller-Flieger mit offenem Cockpit: fährt wie ein Auto, aber nahe am Boden
+         trägt der Bodeneffekt (auftrieb): mit Tempo wird er leichter und segelt weiter.
+         Ab hoehe [m] über dem Boden ist der Auftrieb weg – höher fliegen geht nicht.
+         In der Luft schiebt der Propeller ein wenig (schub [m/s²], weniger als g). */
+      id: "flugzeug", name: "Propeller-Flieger", emoji: "✈️", preis: 30000, preisBasis: 450,
+      text: "Ein kleiner Flieger mit offenem Cockpit. Er segelt knapp über dem Boden – aber hoch hinaus kommt er nicht.",
+      masse: 320, groesse: { laenge: 3.8, hoehe: 1.2 },
+      raeder: [
+        { x: -1.55, y: -0.05, r: 0.2, masse: 6, antrieb: false },
+        { x:  0.75, y: -0.15, r: 0.4, masse: 14, antrieb: true }
+      ],
+      federung: { ruhe: 0.32, weg: 0.24, frequenz: 1.8, daempfung: 0.5 },
+      motor: { drehmoment: 1150, vmax: 20 }, bremse: 1300, grip: 1.0,
+      tankSekunden: 17, luftsteuerung: 5.0, cwA: 0.5, abtrieb: 0,
+      auftrieb: { max: 0.5, vRef: 22, hoehe: 3.2, boden: 0.75 }, schub: 3.5,
+      huelle: [[-1.9, 0.05], [1.5, -0.12], [1.8, 0.15], [1.5, 0.42], [-1.4, 0.38], [-1.95, 0.85]],
+      dach: [[-0.25, 0.98]],
+      kopf: { x: -0.25, y: 0.62, r: 0.28 },
+      farbe: "rot", form: "flugzeug",
+      klang: { art: "verbrenner", zylinder: 4, takte: 4, leerlauf: 800, max: 2900, gaenge: 1, abkling: 8, ungleich: 0.2,
+               rohr: 0.005, rueck: 0.4, koerper: 140, hell: 1.15, diesel: 0.05, unruhe: 10, traegheit: 8, lautstaerke: 1.0, abrollen: 0.8 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
     }
   ],
 
@@ -647,6 +693,8 @@ FF.CONFIG = {
          nacht    Dunkelheit (dunkel 0..1): Scheinwerfer, Laternen, Glühwürmchen
          gelaende.trampolin  Hüpfpilze: wer drauffährt, fliegt hoch
          gelaende.band       Förderbänder (Spielzeugfabrik)
+         objekte  Dinge auf der Strecke, die man umfährt: { art: "glas"|"stein", abstand [m],
+                  saeule: Anteil Baustein-Säulen }; glas: Boden halb durchsichtig
          tipp     [Text, vorgelesener Satz] beim Start eines Levels
        --------------------------------------------------------------------- */
     {
@@ -825,6 +873,110 @@ FF.CONFIG = {
                   abstandElemente: 25 },
       tankAbstand: 300, muenzAbstand: 22,
       level: [ { laenge: 880, seed: 2101 }, { laenge: 1140, seed: 2102 }, { laenge: 1400, seed: 2103 }, { laenge: 1660, seed: 2104 } ]
+    },
+    {
+      /* Glaswelt: Boden, Kulisse und Deko sind halb durchsichtig (welt.glas). Auf der
+         Strecke stehen Glasblöcke, -kugeln und -türme (welt.objekte): Wer hindurchfährt,
+         lässt sie in Scherben zerspringen und verliert ein bisschen Tempo. */
+      id: "glas", name: "Glaswelt", emoji: "🔷", hinweis: "Alles ist aus Glas – fahr durch, dann klirrt es!",
+      schwerkraft: 9.81, grip: 0.82, rollwiderstand: 0.015, abprall: 0.08, luftdichte: 1.2,
+      farben: {
+        himmel: ["#a9dcf7", "#f2fbff"], berge: ["#cdebf8", "#a9d7ef"],
+        boden: ["#9fd9f2", "#5fb2dc"], oberflaeche: "#e9fbff", kante: "#ffffff", punkte: "#bfe8f8"
+      },
+      sonne: "sonne", wetter: "glitzer", glas: true,
+      objekte: { art: "glas", abstand: 24 },
+      tipp: ["🔷 Alles ist aus Glas! Fahr durch die Glasblöcke – klirr! Das bremst dich nur ein bisschen.", "Fahr durch das Glas!"],
+      deko: ["@glasbaum:2.6", "@glasskulptur:1.6", "@kristall:1.1", "@glasbaum:3.4", "@glasskulptur:2.2", "@kristall:0.8", "@glasbaum:2.0", "@glasskulptur:1.2"],
+      beiwerk: ["@kristall:0.4"], kulisse: ["glastuerme", "glastuerme", null],
+      gelaende: { amp: 8.0, welle: 42, holperAmp: 0.15, holperWelle: 6, trend: 0.022,
+                  maxAuf: 30, maxAb: 42, schanzen: 1.3, buckel: 0.9, steil: 1.0, taeler: 0.9, berg: 1.0, sprung: 1.2, wellen: 1.0, klippe: 0.8, rampe: 0.9, kuppe: 1.0, stufe: 0.8, wildBasis: 0.55,
+                  abstandElemente: 25 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 880, seed: 2201 }, { laenge: 1140, seed: 2202 }, { laenge: 1400, seed: 2203 }, { laenge: 1660, seed: 2204 } ]
+    },
+    {
+      /* Klemmbaustein-Land: alles aus Bausteinen mit Noppen. Kleine Steine auf der
+         Strecke fliegen weg, große Säulen bremsen das Auto fast ganz ab und zerfallen. */
+      id: "bausteine", name: "Klemmbaustein-Land", emoji: "🧱", hinweis: "Alles aus Bausteinen – Säulen zerfallen beim Durchfahren!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.02, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#6fc3ff", "#e4f5ff"], berge: ["#ffd23f", "#e8453c"],
+        boden: ["#3cc35a", "#2a8f42"], oberflaeche: "#4fd068", kante: "#8ff09f", punkte: "#2a8f42"
+      },
+      sonne: "sonne", wetter: null,
+      objekte: { art: "stein", abstand: 20, saeule: 0.18 },
+      tipp: ["🧱 Bausteine fliegen weg, wenn du sie anstupst. Die großen Säulen bremsen dich – nimm Anlauf oder spring drüber!", "Alles aus Bausteinen!"],
+      deko: ["@steinbaum:2.6", "@steinhaus:2.4", "@steinblume:0.9", "@steinbaum:3.2", "@steinblume:1.2", "@steinhaus:3.0", "@steinbaum:2.0"],
+      beiwerk: ["@steinblume:0.5"], kulisse: ["bausteine", "bausteine", "bausteine"],
+      gelaende: { amp: 7.5, welle: 40, holperAmp: 0.1, holperWelle: 6, trend: 0.02,
+                  maxAuf: 31, maxAb: 42, schanzen: 1.2, buckel: 0.6, steil: 1.0, taeler: 0.9, berg: 1.0, sprung: 1.1, wellen: 0.8, klippe: 0.9, rampe: 1.0, kuppe: 0.9, stufe: 1.6, wildBasis: 0.55,
+                  abstandElemente: 26 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 900, seed: 2301 }, { laenge: 1160, seed: 2302 }, { laenge: 1420, seed: 2303 }, { laenge: 1680, seed: 2304 } ]
+    },
+    {
+      /* Gebirge: hohe, steile Berge ohne Schnee, Abgründe (Grubensprünge, Klippen) und
+         Sprungschanzen. Steinböcke stehen auf Felsen, Adler kreisen am Himmel. */
+      id: "gebirge", name: "Gebirge", emoji: "⛰️", hinweis: "Steile Felsen, tiefe Abgründe und große Schanzen",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.025, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#5fb2ef", "#e2f3ff"], berge: ["#8c97a8", "#6c7686"],
+        boden: ["#7d7468", "#544c43"], oberflaeche: "#6f9a4a", kante: "#9cc36a", punkte: "#5e564c"
+      },
+      sonne: "sonne", wetter: "adler",
+      tipp: ["⛰️ Achtung, Abgründe! Nimm vor den Schanzen Schwung, sonst fällst du hinunter.", "Achtung, Abgründe!"],
+      deko: ["@tanne:3.4", "@stein:1.4", "@steinbock:1.4", "@tanne:2.6", "@stein:2.2", "@gipfelkreuz:2.2", "@busch:0.9", "@stein:1.0", "@steinbock:1.1", "@tanne:3.0", "@blumen:0.5"],
+      beiwerk: ["@stein:0.4", "@gras:0.4", "@stein:0.6"], kulisse: ["gipfel", "gipfel", "tannen"],
+      gelaende: { amp: 13.0, welle: 44, holperAmp: 0.3, holperWelle: 6, trend: 0.04,
+                  maxAuf: 33, maxAb: 46, schanzen: 1.6, buckel: 0.6, steil: 1.3, taeler: 0.8, berg: 1.5, sprung: 1.8, wellen: 0.6, klippe: 2.0, rampe: 1.0, kuppe: 1.2, stufe: 1.0,
+                  luecke: 0.9, wildBasis: 0.6,
+                  abstandElemente: 24 },
+      tankAbstand: 320, muenzAbstand: 21,
+      level: [ { laenge: 900, seed: 2401 }, { laenge: 1180, seed: 2402 }, { laenge: 1440, seed: 2403 }, { laenge: 1700, seed: 2404 } ]
+    },
+    {
+      /* Geisterwelt: dunkel (Nacht-Schleier wie im Nachtwald), Vollmond, Fledermäuse,
+         Spukhäuser. Freundliche Geister tauchen kurz vor dem Auto auf (welt.spuk). */
+      id: "geister", name: "Geisterwelt", emoji: "👻", hinweis: "Dunkel und spukig – Geister tauchen plötzlich auf!",
+      schwerkraft: 9.81, grip: 0.92, rollwiderstand: 0.022, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#1a1035", "#4a2f6e"], berge: ["#3a2a55", "#2a1d40"],
+        boden: ["#3a2f3f", "#221a26"], oberflaeche: "#4a3f5c", kante: "#9a7bd0", punkte: "#2f2638",
+        wolken: "rgba(90,70,130,0.45)", fenster: "#ffd27a"
+      },
+      sonne: "vollmond", wetter: "fledermaeuse", spuk: true,
+      nacht: { dunkel: 0.5 },
+      tipp: ["👻 In der Geisterwelt tauchen plötzlich Geister auf – keine Angst, die sind lieb!", "Keine Angst, die Geister sind lieb!"],
+      deko: ["@baumtot:2.8", "@laternenkuerbis:0.9", "@pilz:0.9", "@baumtot:2.2", "@laterne:2.0", "@laternenkuerbis:1.2", "🕸️:1.0", "@stein:0.9", "@baumtot:3.2", "🦉:0.7", "@pilz:1.2"],
+      beiwerk: ["@gras:0.35", "@stein:0.35", "@pilz:0.35"], kulisse: ["spukhaus", "tannen", "tannen"],
+      gelaende: { amp: 9.0, welle: 40, holperAmp: 0.25, holperWelle: 6, trend: 0.025,
+                  maxAuf: 31, maxAb: 42, schanzen: 1.1, buckel: 1.0, steil: 1.0, taeler: 1.0, berg: 1.1, sprung: 1.1, wellen: 1.0, klippe: 0.9, rampe: 0.9, kuppe: 1.1, stufe: 1.0, wildBasis: 0.55,
+                  abstandElemente: 26 },
+      tankAbstand: 310, muenzAbstand: 22,
+      level: [ { laenge: 900, seed: 2501 }, { laenge: 1180, seed: 2502 }, { laenge: 1440, seed: 2503 }, { laenge: 1700, seed: 2504 } ]
+    },
+    {
+      /* Katapultwelt: Katapulte vor Burggräben (Bau-Element "katapult", fahrt.js
+         katapultSchritt): Das Auto wird in der Schale festgehalten, Gas drücken
+         schleudert es über den Graben. Dazu Trampoline (Sprungmatten) und Rampen. */
+      id: "katapult", name: "Katapultwelt", emoji: "🏰", hinweis: "Katapulte schleudern dich über Burggräben!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.02, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#78c4f5", "#fff1d6"], berge: ["#9cc58a", "#78a86a"],
+        boden: ["#8a6a48", "#5e4630"], oberflaeche: "#6fae4a", kante: "#a2d46e", punkte: "#6e5238", wasser: "#4f9bd6"
+      },
+      sonne: "sonne", wetter: null, trampolinStil: "matte",
+      wasser: { tiefe: 0.6, maxBreite: 20, bremse: 0.055 },
+      tipp: ["🎯 Fahr ins Katapult – dann drück Gas und du fliegst über den Burggraben! Trampoline schleudern dich auch hoch.", "Fahr ins Katapult und drück Gas!"],
+      deko: ["@laubbaum:3.2", "🛡️:0.9", "@busch:1.0", "@kiste:1.0", "@laubbaum:2.6", "🏹:0.9", "@stein:1.0", "@blumen:0.6", "@tanne:3.0", "🎪:2.6"],
+      beiwerk: ["@gras:0.4", "@blumen:0.4", "@stein:0.35"], kulisse: ["burg", "wald", "wald"],
+      gelaende: { amp: 7.0, welle: 40, holperAmp: 0.15, holperWelle: 6, trend: 0.02,
+                  maxAuf: 30, maxAb: 42, schanzen: 1.3, buckel: 0.7, steil: 0.8, taeler: 0.6, berg: 0.8, sprung: 0.9, wellen: 0.7, klippe: 0.6, rampe: 1.4, kuppe: 0.8, stufe: 0.8,
+                  katapult: 1.6, trampolin: 0.9, wildBasis: 0.5,
+                  abstandElemente: 25 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 920, seed: 2601 }, { laenge: 1200, seed: 2602 }, { laenge: 1460, seed: 2603 }, { laenge: 1720, seed: 2604 } ]
     }
   ],
 
@@ -847,6 +999,15 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "20", titel: "Fünf neue Welten, Skateboard und Flugzeug", punkte: [
+      "⛰️ Gebirge: steile Felsen, tiefe Abgründe, große Schanzen, Steinböcke und Adler",
+      "👻 Geisterwelt: dunkel, Vollmond, Fledermäuse – und freundliche Geister, die plötzlich auftauchen",
+      "🏰 Katapultwelt: Fahr ins Katapult, drück Gas – und du fliegst über den Burggraben! Dazu Trampoline",
+      "🔷 Glaswelt: alles fast durchsichtig, Glasblöcke zerspringen beim Durchfahren in Scherben",
+      "🧱 Klemmbaustein-Land: Bausteine fliegen weg, große Säulen zerfallen – und bremsen dich ab",
+      "🛹 Neues Fahrzeug E-Skateboard: Du stehst drauf!",
+      "✈️ Neues Fahrzeug Propeller-Flieger: segelt knapp über dem Boden",
+      "❓ Neuer Knopf „So geht's“: das Spiel kurz erklärt und alle Welten mit Bild" ] },
     { version: "19", titel: "Raumstation", punkte: [
       "🛸 Neue Welt Raumstation: Antennen, Solarflügel, die Erde am Himmel",
       "✨ In den leuchtenden Säulen ist die Schwerkraft fast weg – du schwebst und holst dir die Münzen ganz oben" ] },

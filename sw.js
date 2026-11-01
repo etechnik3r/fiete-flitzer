@@ -9,26 +9,26 @@
    (gleich mit der ?v=NUMMER in index.html) – sonst liefert der Cache alt aus.
    ===========================================================================*/
 
-var VERSION = "v19";
+var VERSION = "v20";
 var CACHE_NAME = "fiete-flitzer-" + VERSION;
 
 var DATEIEN = [
   "./",
   "index.html",
-  "style.css?v=19",
-  "config.js?v=19",
-  "gelaende.js?v=19",
-  "physik.js?v=19",
-  "fahrt.js?v=19",
-  "geist.js?v=19",
-  "kinder.js?v=19",
-  "spielstand.js?v=19",
-  "requisiten.js?v=19",
-  "grafik.js?v=19",
-  "grafik-welt.js?v=19",
-  "klang.js?v=19",
-  "editor.js?v=19",
-  "spiel.js?v=19",
+  "style.css?v=20",
+  "config.js?v=20",
+  "gelaende.js?v=20",
+  "physik.js?v=20",
+  "fahrt.js?v=20",
+  "geist.js?v=20",
+  "kinder.js?v=20",
+  "spielstand.js?v=20",
+  "requisiten.js?v=20",
+  "grafik.js?v=20",
+  "grafik-welt.js?v=20",
+  "klang.js?v=20",
+  "editor.js?v=20",
+  "spiel.js?v=20",
   "manifest.webmanifest",
   "icon-192.png",
   "icon-512.png",
@@ -60,7 +60,14 @@ self.addEventListener("fetch", function (ereignis) {
   ereignis.respondWith(
     caches.match(ereignis.request).then(function (treffer) {
       if (treffer) { return treffer; }
-      return fetch(ereignis.request).catch(function () {
+      return fetch(ereignis.request).then(function (antwort) {
+        // Bilder der Welten (Anleitung) beim ersten Anschauen für offline merken
+        if (antwort.ok && ereignis.request.url.indexOf("/bilder/") >= 0) {
+          var kopie = antwort.clone();
+          caches.open(CACHE_NAME).then(function (cache) { cache.put(ereignis.request, kopie); });
+        }
+        return antwort;
+      }).catch(function () {
         if (ereignis.request.mode === "navigate") { return caches.match("index.html"); }
       });
     })

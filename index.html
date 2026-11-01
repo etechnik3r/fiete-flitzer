@@ -40,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=19">
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
 
 <body>
@@ -148,6 +148,9 @@
         <button type="button" class="titel-optionen" id="knopf-titel-einstellungen" aria-label="Einstellungen öffnen">
           ⚙️ Einstellungen
         </button>
+        <button type="button" class="titel-optionen" id="knopf-titel-anleitung" aria-label="Anleitung öffnen">
+          ❓ So geht's
+        </button>
       </div>
     </div>
     <p class="titel-studio">ein Spiel von JONFIE STUDIOS</p>
@@ -181,6 +184,7 @@
         <button type="button" class="chip konto-chip" id="konto" aria-label="Deine Münzen">
           <span class="chip-icon" aria-hidden="true">🪙</span><span class="chip-wert" id="konto-wert">0</span>
         </button>
+        <button type="button" class="rund-knopf klein" id="knopf-anleitung" aria-label="Anleitung: So geht's">❓</button>
         <button type="button" class="rund-knopf klein" id="knopf-einstellungen" aria-label="Einstellungen">⚙️</button>
       </div>
     </header>
@@ -464,69 +468,81 @@
   <div class="modal-overlay" id="hilfe" aria-hidden="true">
     <div class="modal hilfe-modal" role="dialog" aria-modal="true" aria-label="Hilfe">
       <header class="modal-kopf">
-        <h2 class="modal-titel">❓ Hilfe</h2>
+        <h2 class="modal-titel">❓ So geht's</h2>
         <button type="button" class="modal-schliessen" id="hilfe-zu" aria-label="Schließen">✕</button>
       </header>
       <div class="modal-inhalt" id="hilfe-inhalt">
-        <nav class="hilfe-sprung">
-          <button type="button" data-ziel="hilfe-neu">✨ Neu</button>
-          <button type="button" data-ziel="hilfe-fahren">🎮 Fahren</button>
-          <button type="button" data-ziel="hilfe-extras">🚀 Turbo</button>
-          <button type="button" data-ziel="hilfe-garage">🔧 Garage</button>
-          <button type="button" data-ziel="hilfe-welten">🗺️ Welten</button>
+        <nav class="hilfe-reiter" role="tablist">
+          <button type="button" data-seite="anleitung" role="tab">🎮 So geht's</button>
+          <button type="button" data-seite="welten" role="tab">🗺️ Welten</button>
+          <button type="button" data-seite="neu" role="tab">✨ Neu</button>
         </nav>
 
-        <section class="opt-gruppe hilfe-gruppe" id="hilfe-neu">
-          <h3 class="opt-titel">✨ Was ist neu?</h3>
-          <div id="hilfe-neuigkeiten"></div>
-        </section>
+        <div class="hilfe-seite" data-seite-inhalt="anleitung">
+          <section class="opt-gruppe hilfe-gruppe hilfe-kurz">
+            <h3 class="opt-titel">🏁 In aller Kürze</h3>
+            <div class="kurz-liste">
+              <div><span>🏁</span><b>Ziel:</b> Fahr bis zur Zielflagge – über Berge, Schanzen und durch viele Welten.</div>
+              <div><span>🟢</span><b>Rechts Gas, links Bremse.</b> Steht das Auto, fährt die Bremse rückwärts.</div>
+              <div><span>✈️</span><b>In der Luft:</b> Gas hebt die Nase, Bremse senkt sie. So landest du gerade und machst Saltos.</div>
+              <div><span>⛽</span><b>Benzin sammeln!</b> Rote Kanister füllen den Tank. Ist er leer, ist die Fahrt vorbei.</div>
+              <div><span>🪙</span><b>Münzen</b> darfst du immer behalten. Viele Münzen im Ziel = bis zu 3 Sterne ⭐.</div>
+              <div><span>🔧</span><b>Garage:</b> Mit Münzen neue Fahrzeuge, Tuning, Farben und Spuren kaufen.</div>
+              <div><span>🎈</span><b>Umgekippt?</b> Kein Problem – ein Ballon stellt dich wieder hin.</div>
+            </div>
+          </section>
 
-        <section class="opt-gruppe hilfe-gruppe" id="hilfe-fahren">
-          <h3 class="opt-titel">🎮 So fährst du</h3>
-          <ul class="hilfe-liste">
-            <li><b>Gas</b> ist rechts 🟢, <b>Bremse</b> links 🔴. Die ganze rechte bzw. linke Bildschirmhälfte geht auch.</li>
-            <li>Steht das Auto, fährt die Bremse <b>rückwärts</b>.</li>
-            <li><b>In der Luft</b>: Gas hebt die Nase ⤴, Bremse senkt sie ⤵. So landest du passend zum Hang.</li>
-            <li><b>Am Berg</b> nicht zu viel Gas, sonst kippt das Auto nach hinten.</li>
-            <li>Sammle <b>Benzin ⛽</b> (beim E-Auto Batterien 🔋). Ist der Tank leer, rollt das Auto aus.</li>
-            <li><b>Münzen 🪙</b> darfst du immer behalten. Im Ziel gibt es Sterne ⭐ und einen Bonus.</li>
-            <li><b>Tricks</b>: Salto 🤸 +50, Looping 🎢 +75, lange Sprünge geben einen Luftsprung-Bonus.</li>
-            <li>Liegt das Auto fest oder auf dem Dach, holt dich ein <b>Ballon 🎈</b> und stellt dich wieder hin.</li>
-            <li><b>Bruchlandung 💥</b> (Einstellungen): Wenn sie an ist, braucht jede zu schiefe Landung den Ballon.</li>
-          </ul>
-        </section>
+          <section class="opt-gruppe hilfe-gruppe" id="hilfe-fahren">
+            <h3 class="opt-titel">🎮 So fährst du</h3>
+            <ul class="hilfe-liste">
+              <li><b>Gas</b> ist rechts 🟢, <b>Bremse</b> links 🔴. Die ganze rechte bzw. linke Bildschirmhälfte geht auch.</li>
+              <li><b>Am Berg</b> nicht zu viel Gas, sonst kippt das Auto nach hinten. Vor steilen Abhängen kurz bremsen.</li>
+              <li><b>Tricks</b>: Salto 🤸 +50, Looping 🎢 +75, lange Sprünge geben einen Luftsprung-Bonus.</li>
+              <li>Liegt das Auto fest oder auf dem Dach, holt dich ein <b>Ballon 🎈</b>. Das kostet etwas Benzin.</li>
+              <li><b>Bruchlandung 💥</b> (Einstellungen): Wenn sie an ist, braucht jede zu schiefe Landung den Ballon.</li>
+            </ul>
+          </section>
 
-        <section class="opt-gruppe hilfe-gruppe" id="hilfe-extras">
-          <h3 class="opt-titel">🚀 Turbo und 🦘 Sprungfeder</h3>
-          <p class="opt-info">Die zwei runden Knöpfe links über der Bremse. Grau heißt: noch nicht bereit. Der Ring zeigt, wie voll er ist. Bunt und blinkend heißt: Los, drück!</p>
-          <ul class="hilfe-liste">
-            <li><b>🚀 Turbo</b>: Sammle einen <b>lila Raketen-Kanister</b> (ein oder zwei pro Level). Dann drücken: Düsen fahren hinten heraus, und das Auto wird für etwa 1½ Sekunden doppelt so schnell. Du kannst 2 Raketen sparen.</li>
-            <li><b>🦘 Sprungfeder</b>: Lädt sich mit <b>3 Saltos</b> auf (ein Looping zählt wie ein Salto). Nach dem Sprung braucht sie 15 Sekunden Pause (⏳). Die Zahl am Knopf zeigt, wie viele du schon hast. Drücken, wenn die Räder auf dem Boden sind, und das Auto hüpft hoch. Tipp: oben auf dem Berg drücken, dann fliegst du weit!</li>
-            <li>Tastatur: <b>Leertaste</b> = Sprungfeder, <b>B</b> oder <b>Umschalt</b> = Turbo.</li>
-          </ul>
-        </section>
+          <section class="opt-gruppe hilfe-gruppe" id="hilfe-extras">
+            <h3 class="opt-titel">🚀 Turbo und 🦘 Sprungfeder</h3>
+            <p class="opt-info">Die zwei runden Knöpfe links über der Bremse. Grau heißt: noch nicht bereit. Bunt und blinkend heißt: Los, drück!</p>
+            <ul class="hilfe-liste">
+              <li><b>🚀 Turbo</b>: Sammle einen <b>lila Raketen-Kanister</b>, dann drücken – das Auto wird kurz doppelt so schnell.</li>
+              <li><b>🦘 Sprungfeder</b>: Lädt sich mit <b>3 Saltos</b> auf. Drücken, wenn die Räder am Boden sind, und das Auto hüpft hoch.</li>
+            </ul>
+          </section>
 
-        <section class="opt-gruppe hilfe-gruppe" id="hilfe-garage">
-          <h3 class="opt-titel">🔧 Garage</h3>
-          <ul class="hilfe-liste">
-            <li><b>8 Fahrzeuge</b>: Flitzer, Trecker, Hüpf-Moped, E-Auto, Bummel-Bus, Monster-Max, Blitz-Rakete und Mondmobil. Jedes fährt sich anders.</li>
-            <li><b>Verbessern</b>: Motor, Reifen, Federung und Tank je 5 Stufen, dazu Allrad.</li>
-            <li><b>Aussehen</b>: Lackfarben und Muster. Bei Fiete und Jonte kannst du auswählen, wie sie aussehen.</li>
-            <li>Mit 🔊 in der Garage hörst du dir den <b>Motor</b> an.</li>
-          </ul>
-        </section>
+          <section class="opt-gruppe hilfe-gruppe" id="hilfe-garage">
+            <h3 class="opt-titel">🔧 Garage</h3>
+            <ul class="hilfe-liste">
+              <li><b id="hilfe-fahrzeuge">Fahrzeuge</b> – jedes fährt sich anders.</li>
+              <li><b>Verbessern</b>: Motor, Reifen, Federung und Tank je 5 Stufen, dazu Allrad.</li>
+              <li><b>Aussehen</b>: Lackfarben, Muster, Spuren, Outfits und Looks für Fiete und Jonte.</li>
+            </ul>
+          </section>
 
-        <section class="opt-gruppe hilfe-gruppe" id="hilfe-welten">
-          <h3 class="opt-titel">🗺️ Welten und Spielarten</h3>
-          <ul class="hilfe-liste">
-            <li><b id="hilfe-weltenzahl">18 Welten</b> mit je 4 Leveln. Nach Level 3 öffnet sich die nächste Welt. Level 4 ist das freiwillige <b>🔥 Profi-Level</b>.</li>
-            <li>Jede Welt hat eigene Physik: Auf dem Mond 🌙 fliegst du weit, auf Schnee ❄️ rutscht es, im Sand 🏜️ geht es schwerer.</li>
-            <li>Pfützen 🌧️ spritzen und bremsen, Hüpfpilze 🍄 schleudern dich hoch, Rückenwind 💨 schiebt, Gegenwind 🌬️ bremst, unter Wasser 🐠 schwebt alles, im Nachtwald 🦉 leuchten deine Scheinwerfer, in der Spielzeugfabrik 🧸 laufen Förderbänder, und in der Raumstation 🛸 schwebst du in leuchtenden Säulen.</li>
-            <li><b>Endlos ♾️</b>: Wie weit kommst du? Alle 500 m gibt es einen Bonus.</li>
-            <li><b>Zu zweit 👥</b>: Fiete und Jonte fahren nacheinander dieselbe Strecke. Wer als Zweiter fährt, fährt gegen den Geist 👻 der ersten Fahrt. Wer ist schneller, wer kommt weiter?</li>
-            <li><b>Schwierigkeit</b> (Einstellungen): Leicht 🐢 hält das Auto stabiler und gibt mehr Benzin.</li>
-          </ul>
-        </section>
+          <section class="opt-gruppe hilfe-gruppe">
+            <h3 class="opt-titel">🗺️ Welten und Spielarten</h3>
+            <ul class="hilfe-liste">
+              <li><b id="hilfe-weltenzahl">Welten</b> mit je 4 Leveln. Nach Level 3 öffnet sich die nächste Welt. Level 4 ist das freiwillige <b>🔥 Profi-Level</b>. Alle Welten zeigt dir der Reiter <b>🗺️ Welten</b>.</li>
+              <li><b>Endlos ♾️</b>: Wie weit kommst du? Alle 500 m gibt es einen Bonus.</li>
+              <li><b>Zu zweit 👥</b>: Fiete und Jonte fahren nacheinander dieselbe Strecke, der Zweite gegen den Geist 👻 der ersten Fahrt.</li>
+              <li><b>Schwierigkeit</b> (Einstellungen): Leicht 🐢 hält das Auto stabiler und gibt mehr Benzin.</li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="hilfe-seite" data-seite-inhalt="welten" hidden>
+          <p class="opt-info">Alle Welten auf einen Blick – was gibt es dort Besonderes?</p>
+          <div class="welt-info-liste" id="welt-info-liste"></div>
+        </div>
+
+        <div class="hilfe-seite" data-seite-inhalt="neu" hidden>
+          <section class="opt-gruppe hilfe-gruppe" id="hilfe-neu">
+            <h3 class="opt-titel">✨ Was ist neu?</h3>
+            <div id="hilfe-neuigkeiten"></div>
+          </section>
+        </div>
       </div>
       <button type="button" class="modal-fertig" id="hilfe-fertig">✅ Alles klar</button>
     </div>
@@ -548,18 +564,18 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=19"></script>
-  <script src="gelaende.js?v=19"></script>
-  <script src="physik.js?v=19"></script>
-  <script src="fahrt.js?v=19"></script>
-  <script src="geist.js?v=19"></script>
-  <script src="kinder.js?v=19"></script>
-  <script src="spielstand.js?v=19"></script>
-  <script src="requisiten.js?v=19"></script>
-  <script src="grafik.js?v=19"></script>
-  <script src="grafik-welt.js?v=19"></script>
-  <script src="klang.js?v=19"></script>
-  <script src="editor.js?v=19"></script>
-  <script src="spiel.js?v=19"></script>
+  <script src="config.js?v=20"></script>
+  <script src="gelaende.js?v=20"></script>
+  <script src="physik.js?v=20"></script>
+  <script src="fahrt.js?v=20"></script>
+  <script src="geist.js?v=20"></script>
+  <script src="kinder.js?v=20"></script>
+  <script src="spielstand.js?v=20"></script>
+  <script src="requisiten.js?v=20"></script>
+  <script src="grafik.js?v=20"></script>
+  <script src="grafik-welt.js?v=20"></script>
+  <script src="klang.js?v=20"></script>
+  <script src="editor.js?v=20"></script>
+  <script src="spiel.js?v=20"></script>
 </body>
 </html>

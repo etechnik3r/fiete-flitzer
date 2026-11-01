@@ -232,6 +232,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.bremse = naehern(this.bremse, zielBremse, (zielBremse > this.bremse ? S.gasAnstieg : S.gasAbfall) * h);
 
     if (this.zustand === "hilfe") { this.hilfeSchritt(h); return; }
+    if (this.katapult) { this.katapultSchritt(h, eingabe); return; }
 
     this.setzeAntrieb();
     this.setzeZusatzMoment();
@@ -249,11 +250,28 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     if (this.welt.wasser) this.wasser(h);
+    if (w.auftrieb) this.fliegen(h);
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (this.welt.decke) this.deckenStoss();
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
+    if (this.gelaende.objekte.length) this.pruefeObjekte();
+    if (this.gelaende.katapulte.length && this.zustand === "fahrt") {          // in die Katapult-Schale gefahren?
+      var KA = this.gelaende.katapulte;
+      for (var ki = 0; ki < KA.length; ki++) {
+        if (!KA[ki].benutzt && C.x > KA[ki].x - 0.6 && C.x < KA[ki].x + 1.5 && st.radKontakte > 0) {
+          KA[ki].benutzt = true;
+          this.katapult = { k: KA[ki], zeit: 0, gasVorher: eingabe.gas };
+          this.melde("katapultBereit", { x: KA[ki].x });
+          break;
+        }
+      }
+    }
+    var SP = this.gelaende.spuk;                              // Geisterwelt: Geist taucht auf
+    for (var si = 0; si < SP.length; si++) {
+      if (!SP[si].gesehen && C.x > SP[si].x - 13 && C.x < SP[si].x) { SP[si].gesehen = true; this.melde("spuk", { x: SP[si].x }); }
+    }
     if (this.gelaende.schwebezonen.length) {                 // Schwebe-Säule betreten?
       var leicht = this.gelaende.schwereBei(C.x) < 0.5;
       if (leicht && !this.schwebt && this.zustand === "fahrt") this.melde("schwebe", { x: C.x, y: C.y });
@@ -348,11 +366,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (w.stabilisator && Math.abs(steuer) < 0.1) {
         M += (-3 * normWinkel(C.a) - 1.5 * C.w) * J * w.stabilisator;
       }
-    } else if (w.stabilisator && st.radKontakte > 0) {
+    } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {
+      // Stabilisator (Leicht) bzw. Gleichgewichtssinn (Skateboard: das Kind balanciert)
       var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
-      var frei = 0.4;
+      var frei = w.balance && !w.stabilisator ? 0.15 : 0.4, stab = Math.max(w.stabilisator || 0, w.balance || 0);
       if (Math.abs(d) > frei) {
-        var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * 3) * J * w.stabilisator;
+        var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * 3) * J * stab;
         M += Math.max(-J * 12, Math.min(J * 12, M2));
       }
     }
@@ -381,6 +400,43 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.raeder.forEach(function (R) { if (R.k.vy > C.vy) R.k.vy = C.vy; });
       if (vyPunkt > 1.5) this.melde("decke", { x: px, y: py, staerke: Math.min(1, vyPunkt / 8) });
     }
+  };
+
+  /* Flugzeug: Bodeneffekt-Auftrieb und Propeller. Auftrieb a = g · max · (v/vRef)²,
+     voll bis 1 m über der normalen Höhe, bis „hoehe“ linear weg – darüber trägt nichts.
+     Ohne Luft (Mond) kein Auftrieb. In der Luft schiebt der Propeller mit Gas. */
+  Fahrt.prototype.fliegen = function (h) {
+    var A = this.werte.auftrieb, fz = this.fz, C = fz.chassis, gel = this.gelaende, st = fz.status;
+    var luft = Math.min(1, this.welt.luftdichte / 1.2);
+    if (!luft || this.zustand !== "fahrt") return;
+    var frei = C.y - gel.hoeheBei(C.x) - A.boden;
+    var nah = frei < 1 ? 1 : Math.max(0, 1 - (frei - 1) / (A.hoehe - 1));
+    var v = Math.max(0, st.vorwaerts), g = this.welt.schwerkraft * (gel.schwereBei ? gel.schwereBei(C.x) : 1);
+    var a = g * A.max * Math.min(1, (v / A.vRef) * (v / A.vRef)) * nah * luft, ax = 0, ay = a;
+    if (st.radKontakte === 0 && this.gas > 0.05 && this.tank > 0 && st.vorwaerts < this.werte.motor.vmax * 1.15) {
+      ax += Math.cos(C.a) * this.werte.schub * this.gas; ay += Math.sin(C.a) * this.werte.schub * this.gas;
+    }
+    C.vx += ax * h; C.vy += ay * h;
+    fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+  };
+
+  /* Katapult: Das Auto liegt in der Schale (Lage fest, Nase leicht hoch). Gas drücken
+     (neu drücken – wer schon Gas hält, lässt kurz los) schleudert es los; spätestens
+     nach 4 s geht es von selbst, damit niemand hängen bleibt. */
+  Fahrt.prototype.katapultSchritt = function (h, eingabe) {
+    var K = this.katapult, k = K.k, fz = this.fz, gel = this.gelaende;
+    K.zeit += h;
+    var a = 0.18;
+    FF.Physik.setzePose(fz, k.x, gel.hoeheBei(k.x) + 1.2 + this.werte.groesse.hoehe * 0.3, a);
+    fz.status.tempo = 0; fz.status.vorwaerts = 0; fz.status.drehzahl = 0;
+    var neu = eingabe.gas && !K.gasVorher;
+    K.gasVorher = eingabe.gas;
+    if (!((neu && K.zeit > 0.35) || K.zeit > 4)) return;
+    this.katapult = null; k.schuss = this.zeit;
+    var vx = k.v * Math.cos(k.winkel), vy = k.v * Math.sin(k.winkel), C = fz.chassis;
+    C.vx = vx; C.vy = vy; C.w = 0;
+    fz.raeder.forEach(function (R) { R.k.vx = vx; R.k.vy = vy; });
+    this.melde("katapult", { x: k.x, y: C.y });
   };
 
   /* Pfützen: Räder, die ins Wasser tauchen, spritzen (Ereignis "platsch") und
@@ -423,6 +479,27 @@ var FF = globalThis.FF = globalThis.FF || {};
       C.vx += dvx; C.vy += dvy; C.w *= 0.3;
       fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; });
       this.melde("boing", { x: (t.x0 + t.x1) / 2, y: this.gelaende.hoeheBei((t.x0 + t.x1) / 2) });
+    }
+  };
+
+  /* Objekte auf der Strecke: Wer hindurchfährt (nicht drüberfliegt), zerbricht sie.
+     Glas zerspringt (das Auto verliert 7 % Tempo), kleine Bausteine fliegen weg (3 %),
+     eine Baustein-Säule hält das Auto fast an (70 % Tempo weg) und zerfällt. */
+  var OBJEKT_BREMSE = { glas: 0.93, stein: 0.97, saeule: 0.3 };
+  Fahrt.prototype.pruefeObjekte = function () {
+    var O = this.gelaende.objekte, fz = this.fz, C = fz.chassis, L = this.werte.groesse.laenge * 0.5;
+    if (this.zustand !== "fahrt" && this.zustand !== "ziel") return;
+    var unten = Infinity;
+    fz.raeder.forEach(function (R) { unten = Math.min(unten, R.k.y - R.r); });
+    unten = Math.min(unten, C.y - 0.2);
+    for (var i = 0; i < O.length; i++) {
+      var o = O[i];
+      if (o.kaputt || o.x + o.b / 2 < C.x - L || o.x - o.b / 2 > C.x + L) continue;
+      if (unten > o.y + o.h - 0.05) continue;                     // drübergeflogen
+      o.kaputt = true;
+      var f = OBJEKT_BREMSE[o.art] || 1;
+      if (C.vx > 0) { var dv = C.vx * (f - 1); C.vx += dv; fz.raeder.forEach(function (R) { R.k.vx += dv; R.k.w *= f; }); }
+      this.melde("objekt", { art: o.art, x: o.x, y: o.y, b: o.b, h: o.h, v: o.v, tempo: Math.abs(C.vx) });
     }
   };
 

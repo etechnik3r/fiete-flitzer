@@ -97,7 +97,7 @@ var FF = globalThis.FF = globalThis.FF || {};
                   rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild,
                   looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
                   trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild),
-                  schwebe: (g.schwebe || 0) * (0.6 + wild) },
+                  schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild) },
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -135,6 +135,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.trampoline = [];          // Hüpfpilze {x0, x1, H, v, …} – wer drauffährt, fliegt hoch (fahrt.js)
     this.baender = [];             // Förderbänder {x0, x1, v} – der Boden bewegt sich mit v [m/s] (physik.js)
     this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
+    this.objekte = [];             // Dinge auf der Strecke, die man umfährt (welt.objekte): Glas, Bausteine, Säulen
+    this.objektX = 35;             // bis hierhin sind Objekte verteilt
+    this.spuk = [];                // Geister (welt.spuk), die kurz vor dem Auto auftauchen {x, gesehen}
+    this.katapulte = [];           // Katapulte {x, v, winkel, …}: halten das Auto fest und schleudern es über den Graben (fahrt.js)
+    this.spukX = 60;
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
@@ -174,7 +179,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band", "schwebe"];
+               "looping", "luecke", "trampolin", "band", "schwebe", "katapult"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -323,6 +328,19 @@ var FF = globalThis.FF = globalThis.FF || {};
       var xt = xs + el.La;
       this.trampoline.push({ x0: xt, x1: xt + el.Lt, H: el.Ht, v: 9.5 + 1.5 * p.wild, benutzt: false, platziert: false, boing: -9 });
       this.sperrzonen.push([xt - 1, xt + el.Lt + 1]);
+    } else if (typ === "katapult") {
+      // Katapult vor einem Burggraben: Schale (Lc), Graben (G, steile Wände), Landewiese (Lf)
+      el.flach = true;
+      el.La = 14; el.Lc = 4;
+      el.G = 13 + 3 * r() + 2 * p.wild; el.D = 3.2;
+      el.Lf = 40;
+      el.Lflach = el.La + el.Lc + el.G + el.Lf;
+      el.Lo = 20;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xkp = xs + el.La + 1.5, weite = el.Lc - 1.5 + el.G + 10, wink = 0.75;
+      var g0 = this.welt.schwerkraft;
+      this.katapulte.push({ x: xkp, winkel: wink, v: Math.sqrt(weite * g0 / Math.sin(2 * wink)), benutzt: false, schuss: -9, platziert: false });
+      this.sperrzonen.push([xs + el.La - 1, xs + el.La + el.Lc + el.G + 1]);
     } else if (typ === "schwebe") {
       // Schwebe-Säule: kleine Sprungkante, dann wird die Schwerkraft fast ausgeschaltet –
       // darunter eine Senke, oben hängen Münzen, die man nur schwebend erreicht
@@ -436,6 +454,12 @@ var FF = globalThis.FF = globalThis.FF || {};
         return 0;
       case "band":
         return 0;                                   // nur ebener Boden – das Band selbst steht in baender
+      case "katapult":
+        var sk2 = s - el.La - el.Lc;
+        if (sk2 < 0 || sk2 > el.G) return 0;
+        if (sk2 < 1.2) aus.steilAb = true;
+        if (sk2 > el.G - 1.2) aus.steilAuf = true;
+        return sk2 < 0.6 || sk2 > el.G - 0.6 ? 0 : -el.D;
       case "schwebe":
         var sz = s - el.La;
         if (sz < 0) return 0;
@@ -836,6 +860,38 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
 
+    // Objekte auf der Strecke (Glasblöcke, Bausteine, Säulen): eigener Zufall aus der Position,
+    // damit Münzen und Kanister gleich bleiben; nur auf flachem Boden, nie in Sperrzonen
+    var OB = welt.objekte;
+    while (OB && this.objektX < bis - 10 && this.objektX < ende - 25) {
+      var xo = this.objektX, ho = hash01(Math.round(xo * 7), this.seed + 61), ho2 = hash01(Math.round(xo * 7), this.seed + 62);
+      var saeule = OB.saeule && ho2 < OB.saeule;
+      this.objektX += OB.abstand * (0.55 + 0.9 * ho) * (saeule ? 1.6 : 1);
+      var flach = Math.abs(this.steigungBei(xo - 1)) < 0.3 && Math.abs(this.steigungBei(xo + 1)) < 0.3;
+      if (!flach || this.gesperrt(xo) || this.wasserBei(xo) > -Infinity || this.nahAnTank(xo, 5)) continue;
+      var art = saeule ? "saeule" : OB.art, ob = { x: xo, y: this.hoeheBei(xo), art: art, kaputt: false, v: Math.floor(ho2 * 1000) };
+      if (art === "glas") { ob.form = ["block", "kugel", "turm"][Math.floor(ho * 3)]; ob.b = 0.9 + 0.6 * ho2; ob.h = ob.form === "turm" ? 1.8 + ho : 0.9 + 0.6 * ho; }
+      else if (art === "stein") { ob.b = 0.7 + 0.5 * ho2; ob.h = 0.38 * (1 + Math.floor(ho * 3)); }
+      else { ob.b = 1.3; ob.h = 3.6 + 1.6 * ho; }                    // Säule
+      this.objekte.push(ob);
+    }
+
+    // Geister (nur Grafik und Klang): alle ~40–70 m einer, eigener Zufall
+    while (welt.spuk && this.spukX < bis && this.spukX < ende - 20) {
+      this.spuk.push({ x: this.spukX, gesehen: false, v: Math.floor(hash01(Math.round(this.spukX), this.seed + 71) * 1000) });
+      this.spukX += 40 + 30 * hash01(Math.round(this.spukX), this.seed + 72);
+    }
+
+    // Katapulte: Münzen entlang der Flugbahn, oben ein Diamant
+    for (i = 0; i < this.katapulte.length; i++) {
+      var kp = this.katapulte[i];
+      if (kp.platziert || kp.x > bis - 60) continue;
+      kp.platziert = true;
+      if (kp.x > ende - 40) continue;
+      var vxk = kp.v * Math.cos(kp.winkel), vyk = kp.v * Math.sin(kp.winkel), yk = this.hoeheBei(kp.x) + 1.6, tg = vyk / g;
+      for (var kk = 1; kk <= 7; kk++) { var tk = tg * 2 * kk / 8; this.neueMuenze(kp.x + vxk * tk, yk + vyk * tk - 0.5 * g * tk * tk, kk === 4 ? 100 : 10); }
+    }
+
     // Hüpfpilze: Münzen steigen über dem Hut auf (früh im Flug liegen alle Flugbahnen
     // nah beieinander – egal wie schnell man kommt), oben ein Stern
     for (i = 0; i < this.trampoline.length; i++) {
@@ -925,6 +981,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
+    filter(this.objekte); filter(this.spuk);
     var n = 0;
     while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
     if (n > 0) this.pfuetzen.splice(0, n);

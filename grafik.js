@@ -887,6 +887,75 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.35, 0.42, 0.42, 0.42], arme: [0.06, 0.66, 0.58, 0.84] };
     },
 
+    skateboard: function (ctx, a, z, fz) {
+      // Das Kind steht auf dem Brett: Beine (Anzugfarbe) und Schuhe, Arme zum Balancieren
+      var o = outfitVon(a);
+      var hinten = function () {
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        [[-0.08, -0.26], [0.1, 0.24]].forEach(function (b) {
+          ctx.strokeStyle = o.seiten || o.anzug; ctx.lineWidth = 0.13;
+          ctx.beginPath(); ctx.moveTo(b[0], 0.2); ctx.lineTo((b[0] + b[1]) / 2 + 0.03, -0.06); ctx.lineTo(b[1], -0.28); ctx.stroke();
+          ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, b[1] - 0.1, -0.31, 0.22, 0.08, 0.03); ctx.fill();
+        });
+      };
+      var deck = function () {
+        ctx.beginPath();
+        ctx.moveTo(-0.6, -0.3); ctx.lineTo(0.6, -0.3); ctx.quadraticCurveTo(0.74, -0.3, 0.76, -0.2);
+        ctx.lineTo(0.62, -0.38); ctx.lineTo(-0.62, -0.38); ctx.lineTo(-0.76, -0.2); ctx.quadraticCurveTo(-0.74, -0.3, -0.6, -0.3); ctx.closePath();
+      };
+      var vorne = function () {
+        karosserie(ctx, a, z, deck, -0.76, 0.76, -0.38, -0.2);
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, -0.25, -0.47, 0.5, 0.09, 0.03); ctx.fill();      // Akku unter dem Brett
+        ctx.fillStyle = "#7dffb8"; ctx.fillRect(-0.18, -0.44, 0.06, 0.03); ctx.fillRect(-0.09, -0.44, 0.06, 0.03);
+        ctx.fillStyle = "#c9cfdb"; [-0.38, 0.38].forEach(function (x) { ctx.fillRect(x - 0.06, -0.42, 0.12, 0.05); });   // Achsen
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, 0.18, 0.34, 0.42], arme: [0.05, 0.5, 0.36, 0.36] };
+    },
+
+    flugzeug: function (ctx, a, z, fz) {
+      // Kleiner Doppelsitzer-Flieger mit offenem Cockpit, Propeller dreht sich
+      var c = basisFarbe(a);
+      var rumpf = function () {
+        ctx.beginPath();
+        ctx.moveTo(-1.9, 0.08); ctx.quadraticCurveTo(-0.5, -0.2, 1.45, -0.1);
+        ctx.quadraticCurveTo(1.85, 0.0, 1.8, 0.2); ctx.quadraticCurveTo(1.7, 0.42, 1.4, 0.44);
+        ctx.lineTo(0.15, 0.44); ctx.quadraticCurveTo(-0.25, 0.3, -0.65, 0.44);
+        ctx.lineTo(-1.5, 0.4); ctx.lineTo(-1.9, 0.08); ctx.closePath();
+      };
+      var hinten = function () {
+        ctx.fillStyle = dunkel(c, 0.3);                                              // ferne Tragfläche
+        ctx.beginPath(); ctx.ellipse(0.25, 0.12, 0.95, 0.09, 0.02, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-1.62, 0.36, 0.38, 0.05, 0, 0, Math.PI * 2); ctx.fill();   // Höhenruder hinten
+      };
+      var vorne = function () {
+        var rL = fz.raeder[1], rH = fz.raeder[0];
+        rohr(ctx, [[0.55, 0.0], [rL.lokalX, rL.lokalY]], 0.06, "#3a4152");          // Fahrwerk
+        rohr(ctx, [[1.0, -0.05], [rL.lokalX, rL.lokalY]], 0.05, "#3a4152");
+        rohr(ctx, [[-1.5, 0.12], [rH.lokalX, rH.lokalY]], 0.05, "#3a4152");
+        // Seitenleitwerk
+        ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(-1.45, 0.4); ctx.lineTo(-1.75, 0.95); ctx.lineTo(-1.95, 0.95); ctx.lineTo(-1.9, 0.1); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 0.02; ctx.stroke();
+        karosserie(ctx, a, z, rumpf, -1.95, 1.85, -0.2, 0.45);
+        // nahe Tragfläche mit Streben
+        rohr(ctx, [[0.0, 0.0], [0.4, 0.38]], 0.035, "#c9cfdb");
+        var tf = function () { ctx.beginPath(); ctx.ellipse(0.25, -0.02, 1.05, 0.11, 0.02, 0, Math.PI * 2); };
+        karosserie(ctx, a, z, tf, -0.8, 1.3, -0.13, 0.09, true);
+        glanz(ctx, -0.6, 0.02, 1.0, 0.04, 0.03);
+        // Windschutzscheibe vor dem Cockpit, Motorhaube, Auspuff
+        ctx.fillStyle = "rgba(200,235,255,0.6)"; ctx.strokeStyle = "#3a4152"; ctx.lineWidth = 0.02;
+        ctx.beginPath(); ctx.moveTo(0.12, 0.44); ctx.lineTo(0.22, 0.66); ctx.lineTo(0.32, 0.44); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#c9cfdb"; ctx.beginPath(); ctx.ellipse(1.82, 0.17, 0.09, 0.09, 0, 0, Math.PI * 2); ctx.fill();
+        // Propeller: Unschärfe-Scheibe und zwei drehende Blätter
+        var w = z * 45;
+        ctx.fillStyle = "rgba(200,205,220,0.35)"; ctx.beginPath(); ctx.ellipse(1.9, 0.17, 0.07, 0.62, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#3a2a1a"; ctx.beginPath(); ctx.ellipse(1.9, 0.17 + Math.sin(w) * 0.3, 0.04, Math.abs(Math.cos(w)) * 0.05 + 0.3 * Math.abs(Math.sin(w)) * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#3a2a1a"; ctx.fillRect(1.86, 0.17 + Math.sin(w) * 0.55 - 0.04, 0.06, 0.08); ctx.fillRect(1.86, 0.17 - Math.sin(w) * 0.55 - 0.04, 0.06, 0.08);
+        ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(1.93, 0.17, 0.06, 0, Math.PI * 2); ctx.fill();
+        scheinwerfer(ctx, 1.62, 0.02, 0.05);
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.48, 0.2, 0.46, 0.36], arme: null, fahrerZuerst: true };
+    },
+
     traktor: function (ctx, a, z) {
       var c = basisFarbe(a);
       var hinten = function () {
@@ -1404,6 +1473,19 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (p.art === "tropfen") {
         ctx.fillStyle = p.farbe;
         ctx.beginPath(); ctx.arc(X, Y, p.r0 * K.s * (1 - u * 0.4), 0, Math.PI * 2); ctx.fill();
+      } else if (p.art === "scherbe") {                       // Glasscherbe: Dreieck, dreht sich
+        var sr = p.r0 * K.s;
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.fillStyle = "rgba(170,225,250,0.85)"; ctx.strokeStyle = "rgba(50,130,195,0.8)"; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(-sr, -sr * 0.6); ctx.lineTo(sr * 0.9, -sr * 0.2); ctx.lineTo(-sr * 0.1, sr); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      } else if (p.art === "klotz") {                         // fliegender Baustein
+        var kb = p.r0 * K.s, kh = kb * 0.55;
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.fillStyle = p.farbe; ctx.fillRect(-kb / 2, -kh / 2, kb, kh);
+        ctx.fillRect(-kb * 0.35, -kh / 2 - kh * 0.25, kb * 0.25, kh * 0.25); ctx.fillRect(kb * 0.1, -kh / 2 - kh * 0.25, kb * 0.25, kh * 0.25);
+        ctx.fillStyle = "rgba(0,0,0,0.15)"; ctx.fillRect(-kb / 2, kh * 0.25, kb, kh * 0.25);
+        ctx.restore();
       } else if (p.art === "herz") {
         var hr = p.r0 * K.s;
         ctx.fillStyle = p.farbe;
@@ -1551,6 +1633,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
     if (gel.schwebezonen.length) W.zeichneSchwebezonen(ctx, K, gel, z);
+    if (gel.objekte.length) W.zeichneObjekte(ctx, K, gel, b[2], b[3]);
+    if (gel.spuk.length) W.zeichneSpuk(ctx, K, gel, f.fz.chassis.x, z);
+    if (gel.katapulte.length) W.zeichneKatapulte(ctx, K, gel, f.zeit);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);

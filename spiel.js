@@ -558,6 +558,41 @@
             tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
           }
           break;
+        case "objekt":                   // Glas zerspringt, Bausteine fliegen, Säule zerfällt
+          var FO = FF.GrafikWelt.STEIN_FARBEN, vo = Math.max(3, e.tempo);
+          if (e.art === "glas") {
+            FF.Klang.spiele("klirr");
+            for (var gs = 0; gs < 11; gs++) partikel.neu({ art: "scherbe", x: e.x + (Math.random() - 0.5) * e.b, y: e.y + Math.random() * e.h,
+              vx: vo * (0.3 + Math.random() * 0.6) + (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, t: 0, dauer: 0.9 + Math.random() * 0.4,
+              r0: 0.12 + Math.random() * 0.14, schwer: 1, reibung: 0.3, w: Math.random() * 6, dreh: (Math.random() - 0.5) * 16 });
+            if (ersteMale("tipp-glas", 1)) schwebeText(e.x, e.y + 2, "Klirr! 💎", "#cdf4ff", true);
+          } else {
+            var saeule = e.art === "saeule", nk = saeule ? 16 : Math.max(2, Math.round(e.h / 0.38) + 1);
+            FF.Klang.spiele(saeule ? "einsturz" : "klack");
+            for (var ks = 0; ks < nk; ks++) partikel.neu({ art: "klotz", x: e.x + (Math.random() - 0.5) * e.b, y: e.y + Math.random() * e.h,
+              vx: (saeule ? 1.5 : vo * 0.6) * (0.4 + Math.random()) + (Math.random() - 0.5) * 3, vy: 2 + Math.random() * (saeule ? 5 : 4), t: 0, dauer: 1.1,
+              r0: 0.45 + Math.random() * 0.25, farbe: FO[(e.v + ks) % 6], schwer: 1, reibung: 0.2, w: Math.random() * 6, dreh: (Math.random() - 0.5) * 12 });
+            if (saeule) {
+              schwebeText(e.x, e.y + e.h + 0.5, "Krawumm! 🧱", "#ffd23f", true);
+              if (ersteMale("tipp-saeule", 2)) { tipp("🧱 Baustein-Säulen bremsen dich fast ganz ab – spring drüber oder nimm Anlauf!", 4500, "Krawumm!"); spruchBis = zeit + 3; }
+            }
+          }
+          break;
+        case "katapultBereit":           // im Katapult eingefangen
+          FF.Klang.spiele("spannen");
+          meldung("🎯 Drück Gas!");
+          if (ersteMale("tipp-katapult", 3)) FF.Klang.sprich("Drück Gas, dann fliegst du!");
+          break;
+        case "katapult":                 // abgeschossen
+          FF.Klang.spiele("boing");
+          schwebeText(e.x + 2, e.y + 2, "Wuuusch! 🎯", "#ffd23f", true);
+          setzeAusdruck("freude", 2.5);
+          break;
+        case "spuk":                     // Geisterwelt: ein Geist taucht auf
+          FF.Klang.spiele("spuk");
+          if (Math.random() < 0.5) setzeAusdruck("staunen", 1.2);
+          if (ersteMale("tipp-spuk", 1)) { tipp("👻 Keine Angst – die Geister sind freundlich und wollen nur spielen!", 4000, "Keine Angst, die Geister sind lieb!"); spruchBis = zeit + 3; }
+          break;
         case "schwebe":                  // Schwebe-Säule betreten
           FF.Klang.spiele("schwebe");
           schwebeText(e.x, e.y + 2, "Schwerelos! ✨", "#9ff6ff", true);
@@ -1853,8 +1888,42 @@
     });
   });
 
-  /* Hilfe: alles, was man im Spiel machen kann, und „Was ist neu?“ (aus C.neuigkeiten) */
-  function oeffneHilfe() {
+  /* Anleitung (❓): Kurzfassung und Details, alle Welten mit Bildschirmfoto und
+     Merkmalen (aus config.js abgeleitet), „Was ist neu?“ (C.neuigkeiten) */
+  function weltMerkmale(w) {
+    var g = w.gelaende || {}, m = [];
+    if (w.schwerkraft < 5) m.push("🪶 wenig Schwerkraft");
+    if (w.grip < 0.8) m.push("🧊 rutschig");
+    if (w.rollwiderstand >= 0.05) m.push("🐌 Boden bremst");
+    if (w.abprall > 0.3) m.push("🍮 alles federt");
+    if (w.wasser) m.push("💧 Pfützen");
+    if (w.wind) m.push("💨 Wind");
+    if (w.unterwasser) m.push("🫧 unter Wasser");
+    if (w.nacht) m.push("🔦 dunkel");
+    if (w.decke) m.push("🪨 Höhlendecke");
+    if (w.spuk) m.push("👻 Geister");
+    if (g.looping) m.push("🎢 Loopings");
+    if (g.luecke) m.push("🕳️ Abgründe");
+    if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : "🍄 Hüpfpilze");
+    if (g.band) m.push("⏩ Förderbänder");
+    if (g.schwebe) m.push("✨ Schwebe-Säulen");
+    if (g.katapult) m.push("🎯 Katapulte");
+    if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : "🧱 Bausteine fliegen");
+    if (w.objekte && w.objekte.saeule) m.push("🏛️ Säulen");
+    if ((g.klippe || 0) >= 1.5) m.push("⛰️ Klippen");
+    if ((g.sprung || 0) >= 1.4 || (g.schanzen || 0) >= 1.5) m.push("🛫 große Schanzen");
+    return m;
+  }
+  var hilfeSeite = "anleitung";
+  function zeigeHilfeSeite(seite) {
+    hilfeSeite = seite;
+    document.querySelectorAll(".hilfe-reiter [data-seite]").forEach(function (b) {
+      var an = b.dataset.seite === seite; b.classList.toggle("aktiv", an); b.setAttribute("aria-selected", an ? "true" : "false");
+    });
+    document.querySelectorAll("[data-seite-inhalt]").forEach(function (d) { d.hidden = d.dataset.seiteInhalt !== seite; });
+    $("hilfe-inhalt").scrollTop = 0;
+  }
+  function oeffneHilfe(seite) {
     FF.Klang.init(); FF.Klang.spiele("klick");
     $("hilfe-neuigkeiten").innerHTML = C.neuigkeiten.map(function (n, i) {
       var aktuell = n.version === VERSION;
@@ -1863,18 +1932,27 @@
              n.punkte.map(function (p) { return "<li>" + p + "</li>"; }).join("") + "</ul></div>";
     }).join("");
     $("hilfe-weltenzahl").textContent = C.welten.length + " Welten";
+    $("hilfe-fahrzeuge").textContent = C.fahrzeuge.length + " Fahrzeuge: " + C.fahrzeuge.map(function (f) { return f.emoji + " " + f.name; }).join(", ");
+    $("welt-info-liste").innerHTML = C.welten.map(function (w, wi) {
+      var sterne = 0, offen = levelOffen(wi, 0);
+      for (var li = 0; li < w.level.length; li++) sterne += levelStand(wi, li).sterne || 0;
+      return '<div class="welt-info"><img src="bilder/welten/' + w.id + '.jpg" alt="Bild aus der Welt ' + w.name + '" loading="lazy" width="320" height="150">' +
+        '<div class="welt-info-text"><div class="welt-info-name"><span>' + w.emoji + " " + w.name + "</span><small>" +
+        (offen ? "⭐ " + sterne + "/" + 3 * w.level.length : "🔒 noch zu") + "</small></div>" +
+        '<div class="welt-info-hinweis">' + w.hinweis + "</div>" +
+        '<div class="welt-info-marken">' + weltMerkmale(w).map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div></div></div>";
+    }).join("");
     oeffneModal("hilfe");
-    $("hilfe-inhalt").scrollTop = 0;
+    zeigeHilfeSeite(typeof seite === "string" ? seite : "anleitung");
   }
-  $("knopf-hilfe").addEventListener("click", oeffneHilfe);
+  $("knopf-hilfe").addEventListener("click", function () { oeffneHilfe("neu"); });
+  $("knopf-anleitung").addEventListener("click", function () { oeffneHilfe("anleitung"); });
+  $("knopf-titel-anleitung").addEventListener("click", function () { oeffneHilfe("anleitung"); });
   ["hilfe-zu", "hilfe-fertig"].forEach(function (id) {
     $(id).addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseModal("hilfe"); });
   });
-  document.querySelectorAll(".hilfe-sprung button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var z = $(b.dataset.ziel), box = $("hilfe-inhalt");
-      box.scrollTo({ top: box.scrollTop + z.getBoundingClientRect().top - box.getBoundingClientRect().top - 4, behavior: "smooth" });
-    });
+  document.querySelectorAll(".hilfe-reiter [data-seite]").forEach(function (b) {
+    b.addEventListener("click", function () { FF.Klang.spiele("klick"); zeigeHilfeSeite(b.dataset.seite); });
   });
 
   /* Frage für Erwachsene: kleine Rechenaufgabe (6–9 × 6–9), erst dann geht es weiter */
@@ -1993,7 +2071,7 @@
       var b = $("update-banner");
       b.textContent = "✨ Fiete Flitzer wurde aktualisiert: Version " + alt + " → " + VERSION + " · Was ist neu? ❓";
       b.hidden = false;
-      b.addEventListener("click", function () { b.hidden = true; if (modus !== "fahrt") oeffneHilfe(); });
+      b.addEventListener("click", function () { b.hidden = true; if (modus !== "fahrt") oeffneHilfe("neu"); });
       setTimeout(function () { b.hidden = true; }, 7000);
     }
   })();
