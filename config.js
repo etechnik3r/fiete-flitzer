@@ -344,7 +344,7 @@ FF.CONFIG = {
       /* Turbinen-Sofa: ein Sofa auf Möbelrollen, hinten eine Flugzeugturbine. Die Räder
          treiben kaum an – die Turbine schiebt (turbine.schub [m/s²] entlang des Sofas,
          auch in der Luft), braucht aber erst „anlauf“ Sekunden zum Hochdrehen.
-         Weiche, hüpfende Polster (wenig Dämpfung). Durstig! */
+         Weiche Polster, gut gedämpft (hüpft nach Sprüngen nicht mehr endlos). Durstig! */
       id: "sofa", name: "Turbinen-Sofa", emoji: "🛋️", preis: 18000, preisBasis: 380,
       text: "Ein Sofa mit Flugzeugturbine! Erst jault sie, dann faucht sie – und dann geht's ab. Festhalten!",
       masse: 230, groesse: { laenge: 2.6, hoehe: 1.3 },
@@ -352,7 +352,7 @@ FF.CONFIG = {
         { x: -0.95, y: -0.28, r: 0.24, masse: 5, antrieb: true },
         { x:  0.95, y: -0.28, r: 0.24, masse: 5, antrieb: false }
       ],
-      federung: { ruhe: 0.2, weg: 0.18, frequenz: 1.4, daempfung: 0.22 },
+      federung: { ruhe: 0.2, weg: 0.18, frequenz: 1.7, daempfung: 0.6 },
       motor: { drehmoment: 260, vmax: 31 }, bremse: 1100, grip: 0.95,
       tankSekunden: 23, luftsteuerung: 6.0, cwA: 0.9, abtrieb: 0,
       turbine: { schub: 7.5, anlauf: 0.9, vmax: 31 },
@@ -360,7 +360,7 @@ FF.CONFIG = {
       dach: [[-0.95, 1.05], [0.3, 0.95]],
       kopf: { x: -0.1, y: 0.82, r: 0.28 },
       farbe: "pink", form: "sofa",
-      klang: { art: "turbine", max: 40000, leerlauf: 9000, traegheit: 1.5, lautstaerke: 1.0, abrollen: 0.7 },
+      klang: { art: "turbine", max: 30000, leerlauf: 7000, traegheit: 1.5, lautstaerke: 1.0, abrollen: 0.7 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     }
   ],
@@ -413,6 +413,25 @@ FF.CONFIG = {
     { id: "flammen", name: "Flammen",   icon: "🔥", preis: 500 },
     { id: "blitze",  name: "Blitze",    icon: "⚡", preis: 600 },
     { id: "zielflagge", name: "Karo",   icon: "🏁", preis: 400 }
+  ],
+  /* Felgen: Aussehen der Räder (für alle Fahrzeuge) */
+  felgen: [
+    { id: "standard",   name: "Silber",    icon: "⚪", preis: 0 },
+    { id: "gold",       name: "Gold",      icon: "🟡", preis: 1500 },
+    { id: "stern",      name: "Stern",     icon: "⭐", preis: 2500 },
+    { id: "blume",      name: "Blume",     icon: "🌸", preis: 3000 },
+    { id: "neon",       name: "Neon",      icon: "💠", preis: 4500 },
+    { id: "regenbogen", name: "Regenbogen", icon: "🌈", preis: 6000 }
+  ],
+  /* Beifahrer: ein Tier fährt mit (sitzt hinter dem Kind, bei Skateboard vorne auf dem Brett) */
+  beifahrer: [
+    { id: "keiner",  name: "Keiner",   icon: "🚫", emoji: "",   preis: 0 },
+    { id: "hund",    name: "Hund",     icon: "🐶", emoji: "🐶", preis: 3000 },
+    { id: "katze",   name: "Katze",    icon: "🐱", emoji: "🐱", preis: 3000 },
+    { id: "hase",    name: "Hase",     icon: "🐰", emoji: "🐰", preis: 4000 },
+    { id: "papagei", name: "Papagei",  icon: "🦜", emoji: "🦜", preis: 5000 },
+    { id: "dino",    name: "Mini-Dino", icon: "🦖", emoji: "🦖", preis: 8000 },
+    { id: "einhorn", name: "Einhorn",  icon: "🦄", emoji: "🦄", preis: 12000 }
   ],
   /* Spuren: Was hinter dem Auto herfliegt, solange es fährt (spiel.js spurZiehen).
      Einmal kaufen, für alle Fahrzeuge – damit Münzen auch später noch etwas wert sind. */
@@ -506,6 +525,7 @@ FF.CONFIG = {
         boden: ["#e9b864", "#c48a3c"], oberflaeche: "#f4cf7e", kante: "#ffe3a3", punkte: "#d49a4a"
       },
       sonne: "sonne", wetter: null,
+      sonnenDeko: "brille", wolkenStil: "wenige",
       deko: ["@kaktus:2.4", "@kaktus:1.6", "@sandfels:1.8", "@sandfels:1.1", "@palme:3.4", "@kaktus:2.0", "@sandfels:2.6", "🐪:2.2", "@stein:0.6", "🦎:0.45"],
       beiwerk: ["@stein:0.35", "@gras:0.35", "@sandfels:0.45"], kulisse: ["tafelberg", "tafelberg", null],
       gelaende: { amp: 8.0, welle: 55, holperAmp: 0.15, holperWelle: 9, trend: 0.018,
@@ -522,6 +542,7 @@ FF.CONFIG = {
         boden: ["#a8733f", "#74491f"], oberflaeche: "#d9a253", kante: "#f4cf7f", punkte: "#86592f"
       },
       sonne: "sonne", wetter: "staub",
+      sonnenDeko: "helm",
       deko: ["🏗️:4.4", "🚧:1.0", "🧱:0.9", "🛢️:1.0", "🚛:2.6", "@stein:0.9", "🚧:0.8", "📦:0.8", "@stein:1.3", "⛏️:0.7"],
       beiwerk: ["@stein:0.35", "@gras:0.35"], kulisse: ["stadt", "stadt", "kran"],
       gelaende: { amp: 6.5, welle: 34, holperAmp: 0.3, holperWelle: 5, trend: 0.02,
@@ -538,6 +559,7 @@ FF.CONFIG = {
         boden: ["#9fb5d4", "#6f86aa"], oberflaeche: "#ffffff", kante: "#e6f2ff", punkte: "#c9d8ee"
       },
       sonne: "sonne", wetter: "schnee",
+      sonnenDeko: "muetze", wolkenStil: "wenige",
       deko: ["@tanneSchnee:3.6", "@tanneSchnee:2.6", "@tanneSchnee:1.8", "@steinSchnee:1.0", "@tanneSchnee:3.0", "⛄:1.4", "@steinSchnee:1.5", "🦌:1.6", "@tanneSchnee:2.2", "🐧:0.8"],
       beiwerk: ["@steinSchnee:0.4", "@tanneSchnee:0.9"], kulisse: ["gipfel", "gipfel", "tannen"],
       gelaende: { amp: 9.0, welle: 46, holperAmp: 0.22, holperWelle: 7, trend: 0.025,
@@ -570,6 +592,7 @@ FF.CONFIG = {
         boden: ["#ff8fc7", "#e0619f"], oberflaeche: "#fff7fc", kante: "#ffffff", punkte: "#ffd6ef"
       },
       sonne: "sonne", wetter: "konfetti",
+      sonnenArt: "lolli", wolkenStil: "zuckerwatte",
       deko: ["🍭:2.2", "🍬:0.8", "🧁:1.0", "🍩:1.1", "🍦:1.5", "🍫:0.9", "🍭:1.6", "🎂:1.3"],
       beiwerk: [], kulisse: ["bonbon", "bonbon", null],
       gelaende: { amp: 8.0, welle: 38, holperAmp: 0.35, holperWelle: 6, trend: 0.02,
@@ -586,6 +609,7 @@ FF.CONFIG = {
         boden: ["#6b4a2b", "#4a311b"], oberflaeche: "#3f8f3a", kante: "#69c24a", punkte: "#7e5a36"
       },
       sonne: "sonne", wetter: "blaetter",
+      sonnenDeko: "bluete",
       deko: ["@palme:3.6", "@palme:2.8", "@farn:1.3", "@busch:1.3", "@laubbaum:3.8", "@farn:1.0", "🦜:0.8", "@palme:3.2", "🐒:1.1", "@busch:1.0", "@blumen:0.6", "🦋:0.5"],
       beiwerk: ["@farn:0.6", "@gras:0.5"], kulisse: ["dschungel", "dschungel", "dschungel"],
       gelaende: { amp: 9.5, welle: 36, holperAmp: 0.3, holperWelle: 5, trend: 0.028,
@@ -752,6 +776,7 @@ FF.CONFIG = {
         boden: ["#6e4a2a", "#4b321c"], oberflaeche: "#58b545", kante: "#a2e46e", punkte: "#8a6038"
       },
       sonne: "sonne", wetter: "pollen", kulisseGroesse: 1.5,
+      sonnenArt: "sonnenblume",
       tipp: ["🍄 Fahr auf die rot-weißen Hüpfpilze – boing! In der Luft Gas und Bremse zum Drehen.", "Fahr auf die Hüpfpilze!"],
       deko: ["@riesenblume:5.5", "@grashalm:3.2", "🐞:0.8", "@riesenblume:4.2", "@kleeblatt:1.4", "🐌:1.1", "@grashalm:2.6", "🐝:0.7:2.6",
              "@riesenblume:6.5", "🐜:0.45", "@pilzrot:1.5", "🦋:0.8:3.2", "@kleeblatt:1.1", "@grashalm:3.8"],
@@ -775,6 +800,7 @@ FF.CONFIG = {
         wolken: "rgba(255,244,232,0.85)"
       },
       sonne: "sonne", wetter: "laub",
+      sonnenDeko: "schal",
       wind: { staerke: 1.7, laenge: 85, bias: 0.25 },
       tipp: ["🍂 Sturm! Rückenwind 💨 schiebt dich, bei Gegenwind 🌬️ mehr Gas geben.", "Sturm! Rückenwind schiebt, Gegenwind bremst!"],
       deko: ["@herbstbaum:3.6", "@kuerbis:0.8", "@laubhaufen:0.9", "@herbstbaum:2.8", "🦔:0.55", "@pilzrot:0.7", "🐿️:0.55", "@vogelscheuche:2.3",
@@ -842,6 +868,7 @@ FF.CONFIG = {
         wolken: "rgba(255,255,255,0.8)"
       },
       sonne: "sonne", wetter: "konfetti",
+      sonnenArt: "zahnrad", wolkenStil: "dampf",
       tipp: ["⏩ Förderbänder! Vorwärts machen sie dich schnell, rückwärts musst du kräftig Gas geben.", "Förderbänder!"],
       deko: ["@bauklotz:1.4", "🧸:1.1", "@zahnrad:1.6", "@kiste:1.0", "🚂:1.5", "@kreisel:0.9", "@bauklotz:1.0", "🎁:0.9", "🤖:1.2",
              "@kiste:1.4", "@zahnrad:1.1", "🎈:1.3", "@kreisel:0.7"],
@@ -908,6 +935,7 @@ FF.CONFIG = {
         boden: ["#9fd9f2", "#5fb2dc"], oberflaeche: "#e9fbff", kante: "#ffffff", punkte: "#bfe8f8"
       },
       sonne: "sonne", wetter: "glitzer", glas: true,
+      sonnenArt: "glas", wolkenStil: "glas",
       objekte: { art: "glas", abstand: 24 },
       tipp: ["🔷 Alles ist aus Glas! Fahr durch die Glasblöcke – klirr! Das bremst dich nur ein bisschen.", "Fahr durch das Glas!"],
       deko: ["@glasbaum:2.6", "@glasskulptur:1.6", "@kristall:1.1", "@glasbaum:3.4", "@glasskulptur:2.2", "@kristall:0.8", "@glasbaum:2.0", "@glasskulptur:1.2"],
@@ -928,6 +956,7 @@ FF.CONFIG = {
         boden: ["#3cc35a", "#2a8f42"], oberflaeche: "#4fd068", kante: "#8ff09f", punkte: "#2a8f42"
       },
       sonne: "sonne", wetter: null,
+      sonnenArt: "baustein", wolkenStil: "baustein", stufig: true,
       objekte: { art: "stein", abstand: 20, saeule: 0.18 },
       tipp: ["🧱 Bausteine fliegen weg, wenn du sie anstupst. Die großen Säulen bremsen dich – nimm Anlauf oder spring drüber!", "Alles aus Bausteinen!"],
       deko: ["@steinbaum:2.6", "@steinhaus:2.4", "@steinblume:0.9", "@steinbaum:3.2", "@steinblume:1.2", "@steinhaus:3.0", "@steinbaum:2.0"],
@@ -990,6 +1019,7 @@ FF.CONFIG = {
         boden: ["#8a6a48", "#5e4630"], oberflaeche: "#6fae4a", kante: "#a2d46e", punkte: "#6e5238", wasser: "#4f9bd6"
       },
       sonne: "sonne", wetter: null, trampolinStil: "matte",
+      sonnenDeko: "krone",
       wasser: { tiefe: 0.6, maxBreite: 20, bremse: 0.055 },
       tipp: ["🎯 Fahr ins Katapult – dann drück Gas und du fliegst über den Burggraben! Trampoline schleudern dich auch hoch.", "Fahr ins Katapult und drück Gas!"],
       deko: ["@laubbaum:3.2", "🛡️:0.9", "@busch:1.0", "@kiste:1.0", "@laubbaum:2.6", "🏹:0.9", "@stein:1.0", "@blumen:0.6", "@tanne:3.0", "🎪:2.6"],
@@ -1022,6 +1052,13 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "23", titel: "Beifahrer, Felgen und Themen-Sonnen", punkte: [
+      "🐾 In der Garage: Ein Tier fährt mit – Hund, Katze, Hase, Papagei, Mini-Dino oder sogar ein Einhorn!",
+      "🛞 Neue Felgen: Gold, Stern, Blume, Neon und Regenbogen",
+      "☀️ Jede Welt hat ihre eigene Sonne: aus Bausteinen, als Lolli, Zahnrad, Sonnenblume, mit Bauhelm, Mütze, Sonnenbrille …",
+      "🧱 Im Klemmbaustein-Land sind auch Wolken und Hügel aus Bausteinen",
+      "🛋️ Das Turbinen-Sofa hüpft nicht mehr so wild",
+      "🦅 Die Adler im Gebirge und die Fledermäuse kreisen jetzt ruhig am Himmel" ] },
     { version: "22", titel: "Turbinen-Sofa und echter Drehzahlmesser", punkte: [
       "🛋️ Neues Fahrzeug Turbinen-Sofa: Erst jault die Turbine, dann faucht sie – und dann geht's ab!",
       "⏱️ Der Drehzahlmesser zeigt jetzt die ganze Drehzahl (z. B. 4.600 U/min) und den Gang",

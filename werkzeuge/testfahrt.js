@@ -455,6 +455,7 @@ function spielstandTests() {
     p.farben = C.farben.map(function (f) { return f.id; });
     p.muster.push("sterne"); p.outfits.push("schild"); p.outfit = "schild"; p.look = ki ? "lang" : "cap";
     p.spuren.push("regenbogen"); p.spur = "regenbogen";
+    p.felgen.push("gold", "neon"); p.felge = "neon"; p.beifahrerListe.push("dino"); p.beifahrer = "dino";
     C.welten.forEach(function (w, wi) {
       for (var l = 1; l <= 4; l++) if (z() < 0.8) p.level[w.id + "-" + l] = { geschafft: true, sterne: 1 + Math.floor(z() * 3) };
       if (z() < 0.5) p.endlos[w.id] = Math.floor(z() * 9000) + 1;

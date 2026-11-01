@@ -109,7 +109,9 @@
     fzId = fzId || prof.fahrzeug;
     var fs = prof.fahrzeuge[fzId] || {};
     var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
-    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindMitLook(kindId) };
+    var bf = C.beifahrer.filter(function (b) { return b.id === prof.beifahrer; })[0];
+    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindMitLook(kindId),
+             felge: prof.felge || "standard", beifahrer: bf ? bf.emoji : "" };
   }
 
   /* Kind als Bild (Brustbild oder nur Kopf) – gezeichnet mit denselben
@@ -1719,41 +1721,32 @@
     });
 
     // Muster
-    var ml = $("muster-liste");
-    ml.innerHTML = C.muster.map(function (m) {
-      var hat = P.muster.indexOf(m.id) >= 0;
-      return '<button type="button" class="muster-knopf' + (fs.muster === m.id ? " aktiv" : "") + '" data-muster="' + m.id + '">' +
-             m.icon + " " + m.name + (hat ? "" : ' <span class="preis">🪙' + zahl(m.preis) + "</span>") + "</button>";
-    }).join("");
-    ml.querySelectorAll(".muster-knopf").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var id = b.dataset.muster, m = C.muster.filter(function (x) { return x.id === id; })[0];
-        if (P.muster.indexOf(id) < 0) {
-          kaufe(m.preis, function () { P.muster.push(id); fs.muster = id; }, b);
-          return;
-        }
-        FF.Klang.spiele("klick");
-        fs.muster = id; speichere(); baueGarage();
-      });
-    });
+    kachelAuswahl("muster-liste", C.muster, P.muster, function () { return fs.muster; }, function (id) { fs.muster = id; });
 
-    // Spur (gilt für alle Fahrzeuge, jedes Kind hat seine eigene): fliegt beim Fahren hinterher
+    // Spur, Felgen, Beifahrer: gelten für alle Fahrzeuge, jedes Kind hat seine eigenen
     $("spur-titel").textContent = "💫 " + genitiv(name) + " Spur";
-    var sl = $("spur-liste");
-    sl.innerHTML = C.spuren.map(function (sp) {
-      var hat = P.spuren.indexOf(sp.id) >= 0;
-      return '<button type="button" class="muster-knopf' + (P.spur === sp.id ? " aktiv" : "") + '" data-spur="' + sp.id + '">' +
-             sp.icon + " " + sp.name + (hat ? "" : ' <span class="preis">🪙' + zahl(sp.preis) + "</span>") + "</button>";
+    $("felgen-titel").textContent = "🛞 " + genitiv(name) + " Felgen";
+    $("beifahrer-titel").textContent = "🐾 " + genitiv(name) + " Beifahrer";
+    kachelAuswahl("spur-liste", C.spuren, P.spuren, function () { return P.spur; }, function (id) { P.spur = id; });
+    kachelAuswahl("felgen-liste", C.felgen, P.felgen, function () { return P.felge; }, function (id) { P.felge = id; });
+    kachelAuswahl("beifahrer-liste", C.beifahrer, P.beifahrerListe, function () { return P.beifahrer; }, function (id) { P.beifahrer = id; });
+  }
+
+  /* Gleichmäßiges Kachelraster: Symbol, Name, Preis (oder ✓ gekauft) */
+  function kachelAuswahl(elId, liste, besitz, aktuell, waehle) {
+    var el = $(elId);
+    el.innerHTML = liste.map(function (e) {
+      var hat = besitz.indexOf(e.id) >= 0;
+      return '<button type="button" class="kachel' + (aktuell() === e.id ? " aktiv" : "") + (hat ? "" : " zu") + '" data-id="' + e.id + '" aria-label="' + e.name + '">' +
+             '<span class="kachel-icon">' + e.icon + '</span><span class="kachel-name">' + e.name + "</span>" +
+             (hat ? "" : '<span class="kachel-preis">🪙' + zahl(e.preis) + "</span>") + "</button>";
     }).join("");
-    sl.querySelectorAll("[data-spur]").forEach(function (b) {
+    el.querySelectorAll(".kachel").forEach(function (b) {
       b.addEventListener("click", function () {
-        var id = b.dataset.spur, sp = C.spuren.filter(function (x) { return x.id === id; })[0];
-        if (P.spuren.indexOf(id) < 0) {
-          kaufe(sp.preis, function () { P.spuren.push(id); P.spur = id; }, b);
-          return;
-        }
+        var id = b.dataset.id, e = liste.filter(function (x) { return x.id === id; })[0];
+        if (besitz.indexOf(id) < 0) { kaufe(e.preis, function () { besitz.push(id); waehle(id); }, b); return; }
         FF.Klang.spiele("klick");
-        P.spur = id; speichere(); baueGarage();
+        waehle(id); speichere(); baueGarage();
       });
     });
   }

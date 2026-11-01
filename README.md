@@ -151,7 +151,9 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     Unterschied zur Bildrate anderer Welten.
   - **⛰️ Gebirge**: sehr hohe, steile Berge ohne Schnee, viele Klippen,
     Grubensprünge (Abgründe) und große Schanzen; Steinböcke, Gipfelkreuze,
-    Adler kreisen am Himmel (Wetter `adler`).
+    Adler kreisen am Himmel (Wetter `adler`). Adler und Fledermäuse hängen
+    an der Landschaft (Parallaxe 0,1 bzw. 0,3) und gleiten nur langsam, statt
+    beim Fahren über den Bildschirm zu rasen.
   - **👻 Geisterwelt** (`welt.spuk`): dunkel (Nacht-Schleier), Vollmond,
     Fledermäuse, Spukhäuser, Laternenkürbisse. Alle 40–70 m steigt 13 m vor
     dem Auto ein freundlicher Geist aus dem Boden („Buh!“) und verblasst
@@ -301,7 +303,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🏎️ Blitz-Rakete | 15.000 | superschnell, Heckflügel mit echtem Abtrieb |
 | 🚀 Mondmobil | 22.000 | sechs angetriebene Räder, superweiche Federn, fährt mit Akku wie die echten Mondautos |
 | 🛹 E-Skateboard | 8.000 | das Kind steht drauf: leicht, wendig (Schwerpunkt hoch). Drehmoment bewusst klein (55 Nm), sonst kippt es beim Anfahren nach hinten (a > g·½Radstand/Schwerpunkthöhe ≈ 5,5 m/s²). Langer Radstand und große Rollen, damit Hangknicke das Vorderrad nicht hochschlagen; `balance`: das Kind lehnt sich am Boden vor und dämpft das Nicken (ab 6° Schieflage, bis 28 rad/s²). Mit Vollgas den Hang hinauf hebt die Nase bei 22° nur 11° (Flitzer 8°), erst ab ≈ 28° muss man kurz lupfen. Akku |
-| 🛋️ Turbinen-Sofa | 18.000 | Sofa auf Möbelrollen mit Flugzeugturbine an der Lehne. Die Räder treiben kaum an, die Turbine schiebt (7,5 m/s² entlang des Sofas, auch in der Luft, bis 112 km/h). Sie braucht ≈ 0,9 s zum Hochdrehen und läuft nach dem Loslassen nach; bei wenig Schwerkraft gedrosselt. Weiche, hüpfende Polster, durstig. Klang: Jaulen der Welle, Fauchen des Strahls, Grollen |
+| 🛋️ Turbinen-Sofa | 18.000 | Sofa auf Möbelrollen mit Flugzeugturbine an der Lehne. Die Räder treiben kaum an, die Turbine schiebt (7,5 m/s² entlang des Sofas, auch in der Luft, bis 112 km/h). Sie braucht ≈ 0,9 s zum Hochdrehen und läuft nach dem Loslassen nach; bei wenig Schwerkraft gedrosselt. Weiche Polster (1,7 Hz, Dämpfung 0,6, nach dem Aufkommen höchstens ein kleiner Hopser), durstig. Klang: Jaulen der Welle, Fauchen des Strahls, Grollen |
 | ✈️ Propeller-Flieger | 30.000 | offenes Cockpit. Fährt wie ein Auto, aber der **Bodeneffekt** trägt: Auftrieb g·0,5·(v/22 m/s)², voll bis 1 m über normaler Höhe, bei 3,2 m weg – höher kommt er nicht. In der Luft schiebt der Propeller mit 3,5 m/s² (weniger als g, kein Steigflug). Ohne Luft (Mond) kein Auftrieb |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
@@ -328,6 +330,18 @@ kann sie dann für alle Fahrzeuge nutzen.
 Seifenblasen, Herzen, Funken, Konfetti oder Regenbogen fliegen beim Fahren
 hinter dem Auto her (1.500–10.000 Münzen, `spuren` in `config.js`) – damit
 Münzen auch dann noch etwas wert sind, wenn alle Fahrzeuge gekauft sind.
+**🛞 Felgen** (jedes Kind, für alle Fahrzeuge): Silber, Gold, Stern, Blume,
+Neon, Regenbogen (1.500–6.000, `felgen`). **🐶 Beifahrer** (jedes Kind):
+Hund, Katze, Hase, Papagei, Dino, Einhorn fahren mit (3.000–12.000,
+`beifahrer`). Muster, Felgen, Beifahrer und Spuren stehen als gleichmäßiges
+Kachel-Raster (`.kachel-liste`) in der Garage.
+
+**Themen-Himmel**: Jede Welt kann in `config.js` Sonne und Wolken an ihr Thema
+anpassen: `sonnenArt` (`baustein`, `lolli`, `zahnrad`, `sonnenblume`, `glas`),
+`sonnenDeko` (Zubehör der lachenden Sonne: `helm`, `muetze`, `brille`,
+`bluete`, `krone`, `schal`), `wolkenStil` (`baustein`, `zuckerwatte`, `dampf`,
+`glas`, `wenige`, `keine`) und `stufig` (Hügel im Hintergrund in Stufen, für
+die Klemmbaustein-Welt).
 
 ## ⚙️ Einstellungen
 
@@ -337,7 +351,7 @@ Münzen auch dann noch etwas wert sind, wenn alle Fahrzeuge gekauft sind.
   Drehzahlmesser: Skala in tausend U/min, in der Mitte die ganze Drehzahl
   („4.600 U/min“), darüber der Gang (Verbrenner, mit rotem Bereich),
   „⚡ E-Motor“ (ein Gang, Höchstdrehzahl Mondmobil 9.000, E-Auto 15.000,
-  Skateboard 22.000 U/min) oder „🔥 Turbine“ (Sofa, bis 40.000 U/min). Die
+  Skateboard 22.000 U/min) oder „🔥 Turbine“ (Sofa, bis 30.000 U/min). Die
   Gänge schaltet das virtuelle Getriebe wirklich (z. B. Flitzer: 2. Gang bei
   17, 3. bei 30, 4. bei 41 km/h)
 - 💡 **Tipps**: Erklär-Tipps (Luftsteuerung, Turbo, Welt-Ideen …) kommen nur die
@@ -353,14 +367,15 @@ Münzen auch dann noch etwas wert sind, wenn alle Fahrzeuge gekauft sind.
 - 💾 **Spielstand sichern**: Ein Code (Crockford-Base32, etwa 190–310 Zeichen
   in Fünfergruppen) enthält den Fortschritt beider Kinder: Münzen, Level und
   Sterne, Endlos-Rekorde, Fahrzeuge mit Tuning, Farben, Muster, Outfits, Look,
-  Spuren, Statistik und Duell-Siege – Einstellungen gehören zum Gerät und
+  Spuren, Felgen, Beifahrer, Statistik und Duell-Siege – Einstellungen gehören zum Gerät und
   bleiben draußen. **📋 Kopieren** oder **📤 Teilen** (z. B. an sich selbst
   schicken), auf dem anderen Gerät **⌨️ Code eingeben**; Groß-/Klein-
   schreibung, Leerzeichen und Bindestriche sind egal, O gilt als 0, I/L als 1.
   Eine 16-Bit-Prüfsumme erkennt Tippfehler, bevor etwas überschrieben wird;
   das Laden fragt (Rechenaufgabe) nach Erwachsenen. Auf dem iPhone im Safari-
   Tab steht ein Hinweis, dass iOS Daten nach einigen Tagen ohne Besuch löscht.
-  Neue Welten, Fahrzeuge, Farben … müssen in `config.js` **hinten** angehängt
+  Der Code hat Version 2 (mit Felgen und Beifahrern); Codes der Version 1
+  werden weiter gelesen. Neue Welten, Fahrzeuge, Farben … müssen in `config.js` **hinten** angehängt
   werden, sonst passen alte Codes nicht mehr (`spielstand.js`).
 - ♻️ Spielstand zurücksetzen (mit einer Rechenaufgabe
   für Erwachsene gesichert)
