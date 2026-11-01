@@ -185,7 +185,9 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 - **❓ So geht's** (Knopf oben im Menü, auf dem Titelbild und in den
   Einstellungen) mit drei Reitern: **🎮 So geht's** (das Spiel in sieben
   Sätzen, darunter Fahren, Turbo, Garage, Spielarten), **🗺️ Welten** (jede
-  Welt mit Bildschirmfoto, Kurzbeschreibung und Merkmalen wie „💧 Pfützen“,
+  Welt mit Bildschirmfoto, Kurzbeschreibung und Merkmalen wie „💧 Pfützen“ – nur die
+  schon freigespielten; die übrigen erscheinen als graue „🔒 Geheime Welt“ und bleiben
+  eine Überraschung,
   „🎯 Katapulte“ – die Merkmale leitet `spiel.js weltMerkmale` aus
   `config.js` ab) und **✨ Neu** (Changelog, `neuigkeiten`). Die Fotos
   erzeugt `node werkzeuge/weltbilder.js` (bilder/welten/*.jpg, 640 × 300);
@@ -298,7 +300,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🛻 Monster-Max | 10.000 | gigantische Räder, Allrad, hoher Schwerpunkt |
 | 🏎️ Blitz-Rakete | 15.000 | superschnell, Heckflügel mit echtem Abtrieb |
 | 🚀 Mondmobil | 22.000 | sechs angetriebene Räder, superweiche Federn, fährt mit Akku wie die echten Mondautos |
-| 🛹 E-Skateboard | 8.000 | das Kind steht drauf: leicht, wendig, wackelig (Schwerpunkt hoch). Drehmoment bewusst klein (55 Nm), sonst kippt es beim Anfahren nach hinten (a > g·½Radstand/Schwerpunkthöhe ≈ 5,5 m/s²); `balance`: das Kind hält am Boden selbst das Gleichgewicht. Akku |
+| 🛹 E-Skateboard | 8.000 | das Kind steht drauf: leicht, wendig (Schwerpunkt hoch). Drehmoment bewusst klein (55 Nm), sonst kippt es beim Anfahren nach hinten (a > g·½Radstand/Schwerpunkthöhe ≈ 5,5 m/s²). Langer Radstand und große Rollen, damit Hangknicke das Vorderrad nicht hochschlagen; `balance`: das Kind lehnt sich am Boden vor und dämpft das Nicken (ab 6° Schieflage, bis 28 rad/s²). Mit Vollgas den Hang hinauf hebt die Nase bei 22° nur 11° (Flitzer 8°), erst ab ≈ 28° muss man kurz lupfen. Akku |
 | ✈️ Propeller-Flieger | 30.000 | offenes Cockpit. Fährt wie ein Auto, aber der **Bodeneffekt** trägt: Auftrieb g·0,5·(v/22 m/s)², voll bis 1 m über normaler Höhe, bei 3,2 m weg – höher kommt er nicht. In der Luft schiebt der Propeller mit 3,5 m/s² (weniger als g, kein Steigflug). Ohne Luft (Mond) kein Auftrieb |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und

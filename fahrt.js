@@ -369,10 +369,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {
       // Stabilisator (Leicht) bzw. Gleichgewichtssinn (Skateboard: das Kind balanciert)
       var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
-      var frei = w.balance && !w.stabilisator ? 0.15 : 0.4, stab = Math.max(w.stabilisator || 0, w.balance || 0);
+      // Beim Skateboard lehnt sich das Kind kräftig vor: früher und stärker (bis 28 rad/s²),
+      // so bleibt das Brett bergauf auch mit Gas meist unten – nur steil muss man kurz lupfen
+      var balanciert = w.balance && !w.stabilisator;
+      var frei = balanciert ? 0.1 : 0.4, stab = Math.max(w.stabilisator || 0, w.balance || 0), grenze = balanciert ? 28 : 12;
       if (Math.abs(d) > frei) {
-        var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * 3) * J * stab;
-        M += Math.max(-J * 12, Math.min(J * 12, M2));
+        var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * (balanciert ? 7 : 3)) * J * stab;
+        M += Math.max(-J * grenze, Math.min(J * grenze, M2));
       }
     }
     fz.zusatzMoment = M;

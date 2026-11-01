@@ -301,15 +301,15 @@ FF.CONFIG = {
       text: "Elektro-Skateboard: Du stehst drauf! Flink und wendig – aber wackelig.",
       masse: 75, groesse: { laenge: 1.2, hoehe: 1.6 },
       raeder: [
-        { x: -0.42, y: -0.40, r: 0.17, masse: 2.5, antrieb: true },
-        { x:  0.42, y: -0.40, r: 0.17, masse: 2.5, antrieb: false }
+        { x: -0.52, y: -0.40, r: 0.21, masse: 2.5, antrieb: true },
+        { x:  0.52, y: -0.40, r: 0.21, masse: 2.5, antrieb: false }
       ],
-      federung: { ruhe: 0.12, weg: 0.09, frequenz: 2.6, daempfung: 0.6 },
+      federung: { ruhe: 0.12, weg: 0.1, frequenz: 2.2, daempfung: 0.7 },
       motor: { drehmoment: 55, vmax: 15.5, eck: 0.5 }, bremse: 140, grip: 1.1,
       tankSekunden: 25, luftsteuerung: 7.0, cwA: 0.5, abtrieb: 0,
       balance: 1.0,                     // das Kind balanciert am Boden selbst (wie der Stabilisator bei „Leicht“)
       leerlauf: 0, rekuperation: 0.4, akku: true,
-      huelle: [[-0.6, -0.40], [0.6, -0.40], [0.66, -0.30], [-0.66, -0.30]],
+      huelle: [[-0.68, -0.40], [0.68, -0.40], [0.74, -0.30], [-0.74, -0.30]],
       dach: [[0.0, 0.62], [-0.05, 0.3]],
       kopf: { x: 0.02, y: 0.86, r: 0.28 },
       farbe: "lila", form: "skateboard",
@@ -999,6 +999,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "21", titel: "Geheime Welten und besseres Skateboard", punkte: [
+      "🤫 Im ❓ siehst du nur die Welten, die du schon freigespielt hast – die anderen bleiben eine Überraschung",
+      "🛹 Das Skateboard kippt am Berg nicht mehr so leicht nach hinten: Meistens kannst du auf dem Gas bleiben",
+      "👦 Jonte sieht jetzt mehr wie ein Junge aus" ] },
     { version: "20", titel: "Fünf neue Welten, Skateboard und Flugzeug", punkte: [
       "⛰️ Gebirge: steile Felsen, tiefe Abgründe, große Schanzen, Steinböcke und Adler",
       "👻 Geisterwelt: dunkel, Vollmond, Fledermäuse – und freundliche Geister, die plötzlich auftauchen",

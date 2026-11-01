@@ -1933,8 +1933,12 @@
     }).join("");
     $("hilfe-weltenzahl").textContent = C.welten.length + " Welten";
     $("hilfe-fahrzeuge").textContent = C.fahrzeuge.length + " Fahrzeuge: " + C.fahrzeuge.map(function (f) { return f.emoji + " " + f.name; }).join(", ");
+    // Nur freigeschaltete Welten werden gezeigt – die anderen bleiben eine Überraschung
+    var geheim = 0;
     $("welt-info-liste").innerHTML = C.welten.map(function (w, wi) {
       var sterne = 0, offen = levelOffen(wi, 0);
+      if (!offen) { geheim++; return '<div class="welt-info geheim" aria-label="Geheime Welt"><div class="geheim-bild">❓</div>' +
+        '<div class="welt-info-text"><div class="welt-info-name"><span>🔒 Geheime Welt</span></div><div class="geheim-zeile"></div><div class="geheim-zeile kurz"></div></div></div>'; }
       for (var li = 0; li < w.level.length; li++) sterne += levelStand(wi, li).sterne || 0;
       return '<div class="welt-info"><img src="bilder/welten/' + w.id + '.jpg" alt="Bild aus der Welt ' + w.name + '" loading="lazy" width="320" height="150">' +
         '<div class="welt-info-text"><div class="welt-info-name"><span>' + w.emoji + " " + w.name + "</span><small>" +
@@ -1942,6 +1946,7 @@
         '<div class="welt-info-hinweis">' + w.hinweis + "</div>" +
         '<div class="welt-info-marken">' + weltMerkmale(w).map(function (m) { return "<span>" + m + "</span>"; }).join("") + "</div></div></div>";
     }).join("");
+    $("welten-intro").textContent = geheim ? "Deine Welten – und " + geheim + " geheime, die du noch freispielen kannst! 🤫" : "Alle Welten freigespielt – super! 🌟";
     oeffneModal("hilfe");
     zeigeHilfeSeite(typeof seite === "string" ? seite : "anleitung");
   }

@@ -23,7 +23,8 @@ Spielerwahl und in der Fortschrittsleiste.
 | Frisur | voller, weicher Schopf; **Pony seitlich in die Stirn** gekämmt, läuft vorne in Spitzen aus; Ohren halb unter den Haaren | lange Haare, **zum Dutt gebunden** (hinten oben, mit Haargummi); **Stirn frei**, feine abstehende Härchen an Schläfe, Ohr und Nacken |
 | Brille | – | **runde schwarze Brille** mit kräftigem Rahmen, Bügel zum Ohr, Lichtreflex auf den Gläsern |
 | Augen | braun | braun (hinter der Brille) |
-| Gesicht | rund, volle Wangen, rosige Bäckchen | schmaler und länger, Kinn schmaler |
+| Gesicht | rund, volle Wangen, rosige Bäckchen | etwas länger, **kantiger Kiefer**, kaum Bäckchen (ein Junge!) |
+| Augenbrauen | fein, gewölbt | **kräftig, gerade, dunkler** |
 | Mund | verschmitztes Lächeln, Lippen zusammen | schiefes Lächeln, rechts höher, einen Spalt offen |
 | Ohren | halb verdeckt | frei, stehen etwas ab |
 
@@ -37,7 +38,7 @@ obendrauf und zwei schwarzen Brillenringen**.
 | | erster Look (voreingestellt, wie auf dem Foto) | zweiter Look |
 |---|---|---|
 | **Fiete** | „Ohne Cap“ | „Mit Cap“: schwarze Baseball-Cap mit Nähten, Knopf und Schirm nach vorn. Pony und Nacken schauen darunter hervor, im Fahrtwind wehen sie weniger. |
-| **Jonte** | „Mit Dutt“ | „Haare offen“: bis auf die Schultern, hinters Ohr gestrichen, ohne Pony. Die Brille bleibt. Im Fahrtwind wehen die Haare nach hinten. |
+| **Jonte** | „Mit Dutt“ | „Haare offen“: lang und glatt bis zur Rückenmitte, hinters Ohr gestrichen, ohne Pony. Die Brille bleibt. Im Fahrtwind wehen die Haare nach hinten. |
 
 Das Foto selbst liegt bewusst **nicht** im Repo. Alles Nötige steht in
 diesem Steckbrief und in den Farbwerten in `kinder.js`.
