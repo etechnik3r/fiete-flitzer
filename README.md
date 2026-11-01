@@ -205,8 +205,28 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   dschungel, brachio, riesenrad, bonbon, wolkenberg, stalagmiten, dorf, zaun,
   riesenblumen, halme, windrad, riff, wrack, tang).
   Jede Requisite steht auf dem tiefsten Bodenpunkt unter ihrer Breite (am
-  Hang steckt der Rest im Boden, nichts schwebt). Die Ebenen ziehen
-  verschieden schnell vorbei (Parallaxe 0,08 / 0,2 / 0,42).
+  Hang steckt der Rest im Boden, nichts schwebt); auf Kuppen und Kanten, wo
+  mehr als 30 % der Größe im Boden stecken würden, wird sie weggelassen.
+  Die Ebenen ziehen verschieden schnell vorbei (Parallaxe 0,08 / 0,2 / 0,42)
+  und verhalten sich wie echte Kulissen (`zeichneBerge`):
+  - **Starr**: Umriss und Silhouetten werden auf einem weltfesten Raster der
+    Ebene abgetastet (1/6 der feinsten Wellenlänge), nicht pro Bildschirm-
+    pixel – beim Fahren verschiebt sich die Ebene nur, nichts flimmert.
+  - **Höhe**: senkrecht dieselbe Parallaxe wie waagrecht, aber nur für das
+    Relief um eine stark geglättete Bezugshöhe (Dreiecksfenster ±120 m,
+    Catmull-Rom auf 8-m-Raster, `bezugsHoehe`), weich begrenzt mit tanh – auf
+    hohen Bergen rutschen die Berge nicht weg, und nichts ruckt.
+  - **Zoom**: Der Tempo-Zoom wirkt gleichmäßig in x und y um den Kamera-Anker,
+    ferne Ebenen fast gar nicht (Faktor 1 + (Zoom − 1)·min(1, 2·Parallaxe)).
+  - Silhouetten stehen auf dem tiefsten Punkt unter ihrer Breite; Klemmbaustein-
+    Hügel (`stufig`) sind echte Stufen von 1,6 m.
+  Wolken, Sterne, Vögel und Lichtbahnen rechnen mit dem Maßstab ohne Zoom
+  (sonst springen sie beim Zoomen seitlich); Wetter-Teilchen bleiben auch beim
+  Springen in der Luft stehen. `node werkzeuge/hintergrund.js` misst das je
+  Welt und Ebene (Fahren 5 px, Zoom 1 → 0,85, Kamera 1 m höher): Anteil
+  falscher Pixel nach der erwarteten Bewegung. Vorher: bis 107 ‰ beim Fahren
+  (Klemmbaustein-Land) und 50–386 ‰ beim Zoomen; jetzt höchstens 0,4 ‰ bzw. 8,5 ‰
+  (nur Kantenglättung).
   **Rechenzeit**: Jede Variante wird einmal in ein kleines Bild gemalt (in
   Größenstufen ×1,25) und stufenlos verkleinert gezeichnet – beim Zoomen mit
   dem Tempo springt so keine Größe, und es muss kaum neu gemalt werden.
@@ -649,6 +669,7 @@ install chromium`):
 ```bash
 node werkzeuge/browsertest.js                     # ablauf, layout, robust, offline, inhalte
 node werkzeuge/browsertest.js leistung            # Bildrate (nur Info)
+node werkzeuge/hintergrund.js                     # Hintergrund starr und ruhig? (je Welt und Ebene)
 node werkzeuge/browsertest.js layout --bilder fotos   # mit Bildschirmfotos
 ```
 

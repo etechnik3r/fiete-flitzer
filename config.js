@@ -952,7 +952,7 @@ FF.CONFIG = {
       id: "bausteine", name: "Klemmbaustein-Land", emoji: "🧱", hinweis: "Alles aus Bausteinen – Säulen zerfallen beim Durchfahren!",
       schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.02, abprall: 0.06, luftdichte: 1.2,
       farben: {
-        himmel: ["#6fc3ff", "#e4f5ff"], berge: ["#ffd23f", "#e8453c"],
+        himmel: ["#6fc3ff", "#e4f5ff"], berge: ["#ffd86a", "#6f9fe0"],
         boden: ["#3cc35a", "#2a8f42"], oberflaeche: "#4fd068", kante: "#8ff09f", punkte: "#2a8f42"
       },
       sonne: "sonne", wetter: null,
@@ -1052,6 +1052,13 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "24", titel: "Ruhiger, echter Hintergrund", punkte: [
+      "🏔️ Die Berge im Hintergrund flimmern nicht mehr: Sie gleiten jetzt wie echte Kulissen vorbei",
+      "🔭 Beim Schnellfahren zoomen nahe Hügel mit, ferne Berge bleiben fast gleich groß",
+      "⛰️ Auf hohen Bergen rutscht der Hintergrund nicht mehr weg",
+      "🏠 Nichts hängt mehr halb in der Luft oder steckt halb im Hang",
+      "❄️ Schnee, Blätter und Funken bleiben beim Springen in der Luft stehen",
+      "🧱 Klemmbaustein-Land: ruhige Stufen und Wolken aus richtigen Steinen" ] },
     { version: "23", titel: "Beifahrer, Felgen und Themen-Sonnen", punkte: [
       "🐾 In der Garage: Ein Tier fährt mit – Hund, Katze, Hase, Papagei, Mini-Dino oder sogar ein Einhorn!",
       "🛞 Neue Felgen: Gold, Stern, Blume, Neon und Regenbogen",

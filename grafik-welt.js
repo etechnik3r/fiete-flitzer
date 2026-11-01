@@ -57,8 +57,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       wolkeMalen(ctx, x - r * 0.4, y + r * 0.05, r * 2.6);
     } else if (welt.sonne === "lichtstrahlen") {
       // Unter Wasser: Licht fällt in Bahnen von der Oberfläche herein, die Oberfläche glitzert
-      for (var ls = 0; ls < 6; ls++) {
-        var lx = K.b * (0.08 + ls * 0.18) + Math.sin(zeit * 0.3 + ls * 1.7) * K.b * 0.03 - ((K.x * K.s * 0.03) % (K.b * 0.18));
+      // Jede Bahn hat eine feste Nummer j (weltfest) – keine springenden Bahnen beim Umlauf
+      var lAbst = K.b * 0.18, lOff = himmelVersatz(K, 0.03) - K.b * 0.08;
+      for (var j = Math.floor((lOff - K.b * 0.1 - K.h * 0.5) / lAbst); j * lAbst - lOff < K.b + K.b * 0.06; j++) {
+        var ls = ((j % 6) + 6) % 6;
+        var lx = j * lAbst - lOff + Math.sin(zeit * 0.3 + ls * 1.7) * K.b * 0.03;
         var lb = K.b * (0.03 + 0.025 * ((ls * 7) % 3));
         ctx.fillStyle = "rgba(220,250,255," + (0.07 + 0.05 * Math.sin(zeit * 0.7 + ls * 2.1)) + ")";
         ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx + lb, 0); ctx.lineTo(lx + lb * 2.2 + K.h * 0.35, K.h * 0.85); ctx.lineTo(lx + K.h * 0.35, K.h * 0.85); ctx.closePath(); ctx.fill();
@@ -285,18 +288,20 @@ var FF = globalThis.FF = globalThis.FF || {};
     var farbe = welt.farben.wolken || (welt.id === "vulkan" ? "rgba(120,90,100,0.55)" : "rgba(255,255,255,0.85)");
     for (var i = 0; i < 6; i++) {
       var basis = i * 337 + 60;
-      var x = ((basis - K.x * K.s * 0.06 + zeit * 8 * (1 + i % 3 * 0.3)) % breite + breite) % breite - 200;
+      var x = ((basis - himmelVersatz(K, 0.06) + zeit * 8 * (1 + i % 3 * 0.3)) % breite + breite) % breite - 200;
       var y = K.h * (0.08 + (i * 0.137) % 0.3);
       var w = (60 + (i * 53) % 70) * gross;
       if (welt.wolkenStil === "keine" || (welt.wolkenStil === "wenige" && i % 3)) continue;
       ctx.fillStyle = farbe;
-      if (welt.wolkenStil === "baustein") {             // Wolke aus weißen Klemmbausteinen
-        var st = w * 0.16;
-        [[-0.5, 0, 1.0], [-0.25, -1, 0.6], [0.05, -1, 0.45], [-0.1, -2, 0.3]].forEach(function (q) {
-          var bx = x + q[0] * w * 0.6, by = y + q[1] * st, bb = q[2] * w * 0.6;
-          ctx.fillStyle = "#ffffff"; ctx.fillRect(bx, by - st, bb, st);
-          for (var k = 0; k < Math.max(1, Math.round(bb / (st * 1.2))); k++) ctx.fillRect(bx + (k + 0.2) * st * 1.2, by - st * 1.3, st * 0.7, st * 0.3);
-          ctx.fillStyle = "rgba(170,200,230,0.5)"; ctx.fillRect(bx, by - st * 0.2, bb, st * 0.2);
+      if (welt.wolkenStil === "baustein") {             // Wolke aus weißen Klemmbausteinen: 4 + 3 + 1 Steine
+        var sl = w * 0.22, sh = sl * 0.42;               // Steinlänge, Steinhöhe
+        [[-2, 0], [-1, 0], [0, 0], [1, 0], [-1.5, 1], [-0.5, 1], [0.5, 1], [-0.5, 2]].forEach(function (q) {
+          var bx = x + q[0] * sl, by = y - q[1] * sh;
+          ctx.fillStyle = "#ffffff"; ctx.fillRect(bx, by - sh, sl, sh);
+          ctx.fillRect(bx + sl * 0.18, by - sh * 1.3, sl * 0.24, sh * 0.3);     // Noppen
+          ctx.fillRect(bx + sl * 0.58, by - sh * 1.3, sl * 0.24, sh * 0.3);
+          ctx.fillStyle = "rgba(160,190,225,0.55)";                            // Fuge und Schatten unten
+          ctx.fillRect(bx + sl - 1, by - sh, 1, sh); ctx.fillRect(bx, by - sh * 0.18, sl, sh * 0.18);
         });
       } else if (welt.wolkenStil === "glas") {          // Wolke als Glaskontur
         ctx.fillStyle = "rgba(255,255,255,0.35)"; wolkeMalen(ctx, x, y, w);
@@ -608,51 +613,106 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     ctx.closePath(); ctx.moveTo(x + r * 0.28, y); ctx.arc(x, y, r * 0.28, 0, Math.PI * 2, true); ctx.fill("evenodd");
   }
-  function zeichneBerge(ctx, K, welt, zeit, gel) {
+  /* Bezugshöhe der Berge: stark geglättete Geländehöhe um x (Dreiecksfenster ±120 m,
+     auf einem 8-m-Raster gemerkt). Die Berge stehen „auf derselben Landschaft“: Sie
+     folgen der großen Höhenlage, die Höhen-Parallaxe reagiert nur auf das Relief davor.
+     Gemerkt wird nur, wenn das Fenster ganz erzeugt ist (Endlos-Modus wächst). */
+  function bezugsHoehe(gel, x) {
+    var M = gel._bergBezug || (gel._bergBezug = {}), RASTER = 8;
+    var xEnde = gel.x0 + (gel.h.length - 1) * gel.dx;
+    function wert(k) {
+      if (M[k] !== undefined) return M[k];
+      var xm = k * RASTER, s = 0, w = 0;
+      for (var d = -120; d <= 120; d += 3) {
+        var xx = Math.max(gel.x0, Math.min(xEnde, xm + d)), g = 1 - Math.abs(d) / 124;
+        s += g * gel.hoeheBei(xx); w += g;
+      }
+      if (xm + 120 <= xEnde) M[k] = s / w;
+      return s / w;
+    }
+    // Catmull-Rom zwischen den Rasterpunkten: ohne Knicke, also ohne senkrechten Ruck
+    var k = Math.floor(x / RASTER), t = x / RASTER - k;
+    var p0 = wert(k - 1), p1 = wert(k), p2 = wert(k + 1), p3 = wert(k + 2);
+    return p1 + 0.5 * t * (p2 - p0 + t * (2 * p0 - 5 * p1 + 4 * p2 - p3 + t * (3 * (p1 - p2) + p3 - p0)));
+  }
+
+  /* Parallaxe-Versatz in Pixeln für Himmel-Dinge (Wolken, Sterne, Vögel): mit dem
+     Maßstab OHNE Tempo-Zoom – sonst springen sie beim Rein-/Rauszoomen seitlich. */
+  function himmelVersatz(K, fak) { return K.x * (K.s / (K.zoom || 1)) * fak; }
+
+  /* Hintergrund-Ebenen. Physikalisch wie eine Kamera, die an Kulissen vorbeifährt:
+     - Jede Ebene ist starr: Umriss und Silhouetten hängen an festen Punkten der Ebene
+       (Abtastung auf einem weltfesten Raster, nicht pro Bildschirmpixel) – beim
+       Fahren verschiebt sie sich nur, nichts „schwimmt“ oder flackert.
+     - Waagrecht und senkrecht dieselbe Parallaxe (fak); senkrecht nur das Relief um
+       die geglättete Bezugshöhe, weich begrenzt (tanh), damit die Berge nie wegrutschen.
+     - Tempo-Zoom: ferne Ebenen fast gar nicht, nahe stärker – gleichmäßig in beide
+       Richtungen um den Kamera-Anker (kein Strecken nur in x).
+     - Silhouetten stehen auf dem tiefsten Punkt unter ihrer Breite (nichts hängt in
+       der Luft); was im Hang steckt, hat dieselbe Farbe wie der Hang.
+     nurEbene: nur diese Ebene malen (für den Test werkzeuge/hintergrund.js). */
+  function zeichneBerge(ctx, K, welt, zeit, gel, nurEbene) {
     var f = welt.farben, ku = welt.kulisse || [], dunst = f.himmel[1];
     // [Parallaxe, Farbe, Grundlinie, Wellenlänge, Zufall, Höhe, Silhouetten-Größe]
     // Deutlich verschieden schnell: hinten ein Zwölftel, vorn fast halb so schnell wie die Strecke
     var ebenen = [[0.08, mische(f.berge[0], dunst, 0.55), 0.46, 170, 5, 0.1, 0.2],
                   [0.2, mische(f.berge[0], dunst, 0.15), 0.54, 120, 11, 0.12, 0.17],
                   [0.42, dunkel(f.berge[1], 0.06), 0.65, 70, 23, 0.11, 0.13]];
-    // Erst alle Umrisse berechnen: Jede Ebene wird nur bis knapp unter den tiefsten
-    // Punkt der Ebene davor gemalt – sonst würden große Flächen doppelt gemalt
-    var SCHRITT = 24, linien = [], tiefste = [], bodenTiefst = K.h;
+    var zoom = K.zoom || 1, S0 = K.s / zoom;
+    var ax = K.b * (K.ankerX === undefined ? 0.5 : K.ankerX), ay = K.h * (K.ankerY === undefined ? 0.5 : K.ankerY);
+    var relief = gel ? K.y - bezugsHoehe(gel, K.x) : 0, GRENZE = K.h * 0.2;
+    var bodenTiefst = K.h;
     if (gel) {                                       // vorderste Ebene: nur bis zum tiefsten Bodenpunkt im Bild
       var b = sichtbereich(K, gel); bodenTiefst = -Infinity;
       for (var j = b[0]; j <= b[1]; j += 4) bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[j]));
       bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[b[1]]));
     }
-    ebenen.forEach(function (E, e) {
-      var yVersatz = Math.max(-K.h * 0.25, Math.min(K.h * 0.25, (K.y - 5) * K.s * E[0] * 0.5)), l = [], t = -Infinity;
-      for (var px = 0; px <= K.b + SCHRITT; px += SCHRITT) {
-        var wx = K.x * E[0] + (px - K.b / 2) / K.s;
-        var n = FF.rauschen(wx / (E[3] / 10), E[4]) + 0.5 * FF.rauschen(wx / (E[3] / 25), E[4] + 5);
-        var y = K.h * E[2] - n * K.h * E[5] + yVersatz;
-        if (welt.stufig) { var stu = K.h * 0.035; y = Math.round(y / stu) * stu; }   // Klemmbaustein-Land: Hügel als Stufen
-        l.push(y); t = Math.max(t, y);
+    var lagen = ebenen.map(function (E) {
+      var fak = E[0], z = 1 + (zoom - 1) * Math.min(1, fak * 2), S = S0 * z;
+      var V = GRENZE * Math.tanh(relief * S0 * fak * 0.7 / GRENZE);
+      var gitter = E[3] / 25, stufe = welt.stufig ? K.h * 0.035 : 0, ZELLE = 1.6;   // Stufe: 1,6 m breit (≈ 2 Steine)
+      function form(u) {                               // Entwurfshöhe (Pixel bei Zoom 1)
+        if (stufe) u = (Math.floor(u / ZELLE) + 0.5) * ZELLE;                // Bausteine: waagrechte Stufen
+        // Bausteine: ohne die feine Welle – sonst lauter einzelne Zacken statt ruhiger Stufen
+        var n = FF.rauschen(u / (E[3] / 10), E[4]) + (stufe ? 0 : 0.5 * FF.rauschen(u / gitter, E[4] + 5));
+        var y = K.h * E[2] - n * K.h * E[5];
+        return stufe ? Math.round(y / stufe) * stufe : y;
       }
-      linien.push(l); tiefste.push(t);
+      var L = { E: E, fak: fak, z: z, S: S, gitter: gitter, stufe: stufe, punkte: [], tiefst: -Infinity };
+      L.X = function (u) { return ax + (u - K.x * fak) * S; };
+      L.Y = function (u) { return ay + (form(u) - ay) * z + V; };
+      var u0 = K.x * fak - (ax + 2) / S, u1 = K.x * fak + (K.b - ax + 2) / S;
+      var du = stufe ? ZELLE : gitter / 6;
+      for (var k = Math.floor(u0 / du); k * du <= u1 + du; k++) {
+        var u = k * du, y = L.Y(stufe ? u + du / 2 : u);
+        if (stufe) L.punkte.push([L.X(u), y], [L.X(u + du), y]);
+        else L.punkte.push([L.X(u), y]);
+        L.tiefst = Math.max(L.tiefst, y);
+      }
+      return L;
     });
-    for (var e = 0; e < ebenen.length; e++) {
-      var E = ebenen[e], fak = E[0], seed = E[4], L = linien[e];
-      var hoehe = function (px) { var i = Math.max(0, Math.min(L.length - 2, Math.floor(px / SCHRITT))), t = px / SCHRITT - i; return L[i] * (1 - t) + L[i + 1] * t; };
-      var unten = e < ebenen.length - 1 ? Math.min(K.h, tiefste[e + 1] + 4) : Math.min(K.h, bodenTiefst + 4);
+    for (var e = 0; e < lagen.length; e++) {
+      if (nurEbene !== undefined && e !== nurEbene) continue;
+      var L = lagen[e], E = L.E, P = L.punkte;
+      var unten = nurEbene !== undefined ? K.h : e < lagen.length - 1 ? Math.min(K.h, lagen[e + 1].tiefst + 4) : Math.min(K.h, bodenTiefst + 4);
       ctx.fillStyle = E[1];
       ctx.beginPath();
-      ctx.moveTo(0, unten);
-      for (var i = 0; i < L.length; i++) ctx.lineTo(i * SCHRITT, Math.min(L[i], unten));
-      ctx.lineTo((L.length - 1) * SCHRITT, unten);
+      ctx.moveTo(P[0][0], unten);
+      for (var i = 0; i < P.length; i++) ctx.lineTo(P[i][0], Math.min(P[i][1], unten));
+      ctx.lineTo(P[P.length - 1][0], unten);
       ctx.closePath();
       ctx.fill();
       var art = KULISSE[ku[e]];
       if (!art) continue;
-      var s = K.h * E[6] * (welt.kulisseGroesse || 1), wl0 = K.x * fak + (-K.b / 2 - s * 2) / K.s, wl1 = K.x * fak + (K.b / 2 + s * 2) / K.s;
+      var s = K.h * E[6] * (welt.kulisseGroesse || 1) * L.z, seed = E[4];
+      var wl0 = K.x * L.fak + (-ax - s * 2) / L.S, wl1 = K.x * L.fak + (K.b - ax + s * 2) / L.S, hb = s * 0.22 / L.S;
       for (var k = Math.floor(wl0 / art.abst); k * art.abst <= wl1; k++) {
         if (zufall01(k, seed + 31) < 0.3) continue;
         var wx = k * art.abst + zufall01(k, seed + 32) * art.abst * 0.6;
-        var x = (wx - K.x * fak) * K.s + K.b / 2, y = hoehe(x) + s * 0.05;
+        var x = L.X(wx), y = Math.max(L.Y(wx - hb), L.Y(wx), L.Y(wx + hb)) + s * 0.04;
+        if (y > unten + s) continue;                     // steckt ganz hinter der Ebene davor
         var z = 0, R = function () { z++; return zufall01(k * 13 + z, seed + 40); };
+        ctx.fillStyle = E[1];
         art.male(ctx, x, y, s, R, f, zeit, k);
       }
     }
@@ -982,7 +1042,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function Wetter() { this.teile = []; this.art = null; this.letztesX = null; this.bursts = []; this.naechster = 0; }
   var HINTEN = { sterne: true, feuerwerk: true };     // diese Arten liegen hinter den Bergen
   Wetter.prototype.setze = function (art, K) {
-    this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
+    this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6; this.letztesX = null; this.letztesY = null;
     if (!art) return;
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
     var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26, adler: 3, fledermaeuse: 7 }[art] || 14;
@@ -995,12 +1055,18 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (!art || !!HINTEN[art] !== hinten) return;
     var dx = this.letztesX === null ? 0 : (K.x - this.letztesX) * K.s;
     this.letztesX = K.x;
+    // Auch senkrecht mit der Kamera: Springt das Auto, bleibt der Schnee in der Luft
+    // stehen statt am Bildschirm zu kleben (0,6 wie waagrecht: etwas hinter dem Auto)
+    var dy = this.letztesY === undefined || this.letztesY === null ? 0 : (K.y - this.letztesY) * K.s;
+    this.letztesY = K.y;
+    if (Math.abs(dx) > K.b * 0.5) dx = 0;
+    if (Math.abs(dy) > K.h * 0.5) dy = 0;
     var B = K.b, H = K.h;
     if (art === "feuerwerk") this.feuerwerk(ctx, K, dt);
     for (var i = 0; i < this.teile.length; i++) {
       var t = this.teile[i];
       if (art === "sterne" || art === "feuerwerk") {
-        var x = ((t.x - K.x * K.s * 0.02) % B + B) % B;
+        var x = ((t.x - himmelVersatz(K, 0.02)) % B + B) % B;
         ctx.fillStyle = "rgba(255,255,255," + (0.4 + 0.5 * Math.abs(Math.sin(zeit * 1.5 + t.p))) + ")";
         ctx.fillRect(x, t.y * 0.65, 1.5 * t.g, 1.5 * t.g);
         continue;
@@ -1026,7 +1092,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         var adler = art === "adler", spanne = B + 160;
         if (t.ox === undefined) t.ox = t.x;
         t.ox += (adler ? 6 + 4 * t.g : (t.p > 3 ? 1 : -1) * (12 + 10 * t.g)) * dt;
-        t.x = ((t.ox - K.x * K.s * (adler ? 0.1 : 0.3) + Math.sin(zeit * (adler ? 0.25 : 0.9) + t.p) * (adler ? 40 : 25)) % spanne + spanne) % spanne - 80;
+        t.x = ((t.ox - himmelVersatz(K, adler ? 0.1 : 0.3) + Math.sin(zeit * (adler ? 0.25 : 0.9) + t.p) * (adler ? 40 : 25)) % spanne + spanne) % spanne - 80;
         t.y = adler ? H * (0.1 + 0.12 * t.g) + Math.sin(zeit * 0.35 + t.p) * H * 0.04
                     : H * (0.15 + 0.3 * ((t.p * 7) % 1)) + Math.sin(zeit * 3 + t.p * 5) * 12;
         t.frei = true;
@@ -1037,6 +1103,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (t.y < H * 0.4) t.y += 40 * dt;                        // bleiben über dem Boden, nicht im Himmel
         if (t.y > H * 0.75) t.y -= 40 * dt;
       }
+      if (!t.frei && art !== "gluehwuermchen") t.y += dy * 0.6;
       if (t.y > H + 10) { t.y = -10; t.x = Math.random() * B; }
       if (t.y < -10) { t.y = H + 10; t.x = Math.random() * B; }
       if (!t.frei) t.x = ((t.x % (B + 20)) + B + 20) % (B + 20) - 10;
@@ -1433,7 +1500,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   FF.GrafikWelt = {
-    zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, zeichneDecke: zeichneDecke,
+    zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
     zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, zeichneKatapulte: zeichneKatapulte, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
