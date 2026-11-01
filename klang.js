@@ -530,6 +530,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "band":                     // Förderband: Rattern, auf- oder absteigend
         for (var bi = 0; bi < 5; bi++) ton(wert ? 300 + bi * 60 : 540 - bi * 60, bi * 0.06, 0.05, "square", 0.04);
         break;
+      case "schwebe":                  // schwerelos: sanft aufsteigender Klang
+        ton(330, 0, 0.9, "sine", 0.12, 990); ton(495, 0.08, 0.8, "triangle", 0.05, 1480); ton(1320, 0.3, 0.5, "sine", 0.04);
+        break;
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;

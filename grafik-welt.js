@@ -426,6 +426,24 @@ var FF = globalThis.FF = globalThis.FF || {};
       zahnrad(ctx, x, y - h, r1, 10, zeit * 0.8 * (k % 2 ? 1 : -1));
       zahnrad(ctx, x + (r1 + r2) * 0.92, y - h + r1 * 0.3, r2, 6, -zeit * 0.8 * r1 / r2 * (k % 2 ? 1 : -1));
     } },
+    station: { abst: 40, male: function (ctx, x, y, s, R, f) {
+      // Module der Raumstation: Zylinder, Verbindungsröhren, Solarflügel, Antennen, Lichter
+      var n = 2 + Math.floor(R() * 2), alt = ctx.fillStyle, licht = [];
+      for (var i = 0; i < n; i++) {
+        var b = s * (0.22 + 0.12 * R()), h = s * (0.14 + 0.1 * R()), xx = x + (i - (n - 1) / 2) * s * 0.36, yy = y - s * (0.05 + 0.25 * R());
+        ctx.fillRect(xx - b / 2, yy - h, b, h);
+        ctx.beginPath(); ctx.arc(xx - b / 2, yy - h / 2, h / 2, Math.PI / 2, Math.PI * 1.5); ctx.arc(xx + b / 2, yy - h / 2, h / 2, -Math.PI / 2, Math.PI / 2); ctx.fill();
+        ctx.fillRect(xx - s * 0.015, yy, s * 0.03, y - yy + 2);
+        licht.push([xx, yy - h / 2]);
+      }
+      ctx.fillRect(x - n * s * 0.18, y - s * 0.2, n * s * 0.36, s * 0.02);
+      var px = x + n * s * 0.2, py = y - s * 0.45;                    // Solarflügel
+      for (var k = 0; k < 3; k++) ctx.fillRect(px + k * s * 0.09, py, s * 0.08, s * 0.16);
+      ctx.fillRect(x - s * 0.01, y - s * 0.7, s * 0.02, s * 0.5);
+      ctx.fillStyle = f.fenster || "#7af0ff";
+      licht.forEach(function (l) { for (var k2 = -1; k2 <= 1; k2++) ctx.fillRect(l[0] + k2 * s * 0.06 - s * 0.012, l[1] - s * 0.012, s * 0.024, s * 0.024); });
+      ctx.fillStyle = alt;
+    } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
         var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
@@ -677,6 +695,14 @@ var FF = globalThis.FF = globalThis.FF || {};
         X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
         ctx.beginPath(); ctx.moveTo(X, Y + 0.05 * K.s); ctx.lineTo(X, Y + 0.6 * K.s); ctx.stroke();
       }
+    } else if (stil === "station") {
+      ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
+      for (i = i0 - (i0 % 5); i <= i1; i += 5) {                   // Bodenplatten mit Nieten
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
+        ctx.beginPath(); ctx.moveTo(X, Y + 0.08 * K.s); ctx.lineTo(X, Y + 0.9 * K.s); ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(122,240,255," + (0.5 + 0.3 * Math.sin(zeit * 3)) + ")";
+      for (i = i0 - (i0 % 10); i <= i1; i += 10) { X = sx(K, x0 + i * dx + 0.4); Y = sy(K, h[i]) + 0.45 * K.s; ctx.fillRect(X - 0.06 * K.s, Y - 0.06 * K.s, 0.12 * K.s, 0.12 * K.s); }
     } else if (stil === "mars") {
       for (i = i0 - (i0 % 9); i <= i1; i += 9) {
         var gm = FF.rauschen(i * 0.53, 4) * 0.5 + 0.5;
@@ -1052,10 +1078,46 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Schwebe-Säulen: leuchtende Säule vom Boden bis oben, aufsteigende Ringe und
+     Funken, an beiden Seiten ein Sender am Boden */
+  function zeichneSchwebezonen(ctx, K, gel, zeit) {
+    var Z = gel.schwebezonen, s = K.s;
+    for (var i = 0; i < Z.length; i++) {
+      var z = Z[i], X0 = sx(K, z.x0), X1 = sx(K, z.x1);
+      if (X1 < -40 || X0 > K.b + 40) continue;
+      var Yb = sy(K, Math.min(gel.hoeheBei(z.x0), gel.hoeheBei(z.x1)) - 0.5);
+      var gr = ctx.createLinearGradient(X0, 0, X1, 0);
+      gr.addColorStop(0, "rgba(122,240,255,0)"); gr.addColorStop(0.1, "rgba(122,240,255,0.32)");
+      gr.addColorStop(0.5, "rgba(170,140,255,0.16)"); gr.addColorStop(0.9, "rgba(122,240,255,0.32)"); gr.addColorStop(1, "rgba(122,240,255,0)");
+      ctx.fillStyle = gr; ctx.fillRect(X0, 0, X1 - X0, Yb);
+      ctx.strokeStyle = "rgba(190,250,255,0.45)"; ctx.lineWidth = Math.max(1, 0.05 * s);
+      for (var k = 0; k < 5; k++) {                                   // aufsteigende Ringe
+        var u = (zeit * 0.35 + k / 5) % 1, Y = Yb - u * Math.min(Yb, 14 * s);
+        ctx.globalAlpha = 1 - u;
+        ctx.beginPath(); ctx.ellipse((X0 + X1) / 2, Y, (X1 - X0) * 0.45, 0.25 * s, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(230,255,255,0.8)";
+      for (k = 0; k < 10; k++) {                                      // Funken
+        var uf = (zeit * (0.25 + 0.05 * (k % 3)) + k * 0.137) % 1, xf = z.x0 + (z.x1 - z.x0) * ((k * 0.618) % 1);
+        ctx.globalAlpha = 1 - uf;
+        ctx.beginPath(); ctx.arc(sx(K, xf), Yb - uf * Math.min(Yb, 12 * s), Math.max(1.2, 0.06 * s), 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      [z.x0, z.x1].forEach(function (xs) {                             // Sender am Boden
+        var Xs = sx(K, xs), Ys = sy(K, gel.hoeheBei(xs));
+        ctx.fillStyle = "#3a4152"; ctx.fillRect(Xs - 0.25 * s, Ys - 0.5 * s, 0.5 * s, 0.5 * s);
+        ctx.fillStyle = "rgba(122,240,255," + (0.6 + 0.3 * Math.sin(zeit * 4)) + ")";
+        ctx.beginPath(); ctx.arc(Xs, Ys - 0.55 * s, 0.16 * s, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+  }
+
   FF.GrafikWelt = {
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
-    zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender
+    zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
+    zeichneSchwebezonen: zeichneSchwebezonen
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

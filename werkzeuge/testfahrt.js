@@ -367,6 +367,19 @@ function spielideenTests() {
   var b0 = aufBand(0), bv = aufBand(6), br = aufBand(-4);
   pruefe(bv[0] > b0[0] + 2 && br[0] < b0[0] - 1 && bv[1] < 0.6 && br[1] < 0.6,
     "Förderband: mit Gas vorwärts " + bv[0].toFixed(1) + ", ohne Band " + b0[0].toFixed(1) + ", rückwärts " + br[0].toFixed(1) + " m/s; kein Überschlag beim Auffahren");
+  // Schwebe-Säule: dort fast keine Schwerkraft, das Auto fliegt weit und hoch, kein Kanister darin
+  var st = neu("station", 1), Zs = st.gelaende.schwebezonen[0], mitte = (Zs.x0 + Zs.x1) / 2;
+  var keinTank = st.gelaende.tanks.every(function (t) { return !st.gelaende.gesperrt(t.x); });
+  FF.Physik.setzeAufBoden(st.fz, st.gelaende, Zs.x0 - 14, 0);
+  st.fz.chassis.vx = 10; st.fz.raeder.forEach(function (R) { R.k.vx = 10; });
+  var schwebe = false, hoechst = 0;
+  for (i = 0; i < 240 * 4; i++) {
+    st.aktualisiere(1 / 240, { gas: true, bremse: false });
+    st.ereignisse.forEach(function (ev) { if (ev.typ === "schwebe") schwebe = true; }); st.ereignisse.length = 0;
+    hoechst = Math.max(hoechst, st.fz.chassis.y - st.gelaende.hoeheBei(st.fz.chassis.x));
+  }
+  pruefe(st.gelaende.schwereBei(mitte) < 0.2 && st.gelaende.schwereBei(Zs.x1 + 10) === 1 && schwebe && hoechst > 3 && keinTank,
+    "Schwebe-Säule: 18 % Schwerkraft, Meldung „schwebe“, bis " + hoechst.toFixed(1) + " m über dem Boden, kein Kanister in der Säule");
   // Strecken-Editor: gemalte Strecke wird befahrbar (Steigung begrenzt), Inhalte verteilt, Ziel erreichbar
   var hh = []; for (i = 0; i <= 150; i++) hh.push(i * 2 < 60 ? 0 : (i * 2 < 120 ? (i * 2 - 60) * 1.5 : 90 - (i * 2 - 120) * 0.4));
   var e = new FF.Fahrt({ weltIndex: 0, stufe: 1, fahrzeugId: "flitzer", upgrades: {}, schwierigkeit: "normal", strecke: { dx: 2, h: hh, laenge: 300 } });

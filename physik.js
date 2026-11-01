@@ -220,7 +220,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function schritt(fz, gel, welt, h) {
     var P = FF.CONFIG.physik, w = fz.werte;
     var C = fz.chassis, RR = fz.raeder, nR = RR.length;
-    var g = welt.schwerkraft;
+    var g = welt.schwerkraft * (gel.schwereBei ? gel.schwereBei(C.x) : 1);   // Schwebe-Säulen: fast keine Schwerkraft
     var i, it, R, k, ko, p;
 
     /* 1) Äußere Kräfte → Geschwindigkeiten */

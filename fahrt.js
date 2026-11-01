@@ -254,6 +254,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
+    if (this.gelaende.schwebezonen.length) {                 // Schwebe-Säule betreten?
+      var leicht = this.gelaende.schwereBei(C.x) < 0.5;
+      if (leicht && !this.schwebt && this.zustand === "fahrt") this.melde("schwebe", { x: C.x, y: C.y });
+      this.schwebt = leicht;
+    }
 
     // Tankverbrauch: Leerlauf + Gasstellung + abgegebene Leistung
     if (this.zustand === "fahrt" && this.tank > 0) {

@@ -1550,6 +1550,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.pfuetzen.length) W.zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
+    if (gel.schwebezonen.length) W.zeichneSchwebezonen(ctx, K, gel, z);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
