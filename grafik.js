@@ -143,8 +143,13 @@ var FF = globalThis.FF = globalThis.FF || {};
       // steckt im Boden (der danach drübergemalt wird), nichts hängt in der Luft
       if (d.fuss === undefined) {
         var hb = d.groesse * (d.typ ? FF.Requisiten.breite(d.typ) : 0.8) * 0.45;
-        d.fuss = Math.min(gel.hoeheBei(d.x - hb), gel.hoeheBei(d.x), gel.hoeheBei(d.x + hb), gel.hoeheBei(d.x - hb / 2), gel.hoeheBei(d.x + hb / 2));
+        var hs = [gel.hoeheBei(d.x - hb), gel.hoeheBei(d.x), gel.hoeheBei(d.x + hb), gel.hoeheBei(d.x - hb / 2), gel.hoeheBei(d.x + hb / 2)];
+        d.fuss = Math.min.apply(null, hs);
+        // Auf einer Kuppe oder Kante stünde ein Haus halb im Boden (sieht abgeschnitten
+        // aus) – dort lieber gar nicht hinstellen. Schwebende Deko (Fische …) bleibt.
+        d.weg = !d.hoch && !d.schwimmt && Math.max.apply(null, hs) - d.fuss > d.groesse * 0.3;
       }
+      if (d.weg) continue;
       var yf = d.fuss;
       if (d.hoch) yf += d.hoch + Math.sin(zeit * 1.3 + d.x) * 0.15;          // Fische, Bienen schweben
       else if (d.schwimmt) yf += Math.sin(zeit * 2.2 + d.x) * 0.04;           // Ente in der Pfütze
