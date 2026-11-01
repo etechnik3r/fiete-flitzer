@@ -50,13 +50,14 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   // Emojis einmal in ein kleines Canvas rendern, danach nur kopieren (schnell!).
   // q = Gerätepixel je CSS-Pixel (Retina: 2) → scharfe Emojis.
-  var spriteCache = {};
+  var spriteCache = {}, spriteAnzahl = 0;
   function emojiSprite(emoji, px, q) {
     q = q || 1;
     px = Math.max(8, Math.round(px / 4) * 4);
     var key = emoji + "|" + px + "|" + q;
     var c = spriteCache[key];
     if (c) return c;
+    if (++spriteAnzahl > 400) { spriteCache = {}; spriteAnzahl = 1; }   // Speicher begrenzen (viele Welten, Zoomstufen, Drehen)
     c = document.createElement("canvas");
     c.width = c.height = Math.ceil(px * q * 1.3);
     var g = c.getContext("2d");
@@ -123,379 +124,6 @@ var FF = globalThis.FF = globalThis.FF || {};
   function weltX(K, px) { return K.x + (px - K.b * K.ankerX) / K.s; }
 
   /* =========================================================================
-     3) HIMMEL, SONNE, WOLKEN, BERGE
-     ========================================================================= */
-  /* Himmelsverlauf: entweder hier gemalt oder – schneller – als CSS-Hintergrund
-     hinter dem durchsichtigen Canvas (himmelPerCss, siehe himmelCss()). */
-  function himmelCss(welt) {
-    var verlauf = "linear-gradient(" + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
-    // Vulkaninsel: Glühen am Horizont gleich im CSS-Hintergrund (kostet dann keine Malzeit)
-    if (welt.sonne === "glut") return "radial-gradient(ellipse 70% 45% at 60% 62%, rgba(255,120,60,0.4), rgba(255,90,40,0)), " + verlauf;
-    return verlauf;
-  }
-  function zeichneHimmel(ctx, K, welt, zeit, perCss) {
-    var f = welt.farben;
-    if (perCss) {
-      ctx.clearRect(0, 0, K.b, K.h);
-    } else {
-      var gr = ctx.createLinearGradient(0, 0, 0, K.h);
-      gr.addColorStop(0, f.himmel[0]);
-      gr.addColorStop(1, f.himmel[1]);
-      ctx.fillStyle = gr;
-      ctx.fillRect(0, 0, K.b, K.h);
-    }
-
-    var r = Math.min(K.b, K.h) * 0.09;
-    var x = K.b * 0.8, y = K.h * 0.3;
-    if (welt.sonne === "sonne") {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(zeit * 0.15);
-      ctx.fillStyle = "rgba(255, 214, 80, 0.45)";
-      for (var i = 0; i < 10; i++) {
-        ctx.rotate(Math.PI / 5);
-        ctx.beginPath();
-        ctx.moveTo(r * 1.15, -r * 0.16); ctx.lineTo(r * 1.75, 0); ctx.lineTo(r * 1.15, r * 0.16);
-        ctx.fill();
-      }
-      ctx.restore();
-      var sg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
-      sg.addColorStop(0, "#fff6b8"); sg.addColorStop(1, "#ffcc33");
-      ctx.fillStyle = sg;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-      // freundliches Gesicht
-      ctx.fillStyle = "#8a5a00";
-      ctx.beginPath(); ctx.arc(x - r * 0.32, y - r * 0.12, r * 0.09, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x + r * 0.32, y - r * 0.12, r * 0.09, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#8a5a00"; ctx.lineWidth = r * 0.08; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.arc(x, y + r * 0.05, r * 0.38, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
-      ctx.fillStyle = "rgba(255,120,120,0.45)";
-      ctx.beginPath(); ctx.arc(x - r * 0.55, y + r * 0.2, r * 0.13, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(x + r * 0.55, y + r * 0.2, r * 0.13, 0, Math.PI * 2); ctx.fill();
-    } else if (welt.sonne === "erde") {
-      var eg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
-      eg.addColorStop(0, "#7cc8ff"); eg.addColorStop(1, "#1f5fbf");
-      ctx.fillStyle = eg;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-      ctx.save();
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
-      ctx.fillStyle = "#4caf50";
-      ctx.beginPath(); ctx.ellipse(x - r * 0.25, y - r * 0.15, r * 0.35, r * 0.5, 0.5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(x + r * 0.45, y + r * 0.35, r * 0.3, r * 0.22, -0.3, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.beginPath(); ctx.ellipse(x + r * 0.1, y - r * 0.6, r * 0.5, r * 0.1, 0.2, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    } else if (welt.sonne === "glut" && !perCss) {
-      // Vulkaninsel: rötliches Glühen am Horizont statt einer Sonne
-      var hg = ctx.createRadialGradient(K.b * 0.6, K.h * 0.62, 0, K.b * 0.6, K.h * 0.62, K.b * 0.6);
-      hg.addColorStop(0, "rgba(255,120,60,0.35)"); hg.addColorStop(1, "rgba(255,90,40,0)");
-      ctx.fillStyle = hg; ctx.fillRect(0, 0, K.b, K.h);
-    } else if (welt.sonne === "vulkan") {
-      var vg = ctx.createRadialGradient(x, y + r * 2, r * 0.2, x, y + r * 2, r * 4);
-      vg.addColorStop(0, "rgba(255,140,60,0.7)"); vg.addColorStop(1, "rgba(255,90,40,0)");
-      ctx.fillStyle = vg; ctx.fillRect(x - r * 4, y - r * 2, r * 8, r * 8);
-      ctx.fillStyle = "#3b1d2a";
-      ctx.beginPath();
-      ctx.moveTo(x - r * 3.2, K.h * 0.62); ctx.lineTo(x - r * 0.6, y + r * 0.8);
-      ctx.lineTo(x + r * 0.6, y + r * 0.8); ctx.lineTo(x + r * 3.2, K.h * 0.62); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "#ff7b3a";
-      ctx.beginPath(); ctx.ellipse(x, y + r * 0.8, r * 0.62, r * 0.18, 0, 0, Math.PI * 2); ctx.fill();
-      for (var q = 0; q < 4; q++) {
-        var t = (zeit * 0.25 + q / 4) % 1;
-        ctx.fillStyle = "rgba(90,70,80," + (0.5 * (1 - t)) + ")";
-        ctx.beginPath(); ctx.arc(x + Math.sin(t * 6 + q) * r * 0.4, y + r * 0.5 - t * r * 3, r * (0.35 + t * 0.9), 0, Math.PI * 2); ctx.fill();
-      }
-    } else if (welt.sonne === "mondsichel") {
-      // Lichthof um die helle Seite, darauf die Sichel: Umriss aus zwei Kreisbögen –
-      // außen die Mondscheibe, innen der Kreis, der sie verdeckt (Schnittpunkte P1, P2)
-      var gx = x - r * 0.35, gy = y + r * 0.15;
-      var mg = ctx.createRadialGradient(gx, gy, r * 0.4, gx, gy, r * 2.1);
-      mg.addColorStop(0, "rgba(255,236,190,0.28)"); mg.addColorStop(1, "rgba(255,236,190,0)");
-      ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(gx, gy, r * 2.1, 0, Math.PI * 2); ctx.fill();
-      var cx2 = x + r * 0.45, cy2 = y - r * 0.22, r2 = r * 0.88, dd = Math.hypot(cx2 - x, cy2 - y);
-      var aa = (r * r - r2 * r2 + dd * dd) / (2 * dd), hh = Math.sqrt(r * r - aa * aa);
-      var ux = (cx2 - x) / dd, uy = (cy2 - y) / dd;
-      var p1x = x + aa * ux - hh * uy, p1y = y + aa * uy + hh * ux, p2x = x + aa * ux + hh * uy, p2y = y + aa * uy - hh * ux;
-      ctx.fillStyle = "#fff1bf";
-      ctx.beginPath();
-      ctx.arc(x, y, r, Math.atan2(p1y - y, p1x - x), Math.atan2(p2y - y, p2x - x), false);
-      ctx.arc(cx2, cy2, r2, Math.atan2(p2y - cy2, p2x - cx2), Math.atan2(p1y - cy2, p1x - cx2), true);
-      ctx.closePath(); ctx.fill();
-    } else if (welt.sonne === "regenbogen") {
-      var farben = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
-      ctx.lineWidth = r * 0.28;
-      for (var j = 0; j < farben.length; j++) {
-        ctx.strokeStyle = farben[j];
-        ctx.globalAlpha = 0.75;
-        ctx.beginPath(); ctx.arc(K.b * 0.7, K.h * 0.75, r * (5.2 - j * 0.28), Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  function zeichneWolken(ctx, K, welt, zeit) {
-    if (welt.sonne === "erde" || welt.decke) return;
-    var breite = K.b + 400;
-    var farbe = welt.farben.wolken || (welt.id === "vulkan" ? "rgba(120,90,100,0.55)" : "rgba(255,255,255,0.85)");
-    for (var i = 0; i < 6; i++) {
-      var basis = i * 337 + 60;
-      var x = ((basis - K.x * K.s * 0.06 + zeit * 8 * (1 + i % 3 * 0.3)) % breite + breite) % breite - 200;
-      var y = K.h * (0.08 + (i * 0.137) % 0.3);
-      var w = 60 + (i * 53) % 70;
-      ctx.fillStyle = farbe;
-      ctx.beginPath();
-      ctx.ellipse(x, y, w * 0.5, w * 0.22, 0, 0, Math.PI * 2);
-      ctx.ellipse(x - w * 0.22, y - w * 0.08, w * 0.24, w * 0.2, 0, 0, Math.PI * 2);
-      ctx.ellipse(x + w * 0.15, y - w * 0.14, w * 0.28, w * 0.24, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  /* Hintergrund: drei Ebenen mit Parallaxe. Die hinterste verschwimmt im Dunst
-     (Farbe zum Horizont hin gemischt). Auf den Ebenen stehen je Welt eigene
-     Silhouetten (welt.kulisse = [hinten, mitte, vorn]): Wald, Tannen, Tafelberge,
-     Stadt, Kräne, Gipfel, Vulkane, Dschungel, Dinos, Riesenräder … – fest an
-     Positionen der Ebene (Zufall aus der Nummer), nur einfache Flächen. */
-  var KULISSE = {
-    wald: { abst: 14, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 5; i++) { var r = s * (0.12 + 0.1 * R()); ctx.beginPath(); ctx.arc(x + (i - 2) * s * 0.2, y - s * (0.12 + 0.2 * R()), r, 0, Math.PI * 2); ctx.fill(); }
-    } },
-    tannen: { abst: 10, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 4; i++) {
-        var h = s * (0.35 + 0.4 * R()), b = h * 0.28, xx = x + (i - 1.5) * s * 0.16;
-        ctx.beginPath(); ctx.moveTo(xx - b, y + 2); ctx.lineTo(xx, y - h); ctx.lineTo(xx + b, y + 2); ctx.fill();
-      }
-    } },
-    tafelberg: { abst: 34, male: function (ctx, x, y, s, R) {
-      var b = s * (0.8 + 0.8 * R()), h = s * (0.4 + 0.35 * R()), st = s * 0.08;
-      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x - b * 0.7, y - h * 0.55); ctx.lineTo(x - b * 0.62, y - h * 0.55);
-      ctx.lineTo(x - b * 0.55, y - h); ctx.lineTo(x + b * 0.45, y - h); ctx.lineTo(x + b * 0.5, y - h + st); ctx.lineTo(x + b * 0.7, y - h * 0.4); ctx.lineTo(x + b, y + 2); ctx.fill();
-    } },
-    stadt: { abst: 16, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 5; i++) {
-        var b = s * (0.1 + 0.12 * R()), h = s * (0.25 + 0.75 * R()), xx = x + (i - 2) * s * 0.2;
-        ctx.fillRect(xx - b / 2, y - h, b, h + 2);
-        if (R() < 0.3) ctx.fillRect(xx - 1, y - h - s * 0.12, 2, s * 0.12);   // Antenne
-      }
-    } },
-    kran: { abst: 30, male: function (ctx, x, y, s, R) {
-      var h = s * (0.9 + 0.5 * R()), a = s * (0.5 + 0.4 * R());
-      ctx.fillRect(x - s * 0.03, y - h, s * 0.06, h + 2);
-      ctx.fillRect(x - a * 0.35, y - h, a * 1.35, s * 0.04);
-      ctx.fillRect(x + a * 0.9, y - h, s * 0.012, h * 0.35);
-      ctx.beginPath(); ctx.moveTo(x - s * 0.03, y - h); ctx.lineTo(x, y - h - s * 0.12); ctx.lineTo(x + s * 0.03, y - h); ctx.fill();
-    } },
-    gipfel: { abst: 26, male: function (ctx, x, y, s, R, f) {
-      var h = s * (0.7 + 0.6 * R()), b = h * (0.8 + 0.4 * R()), sp = (R() - 0.5) * b * 0.4;
-      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x + sp - b * 0.1, y - h * 0.8); ctx.lineTo(x + sp, y - h); ctx.lineTo(x + sp + b * 0.15, y - h * 0.85); ctx.lineTo(x + b, y + 2); ctx.fill();
-      if (f.schnee) {
-        var alt = ctx.fillStyle; ctx.fillStyle = f.schnee;
-        ctx.beginPath(); ctx.moveTo(x + sp - b * 0.1 * 1.3, y - h * 0.74); ctx.lineTo(x + sp, y - h); ctx.lineTo(x + sp + b * 0.15 * 1.3, y - h * 0.8);
-        ctx.lineTo(x + sp + b * 0.06, y - h * 0.76); ctx.lineTo(x + sp - b * 0.02, y - h * 0.82); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = alt;
-      }
-    } },
-    vulkan: { abst: 40, male: function (ctx, x, y, s, R, f, zeit, k) {
-      var h = s * (0.75 + 0.7 * R()), b = h * (1.1 + 0.5 * R()), kr = b * (0.12 + 0.06 * R()), aktiv = R() < 0.7;
-      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.quadraticCurveTo(x - kr * 1.8, y - h * 0.7, x - kr, y - h);
-      ctx.lineTo(x + kr, y - h); ctx.quadraticCurveTo(x + kr * 1.8, y - h * 0.7, x + b, y + 2); ctx.fill();
-      if (!aktiv) return;
-      var alt = ctx.fillStyle;
-      var gl = ctx.createRadialGradient(x, y - h, 0, x, y - h, kr * 3.5);
-      gl.addColorStop(0, "rgba(255,150,60,0.75)"); gl.addColorStop(1, "rgba(255,90,40,0)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y - h, kr * 3.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#ff8a3a"; ctx.beginPath(); ctx.ellipse(x, y - h, kr * 0.9, kr * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-      for (var q = 0; q < 3; q++) {                                    // Rauchwolken steigen auf
-        var t = (zeit * 0.12 + q / 3 + k * 0.37) % 1;
-        ctx.fillStyle = "rgba(70,55,60," + (0.45 * (1 - t)) + ")";
-        ctx.beginPath(); ctx.arc(x + Math.sin(t * 4 + k) * kr + t * s * 0.4, y - h - t * s * 0.9, kr * (0.8 + t * 2.2), 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.fillStyle = alt;
-    } },
-    dschungel: { abst: 12, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 2; i++) {
-        var h = s * (0.5 + 0.5 * R()), xx = x + (i - 0.5) * s * 0.4;
-        ctx.fillRect(xx - s * 0.02, y - h, s * 0.04, h + 2);
-        ctx.beginPath(); ctx.ellipse(xx, y - h, s * (0.2 + 0.12 * R()), s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(xx - s * 0.1, y - h + s * 0.05, s * 0.14, s * 0.07, 0, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.beginPath(); ctx.arc(x, y, s * 0.25, Math.PI, 0); ctx.fill();
-    } },
-    brachio: { abst: 48, male: function (ctx, x, y, s, R) {
-      var u = s * (0.9 + 0.4 * R()), r = R() < 0.5 ? 1 : -1;
-      ctx.save(); ctx.translate(x, y); ctx.scale(r, 1);
-      ctx.beginPath();
-      ctx.moveTo(-u * 0.85, -u * 0.3); ctx.quadraticCurveTo(-u * 0.3, -u * 0.75, u * 0.28, -u * 0.6);
-      ctx.quadraticCurveTo(u * 0.45, -u * 0.8, u * 0.52, -u * 1.0); ctx.quadraticCurveTo(u * 0.6, -u * 1.06, u * 0.7, -u * 1.0);
-      ctx.lineTo(u * 0.58, -u * 0.92); ctx.quadraticCurveTo(u * 0.45, -u * 0.6, u * 0.32, -u * 0.38);
-      ctx.lineTo(u * 0.32, 2); ctx.lineTo(u * 0.2, 2); ctx.lineTo(u * 0.18, -u * 0.32); ctx.lineTo(-u * 0.2, -u * 0.32);
-      ctx.lineTo(-u * 0.22, 2); ctx.lineTo(-u * 0.34, 2); ctx.lineTo(-u * 0.38, -u * 0.34); ctx.closePath(); ctx.fill();
-      ctx.restore();
-    } },
-    riesenrad: { abst: 46, male: function (ctx, x, y, s, R) {
-      var r = s * (0.45 + 0.2 * R()), cy = y - r - s * 0.12, alt = ctx.strokeStyle;
-      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.max(1.5, s * 0.02);
-      ctx.beginPath(); ctx.arc(x, cy, r, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); for (var i = 0; i < 8; i++) { var w = i * Math.PI / 4; ctx.moveTo(x, cy); ctx.lineTo(x + Math.cos(w) * r, cy + Math.sin(w) * r); } ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x - r * 0.6, y + 2); ctx.lineTo(x, cy); ctx.lineTo(x + r * 0.6, y + 2); ctx.stroke();
-      for (i = 0; i < 8; i++) { var w2 = i * Math.PI / 4; ctx.fillRect(x + Math.cos(w2) * r - s * 0.03, cy + Math.sin(w2) * r, s * 0.06, s * 0.05); }
-      ctx.strokeStyle = alt;
-    } },
-    bonbon: { abst: 16, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 2; i++) {
-        var h = s * (0.4 + 0.5 * R()), xx = x + (i - 0.5) * s * 0.35, r = s * (0.1 + 0.06 * R());
-        ctx.fillRect(xx - s * 0.015, y - h, s * 0.03, h + 2);
-        ctx.beginPath(); ctx.arc(xx, y - h, r, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.beginPath(); ctx.arc(x, y, s * 0.22, Math.PI, 0); ctx.fill();
-    } },
-    wolkenberg: { abst: 22, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(x + (i - 1.5) * s * 0.22, y - s * (0.1 + 0.15 * R()), s * (0.15 + 0.1 * R()), 0, Math.PI * 2); ctx.fill(); }
-    } },
-    stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
-      for (var i = 0; i < 3; i++) {
-        var h = s * (0.25 + 0.6 * R()), b = s * (0.05 + 0.05 * R()), xx = x + (i - 1) * s * 0.18;
-        ctx.beginPath(); ctx.moveTo(xx - b, y + 2); ctx.quadraticCurveTo(xx - b * 0.2, y - h * 0.6, xx, y - h); ctx.quadraticCurveTo(xx + b * 0.2, y - h * 0.6, xx + b, y + 2); ctx.fill();
-      }
-    } }
-  };
-  function zeichneBerge(ctx, K, welt, zeit, gel) {
-    var f = welt.farben, ku = welt.kulisse || [], dunst = f.himmel[1];
-    // [Parallaxe, Farbe, Grundlinie, Wellenlänge, Zufall, Höhe, Silhouetten-Größe]
-    // Deutlich verschieden schnell: hinten ein Zwölftel, vorn fast halb so schnell wie die Strecke
-    var ebenen = [[0.08, mische(f.berge[0], dunst, 0.55), 0.46, 170, 5, 0.1, 0.2],
-                  [0.2, mische(f.berge[0], dunst, 0.15), 0.54, 120, 11, 0.12, 0.17],
-                  [0.42, dunkel(f.berge[1], 0.06), 0.65, 70, 23, 0.11, 0.13]];
-    // Erst alle Umrisse berechnen: Jede Ebene wird nur bis knapp unter den tiefsten
-    // Punkt der Ebene davor gemalt – sonst würden große Flächen doppelt gemalt
-    var SCHRITT = 24, linien = [], tiefste = [], bodenTiefst = K.h;
-    if (gel) {                                       // vorderste Ebene: nur bis zum tiefsten Bodenpunkt im Bild
-      var b = sichtbereich(K, gel); bodenTiefst = -Infinity;
-      for (var j = b[0]; j <= b[1]; j += 4) bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[j]));
-      bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[b[1]]));
-    }
-    ebenen.forEach(function (E, e) {
-      var yVersatz = Math.max(-K.h * 0.25, Math.min(K.h * 0.25, (K.y - 5) * K.s * E[0] * 0.5)), l = [], t = -Infinity;
-      for (var px = 0; px <= K.b + SCHRITT; px += SCHRITT) {
-        var wx = K.x * E[0] + (px - K.b / 2) / K.s;
-        var n = FF.rauschen(wx / (E[3] / 10), E[4]) + 0.5 * FF.rauschen(wx / (E[3] / 25), E[4] + 5);
-        var y = K.h * E[2] - n * K.h * E[5] + yVersatz;
-        l.push(y); t = Math.max(t, y);
-      }
-      linien.push(l); tiefste.push(t);
-    });
-    for (var e = 0; e < ebenen.length; e++) {
-      var E = ebenen[e], fak = E[0], seed = E[4], L = linien[e];
-      var hoehe = function (px) { var i = Math.max(0, Math.min(L.length - 2, Math.floor(px / SCHRITT))), t = px / SCHRITT - i; return L[i] * (1 - t) + L[i + 1] * t; };
-      var unten = e < ebenen.length - 1 ? Math.min(K.h, tiefste[e + 1] + 4) : Math.min(K.h, bodenTiefst + 4);
-      ctx.fillStyle = E[1];
-      ctx.beginPath();
-      ctx.moveTo(0, unten);
-      for (var i = 0; i < L.length; i++) ctx.lineTo(i * SCHRITT, Math.min(L[i], unten));
-      ctx.lineTo((L.length - 1) * SCHRITT, unten);
-      ctx.closePath();
-      ctx.fill();
-      var art = KULISSE[ku[e]];
-      if (!art) continue;
-      var s = K.h * E[6] * (welt.kulisseGroesse || 1), wl0 = K.x * fak + (-K.b / 2 - s * 2) / K.s, wl1 = K.x * fak + (K.b / 2 + s * 2) / K.s;
-      for (var k = Math.floor(wl0 / art.abst); k * art.abst <= wl1; k++) {
-        if (zufall01(k, seed + 31) < 0.3) continue;
-        var wx = k * art.abst + zufall01(k, seed + 32) * art.abst * 0.6;
-        var x = (wx - K.x * fak) * K.s + K.b / 2, y = hoehe(x) + s * 0.05;
-        var z = 0, R = function () { z++; return zufall01(k * 13 + z, seed + 40); };
-        art.male(ctx, x, y, s, R, f, zeit, k);
-      }
-    }
-  }
-
-  /* Höhlendecke: Fels von oben bis gel.deckeBei(x), daran Tropfsteine, leuchtende
-     Kristalle und Laternen an Seilen. Alles fest an Weltpositionen (Zufall aus x). */
-  function zufall01(k, s) { var v = Math.sin(k * 127.1 + s * 311.7) * 43758.5453; return v - Math.floor(v); }
-  function zeichneDecke(ctx, K, gel, welt, zeit) {
-    if (!welt.decke) return;
-    var f = welt.farben, x0 = weltX(K, -30), x1 = weltX(K, K.b + 30), dxs = Math.max(0.5, 12 / K.s), x;
-    var yMax = -Infinity;
-    for (x = x0; x <= x1 + dxs; x += dxs) yMax = Math.max(yMax, sy(K, gel.deckeBei(x)));
-    if (yMax < -20) return;                                  // Decke ist gerade nicht im Bild
-    var g = ctx.createLinearGradient(0, yMax, 0, Math.min(0, yMax - 6 * K.s));
-    g.addColorStop(0, f.decke[0]); g.addColorStop(1, f.decke[1]);
-    ctx.beginPath(); ctx.moveTo(sx(K, x0), -10);
-    for (x = x0; x <= x1 + dxs; x += dxs) ctx.lineTo(sx(K, x), sy(K, gel.deckeBei(x)));
-    ctx.lineTo(sx(K, x1 + dxs), -10); ctx.closePath();
-    ctx.fillStyle = g; ctx.fill();
-    // Gesteinsschichten
-    ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = Math.max(1, 0.12 * K.s);
-    for (var sch = 1; sch <= 2; sch++) {
-      ctx.beginPath();
-      for (x = x0; x <= x1 + dxs; x += dxs) {
-        var ys = sy(K, gel.deckeBei(x) + sch * 1.4 + 0.4 * Math.sin(x * 0.3 + sch));
-        if (x === x0) ctx.moveTo(sx(K, x), ys); else ctx.lineTo(sx(K, x), ys);
-      }
-      ctx.stroke();
-    }
-    // Tropfsteine (Stalaktiten) alle ~3 m
-    var abst = 3;
-    for (var k = Math.floor(x0 / abst); k * abst < x1; k++) {
-      var r1 = zufall01(k, 1);
-      if (r1 < 0.3) continue;
-      var xs = k * abst + zufall01(k, 2) * 1.6, yd = gel.deckeBei(xs);
-      var len = 0.4 + 1.8 * zufall01(k, 3) * zufall01(k, 4) * 1.6, br = 0.35 + 0.5 * zufall01(k, 5);
-      var X = sx(K, xs), Y = sy(K, yd + 0.3), L = len * K.s, Bh = br * K.s / 2;
-      var tg = ctx.createLinearGradient(X - Bh, 0, X + Bh, 0);
-      tg.addColorStop(0, hell(f.decke[0], 0.18)); tg.addColorStop(1, dunkel(f.decke[0], 0.35));
-      ctx.fillStyle = tg;
-      ctx.beginPath(); ctx.moveTo(X - Bh, Y); ctx.quadraticCurveTo(X - Bh * 0.25, Y + L * 0.6, X, Y + L);
-      ctx.quadraticCurveTo(X + Bh * 0.25, Y + L * 0.6, X + Bh, Y); ctx.closePath(); ctx.fill();
-      // Wassertropfen an der Spitze
-      if (r1 > 0.85) {
-        var tt = (zeit * 0.5 + r1 * 7) % 1;
-        ctx.fillStyle = "rgba(160,220,255," + (0.8 * (1 - tt)) + ")";
-        ctx.beginPath(); ctx.arc(X, Y + L + tt * tt * 3 * K.s, Math.max(1.5, 0.06 * K.s), 0, Math.PI * 2); ctx.fill();
-      }
-    }
-    // Leuchtende Kristalle an der Decke
-    var abk = 11;
-    for (k = Math.floor(x0 / abk); k * abk < x1; k++) {
-      if (zufall01(k, 7) < 0.45) continue;
-      var xk = k * abk + zufall01(k, 8) * 5, Xk = sx(K, xk), Yk = sy(K, gel.deckeBei(xk) + 0.25);
-      var farbe = zufall01(k, 9) < 0.5 ? "#8fe8ff" : "#d59cff", puls = 0.55 + 0.25 * Math.sin(zeit * 2 + k);
-      var gl = ctx.createRadialGradient(Xk, Yk, 0, Xk, Yk, 2.2 * K.s);
-      gl.addColorStop(0, "rgba(" + (farbe === "#8fe8ff" ? "143,232,255" : "213,156,255") + "," + (0.35 * puls) + ")");
-      gl.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(Xk, Yk, 2.2 * K.s, 0, Math.PI * 2); ctx.fill();
-      for (var n = -1; n <= 1; n++) {
-        var lk = (0.55 + 0.35 * (1 - Math.abs(n)) ) * K.s, bk = 0.13 * K.s, xx = Xk + n * 0.22 * K.s;
-        ctx.save(); ctx.translate(xx, Yk); ctx.rotate(n * 0.35);
-        ctx.fillStyle = farbe; ctx.globalAlpha = 0.9;
-        ctx.beginPath(); ctx.moveTo(-bk, 0); ctx.lineTo(-bk, lk * 0.7); ctx.lineTo(0, lk); ctx.lineTo(bk, lk * 0.7); ctx.lineTo(bk, 0); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.beginPath(); ctx.moveTo(-bk * 0.4, 0); ctx.lineTo(-bk * 0.4, lk * 0.65); ctx.lineTo(0, lk * 0.9); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
-        ctx.restore();
-      }
-      ctx.globalAlpha = 1;
-    }
-    // Laternen an Seilen alle 40 m
-    var abl = 40;
-    for (k = Math.floor(x0 / abl); k * abl < x1; k++) {
-      var xl = k * abl + 17, yo = gel.deckeBei(xl), seil = 1.1 + 0.4 * zufall01(k, 11);
-      var schw = Math.sin(zeit * 1.3 + k) * 0.08, Xo = sx(K, xl), Yo = sy(K, yo);
-      var Xl = Xo + Math.sin(schw) * seil * K.s, Yl = Yo + Math.cos(schw) * seil * K.s;
-      ctx.strokeStyle = "#2a2238"; ctx.lineWidth = Math.max(1, 0.05 * K.s);
-      ctx.beginPath(); ctx.moveTo(Xo, Yo); ctx.lineTo(Xl, Yl); ctx.stroke();
-      var lg = ctx.createRadialGradient(Xl, Yl + 0.25 * K.s, 0, Xl, Yl + 0.25 * K.s, 3.5 * K.s);
-      lg.addColorStop(0, "rgba(255,200,110,0.45)"); lg.addColorStop(1, "rgba(255,200,110,0)");
-      ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(Xl, Yl + 0.25 * K.s, 3.5 * K.s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#3b2f4f"; ctx.fillRect(Xl - 0.18 * K.s, Yl, 0.36 * K.s, 0.08 * K.s);
-      ctx.fillStyle = "#ffd27a"; ctx.fillRect(Xl - 0.14 * K.s, Yl + 0.08 * K.s, 0.28 * K.s, 0.34 * K.s);
-      ctx.fillStyle = "#3b2f4f"; ctx.fillRect(Xl - 0.18 * K.s, Yl + 0.42 * K.s, 0.36 * K.s, 0.07 * K.s);
-    }
-    // Kante
-    ctx.beginPath();
-    for (x = x0; x <= x1 + dxs; x += dxs) { var yk = sy(K, gel.deckeBei(x)); if (x === x0) ctx.moveTo(sx(K, x), yk); else ctx.lineTo(sx(K, x), yk); }
-    ctx.strokeStyle = f.deckeKante || f.kante; ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(1.5, 0.08 * K.s); ctx.stroke(); ctx.globalAlpha = 1;
-  }
-
-  /* =========================================================================
      4) STRECKE, DEKO, SCHILDER, MÜNZEN, KANISTER, ZIEL
      ========================================================================= */
   function sichtbereich(K, gel) {
@@ -505,7 +133,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     return [i0, i1, x0, x1];
   }
 
-  function zeichneDeko(ctx, K, gel, x0, x1, q) {
+  function zeichneDeko(ctx, K, gel, x0, x1, q, zeit) {
     var D = gel.deko;
     for (var i = 0; i < D.length; i++) {
       var d = D[i];
@@ -517,98 +145,11 @@ var FF = globalThis.FF = globalThis.FF || {};
         var hb = d.groesse * (d.typ ? FF.Requisiten.breite(d.typ) : 0.8) * 0.45;
         d.fuss = Math.min(gel.hoeheBei(d.x - hb), gel.hoeheBei(d.x), gel.hoeheBei(d.x + hb), gel.hoeheBei(d.x - hb / 2), gel.hoeheBei(d.x + hb / 2));
       }
-      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, d.fuss), px, d.spiegeln, q);
-      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, d.fuss) - px * 0.42, px, d.spiegeln, q);
-    }
-  }
-
-  function zeichneGelaende(ctx, K, gel, welt, zeit) {
-    var b = sichtbereich(K, gel), i0 = b[0], i1 = b[1];
-    var f = welt.farben, h = gel.h, dx = gel.dx, x0 = gel.x0;
-    var schritt = K.s < 14 ? 2 : 1;
-
-    // Boden-Fläche
-    var yOben = Infinity;
-    for (var j = i0; j <= i1; j += 4) yOben = Math.min(yOben, sy(K, h[j]));
-    var gr = ctx.createLinearGradient(0, yOben, 0, yOben + 8 * K.s);
-    gr.addColorStop(0, f.boden[0]); gr.addColorStop(1, f.boden[1]);
-    ctx.beginPath();
-    ctx.moveTo(sx(K, x0 + i0 * dx), K.h + 10);
-    for (var i = i0; i <= i1; i += schritt) ctx.lineTo(sx(K, x0 + i * dx), sy(K, h[i]));
-    ctx.lineTo(sx(K, x0 + i1 * dx), sy(K, h[i1]));
-    ctx.lineTo(sx(K, x0 + i1 * dx), K.h + 10);
-    ctx.closePath();
-    ctx.fillStyle = gr;
-    ctx.fill();
-
-    // Steinchen/Krümel im Boden (fest an die Abtastpunkte gebunden)
-    ctx.fillStyle = f.punkte;
-    for (i = i0 - (i0 % 3); i <= i1; i += 3) {
-      var hz = FF.rauschen(i * 0.731, 77) * 0.5 + 0.5;
-      var tiefe = 0.7 + hz * 2.6;
-      var px = sx(K, x0 + i * dx + hz * 0.8), py = sy(K, h[i] - tiefe);
-      if (py > K.h + 10) continue;
-      ctx.beginPath();
-      ctx.ellipse(px, py, (0.1 + hz * 0.14) * K.s, (0.07 + hz * 0.08) * K.s, hz * 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Oberflächen-Band (Gras, Sand, Schnee …)
-    ctx.lineJoin = "round"; ctx.lineCap = "round";
-    ctx.beginPath();
-    for (i = i0; i <= i1; i += schritt) {
-      var X = sx(K, x0 + i * dx), Y = sy(K, h[i]) + 0.17 * K.s;
-      if (i === i0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
-    }
-    ctx.strokeStyle = f.oberflaeche;
-    ctx.lineWidth = 0.38 * K.s;
-    ctx.stroke();
-    ctx.beginPath();
-    for (i = i0; i <= i1; i += schritt) {
-      X = sx(K, x0 + i * dx); Y = sy(K, h[i]) + 0.03 * K.s;
-      if (i === i0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
-    }
-    ctx.strokeStyle = f.kante;
-    ctx.lineWidth = 0.1 * K.s;
-    ctx.stroke();
-
-    // Welt-typische Details
-    var stil = welt.id;
-    if (stil === "wiese" || stil === "dschungel") {
-      ctx.strokeStyle = f.kante; ctx.lineWidth = Math.max(1, 0.06 * K.s);
-      for (i = i0 - (i0 % 2); i <= i1; i += 2) {
-        var hz2 = FF.rauschen(i * 1.37, 5);
-        X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
-        var wind = Math.sin(zeit * 2 + i * 0.4) * 0.05 * K.s;
-        ctx.beginPath();
-        ctx.moveTo(X, Y + 0.05 * K.s); ctx.lineTo(X + wind - 0.06 * K.s, Y - (0.22 + hz2 * 0.1) * K.s);
-        ctx.moveTo(X + 0.08 * K.s, Y + 0.05 * K.s); ctx.lineTo(X + wind + 0.1 * K.s, Y - (0.18 - hz2 * 0.08) * K.s);
-        ctx.stroke();
-      }
-    } else if (stil === "bonbon") {
-      ctx.fillStyle = f.oberflaeche;
-      for (i = i0 - (i0 % 3); i <= i1; i += 3) {
-        var tropf = (0.18 + (FF.rauschen(i * 0.9, 3) * 0.5 + 0.5) * 0.3) * K.s;
-        X = sx(K, x0 + i * dx); Y = sy(K, h[i]) + 0.3 * K.s;
-        ctx.beginPath(); ctx.ellipse(X, Y, 0.17 * K.s, tropf, 0, 0, Math.PI * 2); ctx.fill();
-      }
-    } else if (stil === "vulkan") {
-      ctx.strokeStyle = "rgba(255,123,58," + (0.55 + 0.25 * Math.sin(zeit * 3)) + ")";
-      ctx.lineWidth = Math.max(1, 0.07 * K.s);
-      for (i = i0 - (i0 % 9); i <= i1; i += 9) {
-        X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 1.2);
-        ctx.beginPath();
-        ctx.moveTo(X, Y); ctx.lineTo(X + 0.4 * K.s, Y + 0.5 * K.s); ctx.lineTo(X + 0.1 * K.s, Y + 1.1 * K.s);
-        ctx.lineTo(X + 0.6 * K.s, Y + 1.7 * K.s);
-        ctx.stroke();
-      }
-    } else if (stil === "mond") {
-      for (i = i0 - (i0 % 11); i <= i1; i += 11) {
-        var g2 = FF.rauschen(i * 0.37, 9) * 0.5 + 0.5;
-        X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 0.9 - g2 * 1.5);
-        ctx.fillStyle = "rgba(0,0,0,0.12)";
-        ctx.beginPath(); ctx.ellipse(X, Y, (0.4 + g2 * 0.5) * K.s, (0.25 + g2 * 0.25) * K.s, 0, 0, Math.PI * 2); ctx.fill();
-      }
+      var yf = d.fuss;
+      if (d.hoch) yf += d.hoch + Math.sin(zeit * 1.3 + d.x) * 0.15;          // Fische, Bienen schweben
+      else if (d.schwimmt) yf += Math.sin(zeit * 2.2 + d.x) * 0.04;           // Ente in der Pfütze
+      if (d.typ) FF.Requisiten.zeichne(ctx, d.typ, d.variante, sx(K, d.x), sy(K, yf), px, d.spiegeln, q);
+      else zeichneEmoji(ctx, d.emoji, sx(K, d.x), sy(K, yf) - px * 0.42, px, d.spiegeln, q);
     }
   }
 
@@ -1691,6 +1232,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
   }
 
+  var taucherHelm = false;                   // Meeresgrund: Fiete trägt einen Taucherhelm (Glaskugel)
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {
     var form = KAROSSERIE[def.form] ? def.form : "buggy";
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
@@ -1707,7 +1249,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var kopf = { x: kp.x, y: kp.y + kind.groesse, r: KOPF_R };
     var fahrer = function () {
       zeichneAnzug(ctx, o, tk, kopf, KOPF_R);
-      zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm, kind, Math.min(1, tempo / 12), zeit);
+      zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm || taucherHelm, kind, Math.min(1, tempo / 12), zeit);
     };
     teile.hinten();
     zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
@@ -1859,96 +1401,24 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (p.art === "funkel") {
         ctx.fillStyle = p.farbe;
         stern(ctx, X, Y, p.r0 * K.s * (1 - u * 0.5), 4, 0.35); ctx.fill();
+      } else if (p.art === "tropfen") {
+        ctx.fillStyle = p.farbe;
+        ctx.beginPath(); ctx.arc(X, Y, p.r0 * K.s * (1 - u * 0.4), 0, Math.PI * 2); ctx.fill();
+      } else if (p.art === "herz") {
+        var hr = p.r0 * K.s;
+        ctx.fillStyle = p.farbe;
+        ctx.beginPath(); ctx.moveTo(X, Y + hr * 0.9);
+        ctx.bezierCurveTo(X - hr * 1.6, Y - hr * 0.1, X - hr * 0.7, Y - hr * 1.2, X, Y - hr * 0.45);
+        ctx.bezierCurveTo(X + hr * 0.7, Y - hr * 1.2, X + hr * 1.6, Y - hr * 0.1, X, Y + hr * 0.9); ctx.fill();
+      } else if (p.art === "blase") {
+        var rb = (p.r0 + (p.r1 - p.r0) * u) * K.s;
+        ctx.strokeStyle = "rgba(225,248,255,0.85)"; ctx.lineWidth = Math.max(1, rb * 0.25);
+        ctx.beginPath(); ctx.arc(X, Y, rb, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.beginPath(); ctx.arc(X - rb * 0.35, Y - rb * 0.35, rb * 0.25, 0, Math.PI * 2); ctx.fill();
       } else if (p.art === "konfetti") {
         ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
         ctx.fillStyle = p.farbe; ctx.fillRect(-0.09 * K.s, -0.05 * K.s, 0.18 * K.s, 0.1 * K.s);
         ctx.restore();
-      }
-    }
-    ctx.globalAlpha = 1;
-  };
-
-  function Wetter() { this.teile = []; this.art = null; this.letztesX = null; this.bursts = []; this.naechster = 0; }
-  var HINTEN = { sterne: true, feuerwerk: true };     // diese Arten liegen hinter den Bergen
-  Wetter.prototype.setze = function (art, K) {
-    this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6;
-    if (!art) return;
-    // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
-    var n = art === "sterne" ? 70 : art === "feuerwerk" ? 40 : art === "schnee" ? 20 : art === "glitzer" ? 18 : 14;
-    for (var i = 0; i < n; i++) {
-      this.teile.push({ x: Math.random() * (K.b || 800), y: Math.random() * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
-    }
-  };
-  Wetter.prototype.zeichne = function (ctx, K, dt, zeit, hinten) {
-    var art = this.art;
-    if (!art || !!HINTEN[art] !== hinten) return;
-    var dx = this.letztesX === null ? 0 : (K.x - this.letztesX) * K.s;
-    this.letztesX = K.x;
-    var B = K.b, H = K.h;
-    if (art === "feuerwerk") this.feuerwerk(ctx, K, dt);
-    for (var i = 0; i < this.teile.length; i++) {
-      var t = this.teile[i];
-      if (art === "sterne" || art === "feuerwerk") {
-        var x = ((t.x - K.x * K.s * 0.02) % B + B) % B;
-        ctx.fillStyle = "rgba(255,255,255," + (0.4 + 0.5 * Math.abs(Math.sin(zeit * 1.5 + t.p))) + ")";
-        ctx.fillRect(x, t.y * 0.65, 1.5 * t.g, 1.5 * t.g);
-        continue;
-      }
-      if (art === "schnee") { t.y += (30 + 25 * t.g) * dt; t.x += Math.sin(zeit + t.p) * 12 * dt - dx * 0.6; }
-      else if (art === "blaetter") { t.y += (25 + 15 * t.g) * dt; t.x += Math.sin(zeit * 0.8 + t.p) * 30 * dt - dx * 0.6; }
-      else if (art === "konfetti") { t.y += (22 + 12 * t.g) * dt; t.x += Math.sin(zeit + t.p) * 15 * dt - dx * 0.6; }
-      else if (art === "funken") { t.y -= (30 + 30 * t.g) * dt; t.x += Math.sin(zeit * 2 + t.p) * 10 * dt - dx * 0.6; }
-      else if (art === "staub") { t.y += Math.sin(zeit * 0.7 + t.p) * 6 * dt; t.x += (-14 - 10 * t.g) * dt - dx * 0.8; }
-      else if (art === "glitzer") { t.y += Math.sin(zeit * 0.5 + t.p) * 5 * dt - 3 * dt; t.x += Math.cos(zeit * 0.4 + t.p) * 4 * dt - dx * 0.7; }
-      if (t.y > H + 10) { t.y = -10; t.x = Math.random() * B; }
-      if (t.y < -10) { t.y = H + 10; t.x = Math.random() * B; }
-      t.x = ((t.x % (B + 20)) + B + 20) % (B + 20) - 10;
-      if (art === "schnee") {
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.beginPath(); ctx.arc(t.x, t.y, 1.5 + t.g * 1.8, 0, Math.PI * 2); ctx.fill();
-      } else if (art === "blaetter") {
-        ctx.fillStyle = i % 3 ? "#5fbf4a" : "#9bdc5a";
-        ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(zeit * 1.5 + t.p);
-        ctx.beginPath(); ctx.ellipse(0, 0, 5 * t.g, 2.5 * t.g, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      } else if (art === "konfetti") {
-        ctx.fillStyle = ["#ff6fb5", "#ffd23f", "#4fc3ff", "#8ee6b8", "#ffffff"][i % 5];
-        ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(zeit * 2 + t.p);
-        ctx.fillRect(-3, -1.5, 6, 3); ctx.restore();
-      } else if (art === "funken") {
-        ctx.fillStyle = "rgba(255," + (120 + 80 * t.g | 0) + ",60," + (0.5 + 0.4 * Math.sin(zeit * 6 + t.p)) + ")";
-        ctx.beginPath(); ctx.arc(t.x, t.y, 1.2 + t.g, 0, Math.PI * 2); ctx.fill();
-      } else if (art === "glitzer") {
-        var gz = 0.5 + 0.5 * Math.sin(zeit * 3 + t.p * 5);
-        ctx.fillStyle = t.g > 0.5 ? "rgba(143,232,255," + (0.15 + 0.6 * gz) + ")" : "rgba(213,156,255," + (0.15 + 0.5 * gz) + ")";
-        ctx.beginPath(); ctx.arc(t.x, t.y, 0.8 + 1.4 * t.g * gz, 0, Math.PI * 2); ctx.fill();
-      } else if (art === "staub") {
-        ctx.fillStyle = "rgba(196,150,92," + (0.22 + 0.18 * t.g) + ")";
-        ctx.beginPath(); ctx.arc(t.x, t.y, 1.5 + 2.2 * t.g, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-  };
-
-  /* Feuerwerk über dem Achterbahn-Park: alle 1–2 s eine bunte Blüte */
-  var FEUERWERK_FARBEN = ["#ff6fb5", "#ffd23f", "#6fd6ff", "#8ee6b8", "#ff8a5c", "#c9a0ff"];
-  Wetter.prototype.feuerwerk = function (ctx, K, dt) {
-    this.naechster -= dt;
-    if (this.naechster <= 0) {
-      this.naechster = 0.9 + Math.random() * 1.3;
-      this.bursts.push({ x: K.b * (0.1 + Math.random() * 0.8), y: K.h * (0.1 + Math.random() * 0.28), t: 0,
-                         dauer: 1.5 + Math.random() * 0.5, r: Math.min(K.b, K.h) * (0.07 + Math.random() * 0.06),
-                         farbe: FEUERWERK_FARBEN[Math.floor(Math.random() * FEUERWERK_FARBEN.length)], n: 14 + Math.floor(Math.random() * 8) });
-    }
-    for (var i = this.bursts.length - 1; i >= 0; i--) {
-      var b = this.bursts[i];
-      b.t += dt;
-      var u = b.t / b.dauer;
-      if (u >= 1) { this.bursts.splice(i, 1); continue; }
-      var rad = b.r * (1 - (1 - u) * (1 - u)), sinken = b.r * 0.35 * u * u;
-      ctx.globalAlpha = 1 - u;
-      ctx.fillStyle = b.farbe;
-      for (var k = 0; k < b.n; k++) {
-        var w = k / b.n * Math.PI * 2;
-        ctx.beginPath(); ctx.arc(b.x + Math.cos(w) * rad, b.y + Math.sin(w) * rad + sinken, 2.2 - u, 0, Math.PI * 2); ctx.fill();
       }
     }
     ctx.globalAlpha = 1;
@@ -2066,15 +1536,19 @@ var FF = globalThis.FF = globalThis.FF || {};
      sz = { fahrt, kamera, zeit, dt, partikel, texte, wetter, aussehen, kraefte, instrumente, ausdruck }
      ========================================================================= */
   function zeichneSzene(ctx, sz) {
-    var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit;
-    zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
-    zeichneWolken(ctx, K, welt, z);
+    var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit, W = FF.GrafikWelt;
+    taucherHelm = !!welt.unterwasser;
+    W.windAktualisieren(K, welt, gel, sz.dt);
+    W.zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
+    W.zeichneWolken(ctx, K, welt, z);
     sz.wetter.zeichne(ctx, K, sz.dt, z, true);
-    zeichneBerge(ctx, K, welt, z, gel);
-    zeichneDecke(ctx, K, gel, welt, z);
+    W.zeichneBerge(ctx, K, welt, z, gel);
+    W.zeichneDecke(ctx, K, gel, welt, z);
     var b = sichtbereich(K, gel);
-    zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1);
-    zeichneGelaende(ctx, K, gel, welt, z);
+    zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
+    W.zeichneGelaende(ctx, K, gel, welt, z);
+    if (gel.pfuetzen.length) W.zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
+    if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
@@ -2083,6 +1557,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
     sz.partikel.zeichne(ctx, K);
+    if (welt.nacht) W.zeichneNacht(ctx, K, f, sz);
     zeichneTexte(ctx, K, sz.texte);
     sz.wetter.zeichne(ctx, K, sz.dt, z, false);
     if (sz.geist && !geistSichtbar) zeichneGeistPfeil(ctx, K, sz.geist, f.fz.chassis);
@@ -2093,6 +1568,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Vorschau in der Garage: Fahrzeug auf kleinem Boden, leicht wippend */
   var vorschauCache = {};
   function zeichneVorschau(ctx, b, h, def, aussehen, zeit, ohneBuehne) {
+    taucherHelm = false;
     var c = vorschauCache[def.id];
     if (!c) {
       var w = FF.berechneWerte(def, {}, "normal");
@@ -2157,9 +1633,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichnePortrait: zeichnePortrait,
     zeichneMuenze: zeichneMuenze,
     Partikel: Partikel,
-    Wetter: Wetter,
     emojiSprite: emojiSprite,
-    himmelCss: himmelCss,
-    hell: hell, dunkel: dunkel
+    hell: hell, dunkel: dunkel,
+    // Wetter und himmelCss trägt grafik-welt.js ein
+    // für grafik-welt.js: gemeinsame Helfer
+    hilfe: { sx: sx, sy: sy, weltX: weltX, mische: mische, hell: hell, dunkel: dunkel, sichtbereich: sichtbereich, TINTE: TINTE }
   };
 })();

@@ -554,6 +554,7 @@ async function inhalte(browser) {
   // In der Luft: Pfeile auf den Pedalen und einmal der gesprochene Tipp; Bruchlandung erklärt, was hilft
   var luft = await page.evaluate(async function () {
     var f = FF.spiel.fahrt, warte = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    FF.spiel.spielstand.gesehen = {};                 // Erklär-Tipps kommen nur die ersten Male
     FF.Physik.setzePose(f.fz, f.fz.chassis.x, f.fz.chassis.y + 25, 0);
     await warte(800);
     var r = { pfeile: document.getElementById("pedale").classList.contains("luft"), tipp: document.getElementById("tipp").textContent };
@@ -724,7 +725,7 @@ async function leistung(browser) {
     };
     await weiterZu(page, "fiete");
     var ergebnisse = [];
-    for (var wi of [0, 2, 4, 7, 8]) {
+    for (var wi of [0, 2, 4, 7, 8, 13, 16, 17]) {           // dazu Pfützenland (Regen, Wasser), Meeresgrund, Nachtwald (Schleier)
       await page.evaluate(function (w) { FF.spiel.starteFahrt(w, 2, false); }, wi);
       ergebnisse.push(await messe(await page.evaluate(function (w) { return FF.CONFIG.welten[w].name; }, wi)));
     }

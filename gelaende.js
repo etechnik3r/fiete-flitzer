@@ -91,7 +91,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       gewichte: { schanze: g.schanzen, buckel: g.buckel, steil: g.steil * st.steil, tal: g.taeler,
                   berg: g.berg * wild, sprung: g.sprung * wild, wellen: g.wellen * wild, klippe: g.klippe * wild,
                   rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild,
-                  looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild) },
+                  looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
+                  trampolin: (g.trampolin || 0) * (0.6 + wild) },
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -125,6 +126,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.deckeCache = null; this.deckeAnzahl = 0;   // Höhlendecke (deckeBei)
     this.loopings = [];            // Loopings {xc, R, …} – Kreisbahn, die das Auto von innen fährt (fahrt.js)
     this.sperrzonen = [];          // [von, bis]: dort setzt der Ballon nie ab, dort liegt kein Kanister (Grube, Looping)
+    this.trampoline = [];          // Hüpfpilze {x0, x1, H, v, …} – wer drauffährt, fliegt hoch (fahrt.js)
+    this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
+    this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
 
     this.platziertBis = this.x0;
@@ -162,14 +166,17 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke"];
+               "looping", "luecke", "trampolin"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
     var w = p.gewichte, summe = 0, i;
     for (i = 0; i < TYPEN.length; i++) summe += w[TYPEN[i]] || 0;
-    var z = r() * summe, typ = TYPEN[TYPEN.length - 1];
+    var z = r() * summe, typ = null;
     for (i = 0; i < TYPEN.length; i++) { if ((z -= w[TYPEN[i]] || 0) < 0) { typ = TYPEN[i]; break; } }
+    // Rundungsfehler: dann der letzte Typ, den es in dieser Welt gibt
+    for (i = TYPEN.length - 1; !typ && i >= 0; i--) if (w[TYPEN[i]] > 0) typ = TYPEN[i];
+    typ = typ || "buckel";
     var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
     var el = { typ: typ, xs: xs };
@@ -294,6 +301,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       var xg = xs + el.La + el.Lk;
       this.sperrzonen.push([xg - 1, xg + el.G + 1]);
       this.lippen.push({ x: xg, hoehe: el.H, platziert: false });
+    } else if (typ === "trampolin") {
+      // Hüpfpilz: flacher Anlauf, ein rot-weißer Pilzhut als Kuppel (Trampolin), dann
+      // eine lange, flache Landewiese – wer drauffährt, fliegt hoch (fahrt.js pruefeTrampolin)
+      el.flach = true;
+      el.La = 12 + 4 * r();                         // Anlauf
+      el.Lt = 5.5;                                  // Breite des Pilzhuts
+      el.Ht = 0.75;                                 // Höhe der Kuppel
+      el.Lf = 28;                                   // flache Landewiese
+      el.Lflach = el.La + el.Lt + el.Lf;
+      el.Lo = 22;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xt = xs + el.La;
+      this.trampoline.push({ x0: xt, x1: xt + el.Lt, H: el.Ht, v: 9.5 + 1.5 * p.wild, benutzt: false, platziert: false, boing: -9 });
+      this.sperrzonen.push([xt - 1, xt + el.Lt + 1]);
     } else {
       // Klippe: hinauf auf ein Plateau, dann senkrecht hinunter
       el.D = (2.6 + r() * 2.6) * stark;
@@ -378,6 +399,9 @@ var FF = globalThis.FF = globalThis.FF || {};
         sl -= el.Lp;
         if (sl < el.Lf) return el.Hl * (1 - glatt(0, el.Lf, sl));
         return 0;
+      case "trampolin":
+        var st = (s - el.La) / el.Lt;
+        return st > 0 && st < 1 ? el.Ht * Math.sin(Math.PI * st) : 0;
       default: // klippe
         if (s < el.Lu) return el.D * glatt(0, el.Lu, s);
         if (s < el.Lu + el.Lp) return el.D;
@@ -491,6 +515,62 @@ var FF = globalThis.FF = globalThis.FF || {};
     return v;
   };
 
+  /* Wind [m/s²] an der Stelle x (nur Welten mit welt.wind): > 0 Rückenwind, < 0 Gegenwind.
+     Zonen aus glattem Rauschen, kräftig verstärkt und begrenzt → mal Sturm von hinten,
+     mal von vorn, dazwischen kurz ruhig. Am Start und kurz vor dem Ziel ist es windstill.
+     Nur vom Ort abhängig (nicht von der Zeit) – im Geisterrennen für beide gleich. */
+  Gelaende.prototype.windBei = function (x) {
+    var W = this.welt.wind;
+    if (!W) return 0;
+    var n = rauschen(x / W.laenge, this.seed + 91) + 0.4 * rauschen(x / (W.laenge * 0.37), this.seed + 92);
+    var v = Math.max(-1, Math.min(1, 1.8 * n + (W.bias || 0)));
+    var ruhig = glatt(25, 70, x) * (this.endlos ? 1 : 1 - glatt(this.ziel - 40, this.ziel - 10, x));
+    return W.staerke * v * ruhig;
+  };
+
+  /* Wasserspiegel einer Pfütze bei x, sonst -Infinity */
+  Gelaende.prototype.wasserBei = function (x) {
+    var P = this.pfuetzen, lo = 0, hi = P.length;
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (P[mid].x1 < x) lo = mid + 1; else hi = mid; }
+    return lo < P.length && P[lo].x0 <= x ? P[lo].y : -Infinity;
+  };
+
+  /* Pfützen suchen (welt.wasser): In jeder Mulde steht Wasser bis "tiefe" über dem
+     tiefsten Punkt – aber nur so hoch, dass die Pfütze höchstens maxBreite breit wird
+     und der niedrigere Rand nicht überläuft. Zu flache Mulden (kleine Holper) bleiben
+     trocken. Kein Zufall: Strecke, Münzen und Kanister bleiben dieselben. */
+  Gelaende.prototype.suchePfuetzen = function (bis) {
+    var W = this.welt.wasser;
+    if (!W) return;
+    var h = this.h, dx = this.dx, x0 = this.x0, n = h.length;
+    var iBis = Math.min(n - 2, Math.floor((bis - x0) / dx));
+    var iStart = Math.max(this.pfuetzenI, Math.ceil((12 - x0) / dx));
+    var maxN = Math.round(W.maxBreite / dx), ende = this.endlos ? Infinity : this.ziel - 25;
+    for (var i = Math.max(1, iStart); i <= iBis; i++) {
+      if (!(h[i] <= h[i - 1] && h[i] <= h[i + 1])) continue;
+      var x = x0 + i * dx;
+      if (x > ende) break;
+      var tiefe = W.tiefe, l = i, r = i;
+      for (; tiefe >= 0.3; tiefe -= 0.05) {
+        var L = h[i] + tiefe;
+        for (l = i; l > 0 && h[l - 1] < L && i - l <= maxN; l--);
+        for (r = i; r < n - 1 && h[r + 1] < L && r - i <= maxN; r++);
+        if (r - l <= maxN && l > 0 && r < n - 1) break;
+      }
+      if (tiefe < 0.3) continue;
+      if (r - l < 3 || this.gesperrt(x)) { this.pfuetzenI = r + 1; i = r; continue; }
+      // Ränder genau dort, wo der Boden den Wasserspiegel schneidet
+      var y = h[i] + tiefe;
+      var xl = x0 + (l - 1) * dx + dx * (y - h[l - 1]) / (h[l] - h[l - 1] || 1);
+      var xr = x0 + r * dx + dx * (h[r] - y) / (h[r] - h[r + 1] || 1);
+      if (xr > ende) break;
+      this.pfuetzen.push({ x0: xl, x1: xr, y: y });
+      i = r;
+      this.pfuetzenI = r + 1;
+    }
+    this.pfuetzenI = Math.max(this.pfuetzenI, iBis - Math.round(2 * W.maxBreite / dx));
+  };
+
   Gelaende.prototype.steigungBei = function (x) {
     var f = (x - this.x0) / this.dx;
     var i = Math.max(0, Math.min(this.h.length - 2, Math.floor(f)));
@@ -560,7 +640,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   Gelaende.prototype.neueRakete = function (x) {
     for (var i = 0; i < this.tanks.length; i++) if (Math.abs(this.tanks[i].x - x) < 14) x = this.tanks[i].x + 16;
     var xr = this.tankPlatz(x);
-    this.raketen.push({ x: xr, y: this.hoeheBei(xr), weg: false });
+    this.raketen.push({ x: xr, y: Math.max(this.hoeheBei(xr), this.wasserBei(xr)), weg: false });
   };
 
   Gelaende.prototype.nahAnTank = function (x, abstand) {
@@ -605,6 +685,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var g = welt.schwerkraft;
     bis = Math.min(bis, this.endlos ? bis : this.ziel + 120);
     if (bis <= this.platziertBis) return;
+    this.suchePfuetzen(bis);
 
     // Benzinkanister nach Aufwand verteilt: Bergauf kostet jeder Meter mehr Benzin
     // (langsamer und volle Last), bergab weniger. Darum liegen die Kanister am Berg
@@ -616,7 +697,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.tankX += this.dx;
       if (this.tankRest <= 0) {
         var xt = this.tankPlatz(this.tankX);
-        this.tanks.push({ x: xt, y: this.hoeheBei(xt), weg: false });
+        this.tanks.push({ x: xt, y: Math.max(this.hoeheBei(xt), this.wasserBei(xt)), weg: false });   // in der Pfütze schwimmt er
         var zuwachs = this.endlos ? 1 + xt / FF.CONFIG.endlos.tankZuwachsStrecke : 1;
         this.tankRest = this.tankAbstand * (0.88 + 0.24 * r()) * zuwachs;
         this.tankX = xt;                           // Aufwand zählt ab dem neuen Kanister
@@ -672,6 +753,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
 
+    // Hüpfpilze: Münzen steigen über dem Hut auf (früh im Flug liegen alle Flugbahnen
+    // nah beieinander – egal wie schnell man kommt), oben ein Stern
+    for (i = 0; i < this.trampoline.length; i++) {
+      var tp = this.trampoline[i];
+      if (tp.platziert || tp.x1 > bis - 30) continue;
+      tp.platziert = true;
+      if (tp.x1 > ende - 20) continue;
+      var xm0 = (tp.x0 + tp.x1) / 2 + 0.8, ym0 = this.hoeheBei(xm0) + 1.3;
+      for (var kt = 0; kt < 5; kt++) {
+        var tt = 0.12 + kt * 0.14;
+        this.neueMuenze(xm0 + 9 * tt, ym0 + tp.v * tt - 0.5 * g * tt * tt, kt === 4 ? 25 : 10);
+      }
+    }
+
     // Große 100er-Münze auf manchem Gipfel
     for (i = 0; i < this.gipfel.length; i++) {
       var gp = this.gipfel[i];
@@ -695,11 +790,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       // damit Münzen und Kanister der Level gleich bleiben)
       var h1 = hash01(Math.round(xd * 10), this.seed + 3), h2 = hash01(Math.round(xd * 10), this.seed + 4);
       var typ = teile[0].charAt(0) === "@" ? teile[0].slice(1) : null;
+      var spiegeln = r() < 0.5, nass = this.wasserBei(xd) > this.hoeheBei(xd) - 0.05;
+      if (nass) {
+        // In der Pfütze steht kein Baum – dort schwimmt ab und zu eine Ente
+        if (h1 < 0.45) this.deko.push({ x: xd, y: this.wasserBei(xd), fuss: this.wasserBei(xd) - 0.12, emoji: "🦆", typ: null, variante: 0,
+                                        groesse: 0.75, spiegeln: spiegeln, schwimmt: true });
+        this.naechsteDeko += 3 + r() * 7;
+        continue;
+      }
+      // "Emoji:Größe:Höhe" – schwebt so hoch über dem Boden (Fische, Bienen …)
       this.deko.push({ x: xd, y: this.hoeheBei(xd), emoji: typ ? null : teile[0], typ: typ, variante: Math.floor(h1 * 1000),
-                       groesse: groesse, spiegeln: r() < 0.5 });
+                       groesse: groesse, spiegeln: spiegeln, hoch: teile[2] ? +teile[2] * (0.8 + 0.4 * h2) : 0 });
       if (welt.beiwerk && welt.beiwerk.length && h2 < 0.35) {            // kleines Beiwerk daneben (Gras, Steinchen …)
         var bw = welt.beiwerk[Math.floor(h1 * 7919) % welt.beiwerk.length].split(":"), xb = xd + (h2 < 0.17 ? -1 : 1) * (0.8 + h2 * 3);
-        this.deko.push({ x: xb, y: this.hoeheBei(xb), emoji: null, typ: bw[0].slice(1), variante: Math.floor(h2 * 1000),
+        if (!(this.wasserBei(xb) > this.hoeheBei(xb) - 0.05)) this.deko.push({ x: xb, y: this.hoeheBei(xb), emoji: null, typ: bw[0].slice(1), variante: Math.floor(h2 * 1000),
                          groesse: (+bw[1] || 0.4) * (0.7 + h1 * 0.6), spiegeln: h1 < 0.5 });
       }
       this.naechsteDeko += 3 + r() * 7;
@@ -725,6 +829,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
+    var n = 0;
+    while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
+    if (n > 0) this.pfuetzen.splice(0, n);
   };
 
   FF.Gelaende = Gelaende;

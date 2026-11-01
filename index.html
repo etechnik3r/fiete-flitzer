@@ -40,13 +40,15 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 
 <body>
 
   <!-- DAS SPIELFELD: Himmel, Strecke, Fahrzeug – alles im Canvas (grafik.js) -->
   <canvas id="spielfeld" aria-label="Spielfeld"></canvas>
+  <!-- Nachtwald: Dunkelheit mit Lichtern, eigene Ebene über dem Spielfeld (grafik.js zeichneNacht) -->
+  <canvas id="nacht-ebene" aria-hidden="true"></canvas>
 
 
   <!-- ========================================================================
@@ -236,6 +238,8 @@
             <div class="farb-liste" id="farb-liste"></div>
             <h3 class="werkstatt-titel">✨ Muster</h3>
             <div class="muster-liste" id="muster-liste"></div>
+            <h3 class="werkstatt-titel" id="spur-titel">💫 Spur</h3>
+            <div class="muster-liste" id="spur-liste"></div>
           </div>
         </div>
       </section>
@@ -425,6 +429,24 @@
           <p class="opt-untertitel">Nur zum Testen: Münzen für beide Kinder, „Alle Level“ öffnet jede Welt, ohne den Fortschritt zu verändern.</p>
         </section>
 
+        <section class="opt-gruppe" id="sicherung-gruppe">
+          <h3 class="opt-titel">💾 Spielstand sichern</h3>
+          <p class="opt-info">Mit diesem Code holst du den Fortschritt von Fiete und Jonte zurück – auf einem neuen Handy oder wenn der Browser die Daten gelöscht hat. Am besten kopieren und dir selbst schicken.</p>
+          <p class="opt-info code-warnung" id="safari-warnung" hidden>⚠️ Im Safari-Browser löscht das iPhone gespeicherte Spiele nach einigen Tagen ohne Besuch. Sichere den Code – oder installiere die App.</p>
+          <div class="code-box" id="spielstand-code" aria-label="Spielstand-Code"></div>
+          <div class="code-knoepfe">
+            <button type="button" class="code-knopf" id="code-kopieren">📋 Kopieren</button>
+            <button type="button" class="code-knopf" id="code-teilen" hidden>📤 Teilen</button>
+            <button type="button" class="code-knopf" id="code-eingeben">⌨️ Code eingeben</button>
+          </div>
+          <div class="code-eingabe" id="code-eingabe" hidden>
+            <textarea id="code-feld" rows="4" placeholder="Code hier einfügen oder abtippen" aria-label="Spielstand-Code eingeben"
+                      autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"></textarea>
+            <button type="button" class="install-button" id="code-laden">✅ Spielstand laden</button>
+            <p class="code-fehler" id="code-fehler" role="alert"></p>
+          </div>
+        </section>
+
         <section class="opt-gruppe">
           <button type="button" class="reset-button" id="knopf-zuruecksetzen">♻️ Spielstand zurücksetzen</button>
         </section>
@@ -494,8 +516,9 @@
         <section class="opt-gruppe hilfe-gruppe" id="hilfe-welten">
           <h3 class="opt-titel">🗺️ Welten und Spielarten</h3>
           <ul class="hilfe-liste">
-            <li><b>13 Welten</b> mit je 4 Leveln. Nach Level 3 öffnet sich die nächste Welt. Level 4 ist das freiwillige <b>🔥 Profi-Level</b>.</li>
+            <li><b>18 Welten</b> mit je 4 Leveln. Nach Level 3 öffnet sich die nächste Welt. Level 4 ist das freiwillige <b>🔥 Profi-Level</b>.</li>
             <li>Jede Welt hat eigene Physik: Auf dem Mond 🌙 fliegst du weit, auf Schnee ❄️ rutscht es, im Sand 🏜️ geht es schwerer.</li>
+            <li>Pfützen 🌧️ spritzen und bremsen, Hüpfpilze 🍄 schleudern dich hoch, Rückenwind 💨 schiebt, Gegenwind 🌬️ bremst, unter Wasser 🐠 schwebt alles, und im Nachtwald 🦉 leuchten deine Scheinwerfer.</li>
             <li><b>Endlos ♾️</b>: Wie weit kommst du? Alle 500 m gibt es einen Bonus.</li>
             <li><b>Zu zweit 👥</b>: Fiete und Jonte fahren nacheinander dieselbe Strecke. Wer als Zweiter fährt, fährt gegen den Geist 👻 der ersten Fahrt. Wer ist schneller, wer kommt weiter?</li>
             <li><b>Schwierigkeit</b> (Einstellungen): Leicht 🐢 hält das Auto stabiler und gibt mehr Benzin.</li>
@@ -522,15 +545,17 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=14"></script>
-  <script src="gelaende.js?v=14"></script>
-  <script src="physik.js?v=14"></script>
-  <script src="fahrt.js?v=14"></script>
-  <script src="geist.js?v=14"></script>
-  <script src="kinder.js?v=14"></script>
-  <script src="requisiten.js?v=14"></script>
-  <script src="grafik.js?v=14"></script>
-  <script src="klang.js?v=14"></script>
-  <script src="spiel.js?v=14"></script>
+  <script src="config.js?v=16"></script>
+  <script src="gelaende.js?v=16"></script>
+  <script src="physik.js?v=16"></script>
+  <script src="fahrt.js?v=16"></script>
+  <script src="geist.js?v=16"></script>
+  <script src="kinder.js?v=16"></script>
+  <script src="spielstand.js?v=16"></script>
+  <script src="requisiten.js?v=16"></script>
+  <script src="grafik.js?v=16"></script>
+  <script src="grafik-welt.js?v=16"></script>
+  <script src="klang.js?v=16"></script>
+  <script src="spiel.js?v=16"></script>
 </body>
 </html>

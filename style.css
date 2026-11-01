@@ -82,6 +82,12 @@ button { font: inherit; color: inherit; }
   display: block;
   touch-action: none;            /* Wischen/Halten geht ans Spiel, nicht an den Browser */
 }
+#nacht-ebene {                   /* Nachtwald: Schleier in halber Auflösung, der Browser skaliert ihn */
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: none;
+  pointer-events: none;
+}
 
 
 /* 3) CHIPS + RUNDE KNÖPFE --------------------------------------------------- */
@@ -334,6 +340,10 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-display); font-size: 0.95rem;
   box-shadow: var(--sh-chip);
   pointer-events: none;
+}
+@media (orientation: portrait) {   /* hochkant: Tipps breiter (weniger Zeilen), Hinweis nicht über dem Tacho */
+  .tipp { max-width: min(80vw, 360px); font-size: 0.84rem; }
+  .hochkant-hinweis { bottom: auto; top: 54%; }
 }
 
 
@@ -890,6 +900,26 @@ button { font: inherit; color: inherit; }
   min-height: 44px; padding: 0 14px; border: none; border-radius: 12px;
   font-family: var(--font-display); font-weight: 800; color: var(--ink); background: #eef1f8; cursor: pointer;
 }
+/* Spielstand-Code */
+.code-box {
+  margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: #f3f6fc; border: 2px solid #dfe5f2;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.88rem; font-weight: 700;
+  letter-spacing: 0.04em; line-height: 1.5; color: var(--ink); word-break: break-all; user-select: all; -webkit-user-select: all;
+  max-height: 9.5em; overflow-y: auto;
+}
+.code-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.code-knopf {
+  flex: 1 1 auto; min-height: 46px; padding: 0 14px; border: none; border-radius: 14px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 800; font-size: 1rem; color: var(--ink); background: #eef1f8;
+}
+.code-eingabe { margin-top: 10px; display: grid; gap: 8px; }
+.code-eingabe[hidden] { display: none; }
+.code-eingabe textarea {
+  width: 100%; box-sizing: border-box; padding: 10px; border-radius: 14px; border: 2px solid #c9d2e6;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 16px; text-transform: uppercase; resize: vertical;
+}
+.code-fehler { min-height: 1.2em; font-size: 0.9rem; font-weight: 700; color: #c0392b; }
+.code-warnung { margin: 6px 0; color: #9a5a00; }
 .reset-button { width: 100%; min-height: 50px; font-family: var(--font-display); font-size: 1.1rem; color: #c0392b; background: #fdeeec; border: 2px solid #f3c6c0; border-radius: 16px; cursor: pointer; }
 .modal-fertig { margin: 4px 18px 16px; min-height: 54px; font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; color: #fff; background: linear-gradient(180deg, var(--cta), var(--cta-deep)); border: none; border-radius: 18px; cursor: pointer; }
 

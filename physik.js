@@ -23,7 +23,8 @@
            Kraftschlusskurve). Darüber dreht das Rad durch.
          – Rollwiderstand: Gegenmoment c_rr·Fn·r
      • Karosserie-Umriss und Fietes Kopf kollidieren ebenfalls mit dem Boden.
-     • Luftwiderstand ½·ρ·cwA·v² und Abtrieb ½·ρ·cA·v².
+     • Luftwiderstand ½·ρ·cwA·v² und Abtrieb ½·ρ·cA·v² (unter Wasser mit
+       größerer Dichte), Wind als Zusatz-Beschleunigung, Drehdämpfung im Wasser.
 
    LÖSER
      Semi-implizites Euler-Verfahren mit "Sequential Impulses" (Catto, GDC
@@ -213,6 +214,7 @@ var FF = globalThis.FF = globalThis.FF || {};
      Ein Zeitschritt h
      ------------------------------------------------------------------------- */
   var tmp = { pen: 0, nx: 0, ny: 1 };
+  var WIND_BEZUG = 0.45 / 240;            // cw·A / Masse des Flitzers [m²/kg]
 
   function schritt(fz, gel, welt, h) {
     var P = FF.CONFIG.physik, w = fz.werte;
@@ -240,6 +242,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
     C.w += fz.zusatzMoment * C.iJ * h;
+    // Wasser dämpft Drehungen (Meeresgrund): ω nimmt mit der Rate drehDaempfung [1/s] ab
+    if (welt.drehDaempfung) C.w -= C.w * Math.min(1, welt.drehDaempfung * h);
+    // Sturm (Herbststurm): Wind schiebt von hinten oder bremst von vorn – als Beschleunigung
+    // auf Karosserie und Räder. Wer viel Fläche (cw·A) und wenig Masse hat, wird stärker
+    // gepustet (Moped stark, Rennwagen schwach); Bezug ist der Flitzer.
+    var aWind = gel.windBei ? gel.windBei(C.x) : 0;
+    if (aWind) {
+      aWind *= Math.max(0.6, Math.min(1.5, w.cwA / w.masse / WIND_BEZUG));
+      C.vx += aWind * h;
+      for (i = 0; i < nR; i++) RR[i].k.vx += aWind * h;
+    }
 
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     var grip = w.grip * welt.grip, crr = welt.rollwiderstand, abprall = welt.abprall;
