@@ -293,6 +293,52 @@ FF.CONFIG = {
       farbe: "weiss", form: "mond",
       klang: { art: "elektro", surren: 900, avasTon: 220, max: 8000, weltraum: true, lautstaerke: 1.0, abrollen: 1.0 },
       upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* E-Skateboard: Das Kind steht drauf (Schwerpunkt hoch, Kopf oben) – leicht,
+         flott, sehr wendig in der Luft, aber wackelig. Akku im Brett. */
+      id: "skateboard", name: "E-Skateboard", emoji: "🛹", preis: 8000, preisBasis: 200,
+      text: "Elektro-Skateboard: Du stehst drauf! Flink und wendig – aber wackelig.",
+      masse: 75, groesse: { laenge: 1.2, hoehe: 1.6 },
+      raeder: [
+        { x: -0.42, y: -0.40, r: 0.17, masse: 2.5, antrieb: true },
+        { x:  0.42, y: -0.40, r: 0.17, masse: 2.5, antrieb: false }
+      ],
+      federung: { ruhe: 0.12, weg: 0.09, frequenz: 2.6, daempfung: 0.6 },
+      motor: { drehmoment: 55, vmax: 15.5, eck: 0.5 }, bremse: 140, grip: 1.1,
+      tankSekunden: 25, luftsteuerung: 7.0, cwA: 0.5, abtrieb: 0,
+      balance: 1.0,                     // das Kind balanciert am Boden selbst (wie der Stabilisator bei „Leicht“)
+      leerlauf: 0, rekuperation: 0.4, akku: true,
+      huelle: [[-0.6, -0.40], [0.6, -0.40], [0.66, -0.30], [-0.66, -0.30]],
+      dach: [[0.0, 0.62], [-0.05, 0.3]],
+      kopf: { x: 0.02, y: 0.86, r: 0.28 },
+      farbe: "lila", form: "skateboard",
+      klang: { art: "elektro", surren: 3200, avasTon: 440, max: 15000, lautstaerke: 0.8, abrollen: 0.9 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* Propeller-Flieger mit offenem Cockpit: fährt wie ein Auto, aber nahe am Boden
+         trägt der Bodeneffekt (auftrieb): mit Tempo wird er leichter und segelt weiter.
+         Ab hoehe [m] über dem Boden ist der Auftrieb weg – höher fliegen geht nicht.
+         In der Luft schiebt der Propeller ein wenig (schub [m/s²], weniger als g). */
+      id: "flugzeug", name: "Propeller-Flieger", emoji: "✈️", preis: 30000, preisBasis: 450,
+      text: "Ein kleiner Flieger mit offenem Cockpit. Er segelt knapp über dem Boden – aber hoch hinaus kommt er nicht.",
+      masse: 320, groesse: { laenge: 3.8, hoehe: 1.2 },
+      raeder: [
+        { x: -1.55, y: -0.05, r: 0.2, masse: 6, antrieb: false },
+        { x:  0.75, y: -0.15, r: 0.4, masse: 14, antrieb: true }
+      ],
+      federung: { ruhe: 0.32, weg: 0.24, frequenz: 1.8, daempfung: 0.5 },
+      motor: { drehmoment: 1150, vmax: 20 }, bremse: 1300, grip: 1.0,
+      tankSekunden: 17, luftsteuerung: 5.0, cwA: 0.5, abtrieb: 0,
+      auftrieb: { max: 0.5, vRef: 22, hoehe: 3.2, boden: 0.75 }, schub: 3.5,
+      huelle: [[-1.9, 0.05], [1.5, -0.12], [1.8, 0.15], [1.5, 0.42], [-1.4, 0.38], [-1.95, 0.85]],
+      dach: [[-0.25, 0.98]],
+      kopf: { x: -0.25, y: 0.62, r: 0.28 },
+      farbe: "rot", form: "flugzeug",
+      klang: { art: "verbrenner", zylinder: 4, takte: 4, leerlauf: 800, max: 2900, gaenge: 1, abkling: 8, ungleich: 0.2,
+               rohr: 0.005, rueck: 0.4, koerper: 140, hell: 1.15, diesel: 0.05, unruhe: 10, traegheit: 8, lautstaerke: 1.0, abrollen: 0.8 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
     }
   ],
 

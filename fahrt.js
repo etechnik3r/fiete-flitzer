@@ -250,6 +250,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     if (this.welt.wasser) this.wasser(h);
+    if (w.auftrieb) this.fliegen(h);
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (this.welt.decke) this.deckenStoss();
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
@@ -365,11 +366,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (w.stabilisator && Math.abs(steuer) < 0.1) {
         M += (-3 * normWinkel(C.a) - 1.5 * C.w) * J * w.stabilisator;
       }
-    } else if (w.stabilisator && st.radKontakte > 0) {
+    } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {
+      // Stabilisator (Leicht) bzw. Gleichgewichtssinn (Skateboard: das Kind balanciert)
       var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
-      var frei = 0.4;
+      var frei = w.balance && !w.stabilisator ? 0.15 : 0.4, stab = Math.max(w.stabilisator || 0, w.balance || 0);
       if (Math.abs(d) > frei) {
-        var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * 3) * J * w.stabilisator;
+        var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * 3) * J * stab;
         M += Math.max(-J * 12, Math.min(J * 12, M2));
       }
     }
@@ -398,6 +400,24 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.raeder.forEach(function (R) { if (R.k.vy > C.vy) R.k.vy = C.vy; });
       if (vyPunkt > 1.5) this.melde("decke", { x: px, y: py, staerke: Math.min(1, vyPunkt / 8) });
     }
+  };
+
+  /* Flugzeug: Bodeneffekt-Auftrieb und Propeller. Auftrieb a = g · max · (v/vRef)²,
+     voll bis 1 m über der normalen Höhe, bis „hoehe“ linear weg – darüber trägt nichts.
+     Ohne Luft (Mond) kein Auftrieb. In der Luft schiebt der Propeller mit Gas. */
+  Fahrt.prototype.fliegen = function (h) {
+    var A = this.werte.auftrieb, fz = this.fz, C = fz.chassis, gel = this.gelaende, st = fz.status;
+    var luft = Math.min(1, this.welt.luftdichte / 1.2);
+    if (!luft || this.zustand !== "fahrt") return;
+    var frei = C.y - gel.hoeheBei(C.x) - A.boden;
+    var nah = frei < 1 ? 1 : Math.max(0, 1 - (frei - 1) / (A.hoehe - 1));
+    var v = Math.max(0, st.vorwaerts), g = this.welt.schwerkraft * (gel.schwereBei ? gel.schwereBei(C.x) : 1);
+    var a = g * A.max * Math.min(1, (v / A.vRef) * (v / A.vRef)) * nah * luft, ax = 0, ay = a;
+    if (st.radKontakte === 0 && this.gas > 0.05 && this.tank > 0 && st.vorwaerts < this.werte.motor.vmax * 1.15) {
+      ax += Math.cos(C.a) * this.werte.schub * this.gas; ay += Math.sin(C.a) * this.werte.schub * this.gas;
+    }
+    C.vx += ax * h; C.vy += ay * h;
+    fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
   };
 
   /* Katapult: Das Auto liegt in der Schale (Lage fest, Nase leicht hoch). Gas drücken
