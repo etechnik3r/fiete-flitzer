@@ -639,6 +639,30 @@
       g.beginPath(); g.arc(0, -u * 0.97, u * 0.05, 0, Math.PI * 2); g.fill();
     } },
 
+    /* ---- Raumstation ---- */
+    antenne: { breite: 0.9, sinken: 0, male: function (g, u, R) {
+      // Parabolantenne auf einem Gestell, mit blinkendem Licht an der Spitze
+      g.fillStyle = "#6f7a94"; g.fillRect(-u * 0.04, -u * 0.6, u * 0.08, u * 0.6);
+      g.fillRect(-u * 0.2, -u * 0.04, u * 0.4, u * 0.04);
+      g.save(); g.translate(0, -u * 0.62); g.rotate(-0.5 - R() * 0.4);
+      var gr = g.createLinearGradient(-u * 0.35, 0, u * 0.35, 0); gr.addColorStop(0, "#f4f6fb"); gr.addColorStop(1, "#aab4cc");
+      g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, u * 0.36, u * 0.13, 0, 0, Math.PI); g.fill();
+      g.strokeStyle = "#6f7a94"; g.lineWidth = Math.max(1, u * 0.02); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -u * 0.25); g.stroke();
+      g.fillStyle = "#e8453c"; g.beginPath(); g.arc(0, -u * 0.27, u * 0.04, 0, Math.PI * 2); g.fill();
+      g.restore();
+    } },
+    solarpanel: { breite: 1.5, sinken: 0, male: function (g, u, R) {
+      g.fillStyle = "#6f7a94"; g.fillRect(-u * 0.03, -u * 0.55, u * 0.06, u * 0.55);
+      g.save(); g.translate(0, -u * 0.6); g.rotate(-0.25 + (R() - 0.5) * 0.2);
+      var b = u * 0.7, h = u * 0.35;
+      g.fillStyle = "#1f3f8f"; g.fillRect(-b, -h, b * 2, h);
+      g.strokeStyle = "#7aa7ff"; g.lineWidth = Math.max(1, u * 0.012);
+      for (var i = 1; i < 6; i++) { g.beginPath(); g.moveTo(-b + b * 2 * i / 6, -h); g.lineTo(-b + b * 2 * i / 6, 0); g.stroke(); }
+      g.beginPath(); g.moveTo(-b, -h / 2); g.lineTo(b, -h / 2); g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.25)"; g.beginPath(); g.moveTo(-b, -h); g.lineTo(-b * 0.4, -h); g.lineTo(-b * 0.8, 0); g.lineTo(-b, 0); g.closePath(); g.fill();
+      g.restore();
+    } },
+
     /* ---- Spielzeugfabrik ---- */
     bauklotz: { breite: 1.0, sinken: 0, male: function (g, u, R) {
       // gestapelte bunte Holzklötze mit Buchstaben-Punkten

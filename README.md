@@ -61,13 +61,13 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **20 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **21 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle ·
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
-  🧸 Spielzeugfabrik · 🪐 Roter Planet.
+  🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -134,6 +134,11 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   - **🪐 Roter Planet** (Version 18): Mars mit g = 3,71 m/s² und Staubstürmen
     (`wind` wie im Herbststurm, aber nur 0,75 m/s², weil man so leicht ist),
     zwei Monde, Rover und Kuppel-Station, Fiete mit Raumhelm (`welt.helm`).
+  - **🛸 Raumstation** (`gelaende.schwebe`, Version 19): künstliche Schwerkraft,
+    nur in leuchtenden **Schwebe-Säulen** wirken 18 % (`gelaende.schwereBei`,
+    3 m weicher Rand). Davor eine kleine Sprungkante, darunter eine Senke, oben
+    ein Münzbogen mit Diamant. In und kurz hinter den Säulen liegen keine
+    Kanister (man schwebt darüber) und setzt der Ballon nie ab.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring

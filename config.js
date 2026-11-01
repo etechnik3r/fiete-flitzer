@@ -803,6 +803,28 @@ FF.CONFIG = {
                   abstandElemente: 30 },
       tankAbstand: 230, muenzAbstand: 25,
       level: [ { laenge: 860, seed: 2001 }, { laenge: 1120, seed: 2002 }, { laenge: 1380, seed: 2003 }, { laenge: 1640, seed: 2004 } ]
+    },
+    {
+      /* Raumstation: künstliche Schwerkraft – nur in den leuchtenden Schwebe-Säulen
+         (Bau-Element "schwebe", gelaende.schwereBei) wirken 18 %. Vor jeder Säule eine
+         kleine Sprungkante, darunter eine Senke, oben Münzen und ein Diamant. */
+      id: "station", name: "Raumstation", emoji: "🛸", hinweis: "In den leuchtenden Säulen schwebst du!",
+      schwerkraft: 9.81, grip: 0.95, rollwiderstand: 0.02, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#04061a", "#1b2150"], berge: ["#36406a", "#252d50"],
+        boden: ["#6f7a94", "#424a62"], oberflaeche: "#aab4cc", kante: "#7af0ff", punkte: "#566079",
+        fenster: "#7af0ff"
+      },
+      sonne: "erde", wetter: "sterne", helm: true,
+      tipp: ["✨ In den leuchtenden Säulen ist die Schwerkraft fast weg – du schwebst! Hol dir die Münzen oben.", "In den Säulen schwebst du!"],
+      deko: ["@antenne:2.0", "@solarpanel:1.6", "🤖:1.0", "@kiste:1.0", "🛸:1.3:3.2", "@kristall:1.0", "@antenne:1.5", "🛰️:1.2:3.8", "@solarpanel:2.2", "@kristall:0.7"],
+      beiwerk: ["@kristall:0.35", "@stein:0.35"], kulisse: ["station", "station", null],
+      gelaende: { amp: 7.5, welle: 42, holperAmp: 0.12, holperWelle: 6, trend: 0.02,
+                  maxAuf: 31, maxAb: 42, schanzen: 1.1, buckel: 0.8, steil: 1.0, taeler: 0.9, berg: 1.0, sprung: 1.0, wellen: 0.9, klippe: 0.9, rampe: 0.9, kuppe: 1.0, stufe: 1.0,
+                  schwebe: 2.0, wildBasis: 0.55,
+                  abstandElemente: 25 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 880, seed: 2101 }, { laenge: 1140, seed: 2102 }, { laenge: 1400, seed: 2103 }, { laenge: 1660, seed: 2104 } ]
     }
   ],
 
@@ -825,6 +847,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "19", titel: "Raumstation", punkte: [
+      "🛸 Neue Welt Raumstation: Antennen, Solarflügel, die Erde am Himmel",
+      "✨ In den leuchtenden Säulen ist die Schwerkraft fast weg – du schwebst und holst dir die Münzen ganz oben" ] },
     { version: "18", titel: "Roter Planet", punkte: [
       "🪐 Neue Welt auf dem Mars: wenig Schwerkraft, riesige Sprünge und zwei kleine Monde am Himmel",
       "🌪️ Staubstürme schieben dich mal nach vorn, mal zurück – und Fiete trägt einen Raumhelm" ] },

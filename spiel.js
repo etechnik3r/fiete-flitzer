@@ -558,6 +558,16 @@
             tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
           }
           break;
+        case "schwebe":                  // Schwebe-Säule betreten
+          FF.Klang.spiele("schwebe");
+          schwebeText(e.x, e.y + 2, "Schwerelos! ✨", "#9ff6ff", true);
+          funkeln(e.x, e.y + 0.5, "#c9fbff", 8);
+          setzeAusdruck("freude", 2.5);
+          if (ersteMale("tipp-schwebe", 2)) {
+            tipp("✨ In der Säule bist du fast schwerelos! Mit Gas und Bremse drehst du dich – sammle die Münzen oben.", 4500, "Schwerelos!");
+            spruchBis = zeit + 3;
+          }
+          break;
         case "band":                     // Förderband
           FF.Klang.spiele("band", e.v > 0);
           schwebeText(ch.x, ch.y + 2, e.v > 0 ? "Förderband ⏩" : "Förderband ⏪", e.v > 0 ? "#7dffb8" : "#ffd6a0", true);

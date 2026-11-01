@@ -96,7 +96,8 @@ var FF = globalThis.FF = globalThis.FF || {};
                   berg: g.berg * wild, sprung: g.sprung * wild, wellen: g.wellen * wild, klippe: g.klippe * wild,
                   rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild,
                   looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
-                  trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild) },
+                  trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild),
+                  schwebe: (g.schwebe || 0) * (0.6 + wild) },
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -133,6 +134,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.sperrzonen = [];          // [von, bis]: dort setzt der Ballon nie ab, dort liegt kein Kanister (Grube, Looping)
     this.trampoline = [];          // Hüpfpilze {x0, x1, H, v, …} – wer drauffährt, fliegt hoch (fahrt.js)
     this.baender = [];             // Förderbänder {x0, x1, v} – der Boden bewegt sich mit v [m/s] (physik.js)
+    this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
@@ -172,7 +174,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band"];
+               "looping", "luecke", "trampolin", "band", "schwebe"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -321,6 +323,21 @@ var FF = globalThis.FF = globalThis.FF || {};
       var xt = xs + el.La;
       this.trampoline.push({ x0: xt, x1: xt + el.Lt, H: el.Ht, v: 9.5 + 1.5 * p.wild, benutzt: false, platziert: false, boing: -9 });
       this.sperrzonen.push([xt - 1, xt + el.Lt + 1]);
+    } else if (typ === "schwebe") {
+      // Schwebe-Säule: kleine Sprungkante, dann wird die Schwerkraft fast ausgeschaltet –
+      // darunter eine Senke, oben hängen Münzen, die man nur schwebend erreicht
+      el.flach = true;
+      el.La = 12;
+      el.Lk = 6; el.H = 1.0 + 0.4 * r();             // Sprungkante
+      el.Lz = 26 + 8 * r() + 4 * p.wild;             // Länge der Säule hinter der Kante
+      el.D = 2.5 + 1.5 * r();                        // Senke darunter
+      el.Lu = 1.5 * (el.D + el.H) / Math.tan(p.ausfahrt);
+      el.Lflach = el.La + el.Lk + el.Lz + el.Lu + 4;
+      el.Lo = 18;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xk = xs + el.La + el.Lk;
+      this.schwebezonen.push({ x0: xk - 1, x1: xk + el.Lz, f: 0.18, platziert: false });
+      this.sperrzonen.push([xk - 4, xk + el.Lz + 22]);  // dort kein Kanister (man schwebt drüber und landet erst danach), kein Ballon-Absetzen
     } else if (typ === "band") {
       // Förderband auf ebenem Boden: vorwärts (schiebt mit) oder rückwärts (dagegen anfahren!).
       // Rückwärts nur so schnell, dass jedes Fahrzeug dagegen ankommt.
@@ -419,6 +436,14 @@ var FF = globalThis.FF = globalThis.FF || {};
         return 0;
       case "band":
         return 0;                                   // nur ebener Boden – das Band selbst steht in baender
+      case "schwebe":
+        var sz = s - el.La;
+        if (sz < 0) return 0;
+        if (sz < el.Lk) { var uk = sz / el.Lk; return el.H * uk * uk; }
+        sz -= el.Lk;
+        if (sz < el.Lz) return el.H - (el.H + el.D) * glatt(0, el.Lz * 0.45, sz);
+        sz -= el.Lz;
+        return -el.D * (1 - glatt(0, el.Lu, sz));
       case "trampolin":
         var st = (s - el.La) / el.Lt;
         return st > 0 && st < 1 ? el.Ht * Math.sin(Math.PI * st) : 0;
@@ -565,6 +590,19 @@ var FF = globalThis.FF = globalThis.FF || {};
     return 0;
   };
 
+  /* Schwerkraft-Faktor bei x (Schwebe-Säulen: f, mit 3 m weichem Rand; sonst 1) */
+  Gelaende.prototype.schwereBei = function (x) {
+    var Z = this.schwebezonen;
+    for (var i = 0; i < Z.length; i++) {
+      var z = Z[i];
+      if (x > z.x0 - 3 && x < z.x1 + 3) {
+        var u = Math.min(1, (x - z.x0 + 3) / 3, (z.x1 + 3 - x) / 3);
+        return 1 - (1 - z.f) * u;
+      }
+    }
+    return 1;
+  };
+
   /* Wasserspiegel einer Pfütze bei x, sonst -Infinity */
   Gelaende.prototype.wasserBei = function (x) {
     var P = this.pfuetzen, lo = 0, hi = P.length;
@@ -702,6 +740,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (this.gesperrt(xp)) w += 50;
       if (w < besteWertung) { besteWertung = w; beste = xp; }
     }
+    // Raumstation: liegt alles in einer Schwebe-Zone, dann gleich hinter ihr Ende
+    // (nur dort – in anderen Welten bleiben die Kanister, wo sie immer waren)
+    if (this.schwebezonen.length && this.gesperrt(beste)) {
+      for (var i = 0; i < this.sperrzonen.length; i++) {
+        var z = this.sperrzonen[i];
+        if (beste > z[0] && beste < z[1]) return z[1] + 1.5;
+      }
+    }
     return beste;
   };
 
@@ -801,6 +847,19 @@ var FF = globalThis.FF = globalThis.FF || {};
       for (var kt = 0; kt < 5; kt++) {
         var tt = 0.12 + kt * 0.14;
         this.neueMuenze(xm0 + 9 * tt, ym0 + tp.v * tt - 0.5 * g * tt * tt, kt === 4 ? 25 : 10);
+      }
+    }
+
+    // Schwebe-Säulen: Münzen hoch oben im Bogen, in der Mitte ein Diamant
+    for (i = 0; i < this.schwebezonen.length; i++) {
+      var zs = this.schwebezonen[i];
+      if (zs.platziert || zs.x1 > bis - 20) continue;
+      zs.platziert = true;
+      if (zs.x1 > ende - 15) continue;
+      var yb = this.hoeheBei(zs.x0 + 1);
+      for (var kz = 0; kz < 7; kz++) {
+        var uz = (kz + 0.5) / 7, xz = zs.x0 + 3 + (zs.x1 - zs.x0 - 6) * uz;
+        this.neueMuenze(xz, yb + 3 + 4 * Math.sin(Math.PI * uz), kz === 3 ? 100 : 10);
       }
     }
 
