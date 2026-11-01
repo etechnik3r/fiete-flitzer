@@ -71,7 +71,11 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* =========================================================================
      Gelaende
-     optionen: { endlos, stufe (0..3), laenge, seed }
+     optionen: { endlos, stufe (0..3), laenge, seed, strecke }
+     strecke: selbst gemalte Strecke aus dem Editor { dx, h: [Höhen in m] } –
+     dann kommt die Rohhöhe aus h statt aus Rauschen und Bau-Elementen. Der
+     Steigungsbegrenzer und der Tiefpass machen daraus eine befahrbare Strecke,
+     Münzen, Kanister und Deko werden wie sonst verteilt.
      ========================================================================= */
   function Gelaende(welt, optionen) {
     var C = FF.CONFIG;
@@ -102,6 +106,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.muenzAbstand = welt.muenzAbstand;
 
     this.seed = optionen.seed | 0;
+    this.eigene = optionen.strecke && optionen.strecke.h && optionen.strecke.h.length > 1 ? optionen.strecke : null;
     this.rnd = zufallsQuelle(this.seed * 7919 + 17);
     this.s1 = this.seed * 13 + 1; this.s2 = this.seed * 13 + 2; this.s3 = this.seed * 13 + 3;
 
@@ -422,7 +427,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
       // neue Bau-Elemente einplanen
       var zielZone = !this.endlos && x > this.ziel - 70;
-      if (x >= this.naechstesElement && !zielZone) {
+      if (x >= this.naechstesElement && !zielZone && !this.eigene) {
         var el = this.neuesElement(x);
         this.elemente.push(el);
         if (!this.endlos) this.bauplan.push(el);       // für Analyse und Tests (werkzeuge/)
@@ -432,7 +437,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       // 1) Rohhöhe
       var start = glatt(8, 45, x);
       var A = p.amp * this.fortschritt(x) * start;
-      var roh = this.rohRauschen(x);
+      var roh = this.eigene ? this.eigeneHoehe(x) : this.rohRauschen(x);
       // Loopings und Lückensprünge brauchen ebenen Boden: dort ist das Rauschen eingefroren
       for (var j = 0; j < this.elemente.length; j++) {
         var ef = this.elemente[j];
@@ -470,6 +475,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     return A * (rauschen(x / p.welle, this.s1) + 0.45 * rauschen(x / (p.welle * 0.43), this.s2))
          + p.holperAmp * start * rauschen(x / p.holperWelle, this.s3)
          + p.trend * Math.max(0, x - 8) * start;
+  };
+
+  /* Selbst gemalte Strecke: Höhe bei x (Anfang und Ende je 12 m eben) */
+  Gelaende.prototype.eigeneHoehe = function (x) {
+    var E = this.eigene, L = (E.h.length - 1) * E.dx;
+    var f = Math.max(12, Math.min(L - 12, x)) / E.dx, i = Math.min(E.h.length - 2, Math.floor(f)), t = f - i;
+    return E.h[i] * (1 - t) + E.h[i + 1] * t;
   };
 
   /* Liegt x in einer Sperrzone (Grube, Looping)? */

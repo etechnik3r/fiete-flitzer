@@ -1249,3 +1249,49 @@ button { font: inherit; color: inherit; }
 @keyframes ampelPlopp { from { transform: scale(1.6); opacity: 0.3; } to { transform: scale(1); opacity: 1; } }
 @media (orientation: landscape) and (max-height: 420px) { .ampel-box { top: 14%; } .lampe { width: 24px; height: 24px; } .ampel-zahl { font-size: 3.4rem; } }
 @media (prefers-reduced-motion: reduce) { .ampel-zahl.plopp { animation: none; } }
+
+
+/* 18) STRECKEN-EDITOR (editor.js) ------------------------------------------------- */
+.editor {
+  position: fixed; inset: 0; z-index: 400;
+  display: flex; flex-direction: column;
+  background: #f3f6fc;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.editor[hidden] { display: none; }
+.editor-kopf, .editor-fuss {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; flex: none;
+  background: #fff; box-shadow: 0 2px 8px rgba(30, 44, 82, 0.12);
+}
+.editor-fuss { flex-wrap: wrap; box-shadow: 0 -2px 8px rgba(30, 44, 82, 0.12); }
+.editor-titel { font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; color: var(--ink); white-space: nowrap; }
+.editor-welten { flex: 1; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.editor-welt {
+  flex: none; width: 44px; height: 44px; border-radius: 12px; border: 2px solid transparent;
+  background: #eef1f8; font-size: 1.4rem; cursor: pointer;
+}
+.editor-welt.aktiv { border-color: #2f6fd6; background: #dfe9ff; }
+.editor-zu {
+  flex: none; width: 44px; height: 44px; border-radius: 50%; border: none; background: #eef1f8;
+  font-size: 1.2rem; font-weight: 800; color: var(--ink); cursor: pointer;
+}
+.editor-buehne { position: relative; flex: 1; min-height: 0; }
+#editor-bild { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.editor-hinweis {
+  position: absolute; left: 50%; top: 22%; transform: translateX(-50%);
+  padding: 8px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-display); font-weight: 800; color: var(--ink); pointer-events: none; text-align: center;
+  box-shadow: var(--sh-chip);
+}
+.editor-hinweis[hidden] { display: none; }
+.editor-laengen, .editor-strecken { display: flex; gap: 6px; }
+.editor-strecken { flex: 1; overflow-x: auto; scrollbar-width: none; }
+.editor-knopf {
+  flex: none; min-height: 44px; padding: 0 12px; border: 2px solid transparent; border-radius: 12px;
+  background: #eef1f8; font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; color: var(--ink); cursor: pointer;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05;
+}
+.editor-knopf small { font-family: var(--font-body, sans-serif); font-size: 0.7rem; font-weight: 700; color: var(--muted); }
+.editor-knopf.aktiv { border-color: #2f6fd6; background: #dfe9ff; }
+.editor-los { color: #fff; background: linear-gradient(180deg, #34d39a, #28c08a); padding: 0 20px; font-size: 1.1rem; }
+.editor-karte .welt-kopf { color: #fff; }

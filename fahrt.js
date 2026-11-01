@@ -94,7 +94,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* -------------------------------------------------------------------------
      Fahrt
-     o = { weltIndex, stufe (0..3), endlos, fahrzeugId, upgrades, schwierigkeit }
+     o = { weltIndex, stufe (0..3), endlos, fahrzeugId, upgrades, schwierigkeit, strecke }
      ------------------------------------------------------------------------- */
   function Fahrt(o) {
     var C = FF.CONFIG;
@@ -103,10 +103,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.endlos = !!o.endlos;
     this.stufe = o.stufe || 0;
     var lv = this.endlos ? null : this.welt.level[this.stufe];
+    this.strecke = o.strecke || null;              // selbst gemalt (Strecken-Editor): { dx, h, laenge }
+    if (this.strecke) { this.endlos = false; lv = { laenge: this.strecke.laenge, seed: 4242 }; }
     this.gelaende = new FF.Gelaende(this.welt, {
       endlos: this.endlos, stufe: this.stufe,
       laenge: lv ? lv.laenge : 0,
-      seed: lv ? lv.seed : (o.seed || 9000 + o.weltIndex * 31)
+      seed: lv ? lv.seed : (o.seed || 9000 + o.weltIndex * 31),
+      strecke: this.strecke
     });
     this.def = fahrzeugDef(o.fahrzeugId);
     this.werte = berechneWerte(this.def, o.upgrades, o.schwierigkeit);
