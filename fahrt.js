@@ -273,6 +273,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (w.auftrieb) this.fliegen(h);
     if (w.turbine) this.turbinenSchub(h);
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
+    if (C.x < S.rueckGrenzeWand && C.vx < 0) {               // unsichtbare Wand am Weltanfang (auch im Flug)
+      C.vx = 0;
+      fz.raeder.forEach(function (R) { if (R.k.vx < 0) R.k.vx = 0; });
+    }
     if (this.welt.decke) this.deckenStoss();
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
     if (this.welt.wind) this.pruefeWind();
@@ -356,6 +360,15 @@ var FF = globalThis.FF = globalThis.FF || {};
     var bremsen = this.bremse > 0.01 && (halten || !motorAn || fz.status.vorwaerts > S.rueckwaertsSchwelle);
     if (!bremsen && this.bremse > 0.01 && this.gas <= 0.01) this.rueckwaerts = true;
 
+    // Weltanfang: hinter dem Start ist nach gut einem Bildschirm Schluss. Kein Rückwärtsgang
+    // mehr, und wer rückwärts rollt, wird kräftig abgebremst (sonst fällt das Auto von der Welt)
+    var bremsKraft = this.bremse;
+    if (C.x < S.rueckGrenzeBremse && this.gas <= 0.01) {
+      this.rueckwaerts = false;
+      if (C.vx < 0.05) { bremsen = true; bremsKraft = 1; }
+      else bremsen = this.bremse > 0.01;                     // Bremspedal bremst hier nur noch
+    }
+
     for (var i = 0; i < nAlle; i++) {
       var R = fz.raeder[i];
       var rel = Math.abs(R.k.w - C.w);
@@ -366,7 +379,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         R.motorMax = R.antrieb ? Tkurve * this.gas / nA : 0;
       } else if (bremsen) {
         R.motorZiel = 0;
-        R.motorMax = w.bremse * this.bremse / nAlle;
+        R.motorMax = w.bremse * bremsKraft / nAlle;
       } else if (this.rueckwaerts && motorAn) {
         R.motorZiel = R.wMax * S.rueckwaertsTempo;
         R.motorMax = R.antrieb ? Tkurve * S.rueckwaertsKraft * this.bremse / nA : 0;
