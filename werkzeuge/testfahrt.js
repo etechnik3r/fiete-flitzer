@@ -448,7 +448,7 @@ function spielideenTests() {
   fh.gelaende.tanks.forEach(function (t) { if (t.x > Sc.x0 && t.x < Sc.x1) keinTankScheune = false; });
   FF.Physik.setzeAufBoden(fh.fz, fh.gelaende, Sc.x0 - 10, 0); fh.fz.chassis.vx = 6;
   for (i = 0; i < 240 * 8 && !stroh; i++) { fh.aktualisiere(1 / 240, { gas: true, bremse: false }); fh.ereignisse.forEach(function (ev) { if (ev.typ === "scheune") rein = true; if (ev.typ === "stroh") stroh = ev; }); fh.ereignisse.length = 0; }
-  pruefe(Sc && rein && stroh && Math.abs(stroh.x - Sc.x1) < 0.01 && keinTankScheune && fh.gelaende.scheunen.length >= 3,
+  pruefe(Sc && rein && stroh && Math.abs(stroh.x - Sc.x1) < 0.01 && keinTankScheune && fh.gelaende.scheunen.length === 5,
     "Scheune: " + fh.gelaende.scheunen.length + " im Level, hinein (Meldung), hinten hinaus fliegt Stroh, kein Kanister darin");
   // Obstplantage: Obst gibt ≈ 1 s Mini-Turbo (schwächer als die Rakete)
   var fo2 = neu("obstgarten", 1), Ob = fo2.gelaende.obst[0], vObst = 0, tObst = -1, vNach = 0;

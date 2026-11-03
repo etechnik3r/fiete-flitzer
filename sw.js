@@ -9,26 +9,26 @@
    (gleich mit der ?v=NUMMER in index.html) – sonst liefert der Cache alt aus.
    ===========================================================================*/
 
-var VERSION = "v25";
+var VERSION = "v26";
 var CACHE_NAME = "fiete-flitzer-" + VERSION;
 
 var DATEIEN = [
   "./",
   "index.html",
-  "style.css?v=25",
-  "config.js?v=25",
-  "gelaende.js?v=25",
-  "physik.js?v=25",
-  "fahrt.js?v=25",
-  "geist.js?v=25",
-  "kinder.js?v=25",
-  "spielstand.js?v=25",
-  "requisiten.js?v=25",
-  "grafik.js?v=25",
-  "grafik-welt.js?v=25",
-  "klang.js?v=25",
-  "editor.js?v=25",
-  "spiel.js?v=25",
+  "style.css?v=26",
+  "config.js?v=26",
+  "gelaende.js?v=26",
+  "physik.js?v=26",
+  "fahrt.js?v=26",
+  "geist.js?v=26",
+  "kinder.js?v=26",
+  "spielstand.js?v=26",
+  "requisiten.js?v=26",
+  "grafik.js?v=26",
+  "grafik-welt.js?v=26",
+  "klang.js?v=26",
+  "editor.js?v=26",
+  "spiel.js?v=26",
   "manifest.webmanifest",
   "icon-192.png",
   "icon-512.png",

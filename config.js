@@ -1037,8 +1037,9 @@ FF.CONFIG = {
        Version 25: Bauernhof, Obstplantage, Röhrenwelt.
          wasser.schlamm  Pfützen sind Matsch: braun, bremsen stärker; wasser.tier
                          suhlt sich darin (statt der Ente)
-         gelaende.scheune  Scheune auf ebenem Boden: hinein, durch, hinten hinaus –
-                         dann fliegt Stroh (fahrt.js pruefeScheunen)
+         gelaende.scheunen  so viele Scheunen je Level, gleichmäßig verteilt (Endlos: alle
+                         150 m): links durchs offene Tor hinein, rechts hinaus – dann
+                         fliegt Stroh (fahrt.js pruefeScheunen)
          obst            Obst auf der Strecke: Einsammeln gibt einen kurzen Mini-Turbo
                          { abstand [m], dauer [s], beschl [m/s²], tempoMax (× vmax) }
          gelaende.roehre Röhren: alle roehreAbstand [m] eine (nicht zufällig), das Auto
@@ -1056,13 +1057,13 @@ FF.CONFIG = {
       },
       sonne: "sonne", wetter: null, sonnenDeko: "strohhut",
       wasser: { tiefe: 0.55, maxBreite: 14, bremse: 0.11, schlamm: true, tier: "🐖" },
-      tipp: ["🐷 Matsch bremst dich! Nimm Schwung – und fahr mitten durch die Scheune!", "Matsch bremst! Fahr durch die Scheune!"],
+      tipp: ["🐷 Matsch bremst dich – spring mit Schwung drüber! Und fahr durch die Scheunen!", "Matsch bremst! Fahr durch die Scheunen!"],
       deko: ["@schwein:0.9", "@heuballen:1.3", "@laubbaum:3.2", "@schwein:1.1", "🐄:1.6", "@strohballen:0.9", "@schwein:0.75", "🐔:0.55",
              "@vogelscheuche:1.8", "@milchkanne:0.7", "🐑:0.9", "@schwein:1.0", "@busch:1.0", "@heuballen:1.1"],
       beiwerk: ["@gras:0.45", "@stein:0.35", "@blumen:0.4"], kulisse: ["hof", "wald", "weide"],
       gelaende: { amp: 6.5, welle: 40, holperAmp: 0.2, holperWelle: 6, trend: 0.015,
-                  maxAuf: 29, maxAb: 40, schanzen: 1.0, buckel: 1.0, steil: 0.7, taeler: 1.7, berg: 0.7, sprung: 0.7, wellen: 0.8, klippe: 0.4, rampe: 0.6, kuppe: 0.7, stufe: 0.6,
-                  scheune: 1.5, wildBasis: 0.45,
+                  maxAuf: 29, maxAb: 40, schanzen: 1.6, buckel: 0.8, steil: 0.6, taeler: 1.4, berg: 0.6, sprung: 1.3, wellen: 0.8, klippe: 0.4, rampe: 0.8, kuppe: 0.8, stufe: 0.5,
+                  scheunen: 5, wildBasis: 0.45,
                   abstandElemente: 26 },
       tankAbstand: 280, muenzAbstand: 22,
       level: [ { laenge: 780, seed: 2701 }, { laenge: 1040, seed: 2702 }, { laenge: 1300, seed: 2703 }, { laenge: 1560, seed: 2704 } ]
@@ -1133,6 +1134,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "26", titel: "Scheunen und schönere Röhren", punkte: [
+      "🛖 Bauernhof: In jedem Level stehen jetzt fünf Scheunen – links durchs offene Tor hinein, rechts wieder hinaus!",
+      "🛫 Mehr Schanzen auf dem Bauernhof: Spring über den Matsch!",
+      "🌀 Röhrenwelt: Loopings liegen nie mehr übereinander – einer nach oben, einer nach unten" ] },
     { version: "25", titel: "Bauernhof, Obstplantage und Röhrenwelt", punkte: [
       "🐷 Neue Welt Bauernhof: Schweine, Kühe und Hühner – Matschpfützen bremsen dich!",
       "🛖 Fahr mitten durch die Scheune – hinten fliegt das Stroh hoch!",
