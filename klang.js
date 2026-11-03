@@ -582,6 +582,26 @@ var FF = globalThis.FF = globalThis.FF || {};
         rauschen(0, 0.5, 0.25, 900);
         for (var ei = 0; ei < 7; ei++) ton(500 + ((ei * 173) % 600), ei * 0.05, 0.04, "square", 0.05);
         break;
+      case "matsch":                   // durch Matsch: dumpfes Schmatzen und Blubbern
+        rauschen(0, 0.3 + 0.2 * (wert || 0.5), 0.14 + 0.18 * (wert || 0.5), 420);
+        ton(140, 0.02, 0.16, "sine", 0.16, 70); ton(220, 0.12, 0.1, "sine", 0.08, 120); ton(180, 0.22, 0.08, "sine", 0.06, 110);
+        break;
+      case "scheune":                  // in die Scheune: Hühner gackern (kurze, hohe Stöße)
+        [0, 0.09, 0.2, 0.27].forEach(function (t, i) { ton(i % 2 ? 980 : 1180, t, 0.06, "square", 0.035, i % 2 ? 700 : 820); });
+        break;
+      case "stroh":                    // Stroh fliegt: Rascheln
+        rauschen(0, 0.55, 0.16, 3200); rauschen(0.08, 0.35, 0.08, 1800);
+        break;
+      case "obst":                     // Obst eingesammelt: Plopp + kurzes Fauchen der Mini-Rakete
+        ton(660, 0, 0.08, "sine", 0.14, 990); ton(990, 0.06, 0.1, "triangle", 0.08);
+        rauschen(0.05, 0.7, 0.18, 900); ton(150, 0.05, 0.7, "sawtooth", 0.04, 300);
+        break;
+      case "roehre":                   // hinein in die Röhre: Hui! (aufsteigendes Rauschen)
+        rauschen(0, 0.8, 0.16, 1200); ton(300, 0, 0.6, "sine", 0.1, 900);
+        break;
+      case "roehreAus":                // Röhre zu Ende: absteigendes Wusch
+        rauschen(0, 0.4, 0.12, 800); ton(700, 0, 0.35, "sine", 0.08, 260);
+        break;
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;

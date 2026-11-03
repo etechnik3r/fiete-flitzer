@@ -219,7 +219,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   /* Freundliche Sonne mit Strahlen und Gesicht, auf Wunsch mit Zubehör
-     (deko: helm, muetze, brille, bluete, krone, schal) */
+     (deko: helm, muetze, brille, bluete, krone, schal, strohhut) */
   function sonneMalen(ctx, x, y, r, zeit, deko) {
     ctx.save();
     ctx.translate(x, y);
@@ -270,6 +270,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "#d9532b"; ctx.fillRect(x - r * 0.8, y + r * 0.65, r * 1.6, r * 0.25);
       ctx.beginPath(); ctx.moveTo(x - r * 0.6, y + r * 0.85); ctx.lineTo(x - r * 1.4, y + r * (1.1 + Math.sin(zeit * 3) * 0.15)); ctx.lineTo(x - r * 1.35, y + r * 1.35); ctx.lineTo(x - r * 0.4, y + r * 0.95); ctx.fill();
       ctx.fillStyle = "#ffd23f"; ctx.fillRect(x - r * 0.3, y + r * 0.65, r * 0.12, r * 0.25); ctx.fillRect(x + r * 0.2, y + r * 0.65, r * 0.12, r * 0.25);
+    } else if (deko === "strohhut") {                   // Strohhut mit rotem Band und einem Halm im Mund
+      ctx.fillStyle = "#f2cf6a"; ctx.beginPath(); ctx.ellipse(x, y - r * 0.62, r * 1.35, r * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x - r * 0.65, y - r * 0.62); ctx.quadraticCurveTo(x - r * 0.7, y - r * 1.35, x, y - r * 1.38);
+      ctx.quadraticCurveTo(x + r * 0.7, y - r * 1.35, x + r * 0.65, y - r * 0.62); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#e8453c"; ctx.fillRect(x - r * 0.66, y - r * 0.86, r * 1.32, r * 0.16);
+      ctx.strokeStyle = "#d9a83a"; ctx.lineWidth = Math.max(1, r * 0.04);
+      ctx.beginPath(); ctx.ellipse(x, y - r * 0.62, r * 1.35, r * 0.24, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = "#e9c24e"; ctx.lineWidth = Math.max(1, r * 0.06);
+      ctx.beginPath(); ctx.moveTo(x + r * 0.2, y + r * 0.3); ctx.lineTo(x + r * 0.9, y + r * 0.05); ctx.stroke();
     }
   }
   /* Wolke aus drei Ellipsen, Breite w, Farbe = aktuelles fillStyle */
@@ -596,6 +605,78 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "#e8453c"; ctx.fillRect(tx, y - th - s * 0.28, s * 0.07, s * 0.04); ctx.fillStyle = alt;
       });
       ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.arc(x, y + 2, s * 0.08, Math.PI, 0); ctx.fill(); ctx.fillStyle = alt;
+    } },
+    hof: { abst: 48, male: function (ctx, x, y, s, R) {
+      // Bauernhof: Scheune mit Mansarddach, daneben ein Silo, manchmal ein kleines Haus
+      var b = s * (0.42 + 0.12 * R()), h = s * 0.24, dh = s * 0.16;
+      ctx.fillRect(x - b / 2, y - h, b, h + 2);
+      ctx.beginPath(); ctx.moveTo(x - b * 0.56, y - h + 1); ctx.lineTo(x - b * 0.36, y - h - dh * 0.6); ctx.lineTo(x, y - h - dh);
+      ctx.lineTo(x + b * 0.36, y - h - dh * 0.6); ctx.lineTo(x + b * 0.56, y - h + 1); ctx.fill();
+      var sx0 = x + b * 0.5 + s * 0.08, sb = s * 0.1, sh = s * (0.42 + 0.1 * R());
+      ctx.fillRect(sx0 - sb / 2, y - sh, sb, sh + 2);
+      ctx.beginPath(); ctx.arc(sx0, y - sh, sb / 2, Math.PI, 0); ctx.fill();
+      if (R() < 0.5) {
+        var hx = x - b * 0.5 - s * 0.16, hb2 = s * 0.18, hh = s * 0.13;
+        ctx.fillRect(hx - hb2 / 2, y - hh, hb2, hh + 2);
+        ctx.beginPath(); ctx.moveTo(hx - hb2 * 0.62, y - hh + 1); ctx.lineTo(hx, y - hh - hb2 * 0.5); ctx.lineTo(hx + hb2 * 0.62, y - hh + 1); ctx.fill();
+      }
+      var alt = ctx.fillStyle;                                    // Tor als helleres X
+      ctx.strokeStyle = hell(alt, 0.18); ctx.lineWidth = Math.max(1, s * 0.012);
+      ctx.strokeRect(x - b * 0.16, y - h * 0.75, b * 0.32, h * 0.75);
+      ctx.beginPath(); ctx.moveTo(x - b * 0.16, y - h * 0.75); ctx.lineTo(x + b * 0.16, y); ctx.moveTo(x + b * 0.16, y - h * 0.75); ctx.lineTo(x - b * 0.16, y); ctx.stroke();
+    } },
+    weide: { abst: 11, male: function (ctx, x, y, s, R) {
+      // Weidezaun (Pfosten mit zwei Latten), dahinter manchmal ein Schwein oder eine Kuh
+      var n = 4, abst = s * 0.16, b = s * 0.025, h = s * 0.2;
+      for (var i = 0; i < n; i++) ctx.fillRect(x + (i - (n - 1) / 2) * abst - b / 2, y - h, b, h + 2);
+      ctx.fillRect(x - n * abst / 2, y - h * 0.85, n * abst, b * 0.8);
+      ctx.fillRect(x - n * abst / 2, y - h * 0.45, n * abst, b * 0.8);
+      var t = R();
+      if (t < 0.45) {                                             // Schwein (Silhouette mit Ringelschwanz)
+        var px = x + (R() - 0.5) * s * 0.3, py = y - s * 0.02, u = s * 0.14;
+        ctx.beginPath(); ctx.ellipse(px, py - u * 0.55, u * 0.7, u * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(px + u * 0.65, py - u * 0.65, u * 0.28, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(px + u * 0.55, py - u * 0.85); ctx.lineTo(px + u * 0.68, py - u * 1.1); ctx.lineTo(px + u * 0.8, py - u * 0.85); ctx.fill();
+        ctx.fillRect(px + u * 0.82, py - u * 0.72, u * 0.18, u * 0.2);
+        [-0.4, -0.15, 0.2, 0.42].forEach(function (lx) { ctx.fillRect(px + lx * u, py - u * 0.3, u * 0.12, u * 0.32); });
+        ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.max(1, u * 0.07);
+        ctx.beginPath(); ctx.arc(px - u * 0.78, py - u * 0.62, u * 0.1, 0, Math.PI * 1.7); ctx.stroke();
+      } else if (t < 0.7) {                                       // Kuh
+        var cx = x + (R() - 0.5) * s * 0.3, cu = s * 0.2;
+        ctx.fillRect(cx - cu * 0.6, y - cu * 0.8, cu * 1.2, cu * 0.45);
+        [-0.55, -0.35, 0.35, 0.5].forEach(function (lx) { ctx.fillRect(cx + lx * cu, y - cu * 0.4, cu * 0.09, cu * 0.42); });
+        ctx.beginPath(); ctx.ellipse(cx + cu * 0.72, y - cu * 0.82, cu * 0.2, cu * 0.15, 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(cx + cu * 0.62, y - cu * 1.02, cu * 0.05, cu * 0.12); ctx.fillRect(cx + cu * 0.8, y - cu * 1.02, cu * 0.05, cu * 0.12);
+      }
+    } },
+    obstreihen: { abst: 7, male: function (ctx, x, y, s, R) {
+      // Plantage: Bäume in Reihen, runde Kronen auf kurzen Stämmen, mit ein paar Früchten
+      var h = s * (0.26 + 0.05 * R()), r = s * (0.13 + 0.03 * R()), alt = ctx.fillStyle;
+      ctx.fillRect(x - s * 0.015, y - h * 0.55, s * 0.03, h * 0.55 + 2);
+      ctx.beginPath(); ctx.arc(x, y - h * 0.55 - r * 0.7, r, 0, Math.PI * 2); ctx.arc(x - r * 0.6, y - h * 0.55 - r * 0.35, r * 0.7, 0, Math.PI * 2);
+      ctx.arc(x + r * 0.6, y - h * 0.55 - r * 0.35, r * 0.7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = mische(alt, ["#e8453c", "#ffc83f", "#b0122a", "#7a4fb0", "#ff9a1f"][Math.floor(R() * 5)], 0.55);
+      for (var i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(x + (R() - 0.5) * r * 1.8, y - h * 0.55 - r * (0.2 + R() * 1.1), Math.max(1, r * 0.13), 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = alt;
+    } },
+    roehren: { abst: 26, male: function (ctx, x, y, s, R) {
+      // verrückte Rohrleitungen: Bögen, Spiralen und Schlaufen als Silhouette
+      var alt = ctx.strokeStyle, d = s * 0.05;
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineCap = "round"; ctx.lineWidth = d;
+      var art = Math.floor(R() * 3), h = s * (0.35 + 0.3 * R());
+      ctx.beginPath();
+      if (art === 0) {                                            // hoch, Looping, runter
+        var r = s * 0.12;
+        ctx.moveTo(x - s * 0.25, y + 2); ctx.lineTo(x - s * 0.25, y - h); ctx.arc(x - s * 0.25 + r, y - h, r, Math.PI, Math.PI * 3);
+        ctx.quadraticCurveTo(x + s * 0.2, y - h, x + s * 0.25, y + 2);
+      } else if (art === 1) {                                     // Schlange
+        ctx.moveTo(x - s * 0.3, y + 2);
+        for (var t = 0; t <= 1; t += 0.05) ctx.lineTo(x - s * 0.3 + s * 0.6 * t, y - h * Math.sin(Math.PI * t) - Math.sin(t * 18) * s * 0.04);
+      } else {                                                    // Spirale nach oben
+        for (var u = 0; u <= 1; u += 0.02) { var w = u * Math.PI * 6; ctx.lineTo(x + Math.sin(w) * s * 0.12, y + 2 - h * u); }
+      }
+      ctx.stroke();
+      ctx.strokeStyle = alt;
     } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
@@ -965,7 +1046,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Pfützen: Wasser von der Oberfläche (kleine Wellen) bis zum Boden; bei Regen
      ploppen Ringe auf. Das Wasser ist leicht durchsichtig (der Boden schimmert durch). */
   function zeichneWasser(ctx, K, gel, welt, zeit, x0, x1) {
-    var P = gel.pfuetzen, farbe = welt.farben.wasser || "#5fa8de";
+    var P = gel.pfuetzen, farbe = welt.farben.wasser || "#5fa8de", matsch = welt.wasser && welt.wasser.schlamm;
     for (var i = 0; i < P.length; i++) {
       var p = P[i];
       if (p.x1 < x0 - 1 || p.x0 > x1 + 1) continue;
@@ -977,12 +1058,35 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.closePath();
       var gr = ctx.createLinearGradient(0, Y, 0, Y + 0.8 * K.s);
       gr.addColorStop(0, hell(farbe, 0.25)); gr.addColorStop(1, dunkel(farbe, 0.25));
-      ctx.globalAlpha = 0.78; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.globalAlpha = matsch ? 0.95 : 0.78; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
+      var w = p.x1 - p.x0;
+      if (matsch) {                                          // Matsch: dunkle Klumpen, blubbernde Blasen, kaum Glanz
+        ctx.fillStyle = hell(farbe, 0.18);                    // hellere Matsch-Oberfläche
+        ctx.beginPath(); ctx.moveTo(sx(K, p.x0), Y);
+        for (x = p.x0 + schritt; x < p.x1; x += schritt) ctx.lineTo(sx(K, x), Y + Math.sin(x * 1.7 + zeit) * 0.025 * K.s);
+        ctx.lineTo(sx(K, p.x1), Y);
+        for (x = p.x1; x > p.x0; x -= schritt) ctx.lineTo(sx(K, x), Math.min(sy(K, Math.min(gel.hoeheBei(x), p.y)), Y + 0.14 * K.s));
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = dunkel(farbe, 0.3);
+        for (var mk = 0; mk < w / 1.2; mk++) {
+          var xk = p.x0 + 0.4 + (w - 0.8) * zufall01(mk + i * 31, 21);
+          ctx.beginPath(); ctx.ellipse(sx(K, xk), Y + 0.04 * K.s, (0.18 + 0.2 * zufall01(mk + i * 31, 22)) * K.s, 0.06 * K.s, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.strokeStyle = hell(farbe, 0.3); ctx.lineWidth = Math.max(1, 0.035 * K.s);
+        for (var mb = 0; mb < w / 2.5; mb++) {
+          var ub = (zeit * 0.7 + zufall01(mb + i * 13, 23)) % 1, xb = p.x0 + 0.5 + (w - 1) * zufall01(mb + i * 13, 24);
+          ctx.globalAlpha = ub < 0.8 ? 0.8 : (1 - ub) * 4;
+          ctx.beginPath(); ctx.arc(sx(K, xb), Y - 0.02 * K.s, (0.04 + 0.12 * Math.min(1, ub / 0.8)) * K.s, Math.PI, 0); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = dunkel(farbe, 0.4); ctx.lineWidth = Math.max(1.5, 0.07 * K.s);
+        ctx.beginPath(); ctx.moveTo(sx(K, p.x0 + 0.1), Y); ctx.lineTo(sx(K, p.x1 - 0.1), Y); ctx.stroke();
+        continue;
+      }
       // Spiegelung: heller Rand und zwei Glanzstriche
       ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.lineWidth = Math.max(1, 0.05 * K.s); ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(sx(K, p.x0 + 0.1), Y); ctx.lineTo(sx(K, p.x1 - 0.1), Y); ctx.stroke();
       ctx.strokeStyle = "rgba(255,255,255,0.45)";
-      var w = p.x1 - p.x0;
       ctx.beginPath(); ctx.moveTo(sx(K, p.x0 + w * 0.2), Y + 0.12 * K.s); ctx.lineTo(sx(K, p.x0 + w * 0.38), Y + 0.12 * K.s);
       ctx.moveTo(sx(K, p.x0 + w * 0.55), Y + 0.22 * K.s); ctx.lineTo(sx(K, p.x0 + w * 0.66), Y + 0.22 * K.s); ctx.stroke();
       if (welt.wetter === "regen") {                         // Regentropfen-Ringe
@@ -1499,7 +1603,168 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Scheune (Bauernhof): rote Scheune mit Mansard-Giebel, so breit wie die Scheune.
+     teil "hinten" (vor dem Auto gemalt): das Innere mit Heu und Balken. teil "vorn"
+     (nach dem Auto): die Wand mit offenem Tor in der Mitte – das Auto verschwindet
+     links hinter der Wand, ist im Tor kurz zu sehen und kommt rechts wieder heraus. */
+  var SCHEUNE_ROT = "#c0392b", SCHEUNE_DACH = "#6b2f22", SCHEUNE_WEISS = "#fff4e6";
+  function zeichneScheunen(ctx, K, gel, teil) {
+    var S = gel.scheunen, s = K.s;
+    for (var i = 0; i < S.length; i++) {
+      var sc = S[i], X0 = sx(K, sc.x0), X1 = sx(K, sc.x1);
+      if (X1 < -2 * s || X0 > K.b + 2 * s) continue;
+      if (sc.y === undefined) sc.y = gel.hoeheBei((sc.x0 + sc.x1) / 2);
+      var Yb = sy(K, sc.y) + 0.08 * s, H = sc.H * s, B = X1 - X0, Xm = (X0 + X1) / 2;
+      var tb = 2.6 * s, th = 3.15 * s;                                 // Tor (Mitte): halbe Breite, Höhe
+      if (teil === "hinten") {
+        ctx.fillStyle = "#4a2418"; ctx.fillRect(X0, Yb - H, B, H);       // Rückwand innen, dunkel
+        ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = Math.max(1, 0.05 * s);
+        for (var xp = X0 + 0.6 * s; xp < X1; xp += 0.6 * s) { ctx.beginPath(); ctx.moveTo(xp, Yb - H); ctx.lineTo(xp, Yb); ctx.stroke(); }
+        ctx.fillStyle = "#3a1c12"; ctx.fillRect(X0, Yb - 2.9 * s, B, 0.22 * s);   // Balken
+        var hz = zufall01(sc.v, 3);                                       // Heu-Stapel hinten
+        for (var k = 0; k < 5; k++) {
+          var bx = Xm - tb + (0.2 + k * 1.05) * s, lagen = 1 + Math.floor(zufall01(sc.v + k, 4) * 2.2);
+          for (var l = 0; l < lagen; l++) {
+            ctx.fillStyle = l % 2 ? "#e9c15a" : "#f3d26e"; ctx.fillRect(bx, Yb - (l + 1) * 0.62 * s, 0.98 * s, 0.6 * s);
+            ctx.strokeStyle = "#a0522d"; ctx.lineWidth = Math.max(1, 0.04 * s);
+            ctx.beginPath(); ctx.moveTo(bx + 0.3 * s, Yb - (l + 1) * 0.62 * s); ctx.lineTo(bx + 0.3 * s, Yb - l * 0.62 * s - 0.02 * s); ctx.stroke();
+          }
+        }
+        ctx.fillStyle = "rgba(255,210,120," + (0.25 + 0.1 * hz) + ")";   // Laternen-Schein
+        ctx.beginPath(); ctx.arc(Xm + 1.4 * s, Yb - 2.6 * s, 0.7 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#ffd27a"; ctx.beginPath(); ctx.arc(Xm + 1.4 * s, Yb - 2.55 * s, 0.13 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#e2b64e"; ctx.fillRect(X0, Yb - 0.12 * s, B, 0.12 * s);   // Stroh am Boden
+        continue;
+      }
+      // Wand mit Mansard-Giebel und Tor-Loch (evenodd)
+      var dachU = H, dachK = H + 1.7 * s, first = H + 2.9 * s;
+      ctx.beginPath();
+      ctx.moveTo(X0, Yb); ctx.lineTo(X0, Yb - dachU); ctx.lineTo(X0 + B * 0.14, Yb - dachK); ctx.lineTo(Xm, Yb - first);
+      ctx.lineTo(X1 - B * 0.14, Yb - dachK); ctx.lineTo(X1, Yb - dachU); ctx.lineTo(X1, Yb); ctx.closePath();
+      ctx.rect(Xm + tb, Yb, -2 * tb, -th);                               // Tor (gegenläufig → Loch)
+      ctx.fillStyle = SCHEUNE_ROT; ctx.fill("evenodd");
+      var dachKurve = function (xx) {                                       // Höhe der Giebelkante bei xx [px]
+        var u = (xx - X0) / B, d = u < 0.5 ? u : 1 - u;
+        return d < 0.14 ? dachU + (dachK - dachU) * d / 0.14 : dachK + (first - dachK) * (d - 0.14) / 0.36;
+      };
+      ctx.strokeStyle = "rgba(0,0,0,0.13)"; ctx.lineWidth = Math.max(1, 0.05 * s);   // Bretter
+      for (var xb = X0 + 0.45 * s; xb < X1; xb += 0.45 * s) {
+        if (xb > Xm - tb && xb < Xm + tb) { ctx.beginPath(); ctx.moveTo(xb, Yb - th); ctx.lineTo(xb, Yb - Math.min(first, dachKurve(xb))); ctx.stroke(); continue; }
+        ctx.beginPath(); ctx.moveTo(xb, Yb); ctx.lineTo(xb, Yb - dachKurve(xb) + 0.05 * s); ctx.stroke();
+      }
+      // Dach-Kante (dunkel) und weiße Zierleisten
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.strokeStyle = SCHEUNE_DACH; ctx.lineWidth = Math.max(3, 0.42 * s);
+      ctx.beginPath(); ctx.moveTo(X0 - 0.3 * s, Yb - dachU + 0.1 * s); ctx.lineTo(X0 + B * 0.14, Yb - dachK); ctx.lineTo(Xm, Yb - first);
+      ctx.lineTo(X1 - B * 0.14, Yb - dachK); ctx.lineTo(X1 + 0.3 * s, Yb - dachU + 0.1 * s); ctx.stroke();
+      ctx.strokeStyle = SCHEUNE_WEISS; ctx.lineWidth = Math.max(2, 0.16 * s);
+      ctx.strokeRect(Xm - tb, Yb - th, 2 * tb, th);
+      // Torflügel, aufgeklappt an der Wand: weiß umrandet mit X
+      [Xm - tb - 1.9 * s, Xm + tb + 0.1 * s].forEach(function (fx) {
+        ctx.strokeRect(fx, Yb - th + 0.1 * s, 1.8 * s, th - 0.1 * s);
+        ctx.beginPath(); ctx.moveTo(fx, Yb - th + 0.1 * s); ctx.lineTo(fx + 1.8 * s, Yb); ctx.moveTo(fx + 1.8 * s, Yb - th + 0.1 * s); ctx.lineTo(fx, Yb); ctx.stroke();
+      });
+      // Heuboden-Luke oben mit herausschauendem Heu
+      var lb = 1.0 * s, ly = Yb - H - 0.25 * s;
+      ctx.fillStyle = "#3a1c12"; ctx.fillRect(Xm - lb, ly - 1.2 * s, 2 * lb, 1.2 * s);
+      ctx.fillStyle = "#f0cb5c";
+      ctx.beginPath(); ctx.moveTo(Xm - lb, ly); ctx.quadraticCurveTo(Xm - lb * 0.5, ly - 0.7 * s, Xm, ly - 0.5 * s); ctx.quadraticCurveTo(Xm + lb * 0.5, ly - 0.8 * s, Xm + lb, ly); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#e0b445"; ctx.lineWidth = Math.max(1, 0.05 * s);
+      for (var hh = 0; hh < 6; hh++) { var hx = Xm - lb * 0.8 + hh * lb * 0.32; ctx.beginPath(); ctx.moveTo(hx, ly - 0.1 * s); ctx.lineTo(hx + (hh % 2 ? 0.15 : -0.12) * s, ly + 0.25 * s); ctx.stroke(); }
+      ctx.strokeStyle = SCHEUNE_WEISS; ctx.lineWidth = Math.max(2, 0.14 * s);
+      ctx.strokeRect(Xm - lb, ly - 1.2 * s, 2 * lb, 1.2 * s);
+      ctx.strokeRect(X0, Yb - dachU, B, dachU);                           // Rand der Wand
+    }
+  }
+
+  /* Röhren (Röhrenwelt): große Glasröhren entlang der Fahrlinie (gelaende.roehren).
+     teil "hinten": Stützen und die getönte Rückseite; teil "vorn": Glas, Ränder, Ringe,
+     Glanz. Kurven nach links (z > 0) machen die Röhre breiter, nach rechts schmaler. */
+  var ROEHRE_R = 1.85;                                // Innenradius [m] – Monster-Max (2,65 m) passt hinein
+  function zeichneRoehren(ctx, K, gel, welt, teil, zeit) {
+    var RS = gel.roehren, s = K.s, F = welt.roehrenFarben || ["#3fc8ff"];
+    for (var i = 0; i < RS.length; i++) {
+      var R = RS[i], P = R.pfad;
+      if (R.bx0 === undefined) {
+        R.bx0 = R.x + Math.min.apply(null, P.x) - 3; R.bx1 = R.x + Math.max.apply(null, P.x) + 3;
+        if (R.y0 === null) R.y0 = gel.hoeheBei(R.x);
+      }
+      if (sx(K, R.bx1) < 0 || sx(K, R.bx0) > K.b) continue;
+      var farbe = F[R.farbe % F.length], n = P.x.length, schritt = 2;
+      // Mittellinie und Radius auf dem Bildschirm (jeder 2. Abtastpunkt)
+      var M = [];
+      for (var j = 0; j < n; j += schritt) {
+        var a = P.a[j], q = 1 + 0.22 * P.z[j], r = ROEHRE_R * q;
+        M.push({ X: sx(K, R.x + P.x[j] - Math.sin(a) * ROEHRE_R), Y: sy(K, R.y0 + P.y[j] + Math.cos(a) * ROEHRE_R),
+                 nx: -Math.sin(a), ny: Math.cos(a), r: r * s, z: P.z[j], fy: R.y0 + P.y[j], fx: R.x + P.x[j] });
+      }
+      if (j - schritt !== n - 1) { var al = P.a[n - 1]; M.push({ X: sx(K, R.x + P.x[n - 1] - Math.sin(al) * ROEHRE_R), Y: sy(K, R.y0 + P.y[n - 1] + Math.cos(al) * ROEHRE_R), nx: -Math.sin(al), ny: Math.cos(al), r: ROEHRE_R * s, z: 0, fy: R.y0, fx: R.x + P.x[n - 1] }); }
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      var dicke = function (lw, faktor, farbeF, alpha) {             // Röhre als dicker Strich, stückweise mit wachsendem Radius
+        ctx.strokeStyle = farbeF; ctx.globalAlpha = alpha;
+        for (var k = 0; k < M.length - 1; k += 3) {
+          var e = Math.min(M.length - 1, k + 3);
+          ctx.lineWidth = Math.max(1, 2 * M[k].r * faktor + lw);
+          ctx.beginPath(); ctx.moveTo(M[k].X, M[k].Y);
+          for (var m = k + 1; m <= e; m++) ctx.lineTo(M[m].X, M[m].Y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      };
+      if (teil === "hinten") {
+        // Stützen: alle ≈ 4 m von unten an die Röhre, wo sie höher als 1,5 m über dem Boden ist
+        ctx.strokeStyle = "#e9e4ff"; ctx.lineWidth = Math.max(2, 0.16 * s); ctx.lineCap = "butt";
+        for (var k2 = 8; k2 < M.length - 8; k2 += 8) {
+          var p2 = M[k2], hoch = p2.fy - gel.hoeheBei(p2.fx);
+          if (hoch < 1.5 || p2.ny < 0.2) continue;                           // nur unter Stücken, die nach oben offen sind
+          ctx.beginPath(); ctx.moveTo(p2.X, sy(K, gel.hoeheBei(p2.fx))); ctx.lineTo(p2.X, p2.Y + p2.r); ctx.stroke();
+        }
+        dicke(0, 1, dunkel(farbe, 0.4), 0.3);                                // getönte Rückwand
+        continue;
+      }
+      dicke(0, 1, hell(farbe, 0.6), 0.07);                                   // Glas vorne (fast klar: das Auto soll man gut sehen)
+      // Ränder: zwei Linien im Abstand des Radius
+      ["+", "-"].forEach(function (seite) {
+        var sg = seite === "+" ? 1 : -1;
+        ctx.strokeStyle = farbe; ctx.lineWidth = Math.max(2, 0.2 * s);
+        ctx.beginPath();
+        for (var k3 = 0; k3 < M.length; k3++) {
+          var p3 = M[k3], X = p3.X + sg * p3.nx * p3.r, Y = p3.Y - sg * p3.ny * p3.r;
+          if (k3) ctx.lineTo(X, Y); else ctx.moveTo(X, Y);
+        }
+        ctx.stroke();
+      });
+      // Glanzstreifen und Ringe
+      ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1.5, 0.12 * s);
+      ctx.beginPath();
+      for (var k4 = 0; k4 < M.length; k4++) { var p4 = M[k4], Xg = p4.X + p4.nx * p4.r * 0.6, Yg = p4.Y - p4.ny * p4.r * 0.6; if (k4) ctx.lineTo(Xg, Yg); else ctx.moveTo(Xg, Yg); }
+      ctx.stroke();
+      ctx.strokeStyle = farbe; ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(1.5, 0.11 * s); ctx.lineCap = "butt";
+      for (var k5 = 5; k5 < M.length - 2; k5 += 6) {
+        var p5 = M[k5];
+        ctx.beginPath(); ctx.moveTo(p5.X + p5.nx * p5.r * 1.04, p5.Y - p5.ny * p5.r * 1.04); ctx.lineTo(p5.X - p5.nx * p5.r * 1.04, p5.Y + p5.ny * p5.r * 1.04); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // Ein- und Ausgang: dicker Ring mit Pfeil-Schild davor
+      [M[0], M[M.length - 1]].forEach(function (p6, w) {
+        ctx.strokeStyle = dunkel(farbe, 0.25); ctx.lineWidth = Math.max(3, 0.45 * s);
+        ctx.beginPath(); ctx.ellipse(p6.X, p6.Y, 0.55 * p6.r, p6.r * 1.08, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = hell(farbe, 0.3); ctx.lineWidth = Math.max(1, 0.12 * s);
+        ctx.beginPath(); ctx.ellipse(p6.X, p6.Y, 0.55 * p6.r, p6.r * 1.08, 0, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
+        if (w === 0) {                                                       // Schild „🌀“ über der Einfahrt
+          var sxp = p6.X - 0.6 * s, syp = p6.Y - p6.r - 1.1 * s, pul = 1 + 0.06 * Math.sin(zeit * 5);
+          ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(sxp, syp, 0.5 * s * pul, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = farbe; ctx.lineWidth = Math.max(2, 0.12 * s); ctx.stroke();
+          ctx.fillStyle = farbe; ctx.beginPath();
+          ctx.moveTo(sxp - 0.25 * s, syp - 0.12 * s); ctx.lineTo(sxp + 0.1 * s, syp - 0.12 * s); ctx.lineTo(sxp + 0.1 * s, syp - 0.25 * s);
+          ctx.lineTo(sxp + 0.32 * s, syp); ctx.lineTo(sxp + 0.1 * s, syp + 0.25 * s); ctx.lineTo(sxp + 0.1 * s, syp + 0.12 * s); ctx.lineTo(sxp - 0.25 * s, syp + 0.12 * s); ctx.fill();
+        }
+      });
+    }
+  }
+
   FF.GrafikWelt = {
+    zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,

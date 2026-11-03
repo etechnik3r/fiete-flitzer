@@ -433,6 +433,60 @@ function spielideenTests() {
   var steil = 0; for (x = 0; x < 300; x++) steil = Math.max(steil, Math.atan(e.gelaende.steigungBei(x)) * 180 / Math.PI);
   pruefe(e.gelaende.ziel === 300 && e.gelaende.bauplan.length === 0 && steil < 40 && e.gelaende.muenzWertGesamt > 0 && e.gelaende.tanks.length > 0,
     "Eigene Strecke: 56° gemalt → höchstens " + steil.toFixed(0) + "° befahrbar, keine Bau-Elemente, Münzen und Kanister verteilt");
+  // Bauernhof: Matsch bremst stärker als Wasser; durch die Scheune fliegt Stroh
+  function bremsTest(id) {
+    var fb = neu(id, 1), Pb = fb.gelaende.pfuetzen[1], ve = 0, va = 0;
+    fb.gelaende.h = fb.gelaende.h.map(function () { return 0; });       // eben, damit nur das Nasse bremst
+    Pb = { x0: 40, x1: 52, y: 0.5 }; fb.gelaende.pfuetzen = [Pb];
+    FF.Physik.setzeAufBoden(fb.fz, fb.gelaende, 30, 0); fb.fz.chassis.vx = 12; fb.fz.raeder.forEach(function (R) { R.k.vx = 12; });
+    for (var k = 0; k < 240 * 3 && fb.fz.chassis.x < 56; k++) { if (fb.fz.chassis.x < Pb.x0) ve = fb.fz.chassis.vx; fb.aktualisiere(1 / 240, { gas: false, bremse: false }); va = fb.fz.chassis.vx; }
+    return va / ve;
+  }
+  var bw = bremsTest("pfuetzen"), bm = bremsTest("bauernhof");
+  pruefe(bm < bw - 0.05, "Matsch bremst stärker als Wasser (Tempo danach × " + bm.toFixed(2) + " statt × " + bw.toFixed(2) + ")");
+  var fh = neu("bauernhof", 1), Sc = fh.gelaende.scheunen[0], stroh = null, rein = false, keinTankScheune = true;
+  fh.gelaende.tanks.forEach(function (t) { if (t.x > Sc.x0 && t.x < Sc.x1) keinTankScheune = false; });
+  FF.Physik.setzeAufBoden(fh.fz, fh.gelaende, Sc.x0 - 10, 0); fh.fz.chassis.vx = 6;
+  for (i = 0; i < 240 * 8 && !stroh; i++) { fh.aktualisiere(1 / 240, { gas: true, bremse: false }); fh.ereignisse.forEach(function (ev) { if (ev.typ === "scheune") rein = true; if (ev.typ === "stroh") stroh = ev; }); fh.ereignisse.length = 0; }
+  pruefe(Sc && rein && stroh && Math.abs(stroh.x - Sc.x1) < 0.01 && keinTankScheune && fh.gelaende.scheunen.length >= 3,
+    "Scheune: " + fh.gelaende.scheunen.length + " im Level, hinein (Meldung), hinten hinaus fliegt Stroh, kein Kanister darin");
+  // Obstplantage: Obst gibt ≈ 1 s Mini-Turbo (schwächer als die Rakete)
+  var fo2 = neu("obstgarten", 1), Ob = fo2.gelaende.obst[0], vObst = 0, tObst = -1, vNach = 0;
+  fo2.gelaende.h = fo2.gelaende.h.map(function () { return 0; });
+  Ob.y = 0.95; FF.Physik.setzeAufBoden(fo2.fz, fo2.gelaende, Ob.x - 6, 0); fo2.fz.chassis.vx = 7; fo2.fz.raeder.forEach(function (R) { R.k.vx = 7; });
+  for (i = 0; i < 240 * 3; i++) {
+    fo2.aktualisiere(1 / 240, { gas: false, bremse: false });
+    fo2.ereignisse.forEach(function (ev) { if (ev.typ === "obst") { tObst = fo2.zeit; vObst = fo2.fz.chassis.vx; } }); fo2.ereignisse.length = 0;
+    if (tObst > 0 && fo2.zeit - tObst < 1.0) vNach = fo2.fz.chassis.vx;
+  }
+  pruefe(Ob.weg && tObst > 0 && vNach - vObst > 5 && fo2.miniZeit === 0 && fo2.gelaende.obst.length >= 10,
+    "Obst: " + fo2.gelaende.obst.length + " im Level, Einsammeln gibt Mini-Turbo (" + vObst.toFixed(1) + " → " + vNach.toFixed(1) + " m/s in 1 s, ohne Gas)");
+  // Röhrenwelt: regelmäßig Röhren; jedes Fahrzeug passt hinein, fährt durch und kommt am Boden heraus
+  var fr = neu("roehren", 1), RS = fr.gelaende.roehren, abst = [];
+  for (i = 1; i < RS.length; i++) abst.push(RS[i].x - (RS[i - 1].x + RS[i - 1].span));
+  pruefe(RS.length >= 5 && Math.max.apply(null, abst) < 120 && Math.min.apply(null, abst) > 25, "Röhrenwelt: " + RS.length + " Röhren, dazwischen " + Math.round(Math.min.apply(null, abst)) + "–" + Math.round(Math.max.apply(null, abst)) + " m Gelände mit Hügeln");
+  var Rmax = FF.GrafikWelt ? FF.GrafikWelt.ROEHRE_R : 1.85, ergebnisse = [];
+  C.fahrzeuge.forEach(function (def) {
+    var fz2 = new FF.Fahrt({ weltIndex: wi("roehren"), stufe: 1, fahrzeugId: def.id, upgrades: {}, schwierigkeit: "normal" });
+    var R0 = fz2.gelaende.roehren[0], hoch = 0, lo = 0, hi = 0, drin = false, raus = null, loops = 0, mz0 = 0;
+    fz2.fz.raeder.forEach(function (Rd) { lo = Math.min(lo, Rd.ankerY - Rd.L0 - Rd.r); });
+    def.huelle.concat(def.dach || []).forEach(function (p) { hi = Math.max(hi, p[1]); });
+    hi = Math.max(hi, def.kopf.y + def.kopf.r);
+    FF.Physik.setzeAufBoden(fz2.fz, fz2.gelaende, R0.x - 8, 0); fz2.fz.chassis.vx = 6; fz2.fz.raeder.forEach(function (Rd) { Rd.k.vx = 6; });
+    for (var k = 0; k < 240 * 20 && !raus; k++) {
+      fz2.aktualisiere(1 / 240, { gas: true, bremse: false });
+      if (fz2.roehre && !drin) { drin = true; mz0 = fz2.muenzen; }
+      if (fz2.roehre) hoch = Math.max(hoch, fz2.fz.chassis.y - fz2.gelaende.hoeheBei(R0.x));
+      fz2.ereignisse.forEach(function (ev) { if (ev.typ === "roehrenLoop") loops++; if (ev.typ === "roehreAus") raus = { x: fz2.fz.chassis.x, vx: fz2.fz.chassis.vx, a: fz2.fz.chassis.a }; });
+      fz2.ereignisse.length = 0;
+    }
+    for (k = 0; k < 240 * 1.5; k++) fz2.aktualisiere(1 / 240, { gas: true, bremse: false });
+    ergebnisse.push({ id: def.id, passt: hi - lo < 2 * Rmax, drin: drin, raus: !!raus && Math.abs(raus.x - (R0.x + R0.span)) < 1 && raus.vx > 6 && Math.abs(raus.a) < 0.05,
+                      loops: loops === R0.pfad.loops.length && loops > 0, muenzen: fz2.muenzen - mz0 > 0, weiter: fz2.hoppla === 0 && fz2.fz.chassis.x > R0.x + R0.span + 8, hoch: hoch });
+  });
+  var schlecht = ergebnisse.filter(function (e) { return !(e.passt && e.drin && e.raus && e.loops && e.muenzen && e.weiter); });
+  pruefe(!schlecht.length, "Röhre: alle " + ergebnisse.length + " Fahrzeuge passen hinein (Ø " + (2 * Rmax).toFixed(1) + " m), fahren bis " +
+    Math.round(Math.max.apply(null, ergebnisse.map(function (e) { return e.hoch; }))) + " m hoch, zählen die Loopings, sammeln Münzen und kommen am Boden heraus", schlecht);
   console.log(fehler ? fehler + " Test(s) fehlgeschlagen." : "Alle Spielideen-Tests bestanden.");
   return fehler;
 }
