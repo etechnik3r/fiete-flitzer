@@ -44,7 +44,7 @@ Auswahl dort nicht – im Browser bestimmt einfach die Handyhaltung das Format.
 | Eingabe | Wirkung |
 |---|---|
 | Rechte Bildschirmhälfte / grünes Pedal / → ↑ D W | **Gas** |
-| Linke Bildschirmhälfte / rotes Pedal / ← ↓ A S | **Bremse**, im Stand **rückwärts** |
+| Linke Bildschirmhälfte / rotes Pedal / ← ↓ A S | **Bremse**, im Stand **rückwärts** (höchstens gut einen Bildschirm hinter den Start, dann bremst das Auto von selbst) |
 | Gas in der Luft | Nase hoch (Rückwärts-Salto), auf dem Pedal erscheint ⤴ |
 | Bremse in der Luft | Nase runter (Vorwärts-Salto), auf dem Pedal erscheint ⤵ |
 | 🚀-Knopf (links über der Bremse) / B / Umschalt | **Turbo**, wenn eine Rakete geladen ist |

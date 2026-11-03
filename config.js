@@ -40,6 +40,8 @@ FF.CONFIG = {
     rueckwaertsSchwelle: 0.8,  // unter dieser Vorwärtsgeschwindigkeit [m/s] fährt Bremse rückwärts
     rueckwaertsTempo: 0.4,     // Anteil von vmax beim Rückwärtsfahren
     rueckwaertsKraft: 0.6,     // Anteil des Drehmoments beim Rückwärtsfahren
+    rueckGrenzeBremse: -14,    // ab hier [m] hinter dem Start kein Rückwärtsgang mehr, rückwärts wird aktiv gebremst
+    rueckGrenzeWand: -22,      // spätestens hier [m] steht das Auto (unsichtbare Wand, Gelände beginnt bei -40 m)
     motorBremse: 0.03,         // Schleppmoment ohne Pedal (Anteil vom Drehmoment)
     motorBremseElektro: 0.1,   // dasselbe beim Elektroauto: der Motor bremst als Generator (lädt den Akku)
     eckDrehzahl: 0.35          // Bis zu diesem Anteil von vmax volles Drehmoment, danach konstante Leistung
@@ -1134,6 +1136,8 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "27", titel: "Kein Absturz hinter dem Start", punkte: [
+      "🛑 Wer vom Start aus rückwärts fährt, wird nach gut einem Bildschirm sanft angehalten – das Auto fällt nicht mehr vom Rand der Welt" ] },
     { version: "26", titel: "Scheunen und schönere Röhren", punkte: [
       "🛖 Bauernhof: In jedem Level stehen jetzt fünf Scheunen – links durchs offene Tor hinein, rechts wieder hinaus!",
       "🛫 Mehr Schanzen auf dem Bauernhof: Spring über den Matsch!",
