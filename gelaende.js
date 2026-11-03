@@ -77,6 +77,82 @@ var FF = globalThis.FF = globalThis.FF || {};
      Steigungsbegrenzer und der Tiefpass machen daraus eine befahrbare Strecke,
      Münzen, Kanister und Deko werden wie sonst verteilt.
      ========================================================================= */
+  /* ---------- Röhren (Röhrenwelt) ----------
+     Die Fahrlinie ist der Boden der Röhre, relativ zur Einfahrt (x = 0, y = 0, Richtung
+     nach rechts). Gebaut wird sie wie mit einer Schildkröte aus geraden Stücken und
+     Bögen; z ist die Tiefe (+1 = Kurve nach links zum Betrachter hin, −1 = nach rechts,
+     weiter weg) – nur für die Grafik, das Auto wird dort größer oder kleiner.
+     Ablauf: Einfahrt, Bogen senkrecht nach oben, hoch, oben zur Seite, zwei Figuren
+     (Looping, Schlangenkurven, Sturz-Looping, Doppel-Looping), weich zurück zum Boden. */
+  var ROEHRE_DS = 0.25;              // Abtastabstand der Fahrlinie [m]
+  function baueRoehre(r, wild) {
+    var P = { x: [0], y: [0], z: [0], a: [0], s: [0], loops: [] }, x = 0, y = 0, a = 0, s = 0;
+    function punkt(z) { P.x.push(x); P.y.push(y); P.z.push(z); P.a.push(a); P.s.push(s); }
+    // zAmp: Tiefe wölbt sich im Stück einmal (oder zWellen-mal) hin und zurück
+    function gerade(L, zAmp) {
+      var n = Math.max(1, Math.round(L / ROEHRE_DS));
+      for (var i = 1; i <= n; i++) {
+        x += Math.cos(a) * L / n; y += Math.sin(a) * L / n; s += L / n;
+        punkt((zAmp || 0) * Math.sin(Math.PI * i / n));
+      }
+    }
+    function bogen(R, dA, zAmp, zWellen) {
+      var L = R * Math.abs(dA), n = Math.max(2, Math.round(L / ROEHRE_DS)), k = zWellen || 1;
+      for (var i = 1; i <= n; i++) {
+        var a1 = a + dA / n;
+        // Sehne des Kreisbogens (exakt, damit sich Loopings wirklich schließen)
+        var sm = (a + a1) / 2, c = 2 * R * Math.sin(Math.abs(dA) / n / 2);
+        x += Math.cos(sm) * c; y += Math.sin(sm) * c; a = a1; s += L / n;
+        punkt((zAmp || 0) * Math.sin(Math.PI * k * i / n));
+        // nach jeder ganzen Umdrehung: ein Looping geschafft (fahrt.js zählt ihn)
+        if (Math.floor(Math.abs(dA) * i / n / (2 * Math.PI) + 1e-6) > Math.floor(Math.abs(dA) * (i - 1) / n / (2 * Math.PI) + 1e-6)) P.loops.push(s);
+      }
+    }
+    var G = Math.PI / 180;
+    gerade(2.5);
+    bogen(4.5, 90 * G);                              // hinauf …
+    gerade(1.5 + 2.5 * r() + 1.5 * wild);           // … senkrecht
+    bogen(3.5, -90 * G, 0.5);                        // oben zur Seite (Kurve nach links)
+    gerade(1.5);
+    // Zwei Figuren, zufällig gewählt (nicht zweimal dieselbe)
+    var figuren = ["looping", "schlange", "sturz", "doppel"], gewaehlt = [];
+    while (gewaehlt.length < 2) {
+      var f = figuren[Math.floor(r() * figuren.length)];
+      if (gewaehlt.indexOf(f) >= 0) continue;
+      if (f === "sturz" && y < 2 * 3.6 + 2) continue;            // Sturz-Looping geht erst nach unten
+      gewaehlt.push(f);
+    }
+    gewaehlt.forEach(function (f) {
+      var lr = r() < 0.5 ? 1 : -1;                               // Kurve nach links oder nach rechts
+      if (f === "looping") { bogen(4.2, 360 * G, 0.9 * lr); gerade(2); }
+      else if (f === "doppel") { bogen(3.8, 720 * G, 0.9 * lr, 2); gerade(2); }
+      else if (f === "sturz") { bogen(3.6, -360 * G, -0.9 * lr); gerade(2); }
+      else {                                                    // Schlange: Kurven links, rechts, links …
+        bogen(6, -35 * G, 0.8 * lr); bogen(6, 70 * G, -0.8 * lr); bogen(6, -70 * G, 0.8 * lr); bogen(6, 35 * G, -0.8 * lr); gerade(1.5);
+      }
+    });
+    // Weich zurück zum Boden (Hermite-Kurve: waagrecht hinein, waagrecht hinaus)
+    var h = y, x0 = x, a0 = a, d = Math.max(12, 1.7 * h), k1 = d * 1.1;
+    var t0x = Math.cos(a0) * k1, t0y = Math.sin(a0) * k1, n = 400, px = x, py = y, letzt = 0;
+    for (var i = 1; i <= n; i++) {
+      var t = i / n, t2 = t * t, t3 = t2 * t;
+      var h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + t, h01 = -2 * t3 + 3 * t2, h11 = t3 - t2;
+      var qx = h00 * x0 + h10 * t0x + h01 * (x0 + d) + h11 * k1, qy = h00 * h + h10 * t0y;
+      var ds = Math.hypot(qx - px, qy - py);
+      letzt += ds;
+      if (letzt >= ROEHRE_DS || i === n) {
+        var aNeu = Math.atan2(qy - P.y[P.y.length - 1], qx - P.x[P.x.length - 1]);
+        a += Math.atan2(Math.sin(aNeu - a), Math.cos(aNeu - a));   // ohne Sprung um 360° (nach Loopings)
+        x = qx; y = qy; s += letzt; letzt = 0;
+        punkt(0);
+      }
+      px = qx; py = qy;
+    }
+    a = Math.round(a / (2 * Math.PI)) * 2 * Math.PI; y = 0;
+    gerade(4);                                       // Ausfahrt auf dem Boden
+    return P;
+  }
+
   function Gelaende(welt, optionen) {
     var C = FF.CONFIG;
     this.welt = welt;
@@ -97,7 +173,9 @@ var FF = globalThis.FF = globalThis.FF || {};
                   rampe: (g.rampe || 0) * wild, kuppe: (g.kuppe || 0) * wild, stufe: (g.stufe || 0) * wild,
                   looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
                   trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild),
-                  schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild) },
+                  schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild),
+                  scheune: (g.scheune || 0) * (0.6 + wild) },
+      roehreAbstand: g.roehreAbstand || 0,        // Röhrenwelt: nach so viel Gelände [m] kommt immer die nächste Röhre
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -140,6 +218,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.spuk = [];                // Geister (welt.spuk), die kurz vor dem Auto auftauchen {x, gesehen}
     this.katapulte = [];           // Katapulte {x, v, winkel, …}: halten das Auto fest und schleudern es über den Graben (fahrt.js)
     this.spukX = 60;
+    this.scheunen = [];            // Scheunen {x0, x1, …}: hinein, durch, hinten fliegt Stroh (fahrt.js pruefeScheunen)
+    this.roehren = [];             // Röhren {x, pfad, …}: das Auto fährt automatisch hindurch (fahrt.js roehrenSchritt)
+    this.roehreEnde = 18;          // Ausgang der letzten Röhre (für roehreAbstand)
+    this.obst = [];                // Obst {x, y, art, weg}: Einsammeln gibt einen Mini-Turbo (welt.obst)
+    this.obstX = 34;               // bis hierhin ist Obst verteilt
+    this.verdeckt = [];            // [von, bis]: dort fährt man nicht über den Boden (Röhre) oder sieht ihn nicht (Scheune) – keine Münz-Reihen, keine Kanister
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.muenzWertGesamt = 0;
@@ -179,7 +263,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band", "schwebe", "katapult"];
+               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -190,6 +274,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Rundungsfehler: dann der letzte Typ, den es in dieser Welt gibt
     for (i = TYPEN.length - 1; !typ && i >= 0; i--) if (w[TYPEN[i]] > 0) typ = TYPEN[i];
     typ = typ || "buckel";
+    // Röhrenwelt: regelmäßig eine Röhre (nicht zufällig), aber nie so kurz vor dem Ziel,
+    // dass sie dahinter enden würde
+    // – und dazwischen immer mindestens ein Hügel oder eine Schanze zum Springen
+    if (p.roehreAbstand && (this.endlos || xs + 120 < this.ziel) &&
+        (this.seitRoehre >= 2 || (this.seitRoehre >= 1 && xs - this.roehreEnde >= p.roehreAbstand * (0.8 + 0.4 * r())))) typ = "roehre";
+    this.seitRoehre = typ === "roehre" ? 0 : (this.seitRoehre || 0) + 1;
     var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
     var el = { typ: typ, xs: xs };
@@ -341,6 +431,34 @@ var FF = globalThis.FF = globalThis.FF || {};
       var g0 = this.welt.schwerkraft;
       this.katapulte.push({ x: xkp, winkel: wink, v: Math.sqrt(weite * g0 / Math.sin(2 * wink)), benutzt: false, schuss: -9, platziert: false });
       this.sperrzonen.push([xs + el.La - 1, xs + el.La + el.Lc + el.G + 1]);
+    } else if (typ === "scheune") {
+      // Scheune auf ebenem Boden: Anlauf, mitten hindurch (vorne offenes Tor), dahinter
+      // flacher Auslauf – beim Hinausfahren fliegt Stroh hoch (fahrt.js pruefeScheunen)
+      el.flach = true;
+      el.La = 14; el.Ls = 10 + 2.5 * r(); el.Lf = 12;
+      el.Lflach = el.La + el.Ls + el.Lf;
+      el.Lo = 18;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xs0 = xs + el.La, xs1 = xs0 + el.Ls;
+      this.scheunen.push({ x: xs0, x0: xs0, x1: xs1, H: 3.9, v: Math.floor(r() * 1000), drin: false, durch: false });
+      this.sperrzonen.push([xs0 - 1, xs1 + 1]);
+      this.verdeckt.push([xs0 + 0.3, xs1 - 0.3]);
+    } else if (typ === "roehre") {
+      // Röhre: Einfahrt auf ebenem Boden, dann senkrecht hoch, Loopings, Kurven (nach
+      // vorn und hinten) und zurück auf den Boden. Die Fahrlinie (Boden der Röhre)
+      // steht in pfad, relativ zum Einfahrtspunkt; dort ist der Boden eben.
+      el.flach = true;
+      el.La = 12;
+      var pf = baueRoehre(r, p.wild);
+      el.span = pf.x[pf.x.length - 1];
+      el.Lflach = el.La + el.span + 8;
+      el.Lo = 14;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xr = xs + el.La;
+      this.roehren.push({ x: xr, pfad: pf, L: pf.s[pf.s.length - 1], span: el.span, y0: null, farbe: Math.floor(r() * 1000), platziert: false });
+      this.sperrzonen.push([xr - 1, xr + el.span + 2]);
+      this.verdeckt.push([xr + 0.5, xr + el.span - 0.5]);
+      this.roehreEnde = xr + el.span;
     } else if (typ === "schwebe") {
       // Schwebe-Säule: kleine Sprungkante, dann wird die Schwerkraft fast ausgeschaltet –
       // darunter eine Senke, oben hängen Münzen, die man nur schwebend erreicht
@@ -454,6 +572,9 @@ var FF = globalThis.FF = globalThis.FF || {};
         return 0;
       case "band":
         return 0;                                   // nur ebener Boden – das Band selbst steht in baender
+      case "scheune":
+      case "roehre":
+        return 0;                                   // nur ebener Boden – Scheune und Röhre stehen in scheunen/roehren
       case "katapult":
         var sk2 = s - el.La - el.Lc;
         if (sk2 < 0 || sk2 > el.G) return 0;
@@ -552,6 +673,31 @@ var FF = globalThis.FF = globalThis.FF || {};
   Gelaende.prototype.gesperrt = function (x) {
     for (var i = 0; i < this.sperrzonen.length; i++) if (x > this.sperrzonen[i][0] && x < this.sperrzonen[i][1]) return true;
     return false;
+  };
+
+  /* Liegt x unter einer Röhre oder in einer Scheune? Dann Ende der Zone, sonst 0 */
+  Gelaende.prototype.verdecktBis = function (x) {
+    for (var i = 0; i < this.verdeckt.length; i++) if (x > this.verdeckt[i][0] && x < this.verdeckt[i][1]) return this.verdeckt[i][1];
+    return 0;
+  };
+
+  /* Röhre: Punkt der Fahrlinie bei Weglänge s (linear zwischen den Abtastpunkten),
+     in Weltkoordinaten: {x, y, z, a} */
+  Gelaende.prototype.roehrenPunkt = function (R, s, aus) {
+    var P = R.pfad, n = P.s.length;
+    if (R.y0 === null) R.y0 = this.hoeheBei(R.x);
+    var f = Math.max(0, Math.min(n - 1.000001, s / ROEHRE_DS)), i = Math.floor(f), t = f - i;
+    // Abtastpunkte liegen fast genau ROEHRE_DS auseinander (nur der Abstieg weicht etwas ab)
+    while (i > 0 && P.s[i] > s) i--;
+    while (i < n - 2 && P.s[i + 1] < s) i++;
+    var d = P.s[i + 1] - P.s[i];
+    t = d > 0 ? Math.max(0, Math.min(1, (s - P.s[i]) / d)) : 0;
+    aus = aus || {};
+    aus.x = R.x + P.x[i] + (P.x[i + 1] - P.x[i]) * t;
+    aus.y = R.y0 + P.y[i] + (P.y[i + 1] - P.y[i]) * t;
+    aus.z = P.z[i] + (P.z[i + 1] - P.z[i]) * t;
+    aus.a = P.a[i] + (P.a[i + 1] - P.a[i]) * t;
+    return aus;
   };
 
   /* Mittelpunkt eines Loopings (der Boden darunter ist eben) */
@@ -764,6 +910,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (this.gesperrt(xp)) w += 50;
       if (w < besteWertung) { besteWertung = w; beste = xp; }
     }
+    // Unter einer Röhre oder in einer Scheune: gleich dahinter
+    var vb = this.verdecktBis(beste);
+    if (vb) return vb + 3;
     // Raumstation: liegt alles in einer Schwebe-Zone, dann gleich hinter ihr Ende
     // (nur dort – in anderen Welten bleiben die Kanister, wo sie immer waren)
     if (this.schwebezonen.length && this.gesperrt(beste)) {
@@ -826,6 +975,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     while (this.naechsteMuenze < bis && this.naechsteMuenze < ende) {
       var xm = this.naechsteMuenze;
       if (this.nahAnTank(xm, 9)) { this.naechsteMuenze += 10; continue; }
+      var vbm = this.verdecktBis(xm) || this.verdecktBis(xm + 8);
+      if (vbm) { this.naechsteMuenze = Math.max(xm + 3, vbm + 3); continue; }   // unter der Röhre / in der Scheune fährt man nicht
       // Auf einer Kuppe (Steigung kippt von bergauf nach bergab) liegt die Reihe als
       // Bogen in der Luft – die erwischt nur, wer mit Schwung drüberhüpft.
       var kuppe = this.steigungBei(xm - 3) - this.steigungBei(xm + 7) > 0.28;
@@ -874,6 +1025,34 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "stein") { ob.b = 0.7 + 0.5 * ho2; ob.h = 0.38 * (1 + Math.floor(ho * 3)); }
       else { ob.b = 1.3; ob.h = 3.6 + 1.6 * ho; }                    // Säule
       this.objekte.push(ob);
+    }
+
+    // Röhren: Münzen entlang der Fahrlinie (man fährt sicher hindurch), am höchsten Punkt ein Stern
+    for (i = 0; i < this.roehren.length; i++) {
+      var Rr = this.roehren[i];
+      if (Rr.platziert || Rr.x + Rr.span > bis - 5) continue;
+      Rr.platziert = true;
+      var Pf = Rr.pfad, oben = 0, q = {};
+      for (var j0 = 1; j0 < Pf.y.length; j0++) if (Pf.y[j0] > Pf.y[oben]) oben = j0;
+      for (var sr = 7; sr < Rr.L - 6; sr += 6.5) {
+        this.roehrenPunkt(Rr, sr, q);
+        this.neueMuenze(q.x - Math.sin(q.a) * 1.0, q.y + Math.cos(q.a) * 1.0, 5);
+      }
+      this.roehrenPunkt(Rr, Pf.s[oben], q);
+      this.neueMuenze(q.x - Math.sin(q.a) * 1.0, q.y + Math.cos(q.a) * 1.0, 25);
+    }
+
+    // Obst (welt.obst): eigener Zufall aus der Position, auf ebenem Boden, wo man nicht drüberfliegt
+    var OS = welt.obst;
+    while (OS && this.obstX < bis - 5 && this.obstX < ende - 15) {
+      var xf = this.obstX, hf = hash01(Math.round(xf * 7), this.seed + 81), hf2 = hash01(Math.round(xf * 7), this.seed + 82);
+      this.obstX += OS.abstand * (0.6 + 0.8 * hf);
+      var eben = Math.abs(this.steigungBei(xf - 1)) < 0.35 && Math.abs(this.steigungBei(xf + 1)) < 0.35;
+      if (!eben || this.gesperrt(xf) || this.verdecktBis(xf) || this.wasserBei(xf) > -Infinity || this.nahAnTank(xf, 5) || this.flughoehe(xf) > 1.0) {
+        this.obstX = xf + 4 + 6 * hf2;                          // gleich dahinter nochmal versuchen
+        continue;
+      }
+      this.obst.push({ x: xf, y: this.hoeheBei(xf) + 0.95, art: Math.floor(hf2 * 7), weg: false });
     }
 
     // Geister (nur Grafik und Klang): alle ~40–70 m einer, eigener Zufall
@@ -944,9 +1123,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       var typ = teile[0].charAt(0) === "@" ? teile[0].slice(1) : null;
       var spiegeln = r() < 0.5, nass = this.wasserBei(xd) > this.hoeheBei(xd) - 0.05;
       if (nass) {
-        // In der Pfütze steht kein Baum – dort schwimmt ab und zu eine Ente
-        if (h1 < 0.45) this.deko.push({ x: xd, y: this.wasserBei(xd), fuss: this.wasserBei(xd) - 0.12, emoji: "🦆", typ: null, variante: 0,
-                                        groesse: 0.75, spiegeln: spiegeln, schwimmt: true });
+        // In der Pfütze steht kein Baum – dort schwimmt ab und zu eine Ente (im Matsch: ein Schwein suhlt sich)
+        var tier = welt.wasser.tier, gt = tier ? 0.95 : 0.75;
+        if (h1 < 0.45) this.deko.push({ x: xd, y: this.wasserBei(xd), fuss: this.wasserBei(xd) - (tier ? 0.3 : 0.12), emoji: tier || "🦆", typ: null, variante: 0,
+                                        groesse: gt, spiegeln: spiegeln, schwimmt: true });
         this.naechsteDeko += 3 + r() * 7;
         continue;
       }
@@ -981,7 +1161,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
-    filter(this.objekte); filter(this.spuk);
+    filter(this.objekte); filter(this.spuk); filter(this.obst);
+    while (this.scheunen.length && this.scheunen[0].x1 < xHinten) this.scheunen.shift();
+    while (this.roehren.length && this.roehren[0].x + this.roehren[0].span < xHinten) this.roehren.shift();
     var n = 0;
     while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
     if (n > 0) this.pfuetzen.splice(0, n);

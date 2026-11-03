@@ -148,6 +148,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.federLadung = 0; this.federZeit = 0; this.federSperre = 0;
     this.imWasser = false; this.letztesPlatsch = -9;
     this.windZone = 0; this.letzterWind = -99;
+    this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
+    this.miniZeit = 0;             // Obstplantage: Mini-Turbo nach dem Einsammeln von Obst [s]
   }
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
@@ -155,7 +157,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   Fahrt.prototype.extraMoeglich = function (art) {
     if (this.zustand !== "fahrt") return false;
     if (art === "boost") return this.boostLadung >= 1 && this.boostZeit <= 0;
-    return this.federLadung >= FF.CONFIG.regeln.extras.federSalti && this.federSperre <= 0 && this.fz.status.radKontakte > 0;
+    return this.federLadung >= FF.CONFIG.regeln.extras.federSalti && this.federSperre <= 0 && this.fz.status.radKontakte > 0 && !this.roehre && !this.katapult;
   };
 
   Fahrt.prototype.zuende = function (art) {
@@ -240,6 +242,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     if (this.zustand === "hilfe") { this.hilfeSchritt(h); return; }
     if (this.katapult) { this.katapultSchritt(h, eingabe); return; }
+    if (this.roehre) { this.roehrenSchritt(h, eingabe); return; }
 
     this.setzeAntrieb();
     this.setzeZusatzMoment();
@@ -252,6 +255,16 @@ var FF = globalThis.FF = globalThis.FF || {};
         C.vy += Math.sin(C.a) * X.boostBeschl * h;
       }
     }
+    if (this.miniZeit > 0) {
+      // Obst: kleiner Raketen-Schub (kürzer, schwächer und nicht so schnell wie der Turbo)
+      var O = this.welt.obst;
+      this.miniZeit = Math.max(0, this.miniZeit - h);
+      if (this.boostZeit <= 0 && st.vorwaerts < O.tempoMax * w.motor.vmax) {
+        C.vx += Math.cos(C.a) * O.beschl * h;
+        C.vy += Math.sin(C.a) * O.beschl * h;
+      }
+    }
+    fz.mini = this.miniZeit;                    // für die Grafik: kleine Rakete
     if (this.federZeit > 0) this.federZeit = Math.max(0, this.federZeit - h);
     if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
@@ -276,6 +289,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         }
       }
     }
+    if (this.gelaende.scheunen.length) this.pruefeScheunen();
+    if (this.gelaende.roehren.length && this.zustand === "fahrt") this.pruefeRoehren();
     var SP = this.gelaende.spuk;                              // Geisterwelt: Geist taucht auf
     for (var si = 0; si < SP.length; si++) {
       if (!SP[si].gesehen && C.x > SP[si].x - 13 && C.x < SP[si].x) { SP[si].gesehen = true; this.melde("spuk", { x: SP[si].x }); }
@@ -467,6 +482,93 @@ var FF = globalThis.FF = globalThis.FF || {};
     C.vx = vx; C.vy = vy; C.w = 0;
     fz.raeder.forEach(function (R) { R.k.vx = vx; R.k.vy = vy; });
     this.melde("katapult", { x: k.x, y: C.y });
+  };
+
+  /* Scheune: Meldung beim Hineinfahren und beim Hinausfahren (dann fliegt Stroh, spiel.js) */
+  Fahrt.prototype.pruefeScheunen = function () {
+    var S = this.gelaende.scheunen, C = this.fz.chassis;
+    if (this.zustand !== "fahrt" && this.zustand !== "ziel") return;
+    for (var i = 0; i < S.length; i++) {
+      var sc = S[i];
+      if (C.x < sc.x0 - 2 || C.x > sc.x1 + 8) continue;
+      if (!sc.drin && C.x > sc.x0 && C.x < sc.x1) { sc.drin = true; this.melde("scheune", { x: sc.x0, y: this.gelaende.hoeheBei(sc.x0) }); }
+      if (sc.drin && !sc.durch && C.x > sc.x1 + 0.2) {
+        sc.durch = true;
+        this.melde("stroh", { x: sc.x1, y: this.gelaende.hoeheBei(sc.x1), tempo: Math.abs(C.vx) });
+      }
+    }
+  };
+
+  /* Röhre: Wer am Boden (oder knapp darüber) in die Öffnung fährt, wird von der Röhre
+     übernommen. Fliegt man hoch über die Öffnung, fährt man unten weiter. */
+  Fahrt.prototype.pruefeRoehren = function () {
+    var RS = this.gelaende.roehren, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
+    for (var i = 0; i < RS.length; i++) {
+      var R = RS[i];
+      if (C.x < R.x - 0.3 || C.x > R.x + 3) continue;
+      if (st.vorwaerts < 0.5 || C.y - gel.hoeheBei(R.x) > 3.6) continue;
+      var hc = 0;                                   // Abstand Schwerpunkt ↔ Unterkante der Räder (Räder ausgefedert)
+      fz.raeder.forEach(function (Rd) { hc = Math.max(hc, Rd.r + Rd.L0 - Rd.ankerY); });
+      this.roehre = { R: R, s: Math.max(0, C.x - R.x), v: Math.max(8, st.vorwaerts), hc: hc, t: 0, loopI: 0,
+                      dx: 0, dy: 0, da: 0, z: 0, aVorher: null };
+      var P0 = gel.roehrenPunkt(R, this.roehre.s), K = this.roehre;
+      K.dx = C.x - (P0.x - Math.sin(P0.a) * hc); K.dy = C.y - (P0.y + Math.cos(P0.a) * hc); K.da = normWinkel(C.a - P0.a);
+      while (K.loopI < R.pfad.loops.length && R.pfad.loops[K.loopI] <= K.s) K.loopI++;
+      this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
+      this.melde("roehre", { x: R.x, y: gel.hoeheBei(R.x) });
+      return;
+    }
+  };
+
+  /* In der Röhre: Das Auto gleitet die Fahrlinie entlang (nicht ganz echte Physik).
+     Bergauf wird es nur etwas langsamer, ein Gebläse hält es auf ≈ 13 m/s (mit Gas
+     16 m/s), nie unter 7 m/s – niemand bleibt stecken. Kein Benzinverbrauch. */
+  Fahrt.prototype.roehrenSchritt = function (h, eingabe) {
+    var K = this.roehre, R = K.R, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
+    K.t += h;
+    var P = gel.roehrenPunkt(R, K.s);
+    var vZiel = (eingabe.gas ? 16 : 13) + (this.boostZeit > 0 ? 5 : 0) + (this.miniZeit > 0 ? 3 : 0);
+    K.v += (-this.welt.schwerkraft * Math.sin(P.a) * 0.45 + (vZiel - K.v) * 0.9) * h;
+    K.v = Math.max(7, Math.min(24, K.v));
+    if (this.boostZeit > 0) this.boostZeit = Math.max(0, this.boostZeit - h);
+    if (this.miniZeit > 0) this.miniZeit = Math.max(0, this.miniZeit - h);
+    if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
+    fz.duese = this.boostZeit; fz.mini = this.miniZeit; fz.feder = 0;
+    K.s += K.v * h;
+    while (K.loopI < R.pfad.loops.length && R.pfad.loops[K.loopI] <= K.s) {
+      K.loopI++;
+      var b = FF.CONFIG.regeln.roehrenLoopBonus;
+      this.bonus += b; this.loopings = (this.loopings || 0) + 1;
+      this.federLaden(1);
+      this.melde("roehrenLoop", { bonus: b, x: C.x, y: C.y });
+    }
+    var fertig = K.s >= R.L;
+    if (fertig) K.s = R.L;
+    P = gel.roehrenPunkt(R, K.s);
+    var Pv = gel.roehrenPunkt(R, Math.max(0, K.s - 0.5));
+    var kr = (P.a - Pv.a) / Math.max(0.01, Math.min(0.5, K.s));     // Krümmung [rad/m]
+    var blend = Math.max(0, 1 - K.t / 0.3); blend = blend * blend;  // erst sanft in die Fahrlinie gleiten
+    var a = P.a + K.da * blend;
+    var x = P.x - Math.sin(P.a) * K.hc + K.dx * blend, y = P.y + Math.cos(P.a) * K.hc + K.dy * blend;
+    if (fertig) a = normWinkel(P.a);
+    FF.Physik.setzePose(fz, x, y, a);
+    var ca = Math.cos(P.a), sa = Math.sin(P.a);
+    C.vx = K.v * ca; C.vy = K.v * sa; C.w = fertig ? 0 : kr * K.v;
+    var nA = 0, dz = 0;
+    fz.raeder.forEach(function (Rd) {
+      Rd.k.vx = C.vx; Rd.k.vy = C.vy;
+      Rd.k.w = C.w - K.v / Rd.r; Rd.k.a += Rd.k.w * h;
+      if (Rd.antrieb) { dz += (K.v / Rd.r) / Rd.wMax; nA++; }
+    });
+    K.z = P.z;
+    st.radKontakte = fz.raeder.length; st.tempo = K.v; st.vorwaerts = K.v; st.leistung = 0;
+    st.drehzahl = nA ? dz / nA : 0; st.huellKontakt = st.dachKontakt = st.kopfKontakt = false;
+    if (C.x > this.strecke) this.strecke = C.x;
+    if (!fertig) return;
+    this.roehre = null;
+    this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
+    this.weitesterX = Math.max(this.weitesterX, C.x); this.festZeit = 0;
+    this.melde("roehreAus", { x: C.x, y: C.y });
   };
 
   /* Pfützen: Räder, die ins Wasser tauchen, spritzen (Ereignis "platsch") und
@@ -712,7 +814,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Ballon-Hilfe; ueberX: festgefahren → hinter diesem Punkt (weitester Fortschritt) absetzen */
   Fahrt.prototype.starteHilfe = function (ueberX) {
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
-    this.boostZeit = 0; this.fz.duese = 0;
+    this.boostZeit = 0; this.fz.duese = 0; this.miniZeit = 0; this.fz.mini = 0;
     var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3), true) : this.landeplatz(C.x);
     var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
@@ -857,6 +959,20 @@ var FF = globalThis.FF = globalThis.FF || {};
           var neu = this.boostLadung < X.boostMax;
           if (neu) this.boostLadung++;
           this.melde("rakete", { x: rk.x, y: rk.y, voll: !neu });
+          break;
+        }
+      }
+    }
+    var OB = gel.obst;                               // Obst: kurzer Mini-Turbo
+    for (i = 0; i < OB.length; i++) {
+      var ob = OB[i];
+      if (ob.weg || Math.abs(ob.x - C.x) > reichweite) continue;
+      for (j = 0; j < pkt.length; j += 3) {
+        d = Math.hypot(ob.x - pkt[j], ob.y - pkt[j + 1]);
+        if (d < Rad + 0.5 + pkt[j + 2] * 0.6) {
+          ob.weg = true;
+          this.miniZeit = this.welt.obst.dauer;
+          this.melde("obst", { x: ob.x, y: ob.y, art: ob.art });
           break;
         }
       }

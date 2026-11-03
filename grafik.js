@@ -285,7 +285,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.restore();
   }
 
-  function zeichneItems(ctx, K, gel, zeit, x0, x1, akku) {
+  var OBST_EMOJI = ["🍎", "🍐", "🍒", "🍑", "🍊", "🍌", "🍓"];
+  function zeichneItems(ctx, K, gel, zeit, x0, x1, akku, q) {
     var M = gel.muenzen, i;
     for (i = 0; i < M.length; i++) {
       var m = M[i];
@@ -303,6 +304,16 @@ var FF = globalThis.FF = globalThis.FF || {};
       var rk = RK[i];
       if (rk.weg || rk.x < x0 - 2 || rk.x > x1 + 2) continue;
       zeichneRaketenKanister(ctx, sx(K, rk.x), sy(K, rk.y + 0.6 + Math.sin(zeit * 3.4 + rk.x) * 0.1), K.s, zeit);
+    }
+    var OB = gel.obst || [];
+    for (i = 0; i < OB.length; i++) {                     // Obst (Mini-Turbo): leuchtet orange, hüpft leicht
+      var ob = OB[i];
+      if (ob.weg || ob.x < x0 - 2 || ob.x > x1 + 2) continue;
+      var OX = sx(K, ob.x), OY = sy(K, ob.y + Math.abs(Math.sin(zeit * 3 + ob.x)) * 0.18);
+      var gl = ctx.createRadialGradient(OX, OY, 0, OX, OY, K.s * 0.8);
+      gl.addColorStop(0, "rgba(255,190,80," + (0.45 + 0.2 * Math.sin(zeit * 6 + ob.x)) + ")"); gl.addColorStop(1, "rgba(255,190,80,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(OX, OY, K.s * 0.8, 0, Math.PI * 2); ctx.fill();
+      zeichneEmoji(ctx, OBST_EMOJI[ob.art % OBST_EMOJI.length], OX, OY, K.s * 0.75, false, q || 1);
     }
   }
 
@@ -1339,6 +1350,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.rotate(-C.a);
     ctx.scale(K.s, -K.s);
     if (fz.duese > 0) zeichneDuesen(ctx, fz, def, zeit);
+    else if (fz.mini > 0) zeichneDuesen(ctx, fz, def, zeit, true);
     zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck);
     if (fz.feder > 0) zeichneSprungfedern(ctx, fz);
     ctx.restore();
@@ -1346,15 +1358,16 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* 🚀 Boost: Düsen fahren hinten aus der Karosserie, Flammen schießen heraus
      (lokale Fahrzeug-Koordinaten, y nach oben) */
-  function zeichneDuesen(ctx, fz, def, zeit) {
-    var dauer = FF.CONFIG.regeln.extras.boostDauer, rest = fz.duese;
+  function zeichneDuesen(ctx, fz, def, zeit, klein) {
+    // klein: Mini-Turbo vom Obst – nur eine kleine Rakete, kürzere Flamme
+    var dauer = klein ? 1 : FF.CONFIG.regeln.extras.boostDauer, rest = klein ? fz.mini : fz.duese;
     var ein = Math.min(1, (dauer - rest) / 0.15, rest / 0.25);       // ausfahren / einfahren
     var xMin = Infinity, yU = Infinity, yO = -Infinity;
     def.huelle.forEach(function (p) { xMin = Math.min(xMin, p[0]); });
     def.huelle.forEach(function (p) { if (p[0] < xMin + 0.35) { yU = Math.min(yU, p[1]); yO = Math.max(yO, p[1]); } });
-    var y = (yU + yO) / 2, rD = 0.14, x = xMin + 0.15 - 0.35 * ein;
-    [y - 0.13, y + 0.13].forEach(function (yd, i) {
-      var fl = (0.9 + 0.5 * Math.sin(zeit * 47 + i * 2) + 0.3 * Math.sin(zeit * 83)) * ein * (0.5 + 0.5 * Math.min(1, rest / 0.5));
+    var y = (yU + yO) / 2, rD = klein ? 0.1 : 0.14, x = xMin + 0.15 - (klein ? 0.25 : 0.35) * ein;
+    (klein ? [y] : [y - 0.13, y + 0.13]).forEach(function (yd, i) {
+      var fl = (0.9 + 0.5 * Math.sin(zeit * 47 + i * 2) + 0.3 * Math.sin(zeit * 83)) * ein * (0.5 + 0.5 * Math.min(1, rest / 0.5)) * (klein ? 0.6 : 1);
       // Flamme: außen orange, innen gelb, ganz innen weiß
       [["#ff5a1f", 1, 1], ["#ffcc33", 0.7, 0.62], ["#fffbe0", 0.4, 0.32]].forEach(function (f) {
         ctx.fillStyle = f[0];
@@ -1591,6 +1604,12 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.strokeStyle = "rgba(225,248,255,0.85)"; ctx.lineWidth = Math.max(1, rb * 0.25);
         ctx.beginPath(); ctx.arc(X, Y, rb, 0, Math.PI * 2); ctx.stroke();
         ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.beginPath(); ctx.arc(X - rb * 0.35, Y - rb * 0.35, rb * 0.25, 0, Math.PI * 2); ctx.fill();
+      } else if (p.art === "stroh") {                         // Strohhalm: kurzer gelber Strich, dreht sich
+        var sl = p.r0 * K.s;
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.strokeStyle = p.farbe || "#f2cf5e"; ctx.lineWidth = Math.max(1.5, 0.06 * K.s); ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(-sl, 0); ctx.lineTo(sl, 0); ctx.stroke();
+        ctx.restore();
       } else if (p.art === "konfetti") {
         ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
         ctx.fillStyle = p.farbe; ctx.fillRect(-0.09 * K.s, -0.05 * K.s, 0.18 * K.s, 0.1 * K.s);
@@ -1748,13 +1767,23 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.objekte.length) W.zeichneObjekte(ctx, K, gel, b[2], b[3]);
     if (gel.spuk.length) W.zeichneSpuk(ctx, K, gel, f.fz.chassis.x, z);
     if (gel.katapulte.length) W.zeichneKatapulte(ctx, K, gel, f.zeit);
+    if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "hinten");
+    if (gel.roehren.length) W.zeichneRoehren(ctx, K, gel, welt, "hinten", z);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku, sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
-    zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
+    if (f.roehre && f.roehre.z) {
+      // Röhre mit Kurve nach links (näher, größer) oder rechts (weiter weg, kleiner):
+      // eigene Kamera mit anderem Maßstab, das Auto bleibt an derselben Stelle im Bild
+      var q = 1 + 0.22 * f.roehre.z, ch = f.fz.chassis, K2 = Object.create(K);
+      K2.s = K.s * q; K2.x = ch.x - (ch.x - K.x) / q; K2.y = ch.y - (ch.y - K.y) / q;
+      zeichneFahrzeug(ctx, K2, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
+    } else zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
+    if (gel.roehren.length) W.zeichneRoehren(ctx, K, gel, welt, "vorn", z);
+    if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "vorn");
     sz.partikel.zeichne(ctx, K);
     if (welt.nacht) W.zeichneNacht(ctx, K, f, sz);
     zeichneTexte(ctx, K, sz.texte);

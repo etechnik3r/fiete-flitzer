@@ -76,6 +76,7 @@ FF.CONFIG = {
     },
     saltoBonus: 50,            // Münzen pro Salto
     loopingBonus: 75,          // Münzen pro geschafftem Looping
+    roehrenLoopBonus: 20,      // … pro Looping in einer Röhre (Röhrenwelt: man fährt automatisch hindurch, darum weniger)
     extras: {                  // kleine Zusatz-Knöpfe links über der Bremse (selten, ändern das Spiel nicht grundsätzlich)
       boostDauer: 1.6,         // 🚀 Raketen-Boost: so lange [s] schießen Flammen aus den Düsen
       boostBeschl: 13,         // Schub als Beschleunigung [m/s²] entlang der Fahrzeug-Längsachse
@@ -1030,6 +1031,86 @@ FF.CONFIG = {
                   abstandElemente: 25 },
       tankAbstand: 300, muenzAbstand: 22,
       level: [ { laenge: 920, seed: 2601 }, { laenge: 1200, seed: 2602 }, { laenge: 1460, seed: 2603 }, { laenge: 1720, seed: 2604 } ]
+    },
+
+    /* ---------------------------------------------------------------------
+       Version 25: Bauernhof, Obstplantage, Röhrenwelt.
+         wasser.schlamm  Pfützen sind Matsch: braun, bremsen stärker; wasser.tier
+                         suhlt sich darin (statt der Ente)
+         gelaende.scheune  Scheune auf ebenem Boden: hinein, durch, hinten hinaus –
+                         dann fliegt Stroh (fahrt.js pruefeScheunen)
+         obst            Obst auf der Strecke: Einsammeln gibt einen kurzen Mini-Turbo
+                         { abstand [m], dauer [s], beschl [m/s²], tempoMax (× vmax) }
+         gelaende.roehre Röhren: alle roehreAbstand [m] eine (nicht zufällig), das Auto
+                         fährt automatisch hindurch (fahrt.js roehrenSchritt)
+       --------------------------------------------------------------------- */
+    {
+      /* Bauernhof: Schweine, Kühe, Hühner, Heuballen. In vielen Mulden steht Matsch,
+         der doppelt so stark bremst wie Wasser (dort suhlt sich ein Schwein). Ab und zu
+         eine Scheune: mitten hindurch, hinten fliegt das Stroh. */
+      id: "bauernhof", name: "Bauernhof", emoji: "🐷", hinweis: "Matsch bremst – und mitten durch die Scheune!",
+      schwerkraft: 9.81, grip: 0.95, rollwiderstand: 0.02, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#79c6f5", "#fdf1cf"], berge: ["#b9d983", "#8dbf5f"],
+        boden: ["#8a5a32", "#5e3c22"], oberflaeche: "#69ad3c", kante: "#a5d76a", punkte: "#6e4526", wasser: "#5a3416"
+      },
+      sonne: "sonne", wetter: null, sonnenDeko: "strohhut",
+      wasser: { tiefe: 0.55, maxBreite: 14, bremse: 0.11, schlamm: true, tier: "🐖" },
+      tipp: ["🐷 Matsch bremst dich! Nimm Schwung – und fahr mitten durch die Scheune!", "Matsch bremst! Fahr durch die Scheune!"],
+      deko: ["@schwein:0.9", "@heuballen:1.3", "@laubbaum:3.2", "@schwein:1.1", "🐄:1.6", "@strohballen:0.9", "@schwein:0.75", "🐔:0.55",
+             "@vogelscheuche:1.8", "@milchkanne:0.7", "🐑:0.9", "@schwein:1.0", "@busch:1.0", "@heuballen:1.1"],
+      beiwerk: ["@gras:0.45", "@stein:0.35", "@blumen:0.4"], kulisse: ["hof", "wald", "weide"],
+      gelaende: { amp: 6.5, welle: 40, holperAmp: 0.2, holperWelle: 6, trend: 0.015,
+                  maxAuf: 29, maxAb: 40, schanzen: 1.0, buckel: 1.0, steil: 0.7, taeler: 1.7, berg: 0.7, sprung: 0.7, wellen: 0.8, klippe: 0.4, rampe: 0.6, kuppe: 0.7, stufe: 0.6,
+                  scheune: 1.5, wildBasis: 0.45,
+                  abstandElemente: 26 },
+      tankAbstand: 280, muenzAbstand: 22,
+      level: [ { laenge: 780, seed: 2701 }, { laenge: 1040, seed: 2702 }, { laenge: 1300, seed: 2703 }, { laenge: 1560, seed: 2704 } ]
+    },
+    {
+      /* Obstplantage: Reihen von Apfel-, Birnen-, Kirsch-, Pflaumen- und Orangenbäumen.
+         Auf der Strecke liegt Obst: Wer es einsammelt, bekommt einen kurzen Mini-Turbo
+         (kleine Rakete, 1 s). */
+      id: "obstgarten", name: "Obstplantage", emoji: "🍎", hinweis: "Sammle Obst – jedes gibt dir einen kleinen Turbo!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.018, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#86cff9", "#fff4d8"], berge: ["#a9d78b", "#7dbd68"],
+        boden: ["#8a6038", "#5e4026"], oberflaeche: "#58b548", kante: "#94de6a", punkte: "#6e4a2c"
+      },
+      sonne: "sonne", wetter: "pollen", sonnenDeko: "bluete",
+      obst: { abstand: 30, dauer: 1.0, beschl: 10, tempoMax: 1.6 },
+      tipp: ["🍎 Sammle das Obst ein – jedes gibt dir einen kleinen Raketen-Schub!", "Sammle Obst für einen kleinen Turbo!"],
+      deko: ["@obstbaum:3.2", "@obstbaum:2.7", "@obstkiste:0.8", "@obstbaum:3.6", "@busch:1.0", "@obstbaum:2.9", "🐝:0.35:1.5",
+             "@blumen:0.6", "@obstbaum:3.3", "@obstkiste:0.7", "🦋:0.4:1.3", "@obstbaum:2.5"],
+      beiwerk: ["@gras:0.45", "@blumen:0.45", "@gras:0.35"], kulisse: ["wald", "obstreihen", "obstreihen"],
+      gelaende: { amp: 8.0, welle: 42, holperAmp: 0.2, holperWelle: 6, trend: 0.02,
+                  maxAuf: 30, maxAb: 42, schanzen: 1.3, buckel: 1.0, steil: 0.9, taeler: 0.8, berg: 1.0, sprung: 1.2, wellen: 1.1, klippe: 0.7, rampe: 0.9, kuppe: 1.0, stufe: 0.7, wildBasis: 0.55,
+                  abstandElemente: 25 },
+      tankAbstand: 300, muenzAbstand: 22,
+      level: [ { laenge: 820, seed: 2801 }, { laenge: 1080, seed: 2802 }, { laenge: 1340, seed: 2803 }, { laenge: 1600, seed: 2804 } ]
+    },
+    {
+      /* Röhrenwelt: Alle roehreAbstand Meter kommt eine riesige Glasröhre (groß genug
+         für Trecker und Monster-Max). Hineinfahren – dann geht es automatisch senkrecht
+         hoch, durch Loopings und Kurven nach links (näher) und rechts (weiter weg), bis
+         die Röhre wieder auf dem Boden endet. Dazwischen kleine Hügel und Schanzen. */
+      id: "roehren", name: "Röhrenwelt", emoji: "🌀", hinweis: "Verrückte Röhren: hoch, Looping, Kurven – und wieder raus!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.015, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#a98bff", "#ffe2f3"], berge: ["#ffa6d6", "#c08cff"],
+        boden: ["#5a3ea8", "#3d2a7a"], oberflaeche: "#3fd6c4", kante: "#b8fff4", punkte: "#7a5fd0"
+      },
+      sonne: "sonne", wetter: "konfetti", sonnenDeko: "brille", wolkenStil: "zuckerwatte",
+      roehrenFarben: ["#ff4f9a", "#3fc8ff", "#ffc83f", "#6fe86f", "#ff8a3f", "#b07aff"],
+      tipp: ["🌀 Fahr in die Röhre – dann geht's hoch, im Looping herum und um die Kurven!", "Ab in die Röhre!"],
+      deko: ["@rohrbogen:1.8", "@busch:1.0", "@rohrwirbel:2.4", "@pilz:0.9", "@rohrbogen:1.3", "@kristall:0.9", "@rohrwirbel:1.8", "@blumen:0.6"],
+      beiwerk: ["@gras:0.4", "@blumen:0.4"], kulisse: ["roehren", "wolkenberg", "roehren"],
+      gelaende: { amp: 4.0, welle: 36, holperAmp: 0.15, holperWelle: 6, trend: 0.012,
+                  maxAuf: 26, maxAb: 36, schanzen: 1.4, buckel: 1.3, steil: 0.2, taeler: 0.4, berg: 0, sprung: 0.5, wellen: 0.5, klippe: 0, rampe: 0.2, kuppe: 0.6, stufe: 0.3,
+                  roehreAbstand: 30, wildBasis: 0.2,
+                  abstandElemente: 13 },
+      tankAbstand: 320, muenzAbstand: 22,
+      level: [ { laenge: 800, seed: 2901 }, { laenge: 1050, seed: 2902 }, { laenge: 1300, seed: 2903 }, { laenge: 1550, seed: 2904 } ]
     }
   ],
 
@@ -1052,6 +1133,12 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "25", titel: "Bauernhof, Obstplantage und Röhrenwelt", punkte: [
+      "🐷 Neue Welt Bauernhof: Schweine, Kühe und Hühner – Matschpfützen bremsen dich!",
+      "🛖 Fahr mitten durch die Scheune – hinten fliegt das Stroh hoch!",
+      "🍎 Neue Welt Obstplantage: Äpfel, Birnen, Kirschen, Pflaumen und Orangen an den Bäumen",
+      "🚀 Sammle das Obst auf der Strecke – jedes gibt dir einen kleinen Raketen-Schub",
+      "🌀 Neue Welt Röhrenwelt: riesige Glasröhren – hinein, senkrecht hoch, Looping, Kurven und wieder raus!" ] },
     { version: "24", titel: "Ruhiger, echter Hintergrund", punkte: [
       "🏔️ Die Berge im Hintergrund flimmern nicht mehr: Sie gleiten jetzt wie echte Kulissen vorbei",
       "🔭 Beim Schnellfahren zoomen nahe Hügel mit, ferne Berge bleiben fast gleich groß",

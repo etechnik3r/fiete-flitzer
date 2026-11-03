@@ -61,14 +61,15 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **26 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **29 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
   🎢 Achterbahn-Park · 🌈 Regenbogenland · 🎡 Freizeitpark · 💎 Kristallhöhle ·
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
-  🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt.
+  🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -164,6 +165,35 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     (Weite aus Grabenbreite + 10 m berechnet), nach 4 s geht es von selbst.
     Münzen liegen entlang der Flugbahn. Dazu Trampoline (`trampolinStil:
     "matte"`), Rampen und Wasser im Graben.
+- **Drei Welten von Version 25** (Felder in `config.js` bei „Version 25“):
+  - **🐷 Bauernhof**: Schweine, Kühe, Hühner, Heu- und Strohballen, Milchkannen,
+    im Hintergrund Höfe mit Silo und Weidezäune. In den vielen Mulden steht
+    **Matsch** (`wasser.schlamm`): braun, blubbert und bremst stärker als Wasser
+    (`bremse` 0,11 statt 0,055), darin suhlt sich ein Schwein (`wasser.tier`).
+    Ab und zu eine **Scheune** (Bau-Element `scheune`, `gelaende.scheunen`) auf
+    ebenem Boden: Die Wand mit offenem Tor wird nach dem Auto gemalt, das Auto
+    verschwindet also hinter der Wand, ist im Tor zu sehen und kommt rechts
+    wieder heraus. Dann fliegt Stroh hoch (`fahrt.pruefeScheunen`, Ereignis
+    `stroh`, Partikel `stroh`). Unter der Scheune liegen keine Münzen und Kanister.
+  - **🍎 Obstplantage**: Apfel-, Birnen-, Kirsch-, Pflaumen- und Orangenbäume
+    (Requisite `obstbaum`, 5 Sorten × 2 Kronen), Obstkisten, Bienen, Baumreihen
+    im Hintergrund. Auf der Strecke liegt etwa alle 20–40 m **Obst** (`welt.obst`,
+    `gelaende.obst`, nur auf ebenem Boden, wo man nicht drüberfliegt).
+    Einsammeln gibt einen **Mini-Turbo**: eine kleine Rakete, 1 s lang 10 m/s²,
+    bis 1,6 × Höchstgeschwindigkeit (der große Turbo: 1,6 s, 13 m/s², 2,1 ×).
+  - **🌀 Röhrenwelt**: Nach jedem Hügel oder jeder Schanze kommt eine riesige
+    **Glasröhre** (Bau-Element `roehre`, 5–10 je Level, 60–110 m Gelände
+    dazwischen). Innen 3,7 m Durchmesser, Monster-Max (2,65 m) und Trecker
+    passen hinein. Die Fahrlinie baut `gelaende.js baueRoehre` wie mit einer
+    Schildkröte: Einfahrt, Bogen senkrecht hoch, oben zur Seite, zwei Figuren
+    (Looping, Doppel-Looping, Sturz-Looping nach unten, Schlangenkurven), dann
+    eine Hermite-Kurve zurück auf den Boden. Kurven nach links und rechts sind
+    Tiefe (`z`): Röhre und Auto werden größer (näher) oder kleiner (weiter weg).
+    In der Röhre fährt das Auto von selbst (`fahrt.roehrenSchritt`, keine echte
+    Physik): bergauf etwas langsamer, ein Gebläse hält es bei 13 m/s (mit Gas
+    16), nie unter 7 m/s, kein Benzinverbrauch. Jeder Looping gibt +20 und lädt
+    die Sprungfeder, entlang der Fahrlinie liegen Münzen. Am Ende kommt es
+    waagrecht auf dem Boden heraus. Die Kamera zoomt in der Röhre etwas heraus.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
@@ -203,7 +233,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   Der Hintergrund hat drei Ebenen (die hinterste im Dunst) mit Silhouetten je
   Welt (`welt.kulisse`: wald, tannen, tafelberg, stadt, kran, gipfel, vulkan,
   dschungel, brachio, riesenrad, bonbon, wolkenberg, stalagmiten, dorf, zaun,
-  riesenblumen, halme, windrad, riff, wrack, tang).
+  riesenblumen, halme, windrad, riff, wrack, tang, hof, weide, obstreihen, roehren).
   Jede Requisite steht auf dem tiefsten Bodenpunkt unter ihrer Breite (am
   Hang steckt der Rest im Boden, nichts schwebt); auf Kuppen und Kanten, wo
   mehr als 30 % der Größe im Boden stecken würden, wird sie weggelassen.
@@ -359,7 +389,7 @@ Kachel-Raster (`.kachel-liste`) in der Garage.
 **Themen-Himmel**: Jede Welt kann in `config.js` Sonne und Wolken an ihr Thema
 anpassen: `sonnenArt` (`baustein`, `lolli`, `zahnrad`, `sonnenblume`, `glas`),
 `sonnenDeko` (Zubehör der lachenden Sonne: `helm`, `muetze`, `brille`,
-`bluete`, `krone`, `schal`), `wolkenStil` (`baustein`, `zuckerwatte`, `dampf`,
+`bluete`, `krone`, `schal`, `strohhut`), `wolkenStil` (`baustein`, `zuckerwatte`, `dampf`,
 `glas`, `wenige`, `keine`) und `stufig` (Hügel im Hintergrund in Stufen, für
 die Klemmbaustein-Welt).
 
@@ -614,7 +644,7 @@ node werkzeuge/testfahrt.js --schwierigkeit leicht
 node werkzeuge/testfahrt.js --fahrzeug moped --welt 3
 node werkzeuge/testfahrt.js --physik              # Physik-Plausibilitätstests
 node werkzeuge/testfahrt.js --geist               # Geisterrennen: Aufnahme, Wiedergabe, Sieger
-node werkzeuge/testfahrt.js --spielideen          # Pfützen, Hüpfpilze, Wind, Wasser der neuen Welten
+node werkzeuge/testfahrt.js --spielideen          # Pfützen, Hüpfpilze, Wind, Wasser, Matsch, Scheune, Obst, Röhren
 node werkzeuge/testfahrt.js --spielstand          # Spielstand-Code: hin und zurück, Tippfehler
 ```
 

@@ -838,8 +838,185 @@
         g.fillStyle = fl[0]; g.beginPath(); g.moveTo(x - u * fl[2], -u * 0.06);
         g.quadraticCurveTo(x - u * fl[2], -u * fl[1] * 0.7, x, -u * (0.06 + fl[1])); g.quadraticCurveTo(x + u * fl[2], -u * fl[1] * 0.7, x + u * fl[2], -u * 0.06); g.closePath(); g.fill();
       });
+    } },
+
+    /* ---- Bauernhof (Version 25) ---- */
+    schwein: { breite: 1.7, sinken: 0, male: function (g, u, R, v) {
+      // Schwein mit Ringelschwanz (Blick nach rechts). Varianten: rosa, gefleckt,
+      // mit Matschflecken, zwei Ferkel
+      var art = v % 4;
+      if (art === 3) { schweinMalen(g, u * 0.62, -u * 0.45, 0, R, "#ffb3c4", false); schweinMalen(g, u * 0.58, u * 0.33, 0, R, "#ffc2cf", false); return; }
+      schweinMalen(g, u, -u * 0.08, 0, R, art === 1 ? "#ffc0cc" : "#ffaec0", art === 1, art === 2);
+    } },
+    heuballen: { breite: 1.3, sinken: 0.04, male: function (g, u, R) {
+      // runder Heuballen (Stirnseite mit Spirale)
+      var r = u * 0.5, x = 0, y = -r;
+      var gr = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+      gr.addColorStop(0, "#f6dc7a"); gr.addColorStop(1, "#d4a83c");
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#b8892a"; g.lineWidth = Math.max(1, u * 0.025);
+      g.beginPath();
+      for (var t = 0; t < 14; t += 0.1) { var rr = r * t / 15; g.lineTo(x + Math.cos(t * 1.6) * rr, y + Math.sin(t * 1.6) * rr); }
+      g.stroke();
+      g.strokeStyle = "#f9e7a0"; g.lineWidth = Math.max(1, u * 0.015);
+      for (var i = 0; i < 9; i++) { var w = R() * Math.PI * 2; g.beginPath(); g.moveTo(x + Math.cos(w) * r * 0.95, y + Math.sin(w) * r * 0.95); g.lineTo(x + Math.cos(w + 0.2) * r * 1.08, y + Math.sin(w + 0.2) * r * 1.08); g.stroke(); }
+    } },
+    strohballen: { breite: 1.5, sinken: 0.02, male: function (g, u, R) {
+      // eckige Strohballen, manchmal zwei übereinander, mit Schnüren
+      var zwei = R() < 0.45, b = u * 0.72, h = zwei ? u * 0.48 : u * 0.6;
+      for (var k = 0; k < (zwei ? 2 : 1); k++) {
+        var y = -h * (k + 1), x = -b / 2 + (k ? (R() - 0.5) * u * 0.15 : 0);
+        var gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, "#f7df86"); gr.addColorStop(1, "#d9ad44");
+        g.fillStyle = gr; g.fillRect(x, y, b, h);
+        g.strokeStyle = "#c29433"; g.lineWidth = Math.max(1, u * 0.012);
+        for (var i = 0; i < 7; i++) { var yy = y + h * (0.1 + 0.8 * R()); g.beginPath(); g.moveTo(x + b * R(), yy); g.lineTo(x + b * R(), yy + h * 0.06); g.stroke(); }
+        g.strokeStyle = "#a0522d"; g.lineWidth = Math.max(1, u * 0.025);
+        g.beginPath(); g.moveTo(x + b * 0.3, y); g.lineTo(x + b * 0.3, y + h); g.moveTo(x + b * 0.7, y); g.lineTo(x + b * 0.7, y + h); g.stroke();
+      }
+    } },
+    milchkanne: { breite: 0.7, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.3;
+      var gr = g.createLinearGradient(-b, 0, b, 0); gr.addColorStop(0, "#f2f5fa"); gr.addColorStop(0.5, "#c8cfdc"); gr.addColorStop(1, "#8e97a8");
+      g.fillStyle = gr;
+      g.beginPath(); g.moveTo(-b, 0); g.lineTo(-b, -u * 0.6); g.quadraticCurveTo(-b, -u * 0.72, -b * 0.5, -u * 0.8); g.lineTo(-b * 0.5, -u * 0.92);
+      g.lineTo(b * 0.5, -u * 0.92); g.lineTo(b * 0.5, -u * 0.8); g.quadraticCurveTo(b, -u * 0.72, b, -u * 0.6); g.lineTo(b, 0); g.closePath(); g.fill();
+      g.fillStyle = "#6b7384"; g.fillRect(-b * 0.6, -u * 0.98, b * 1.2, u * 0.07);
+      g.strokeStyle = "#6b7384"; g.lineWidth = Math.max(1, u * 0.03);
+      g.beginPath(); g.moveTo(-b * 1.02, -u * 0.25); g.lineTo(b * 1.02, -u * 0.25); g.stroke();
+      g.beginPath(); g.arc(0, -u * 0.98, b * 0.45, Math.PI, 0); g.stroke();
+    } },
+
+    /* ---- Obstplantage (Version 25): fünf Sorten × zwei Kronenformen ---- */
+    obstbaum: { breite: 1.2, sinken: 0.02, male: function (g, u, R, v) {
+      var sorte = OBST_SORTEN[v % OBST_SORTEN.length], rund = Math.floor(v / OBST_SORTEN.length) % 2 === 0;
+      var neig = (R() - 0.5) * u * 0.08;
+      stamm(g, u, 0, 0, neig, -u * 0.45, u * 0.055, "#7a5232");
+      g.strokeStyle = "#6a4528"; g.lineWidth = u * 0.028; g.lineCap = "round";
+      g.beginPath(); g.moveTo(neig * 0.6, -u * 0.38); g.lineTo(neig - u * 0.18, -u * 0.55); g.stroke();
+      g.beginPath(); g.moveTo(neig * 0.7, -u * 0.42); g.lineTo(neig + u * 0.17, -u * 0.58); g.stroke();
+      var cy = -u * (rund ? 0.62 : 0.66), rad = u * (rund ? 0.4 : 0.36);
+      if (rund) krone(g, u, R, neig, cy, rad, sorte.laub, 8);
+      else { krone(g, u, R, neig - u * 0.12, cy + u * 0.04, rad * 0.8, sorte.laub, 5); krone(g, u, R, neig + u * 0.12, cy - u * 0.02, rad * 0.85, sorte.laub, 5); krone(g, u, R, neig, cy - u * 0.16, rad * 0.7, sorte.laub, 4); }
+      // Früchte in der Krone, ein paar im Gras darunter
+      for (var i = 0; i < 11; i++) {
+        var w = R() * Math.PI * 2, d = Math.sqrt(R()) * rad * 0.9;
+        frucht(g, sorte, neig + Math.cos(w) * d * 1.15, cy + Math.sin(w) * d * 0.85, u * sorte.gr);
+      }
+      for (i = 0; i < 2; i++) if (R() < 0.6) frucht(g, sorte, (R() - 0.5) * u * 0.7, -u * sorte.gr * 0.9, u * sorte.gr);
+    } },
+    obstkiste: { breite: 1.4, sinken: 0, male: function (g, u, R, v) {
+      // Holzkiste voller Obst
+      var sorte = OBST_SORTEN[v % OBST_SORTEN.length], b = u * 0.68, h = u * 0.55;
+      for (var i = 0; i < 9; i++) frucht(g, sorte, -b * 0.8 + b * 1.6 * (i % 5) / 4 + (R() - 0.5) * u * 0.05, -h - u * 0.05 - (i > 4 ? u * 0.13 : 0), u * Math.max(0.16, sorte.gr * 1.6));
+      g.fillStyle = "#c9955a"; g.fillRect(-b, -h, b * 2, h);
+      g.fillStyle = "#a8743e";
+      for (var k = 0; k < 3; k++) g.fillRect(-b, -h + k * h / 3 + h * 0.08, b * 2, h * 0.1);
+      g.strokeStyle = "#7a4f28"; g.lineWidth = Math.max(1, u * 0.03); g.strokeRect(-b, -h, b * 2, h);
+    } },
+
+    /* ---- Röhrenwelt (Version 25) ---- */
+    rohrbogen: { breite: 1.5, sinken: 0.04, male: function (g, u, R) {
+      // Rohr-Bogen aus dem Boden (umgedrehtes U) mit Ringen
+      var f = ROHR_FARBEN[Math.floor(R() * ROHR_FARBEN.length)], d = u * 0.2, b = u * 0.48;
+      g.lineCap = "butt"; g.strokeStyle = dunkel(f, 0.3); g.lineWidth = d * 1.15;
+      g.beginPath(); g.moveTo(-b, 0); g.lineTo(-b, -u * 0.5); g.arc(0, -u * 0.5, b, Math.PI, 0); g.lineTo(b, 0); g.stroke();
+      g.strokeStyle = f; g.lineWidth = d;
+      g.beginPath(); g.moveTo(-b, 0); g.lineTo(-b, -u * 0.5); g.arc(0, -u * 0.5, b, Math.PI, 0); g.lineTo(b, 0); g.stroke();
+      g.strokeStyle = hell(f, 0.45); g.lineWidth = d * 0.25;
+      g.beginPath(); g.moveTo(-b - d * 0.2, 0); g.lineTo(-b - d * 0.2, -u * 0.5); g.arc(0, -u * 0.5, b + d * 0.2, Math.PI, Math.PI * 1.6); g.stroke();
+      g.fillStyle = dunkel(f, 0.35);
+      [[-b, -u * 0.15], [b, -u * 0.15], [0, -u * 0.5 - b]].forEach(function (p, i) {
+        if (i < 2) g.fillRect(p[0] - d * 0.7, p[1], d * 1.4, u * 0.05); else g.fillRect(p[0] - u * 0.025, p[1] - d * 0.7, u * 0.05, d * 1.4);
+      });
+    } },
+    rohrwirbel: { breite: 0.9, sinken: 0, male: function (g, u, R) {
+      // Säule mit einer Rohr-Spirale drumherum
+      var f = ROHR_FARBEN[Math.floor(R() * ROHR_FARBEN.length)], f2 = ROHR_FARBEN[Math.floor(R() * ROHR_FARBEN.length)];
+      g.fillStyle = "#e9e4ff"; g.fillRect(-u * 0.04, -u * 0.95, u * 0.08, u * 0.95);
+      g.lineCap = "round";
+      for (var hinten = 1; hinten >= 0; hinten--) {
+        g.strokeStyle = hinten ? dunkel(f, 0.35) : f; g.lineWidth = u * 0.1;
+        g.beginPath();
+        for (var t = 0; t <= 1; t += 0.01) {
+          var w = t * Math.PI * 7, vorn = Math.cos(w) > 0;
+          var px = Math.sin(w) * u * 0.32, py = -u * (0.08 + 0.82 * t);
+          if (vorn === !hinten) g.lineTo(px, py); else { g.stroke(); g.beginPath(); g.moveTo(px, py); }
+        }
+        g.stroke();
+      }
+      g.fillStyle = f2; g.beginPath(); g.arc(0, -u * 0.95, u * 0.1, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(255,255,255,0.6)"; g.beginPath(); g.arc(-u * 0.03, -u * 0.98, u * 0.035, 0, Math.PI * 2); g.fill();
     } }
   };
+
+  var ROHR_FARBEN = ["#ff4f9a", "#3fc8ff", "#ffc83f", "#6fe86f", "#ff8a3f", "#b07aff"];
+  /* Obstsorten: Farbe der Frucht, Laub, Größe (Anteil der Baumhöhe), Form */
+  var OBST_SORTEN = [
+    { name: "apfel",   farbe: "#e8453c", laub: "#4f9e3a", gr: 0.075, form: "rund" },
+    { name: "birne",   farbe: "#c9d64a", laub: "#5aa845", gr: 0.08, form: "birne" },
+    { name: "kirsche", farbe: "#b0122a", laub: "#3f8f3f", gr: 0.045, form: "kirsche" },
+    { name: "pflaume", farbe: "#6a3d9a", laub: "#4a8f42", gr: 0.06, form: "oval" },
+    { name: "orange",  farbe: "#ff9a1f", laub: "#3c8a3a", gr: 0.075, form: "rund" }
+  ];
+  function frucht(g, sorte, x, y, r) {
+    var f = sorte.farbe;
+    g.fillStyle = f;
+    if (sorte.form === "kirsche") {                       // Kirschpaar am Stiel
+      g.strokeStyle = "#4a6a2a"; g.lineWidth = Math.max(1, r * 0.25);
+      g.beginPath(); g.moveTo(x - r * 0.8, y); g.lineTo(x, y - r * 2); g.lineTo(x + r * 0.8, y); g.stroke();
+      g.beginPath(); g.arc(x - r * 0.8, y, r, 0, Math.PI * 2); g.arc(x + r * 0.8, y, r, 0, Math.PI * 2); g.fill();
+    } else if (sorte.form === "birne") {
+      g.beginPath(); g.arc(x, y + r * 0.3, r, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(x, y - r * 0.55, r * 0.62, 0, Math.PI * 2); g.fill();
+    } else if (sorte.form === "oval") {
+      g.beginPath(); g.ellipse(x, y, r * 0.8, r, 0.3, 0, Math.PI * 2); g.fill();
+    } else {
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = "rgba(255,255,255,0.45)";
+    g.beginPath(); g.arc(x - r * 0.35, y - r * 0.35, r * 0.28, 0, Math.PI * 2); g.fill();
+  }
+
+  /* Schwein (Blick nach rechts): x/y = Mitte unten, u = Höhe */
+  function schweinMalen(g, u, x0, y0, R, farbe, flecken, matsch) {
+    var d = dunkel(farbe, 0.18), kx = x0, ky = y0 - u * 0.5;
+    g.fillStyle = d;                                                     // hintere Beine
+    g.fillRect(kx - u * 0.42, ky + u * 0.12, u * 0.12, u * 0.38); g.fillRect(kx + u * 0.18, ky + u * 0.12, u * 0.12, u * 0.38);
+    g.strokeStyle = d; g.lineWidth = Math.max(1, u * 0.04); g.lineCap = "round";   // Ringelschwanz
+    g.beginPath(); g.moveTo(kx - u * 0.62, ky - u * 0.05);
+    g.bezierCurveTo(kx - u * 0.8, ky - u * 0.12, kx - u * 0.78, ky - u * 0.28, kx - u * 0.68, ky - u * 0.22);
+    g.bezierCurveTo(kx - u * 0.6, ky - u * 0.16, kx - u * 0.72, ky - u * 0.08, kx - u * 0.8, ky - u * 0.14); g.stroke();
+    var gr = g.createRadialGradient(kx - u * 0.15, ky - u * 0.2, u * 0.05, kx, ky, u * 0.7);
+    gr.addColorStop(0, hell(farbe, 0.25)); gr.addColorStop(1, farbe);
+    g.fillStyle = gr; g.beginPath(); g.ellipse(kx, ky, u * 0.66, u * 0.36, 0, 0, Math.PI * 2); g.fill();   // Bauch
+    g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.015); g.stroke();
+    if (flecken) {
+      g.fillStyle = "#8a5a3a";
+      [[-0.25, -0.12, 0.14], [0.12, 0.05, 0.1], [-0.38, 0.1, 0.08]].forEach(function (p) { g.beginPath(); g.ellipse(kx + p[0] * u, ky + p[1] * u, p[2] * u, p[2] * u * 0.75, 0.3, 0, Math.PI * 2); g.fill(); });
+    }
+    if (matsch) {
+      g.fillStyle = "rgba(110,72,38,0.85)";
+      g.beginPath(); g.ellipse(kx - u * 0.1, ky + u * 0.26, u * 0.5, u * 0.12, 0, 0, Math.PI * 2); g.fill();
+      [[-0.4, 0.05], [0.05, -0.1], [0.3, 0.12]].forEach(function (p) { g.beginPath(); g.arc(kx + p[0] * u, ky + p[1] * u, u * 0.06, 0, Math.PI * 2); g.fill(); });
+    }
+    g.fillStyle = farbe;                                                  // vordere Beine
+    g.fillRect(kx - u * 0.3, ky + u * 0.18, u * 0.13, u * 0.32); g.fillRect(kx + u * 0.3, ky + u * 0.18, u * 0.13, u * 0.32);
+    g.fillStyle = "#6a3a2a";
+    [-0.3, 0.3].forEach(function (bx) { g.fillRect(kx + bx * u, ky + u * 0.44, u * 0.13, u * 0.06); });
+    var hx = kx + u * 0.62, hy = ky - u * 0.12;                          // Kopf
+    g.fillStyle = farbe; g.beginPath(); g.arc(hx, hy, u * 0.27, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = KONTUR; g.stroke();
+    g.fillStyle = d;                                                      // Ohren
+    g.beginPath(); g.moveTo(hx - u * 0.12, hy - u * 0.2); g.lineTo(hx - u * 0.02, hy - u * 0.42); g.lineTo(hx + u * 0.06, hy - u * 0.2); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(hx + u * 0.06, hy - u * 0.22); g.lineTo(hx + u * 0.2, hy - u * 0.4); g.lineTo(hx + u * 0.22, hy - u * 0.16); g.closePath(); g.fill();
+    g.fillStyle = hell(d, 0.1); g.beginPath(); g.ellipse(hx + u * 0.26, hy + u * 0.06, u * 0.09, u * 0.12, 0, 0, Math.PI * 2); g.fill();   // Rüssel
+    g.strokeStyle = KONTUR; g.stroke();
+    g.fillStyle = "#6a2a3a";
+    g.beginPath(); g.arc(hx + u * 0.24, hy + u * 0.02, u * 0.022, 0, Math.PI * 2); g.arc(hx + u * 0.28, hy + u * 0.1, u * 0.022, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#1e1e2a"; g.beginPath(); g.arc(hx + u * 0.08, hy - u * 0.06, u * 0.035, 0, Math.PI * 2); g.fill();   // Auge
+    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(hx + u * 0.09, hy - u * 0.07, u * 0.012, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "rgba(255,90,120,0.35)"; g.beginPath(); g.arc(hx + u * 0.02, hy + u * 0.1, u * 0.06, 0, Math.PI * 2); g.fill();   // Bäckchen
+  }
 
   /* Klemmbaustein: x, y = oben links (y nach oben negativ), b × h, mit Noppen obendrauf */
   function bausteinR(g, x, y, b, h, farbe, u) {
@@ -995,7 +1172,7 @@
   /* ---------------------------------------------------------------------------
      Bild-Zwischenspeicher
      --------------------------------------------------------------------------- */
-  var VARIANTEN = { dino: 12, riesenblume: 6, glasskulptur: 6 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
+  var VARIANTEN = { dino: 12, riesenblume: 6, glasskulptur: 6, obstbaum: 10, obstkiste: 5 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
   var cache = {}, anzahl = 0;
   function sprite(typ, variante, px, q) {
     var M = MALER[typ];

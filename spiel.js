@@ -241,6 +241,7 @@
   /* =========================================================================
      4) KAMERA
      ========================================================================= */
+  var roehrenZoom = 1;
   function kameraNachfuehren(dt, sofort) {
     var Kc = C.kamera, ch = fahrt.fz.chassis;
     var quer = B >= H;
@@ -253,6 +254,9 @@
     kamera.ankerY = quer ? 0.58 : 0.55;
     var zielX = ch.x + klemme(ch.vx * Kc.vorausschau, -3, 6);
     var zielY = ch.y + 0.6;
+    // In der Röhre: etwas weiter weg, damit man Loopings und Kurven ganz sieht
+    roehrenZoom += ((fahrt.roehre ? 0.78 : 1) - roehrenZoom) * (sofort ? 1 : Math.min(1, dt * 1.5));
+    kamera.s *= roehrenZoom;
     if (fahrt.welt.decke) {
       // Höhle: etwas weiter weg und so hoch, dass die Decke oben im Bild bleibt –
       // aber das Auto rutscht nie tiefer als 80 % der Bildhöhe
@@ -549,15 +553,59 @@
                            t: 0, dauer: 0.8, r0: 0.08, r1: 0.3, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 1 });
           }
           break;
-        case "platsch":                  // in eine Pfütze gefahren
-          FF.Klang.spiele("platsch", e.staerke);
+        case "platsch":                  // in eine Pfütze gefahren (Bauernhof: Matsch)
+          var matsch = fahrt.welt.wasser && fahrt.welt.wasser.schlamm;
+          FF.Klang.spiele(matsch ? "matsch" : "platsch", e.staerke);
           for (var pt = 0; pt < 6 + 10 * e.staerke; pt++) {
-            var pw = Math.PI * (0.15 + 0.7 * Math.random()), pv = 2 + Math.random() * 4 * (0.5 + e.staerke);
+            var pw = Math.PI * (0.15 + 0.7 * Math.random()), pv = (matsch ? 1.5 : 2) + Math.random() * (matsch ? 3 : 4) * (0.5 + e.staerke);
             partikel.neu({ art: "tropfen", x: e.x + (Math.random() - 0.5) * 0.8, y: e.y + 0.05, vx: Math.cos(pw) * pv, vy: Math.sin(pw) * pv,
-                           t: 0, dauer: 0.7 + Math.random() * 0.3, r0: 0.07 + Math.random() * 0.07, farbe: "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.4 });
+                           t: 0, dauer: 0.7 + Math.random() * 0.3, r0: (matsch ? 0.09 : 0.07) + Math.random() * 0.07,
+                           farbe: matsch ? "rgba(110,72,38,0.95)" : "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.4 });
           }
-          if (e.staerke > 0.55) { schwebeText(e.x, e.y + 1.6, "Platsch! 💦", "#bfe4ff", false); setzeAusdruck("freude", 1.2); }
-          if (ersteMale("tipp-platsch", 2)) FF.Klang.sprich("Platsch!");
+          if (e.staerke > 0.55) { schwebeText(e.x, e.y + 1.6, matsch ? "Matsch! 🐷" : "Platsch! 💦", matsch ? "#e8c08a" : "#bfe4ff", false); setzeAusdruck("freude", 1.2); }
+          if (ersteMale(matsch ? "tipp-matsch" : "tipp-platsch", 2)) FF.Klang.sprich(matsch ? "Matsch!" : "Platsch!");
+          break;
+        case "scheune":                  // in die Scheune gefahren
+          FF.Klang.spiele("scheune");
+          break;
+        case "stroh":                    // aus der Scheune hinaus: Stroh fliegt hoch
+          FF.Klang.spiele("stroh");
+          var vs = Math.max(3, e.tempo || 5);
+          for (var st2 = 0; st2 < 34; st2++) {
+            partikel.neu({ art: "stroh", x: e.x + Math.random() * 1.2, y: e.y + 0.3 + Math.random() * 2.4,
+                           vx: vs * (0.2 + 0.7 * Math.random()) + (Math.random() - 0.5) * 3, vy: 2.5 + Math.random() * 6, t: 0, dauer: 1.3 + Math.random() * 0.8,
+                           r0: 0.18 + Math.random() * 0.2, farbe: ["#f2cf5e", "#e6b84a", "#f8e08a"][st2 % 3], schwer: 0.35, reibung: 1.2,
+                           w: Math.random() * 6, dreh: (Math.random() - 0.5) * 14 });
+          }
+          for (var sd = 0; sd < 6; sd++) {
+            partikel.neu({ art: "staub", x: e.x + Math.random(), y: e.y + 0.4 + Math.random() * 1.5, vx: vs * 0.3 + (Math.random() - 0.5) * 2, vy: 0.5 + Math.random(),
+                           t: 0, dauer: 0.9, r0: 0.2, r1: 0.9, farbe: "#f3dc94", alpha: 0.5, reibung: 1.5 });
+          }
+          schwebeText(e.x + 1.5, e.y + 3.2, "Stroh! 🌾", "#ffe27a", true);
+          setzeAusdruck("freude", 2);
+          if (ersteMale("tipp-stroh", 2)) FF.Klang.sprich("Stroh!");
+          break;
+        case "obst":                     // Obst eingesammelt: Mini-Turbo
+          FF.Klang.spiele("obst");
+          funkeln(e.x, e.y, "#ffcf6a", 8);
+          schwebeText(e.x, e.y + 1.0, ["🍎", "🍐", "🍒", "🍑", "🍊", "🍌", "🍓"][e.art % 7] + " Mini-Turbo!", "#ffcf6a", false);
+          setzeAusdruck("freude", 1.4);
+          if (ersteMale("tipp-obst", 2)) { tipp("🍎 Lecker! Jedes Obst gibt dir einen kleinen Raketen-Schub.", 4000, "Lecker! Ein kleiner Turbo!"); spruchBis = zeit + 3; }
+          break;
+        case "roehre":                   // hinein in die Röhre
+          FF.Klang.spiele("roehre");
+          schwebeText(e.x + 2, e.y + 4, "Hui! 🌀", "#ffffff", true);
+          setzeAusdruck("freude", 3);
+          if (ersteMale("tipp-roehre", 2)) { tipp("🌀 Die Röhre fährt dich ganz von allein – mit Gas wirst du schneller!", 4500, "Hui! Ab durch die Röhre!"); spruchBis = zeit + 3; }
+          break;
+        case "roehrenLoop":              // Looping in der Röhre
+          FF.Klang.spiele("salto");
+          schwebeText(e.x, e.y + 1.8, "Looping +" + e.bonus, "#ffd23f", false);
+          konfettiWelt(e.x, e.y + 1, 8);
+          if (ersteMale("tipp-roehrenLoop", 2)) FF.Klang.sprich("Looping!");
+          break;
+        case "roehreAus":                // Röhre zu Ende
+          FF.Klang.spiele("roehreAus");
           break;
         case "boing":                    // Hüpfpilz
           FF.Klang.spiele("boing");
@@ -1911,6 +1959,10 @@
     if (g.katapult) m.push("🎯 Katapulte");
     if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : "🧱 Bausteine fliegen");
     if (w.objekte && w.objekte.saeule) m.push("🏛️ Säulen");
+    if (w.wasser && w.wasser.schlamm) { m.splice(m.indexOf("💧 Pfützen"), 1, "🐷 Matsch"); }
+    if (g.scheune) m.push("🛖 Scheunen mit Stroh");
+    if (w.obst) m.push("🍎 Obst-Turbo");
+    if (g.roehreAbstand) m.push("🌀 Röhren");
     if ((g.klippe || 0) >= 1.5) m.push("⛰️ Klippen");
     if ((g.sprung || 0) >= 1.4 || (g.schanzen || 0) >= 1.5) m.push("🛫 große Schanzen");
     return m;
