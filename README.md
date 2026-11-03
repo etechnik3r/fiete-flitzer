@@ -170,10 +170,11 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     im Hintergrund Höfe mit Silo und Weidezäune. In den vielen Mulden steht
     **Matsch** (`wasser.schlamm`): braun, blubbert und bremst stärker als Wasser
     (`bremse` 0,11 statt 0,055), darin suhlt sich ein Schwein (`wasser.tier`).
-    Ab und zu eine **Scheune** (Bau-Element `scheune`, `gelaende.scheunen`) auf
-    ebenem Boden: Die Wand mit offenem Tor wird nach dem Auto gemalt, das Auto
-    verschwindet also hinter der Wand, ist im Tor zu sehen und kommt rechts
-    wieder heraus. Dann fliegt Stroh hoch (`fahrt.pruefeScheunen`, Ereignis
+    In jedem Level stehen **fünf Scheunen** (`gelaende.scheunen: 5`, gleichmäßig
+    verteilt, Endlos alle 150 m) auf ebenem Boden. Die Scheune ist geschlossen
+    und wird nach dem Auto gemalt: Links steht das Tor offen, dort fährt das
+    Auto hinein und ist weg, bis es rechts aus dem zweiten Tor herauskommt.
+    Mehr Schanzen und Sprünge als sonst, damit man über den Matsch springen kann. Dann fliegt Stroh hoch (`fahrt.pruefeScheunen`, Ereignis
     `stroh`, Partikel `stroh`). Unter der Scheune liegen keine Münzen und Kanister.
   - **🍎 Obstplantage**: Apfel-, Birnen-, Kirsch-, Pflaumen- und Orangenbäume
     (Requisite `obstbaum`, 5 Sorten × 2 Kronen), Obstkisten, Bienen, Baumreihen
@@ -185,9 +186,12 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     **Glasröhre** (Bau-Element `roehre`, 5–10 je Level, 60–110 m Gelände
     dazwischen). Innen 3,7 m Durchmesser, Monster-Max (2,65 m) und Trecker
     passen hinein. Die Fahrlinie baut `gelaende.js baueRoehre` wie mit einer
-    Schildkröte: Einfahrt, Bogen senkrecht hoch, oben zur Seite, zwei Figuren
-    (Looping, Doppel-Looping, Sturz-Looping nach unten, Schlangenkurven), dann
-    eine Hermite-Kurve zurück auf den Boden. Kurven nach links und rechts sind
+    Schildkröte: Einfahrt, Bogen senkrecht hoch, oben zur Seite, zwei
+    verschiedene Figuren (Looping nach oben, Sturz-Looping nach unten,
+    Schlangenkurven), dann eine Hermite-Kurve zurück auf den Boden. Teile der
+    Röhre dürfen sich nicht überdecken (`roehreUeberlappt`, nur die Kreuzung
+    unten im Looping zählt nicht); sonst werden die Geraden dazwischen länger
+    oder der Anstieg höher, bis es passt. Kurven nach links und rechts sind
     Tiefe (`z`): Röhre und Auto werden größer (näher) oder kleiner (weiter weg).
     In der Röhre fährt das Auto von selbst (`fahrt.roehrenSchritt`, keine echte
     Physik): bergauf etwas langsamer, ein Gebläse hält es bei 13 m/s (mit Gas

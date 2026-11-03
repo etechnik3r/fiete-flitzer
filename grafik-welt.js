@@ -1604,76 +1604,77 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* Scheune (Bauernhof): rote Scheune mit Mansard-Giebel, so breit wie die Scheune.
-     teil "hinten" (vor dem Auto gemalt): das Innere mit Heu und Balken. teil "vorn"
-     (nach dem Auto): die Wand mit offenem Tor in der Mitte – das Auto verschwindet
-     links hinter der Wand, ist im Tor kurz zu sehen und kommt rechts wieder heraus. */
+     Sie wird NACH dem Auto gemalt (teil "vorn") und ist geschlossen: Links steht das
+     Scheunentor offen (dunkle Öffnung, Torflügel nach außen geklappt) – dort fährt das
+     Auto hinein und ist weg, bis es rechts aus dem zweiten offenen Tor wieder
+     herauskommt. teil "hinten" malt nur einen Schatten auf den Boden. */
   var SCHEUNE_ROT = "#c0392b", SCHEUNE_DACH = "#6b2f22", SCHEUNE_WEISS = "#fff4e6";
   function zeichneScheunen(ctx, K, gel, teil) {
     var S = gel.scheunen, s = K.s;
     for (var i = 0; i < S.length; i++) {
       var sc = S[i], X0 = sx(K, sc.x0), X1 = sx(K, sc.x1);
-      if (X1 < -2 * s || X0 > K.b + 2 * s) continue;
+      if (X1 < -4 * s || X0 > K.b + 4 * s) continue;
       if (sc.y === undefined) sc.y = gel.hoeheBei((sc.x0 + sc.x1) / 2);
       var Yb = sy(K, sc.y) + 0.08 * s, H = sc.H * s, B = X1 - X0, Xm = (X0 + X1) / 2;
-      var tb = 2.6 * s, th = 3.15 * s;                                 // Tor (Mitte): halbe Breite, Höhe
+      var tb = 2.0 * s, th = 3.3 * s;                                   // Tor links und rechts: Breite, Höhe
       if (teil === "hinten") {
-        ctx.fillStyle = "#4a2418"; ctx.fillRect(X0, Yb - H, B, H);       // Rückwand innen, dunkel
-        ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = Math.max(1, 0.05 * s);
-        for (var xp = X0 + 0.6 * s; xp < X1; xp += 0.6 * s) { ctx.beginPath(); ctx.moveTo(xp, Yb - H); ctx.lineTo(xp, Yb); ctx.stroke(); }
-        ctx.fillStyle = "#3a1c12"; ctx.fillRect(X0, Yb - 2.9 * s, B, 0.22 * s);   // Balken
-        var hz = zufall01(sc.v, 3);                                       // Heu-Stapel hinten
-        for (var k = 0; k < 5; k++) {
-          var bx = Xm - tb + (0.2 + k * 1.05) * s, lagen = 1 + Math.floor(zufall01(sc.v + k, 4) * 2.2);
-          for (var l = 0; l < lagen; l++) {
-            ctx.fillStyle = l % 2 ? "#e9c15a" : "#f3d26e"; ctx.fillRect(bx, Yb - (l + 1) * 0.62 * s, 0.98 * s, 0.6 * s);
-            ctx.strokeStyle = "#a0522d"; ctx.lineWidth = Math.max(1, 0.04 * s);
-            ctx.beginPath(); ctx.moveTo(bx + 0.3 * s, Yb - (l + 1) * 0.62 * s); ctx.lineTo(bx + 0.3 * s, Yb - l * 0.62 * s - 0.02 * s); ctx.stroke();
-          }
-        }
-        ctx.fillStyle = "rgba(255,210,120," + (0.25 + 0.1 * hz) + ")";   // Laternen-Schein
-        ctx.beginPath(); ctx.arc(Xm + 1.4 * s, Yb - 2.6 * s, 0.7 * s, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#ffd27a"; ctx.beginPath(); ctx.arc(Xm + 1.4 * s, Yb - 2.55 * s, 0.13 * s, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#e2b64e"; ctx.fillRect(X0, Yb - 0.12 * s, B, 0.12 * s);   // Stroh am Boden
+        ctx.fillStyle = "rgba(40,25,10,0.18)";
+        ctx.beginPath(); ctx.ellipse(Xm, Yb, B * 0.56, 0.35 * s, 0, 0, Math.PI * 2); ctx.fill();
         continue;
       }
-      // Wand mit Mansard-Giebel und Tor-Loch (evenodd)
       var dachU = H, dachK = H + 1.7 * s, first = H + 2.9 * s;
-      ctx.beginPath();
-      ctx.moveTo(X0, Yb); ctx.lineTo(X0, Yb - dachU); ctx.lineTo(X0 + B * 0.14, Yb - dachK); ctx.lineTo(Xm, Yb - first);
-      ctx.lineTo(X1 - B * 0.14, Yb - dachK); ctx.lineTo(X1, Yb - dachU); ctx.lineTo(X1, Yb); ctx.closePath();
-      ctx.rect(Xm + tb, Yb, -2 * tb, -th);                               // Tor (gegenläufig → Loch)
-      ctx.fillStyle = SCHEUNE_ROT; ctx.fill("evenodd");
-      var dachKurve = function (xx) {                                       // Höhe der Giebelkante bei xx [px]
+      var dachKurve = function (xx) {                                     // Höhe der Giebelkante bei xx [px]
         var u = (xx - X0) / B, d = u < 0.5 ? u : 1 - u;
         return d < 0.14 ? dachU + (dachK - dachU) * d / 0.14 : dachK + (first - dachK) * (d - 0.14) / 0.36;
       };
+      // Wand (geschlossen)
+      ctx.beginPath();
+      ctx.moveTo(X0, Yb); ctx.lineTo(X0, Yb - dachU); ctx.lineTo(X0 + B * 0.14, Yb - dachK); ctx.lineTo(Xm, Yb - first);
+      ctx.lineTo(X1 - B * 0.14, Yb - dachK); ctx.lineTo(X1, Yb - dachU); ctx.lineTo(X1, Yb); ctx.closePath();
+      ctx.fillStyle = SCHEUNE_ROT; ctx.fill();
       ctx.strokeStyle = "rgba(0,0,0,0.13)"; ctx.lineWidth = Math.max(1, 0.05 * s);   // Bretter
-      for (var xb = X0 + 0.45 * s; xb < X1; xb += 0.45 * s) {
-        if (xb > Xm - tb && xb < Xm + tb) { ctx.beginPath(); ctx.moveTo(xb, Yb - th); ctx.lineTo(xb, Yb - Math.min(first, dachKurve(xb))); ctx.stroke(); continue; }
-        ctx.beginPath(); ctx.moveTo(xb, Yb); ctx.lineTo(xb, Yb - dachKurve(xb) + 0.05 * s); ctx.stroke();
-      }
-      // Dach-Kante (dunkel) und weiße Zierleisten
-      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      for (var xb = X0 + 0.45 * s; xb < X1; xb += 0.45 * s) { ctx.beginPath(); ctx.moveTo(xb, Yb); ctx.lineTo(xb, Yb - dachKurve(xb) + 0.05 * s); ctx.stroke(); }
+      // Die zwei offenen Tore: innen dunkel, Heu am Boden, ein Lichtschein von innen
+      [X0, X1 - tb].forEach(function (tx) {
+        var gr = ctx.createLinearGradient(0, Yb - th, 0, Yb);
+        gr.addColorStop(0, "#1c0e08"); gr.addColorStop(1, "#3a2010");
+        ctx.fillStyle = gr; ctx.fillRect(tx, Yb - th, tb, th);
+        ctx.fillStyle = "#c99a3a"; ctx.fillRect(tx, Yb - 0.18 * s, tb, 0.18 * s);
+        ctx.fillStyle = "rgba(255,210,120,0.12)"; ctx.fillRect(tx + 0.2 * s, Yb - th + 0.2 * s, tb - 0.4 * s, th - 0.4 * s);
+      });
+      // Mitte: großes geschlossenes Tor mit weißem X
+      var mb = Math.min(2.4 * s, (B - 2 * tb) * 0.3), mh = 3.0 * s;
+      ctx.strokeStyle = SCHEUNE_WEISS; ctx.lineWidth = Math.max(2, 0.16 * s); ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.strokeRect(Xm - mb, Yb - mh, 2 * mb, mh);
+      ctx.beginPath(); ctx.moveTo(Xm, Yb - mh); ctx.lineTo(Xm, Yb);
+      ctx.moveTo(Xm - mb, Yb - mh); ctx.lineTo(Xm, Yb); ctx.moveTo(Xm, Yb - mh); ctx.lineTo(Xm - mb, Yb);
+      ctx.moveTo(Xm, Yb - mh); ctx.lineTo(Xm + mb, Yb); ctx.moveTo(Xm + mb, Yb - mh); ctx.lineTo(Xm, Yb); ctx.stroke();
+      // Torrahmen der offenen Tore und aufgeklappte Torflügel (nach außen)
+      ctx.strokeRect(X0, Yb - th, tb, th); ctx.strokeRect(X1 - tb, Yb - th, tb, th);
+      [[X0, -1], [X1, 1]].forEach(function (q) {
+        var ax = q[0], d = q[1], fb = 1.0 * s;                          // Flügel schräg (perspektivisch)
+        ctx.beginPath(); ctx.moveTo(ax, Yb - th); ctx.lineTo(ax + d * fb, Yb - th - 0.35 * s); ctx.lineTo(ax + d * fb, Yb + 0.2 * s); ctx.lineTo(ax, Yb); ctx.closePath();
+        ctx.fillStyle = "#a83226"; ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ax, Yb - th); ctx.lineTo(ax + d * fb, Yb + 0.2 * s); ctx.moveTo(ax + d * fb, Yb - th - 0.35 * s); ctx.lineTo(ax, Yb); ctx.stroke();
+      });
+      // Dach-Kante (dunkel)
       ctx.strokeStyle = SCHEUNE_DACH; ctx.lineWidth = Math.max(3, 0.42 * s);
       ctx.beginPath(); ctx.moveTo(X0 - 0.3 * s, Yb - dachU + 0.1 * s); ctx.lineTo(X0 + B * 0.14, Yb - dachK); ctx.lineTo(Xm, Yb - first);
       ctx.lineTo(X1 - B * 0.14, Yb - dachK); ctx.lineTo(X1 + 0.3 * s, Yb - dachU + 0.1 * s); ctx.stroke();
-      ctx.strokeStyle = SCHEUNE_WEISS; ctx.lineWidth = Math.max(2, 0.16 * s);
-      ctx.strokeRect(Xm - tb, Yb - th, 2 * tb, th);
-      // Torflügel, aufgeklappt an der Wand: weiß umrandet mit X
-      [Xm - tb - 1.9 * s, Xm + tb + 0.1 * s].forEach(function (fx) {
-        ctx.strokeRect(fx, Yb - th + 0.1 * s, 1.8 * s, th - 0.1 * s);
-        ctx.beginPath(); ctx.moveTo(fx, Yb - th + 0.1 * s); ctx.lineTo(fx + 1.8 * s, Yb); ctx.moveTo(fx + 1.8 * s, Yb - th + 0.1 * s); ctx.lineTo(fx, Yb); ctx.stroke();
-      });
       // Heuboden-Luke oben mit herausschauendem Heu
-      var lb = 1.0 * s, ly = Yb - H - 0.25 * s;
-      ctx.fillStyle = "#3a1c12"; ctx.fillRect(Xm - lb, ly - 1.2 * s, 2 * lb, 1.2 * s);
+      var lb = 0.9 * s, ly = Yb - H - 0.2 * s;
+      ctx.fillStyle = "#3a1c12"; ctx.fillRect(Xm - lb, ly - 1.1 * s, 2 * lb, 1.1 * s);
       ctx.fillStyle = "#f0cb5c";
       ctx.beginPath(); ctx.moveTo(Xm - lb, ly); ctx.quadraticCurveTo(Xm - lb * 0.5, ly - 0.7 * s, Xm, ly - 0.5 * s); ctx.quadraticCurveTo(Xm + lb * 0.5, ly - 0.8 * s, Xm + lb, ly); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "#e0b445"; ctx.lineWidth = Math.max(1, 0.05 * s);
-      for (var hh = 0; hh < 6; hh++) { var hx = Xm - lb * 0.8 + hh * lb * 0.32; ctx.beginPath(); ctx.moveTo(hx, ly - 0.1 * s); ctx.lineTo(hx + (hh % 2 ? 0.15 : -0.12) * s, ly + 0.25 * s); ctx.stroke(); }
       ctx.strokeStyle = SCHEUNE_WEISS; ctx.lineWidth = Math.max(2, 0.14 * s);
-      ctx.strokeRect(Xm - lb, ly - 1.2 * s, 2 * lb, 1.2 * s);
+      ctx.strokeRect(Xm - lb, ly - 1.1 * s, 2 * lb, 1.1 * s);
       ctx.strokeRect(X0, Yb - dachU, B, dachU);                           // Rand der Wand
+      // Wetterhahn auf dem First
+      ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = Math.max(1.5, 0.08 * s);
+      ctx.beginPath(); ctx.moveTo(Xm, Yb - first); ctx.lineTo(Xm, Yb - first - 1.0 * s); ctx.stroke();
+      ctx.fillStyle = "#3a2a1a";
+      ctx.beginPath(); ctx.moveTo(Xm - 0.35 * s, Yb - first - 1.0 * s); ctx.quadraticCurveTo(Xm, Yb - first - 1.5 * s, Xm + 0.3 * s, Yb - first - 1.25 * s);
+      ctx.lineTo(Xm + 0.4 * s, Yb - first - 1.0 * s); ctx.closePath(); ctx.fill();
     }
   }
 

@@ -83,12 +83,61 @@ var FF = globalThis.FF = globalThis.FF || {};
      Bögen; z ist die Tiefe (+1 = Kurve nach links zum Betrachter hin, −1 = nach rechts,
      weiter weg) – nur für die Grafik, das Auto wird dort größer oder kleiner.
      Ablauf: Einfahrt, Bogen senkrecht nach oben, hoch, oben zur Seite, zwei Figuren
-     (Looping, Schlangenkurven, Sturz-Looping, Doppel-Looping), weich zurück zum Boden. */
+     (Looping nach oben, Sturz-Looping nach unten, Schlangenkurven – nie zwei gleiche,
+     nichts überdeckt sich), weich zurück zum Boden. */
   var ROEHRE_DS = 0.25;              // Abtastabstand der Fahrlinie [m]
+  var ROEHRE_RI = 1.85;              // Innenradius der Röhre [m] (wie grafik-welt.js ROEHRE_R)
   function baueRoehre(r, wild) {
-    var P = { x: [0], y: [0], z: [0], a: [0], s: [0], loops: [] }, x = 0, y = 0, a = 0, s = 0;
-    function punkt(z) { P.x.push(x); P.y.push(y); P.z.push(z); P.a.push(a); P.s.push(s); }
-    // zAmp: Tiefe wölbt sich im Stück einmal (oder zWellen-mal) hin und zurück
+    // Erst würfeln (immer gleich viele Zufallszahlen), dann bauen. Zwei Figuren aus
+    // Looping (nach oben), Sturz-Looping (nach unten) und Schlange – nie zweimal
+    // dieselbe, also nie zwei Loopings übereinander.
+    var plan = { hoch: 1.5 + 2.5 * r() + 1.5 * wild, figuren: [], lr: [] };
+    var figuren = ["looping", "schlange", "sturz"];
+    var f1 = figuren[Math.floor(r() * 3)], f2 = figuren[Math.floor(r() * 3)];
+    if (f2 === f1) f2 = figuren[(figuren.indexOf(f1) + 1 + Math.floor(r() * 2)) % 3];
+    plan.figuren = [f1, f2];
+    plan.lr = [r() < 0.5 ? 1 : -1, r() < 0.5 ? 1 : -1];
+    // Abstände zwischen den Teilen so lange vergrößern, bis sich keine zwei Teile
+    // der Röhre überdecken und nichts im Boden steckt
+    // (der Sturz-Looping geht nach unten: dafür notfalls höher hinauf)
+    var hoch0 = plan.hoch;
+    for (var extra = 0; extra < 4; extra++) {
+      plan.hoch = hoch0 + 2.5 * extra;
+      for (var versuch = 0; versuch < 9; versuch++) {
+        var P = roehrenPfad(plan, 1.5 + 1.5 * versuch);
+        if (!roehreUeberlappt(P)) return P;
+      }
+    }
+    plan.hoch = hoch0;
+    plan.figuren = ["schlange"];                         // Notlösung: nur die Schlange
+    return roehrenPfad(plan, 3);
+  }
+
+  /* Prüft, ob sich zwei verschiedene Teile (Anstieg, Figur 1, Figur 2, Abstieg) der
+     Röhre überdecken oder die Röhre in den Boden ragt. Innerhalb eines Loopings
+     kreuzt sich die Röhre natürlich selbst – das zählt nicht. */
+  function roehreUeberlappt(P) {
+    var n = P.x.length, cx = [], cy = [], i, j, min = 2 * ROEHRE_RI + 0.4;
+    function amFuss(k) {                                 // Kreuzung unten am Looping: gehört dazu
+      for (var f = 0; f < P.fuss.length; f++) if (Math.hypot(P.x[k] - P.fuss[f][0], P.y[k] - P.fuss[f][1]) < 6) return true;
+      return false;
+    }
+    for (i = 0; i < n; i++) { cx.push(P.x[i] - Math.sin(P.a[i]) * ROEHRE_RI); cy.push(P.y[i] + Math.cos(P.a[i]) * ROEHRE_RI); }
+    for (i = 0; i < n; i += 2) {
+      if (cy[i] < ROEHRE_RI - 0.2) return true;                       // steckt im Boden
+      for (j = i + 2; j < n; j += 2) {
+        if (P.g[i] === P.g[j] || P.s[j] - P.s[i] < 9) continue;
+        var dx = cx[i] - cx[j], dy = cy[i] - cy[j];
+        if (dx * dx + dy * dy < min * min && !amFuss(i) && !amFuss(j)) return true;
+      }
+    }
+    return false;
+  }
+
+  function roehrenPfad(plan, luecke) {
+    var P = { x: [0], y: [0], z: [0], a: [0], s: [0], g: [0], loops: [], fuss: [] }, x = 0, y = 0, a = 0, s = 0, gruppe = 0;
+    function punkt(z) { P.x.push(x); P.y.push(y); P.z.push(z); P.a.push(a); P.s.push(s); P.g.push(gruppe); }
+    // zAmp: Tiefe wölbt sich im Stück einmal hin und zurück
     function gerade(L, zAmp) {
       var n = Math.max(1, Math.round(L / ROEHRE_DS));
       for (var i = 1; i <= n; i++) {
@@ -96,14 +145,14 @@ var FF = globalThis.FF = globalThis.FF || {};
         punkt((zAmp || 0) * Math.sin(Math.PI * i / n));
       }
     }
-    function bogen(R, dA, zAmp, zWellen) {
-      var L = R * Math.abs(dA), n = Math.max(2, Math.round(L / ROEHRE_DS)), k = zWellen || 1;
+    function bogen(R, dA, zAmp) {
+      var L = R * Math.abs(dA), n = Math.max(2, Math.round(L / ROEHRE_DS));
       for (var i = 1; i <= n; i++) {
         var a1 = a + dA / n;
         // Sehne des Kreisbogens (exakt, damit sich Loopings wirklich schließen)
         var sm = (a + a1) / 2, c = 2 * R * Math.sin(Math.abs(dA) / n / 2);
         x += Math.cos(sm) * c; y += Math.sin(sm) * c; a = a1; s += L / n;
-        punkt((zAmp || 0) * Math.sin(Math.PI * k * i / n));
+        punkt((zAmp || 0) * Math.sin(Math.PI * i / n));
         // nach jeder ganzen Umdrehung: ein Looping geschafft (fahrt.js zählt ihn)
         if (Math.floor(Math.abs(dA) * i / n / (2 * Math.PI) + 1e-6) > Math.floor(Math.abs(dA) * (i - 1) / n / (2 * Math.PI) + 1e-6)) P.loops.push(s);
       }
@@ -111,26 +160,20 @@ var FF = globalThis.FF = globalThis.FF || {};
     var G = Math.PI / 180;
     gerade(2.5);
     bogen(4.5, 90 * G);                              // hinauf …
-    gerade(1.5 + 2.5 * r() + 1.5 * wild);           // … senkrecht
+    gerade(plan.hoch);                               // … senkrecht
     bogen(3.5, -90 * G, 0.5);                        // oben zur Seite (Kurve nach links)
-    gerade(1.5);
-    // Zwei Figuren, zufällig gewählt (nicht zweimal dieselbe)
-    var figuren = ["looping", "schlange", "sturz", "doppel"], gewaehlt = [];
-    while (gewaehlt.length < 2) {
-      var f = figuren[Math.floor(r() * figuren.length)];
-      if (gewaehlt.indexOf(f) >= 0) continue;
-      if (f === "sturz" && y < 2 * 3.6 + 2) continue;            // Sturz-Looping geht erst nach unten
-      gewaehlt.push(f);
-    }
-    gewaehlt.forEach(function (f) {
-      var lr = r() < 0.5 ? 1 : -1;                               // Kurve nach links oder nach rechts
-      if (f === "looping") { bogen(4.2, 360 * G, 0.9 * lr); gerade(2); }
-      else if (f === "doppel") { bogen(3.8, 720 * G, 0.9 * lr, 2); gerade(2); }
-      else if (f === "sturz") { bogen(3.6, -360 * G, -0.9 * lr); gerade(2); }
-      else {                                                    // Schlange: Kurven links, rechts, links …
-        bogen(6, -35 * G, 0.8 * lr); bogen(6, 70 * G, -0.8 * lr); bogen(6, -70 * G, 0.8 * lr); bogen(6, 35 * G, -0.8 * lr); gerade(1.5);
-      }
+    gruppe = 1;                                      // Gerade vor und nach einer Figur gehört zur Figur
+    gerade(luecke);                                  // (unten am Looping liegt sie natürlich doppelt)
+    plan.figuren.forEach(function (f, k) {
+      gruppe = k + 1;
+      var lr = plan.lr[k];                           // Kurve nach links oder nach rechts
+      if (f !== "schlange") P.fuss.push([x, y]);    // hier kreuzt sich der Looping selbst
+      if (f === "looping") bogen(4.2, 360 * G, 0.9 * lr);
+      else if (f === "sturz") bogen(3.6, -360 * G, -0.9 * lr);
+      else { bogen(6, -35 * G, 0.8 * lr); bogen(6, 70 * G, -0.8 * lr); bogen(6, -70 * G, 0.8 * lr); bogen(6, 35 * G, -0.8 * lr); }
+      gerade(luecke);
     });
+    gruppe = plan.figuren.length + 1;
     // Weich zurück zum Boden (Hermite-Kurve: waagrecht hinein, waagrecht hinaus)
     var h = y, x0 = x, a0 = a, d = Math.max(12, 1.7 * h), k1 = d * 1.1;
     var t0x = Math.cos(a0) * k1, t0y = Math.sin(a0) * k1, n = 400, px = x, py = y, letzt = 0;
@@ -174,7 +217,10 @@ var FF = globalThis.FF = globalThis.FF || {};
                   looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
                   trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild),
                   schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild),
-                  scheune: (g.scheune || 0) * (0.6 + wild) },
+                  scheune: 0 },
+      // Bauernhof: Scheunen gleichmäßig über das Level verteilt (nicht zufällig)
+      scheuneAbstand: g.scheunen ? (this.endlos ? 150 : (optionen.laenge - 150) / g.scheunen) : 0,
+      scheunenAnzahl: g.scheunen || 0,
       roehreAbstand: g.roehreAbstand || 0,        // Röhrenwelt: nach so viel Gelände [m] kommt immer die nächste Röhre
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
@@ -218,6 +264,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.spuk = [];                // Geister (welt.spuk), die kurz vor dem Auto auftauchen {x, gesehen}
     this.katapulte = [];           // Katapulte {x, v, winkel, …}: halten das Auto fest und schleudern es über den Graben (fahrt.js)
     this.spukX = 60;
+    this.scheuneEnde = -40;        // letzte Scheune (für scheuneAbstand)
     this.scheunen = [];            // Scheunen {x0, x1, …}: hinein, durch, hinten fliegt Stroh (fahrt.js pruefeScheunen)
     this.roehren = [];             // Röhren {x, pfad, …}: das Auto fährt automatisch hindurch (fahrt.js roehrenSchritt)
     this.roehreEnde = 18;          // Ausgang der letzten Röhre (für roehreAbstand)
@@ -280,6 +327,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (p.roehreAbstand && (this.endlos || xs + 120 < this.ziel) &&
         (this.seitRoehre >= 2 || (this.seitRoehre >= 1 && xs - this.roehreEnde >= p.roehreAbstand * (0.8 + 0.4 * r())))) typ = "roehre";
     this.seitRoehre = typ === "roehre" ? 0 : (this.seitRoehre || 0) + 1;
+    if (p.scheuneAbstand && xs - this.scheuneEnde >= p.scheuneAbstand * 0.72 && (this.endlos || (xs + 60 < this.ziel && this.scheunen.length < p.scheunenAnzahl))) typ = "scheune";
     var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
     var el = { typ: typ, xs: xs };
@@ -443,6 +491,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.scheunen.push({ x: xs0, x0: xs0, x1: xs1, H: 3.9, v: Math.floor(r() * 1000), drin: false, durch: false });
       this.sperrzonen.push([xs0 - 1, xs1 + 1]);
       this.verdeckt.push([xs0 + 0.3, xs1 - 0.3]);
+      this.scheuneEnde = xs0;
     } else if (typ === "roehre") {
       // Röhre: Einfahrt auf ebenem Boden, dann senkrecht hoch, Loopings, Kurven (nach
       // vorn und hinten) und zurück auf den Boden. Die Fahrlinie (Boden der Röhre)
