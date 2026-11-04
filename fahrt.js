@@ -585,7 +585,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   /* Pfützen: Räder, die ins Wasser tauchen, spritzen (Ereignis "platsch") und
-     bremsen das Auto: a = bremse · v² · Eintauchtiefe (Mittel über alle Räder).
+     bremsen das Auto: a = bremse · v² · Eintauchtiefe (Mittel über alle Räder;
+     Kettenfahrzeuge nur mit dem Anteil kette.wasser).
      Die Bremse wirkt auf Karosserie und Räder gleich (wie die Schwerkraft). */
   Fahrt.prototype.wasser = function (h) {
     var gel = this.gelaende, W = this.welt.wasser, fz = this.fz, C = fz.chassis, self = this, tief = 0;
@@ -601,6 +602,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.imWasser = tief > 0;
     if (!tief) return;
     tief /= fz.raeder.length;
+    if (this.werte.kette) tief *= this.werte.kette.wasser;   // Kette wühlt sich ohne Bremsen durch
+    if (!tief) return;
     var v = C.vx, dv = Math.min(Math.abs(v), W.bremse * tief * v * v * h) * (v > 0 ? -1 : 1);
     C.vx += dv;
     fz.raeder.forEach(function (R) { R.k.vx += dv; });

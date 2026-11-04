@@ -154,6 +154,17 @@ var FF = globalThis.FF = globalThis.FF || {};
      Spielstand-Code
      ------------------------------------------------------------------------- */
   var ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  /* Fahrzeuge im Code nach fester Reihenfolge (so bleiben alte Codes gültig, auch wenn
+     ein neues Fahrzeug in CONFIG.fahrzeuge weiter vorn einsortiert wird). Neue Fahrzeuge
+     hier HINTEN anhängen; was fehlt, kommt automatisch ans Ende. */
+  var CODE_FAHRZEUGE = ["flitzer", "traktor", "moped", "eauto", "bus", "monster", "renner", "mond",
+                        "skateboard", "flugzeug", "sofa", "raupe"];
+  function codeFahrzeuge() {
+    var liste = [];
+    CODE_FAHRZEUGE.forEach(function (id) { C.fahrzeuge.forEach(function (f) { if (f.id === id) liste.push(f); }); });
+    C.fahrzeuge.forEach(function (f) { if (CODE_FAHRZEUGE.indexOf(f.id) < 0) liste.push(f); });
+    return liste;
+  }
   var CODE_VERSION = 2;               // 2: mit Felgen und Beifahrern (Codes der Version 1 werden weiter gelesen)
   var UPG = ["motor", "reifen", "federung", "tank"];
 
@@ -206,7 +217,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* Code aus dem Spielstand S (beide Kinder) */
   function codeErzeugen(S) {
-    var w = new Schreiber(), F = C.fahrzeuge, W = C.welten;
+    var w = new Schreiber(), F = codeFahrzeuge(), W = C.welten;
     w.feld(CODE_VERSION, 4);
     w.feld(C.kinder.length, 2); w.feld(W.length, 7); w.feld(F.length, 5);
     w.feld(C.farben.length, 5); w.feld(C.muster.length, 4); w.feld(C.outfits.length, 4); w.feld(C.spuren.length, 4);
@@ -278,7 +289,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var nK = r.feld(2), nW = r.feld(7), nF = r.feld(5), nFarben = r.feld(5), nMuster = r.feld(4), nOutfits = r.feld(4), nSpuren = r.feld(4);
       var nFelgen = version >= 2 ? r.feld(4) : 0, nBeif = version >= 2 ? r.feld(4) : 0;
       var aktiv = r.feld(2);
-      var S = neuerSpielstand();
+      var S = neuerSpielstand(), F = codeFahrzeuge();
       if (alterStand) {                                   // Einstellungen des Geräts behalten
         S.einstellungen = alterStand.einstellungen; S.gesehen = alterStand.gesehen || {};
         S.entwickler = alterStand.entwickler; if (alterStand.strecken) S.strecken = alterStand.strecken;
@@ -288,7 +299,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         p.muenzen = r.zahl();
         var fzI = r.feld(5);
         for (var fi = 0; fi < nF; fi++) {
-          var f = C.fahrzeuge[fi], fs = f ? neuesFahrzeug(f) : {};
+          var f = F[fi], fs = f ? neuesFahrzeug(f) : {};
           fs.gekauft = !!r.bit();
           if (fs.gekauft) {
             fs.upgrades = {};
@@ -322,7 +333,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         p.statistik = { fahrten: r.zahl(), meter: r.zahl(), salti: r.zahl(), muenzen: r.zahl() };
         var siege = r.zahl();
         if (kind) {
-          if (C.fahrzeuge[fzI]) p.fahrzeug = C.fahrzeuge[fzI].id;
+          if (F[fzI]) p.fahrzeug = F[fzI].id;
           var sauber = neuesProfil(); uebernimmProfil(sauber, p);     // gleiche Prüfungen wie beim Laden
           S.spieler[kind.id] = sauber; S.duell.siege[kind.id] = siege;
         }

@@ -350,6 +350,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 |---|---|---|
 | 🚙 Flitzer | gratis | der flinke Buggy, kann von allem ein bisschen |
 | 🚜 Trecker | 2.000 | Bärenkraft (0→50 km/h in 3,0 s statt 4,3 s), etwas schneller als der Flitzer, aber mit Vollgas am Berg hebt er vorne ab und überschlägt sich, wie ein echter Traktor |
+| 🎿 Pistenraupe | 2.500 | **Kettenfahrwerk** aus sechs angetriebenen Rollen (Antriebsrad hinten und Leitrad vorn etwas höher, so klettert die Kette über Kanten), Schlitten und Skier auf der Pritsche. **Matsch und Pfützen bremsen sie nicht** (`kette.wasser: 0`), auf Schnee, Eis und Sand gilt mindestens Boden-Grip 0,95 und höchstens Rollwiderstand 0,025. Dafür gemütlich (45 km/h statt 58 beim Flitzer), schwer und träge in der Luft (Luftsteuerung 3,6 statt 5,5), sparsamer Diesel (28 s Tank). Profi-Fahrer mit Upgrades „auto“: 114 von 116 Leveln im Ziel (Flitzer 116), rund 15 % langsamer – auf dem Bauernhof ohne Upgrades aber 3 von 4 Leveln statt 1 |
 | 🛵 Hüpf-Moped | 3.500 | federleicht, tolle Saltos, kippt schnell |
 | ⚡ E-Auto | 5.000 | leise und spritzig (0→50 km/h in 2,3 s): volles Drehmoment aus dem Stand, schwerer Akku ganz unten. **Bremsen und Rollen laden den Akku** (Rekuperation, beim Profi-Fahrer etwa 6–16 % Akku je Level), im Stand kein Verbrauch; sammelt grüne Batterien statt Kanister |
 | 🚌 Bummel-Bus | 7.000 | lang und schwer, kaum umzuwerfen, dreht sich in der Luft nur langsam (mit Tierkindern an Bord) |
@@ -485,6 +486,7 @@ Fahrzeug hat in `config.js` ein eigenes Klang-Profil.
 |---|---|
 | Flitzer | 4-Zylinder-Boxer, blubbernd |
 | Trecker | 3-Zylinder-Diesel, langes Auspuffrohr |
+| Pistenraupe | 6-Zylinder-Diesel, 3 Gänge, kräftiges Kettenrasseln |
 | Hüpf-Moped | Einzylinder-Zweitakter |
 | Bummel-Bus | 6-Zylinder-Diesel, 5 Gänge |
 | Monster-Max | V8 mit Kreuzebenen-Bollern und Fehlzündungs-Puff |

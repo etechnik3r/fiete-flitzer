@@ -182,6 +182,36 @@ FF.CONFIG = {
       upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     },
     {
+      /* Pistenraupe mit Kettenfahrwerk: sechs Rollen (hinten Antriebsrad, vier Laufrollen,
+         vorn Leitrad, beide etwas höher – so klettert die Kette über Kanten), alle
+         angetrieben; der Radius r enthält die Kette. kette: Pfützen und Matsch bremsen
+         nur mit dem Anteil wasser (0 = gar nicht), Schnee/Eis/Sand rutschen höchstens
+         wie bodenGrip, Rollwiderstand höchstens rollMax. Dafür gemütliche Höchstgeschwindigkeit
+         und schwer in der Luft (wenig Salto-Steuerung). */
+      id: "raupe", name: "Pistenraupe", emoji: "🎿", preis: 2500, preisBasis: 150,
+      text: "Mit Kettenantrieb! Matsch, Pfützen, Schnee und Sand bremsen sie nicht – dafür ist sie gemütlich unterwegs und in der Luft eher träge.",
+      masse: 470, groesse: { laenge: 3.3, hoehe: 1.5 },
+      raeder: [
+        { x: -1.32, y: -0.06, r: 0.30, masse: 22, antrieb: true },
+        { x: -0.78, y: -0.20, r: 0.23, masse: 14, antrieb: true },
+        { x: -0.26, y: -0.20, r: 0.23, masse: 14, antrieb: true },
+        { x:  0.26, y: -0.20, r: 0.23, masse: 14, antrieb: true },
+        { x:  0.78, y: -0.20, r: 0.23, masse: 14, antrieb: true },
+        { x:  1.33, y: -0.02, r: 0.28, masse: 18, antrieb: true }
+      ],
+      federung: { ruhe: 0.2, weg: 0.13, frequenz: 2.1, daempfung: 0.65 },
+      motor: { drehmoment: 850, vmax: 12.5 }, bremse: 1700, grip: 1.25,
+      tankSekunden: 28, luftsteuerung: 3.6, cwA: 0.9, abtrieb: 0,
+      kette: { wasser: 0, bodenGrip: 0.95, rollMax: 0.025 },
+      huelle: [[-1.70, -0.10], [1.62, -0.10], [1.68, 0.42], [1.56, 0.72], [1.08, 0.82], [0.84, 1.46], [-0.34, 1.46], [-0.36, 0.66], [-1.70, 0.62]],
+      dach: [[-0.22, 1.52], [0.72, 1.52], [-0.44, 1.30]],
+      kopf: { x: 0.36, y: 1.0, r: 0.28 },
+      farbe: "rot", form: "raupe",
+      klang: { art: "verbrenner", zylinder: 6, takte: 4, leerlauf: 700, max: 2300, gaenge: 3, abkling: 6, ungleich: 0.2,
+               rohr: 0.012, rueck: 0.5, koerper: 85, hell: 0.7, diesel: 0.85, unruhe: 9, traegheit: 6, lautstaerke: 1.05, abrollen: 1.5 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
       id: "moped", name: "Hüpf-Moped", emoji: "🛵", preis: 3500, preisBasis: 160,
       text: "Leicht wie ein Floh – macht tolle Saltos, kippt aber schnell.",
       masse: 110, groesse: { laenge: 1.9, hoehe: 1.3 },
@@ -1136,6 +1166,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "28", titel: "Pistenraupe", punkte: [
+      "🎿 Neues Fahrzeug Pistenraupe für 2.500 Münzen: mit Kettenfahrwerk, Schlitten und Skiern auf der Pritsche",
+      "🐷 Matsch und Pfützen bremsen die Raupe nicht, auf Schnee, Eis und Sand rutscht sie kaum – dafür ist sie gemütlich (höchstens 45 km/h) und in der Luft träge" ] },
     { version: "27", titel: "Kein Absturz hinter dem Start", punkte: [
       "🛑 Wer vom Start aus rückwärts fährt, wird nach gut einem Bildschirm sanft angehalten – das Auto fällt nicht mehr vom Rand der Welt" ] },
     { version: "26", titel: "Scheunen und schönere Röhren", punkte: [
