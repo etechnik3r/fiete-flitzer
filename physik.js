@@ -257,6 +257,10 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     var grip = w.grip * welt.grip, crr = welt.rollwiderstand, abprall = welt.abprall;
+    if (w.kette) {                       // Kettenfahrwerk: rutscht auf Schnee/Eis kaum, sinkt in Sand nicht ein
+      grip = w.grip * Math.max(welt.grip, w.kette.bodenGrip);
+      crr = Math.min(crr, w.kette.rollMax);
+    }
     var band = gel.baender && gel.baender.length > 0;
 
     /* 2) Kontakte erkennen + 3) vorbereiten (inkl. Warmstart) */

@@ -1294,6 +1294,109 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: function () {}, vorne: vorne, fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
     },
 
+    raupe: function (ctx, a, z, fz) {
+      // Pistenraupe: Kabine vorn, hinten eine Pritsche mit Holzschlitten, Skiern und Stöcken.
+      // Die Kette zeichnet zeichneKette (teile.kette), nicht die normalen Räder.
+      var c = basisFarbe(a);
+      var scheibe = [[-0.2, 0.72], [0.98, 0.72], [0.74, 1.36], [-0.2, 1.36]];
+      var kabine = function () {
+        ctx.beginPath();
+        ctx.moveTo(-0.34, 0.26); ctx.lineTo(-0.34, 1.32);
+        ctx.quadraticCurveTo(-0.34, 1.45, -0.2, 1.45);
+        ctx.lineTo(0.8, 1.45);
+        ctx.lineTo(1.08, 0.84);
+        ctx.lineTo(1.5, 0.76);
+        ctx.quadraticCurveTo(1.64, 0.74, 1.66, 0.58);
+        ctx.lineTo(1.66, 0.34);
+        ctx.quadraticCurveTo(1.66, 0.26, 1.56, 0.26);
+        ctx.closePath();
+      };
+      var bordwand = function () { rundRechteck(ctx, -1.7, 0.26, 1.4, 0.2, 0.05); };
+      var hinten = function () {};
+      var vorne = function () {
+        // Rahmen über der Kette
+        ctx.fillStyle = "#2c3550"; rundRechteck(ctx, -1.66, 0.1, 3.26, 0.18, 0.06); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fillRect(-1.6, 0.22, 3.1, 0.025);
+        // Holzschlitten auf der Pritsche (Kufen verschwinden hinter der Bordwand)
+        ctx.strokeStyle = "#b85a2a"; ctx.lineWidth = 0.05; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(-1.6, 0.32); ctx.lineTo(-1.0, 0.32); ctx.quadraticCurveTo(-0.84, 0.32, -0.86, 0.5); ctx.quadraticCurveTo(-0.88, 0.6, -0.98, 0.57); ctx.stroke();
+        [-1.5, -1.28, -1.06].forEach(function (x) { ctx.beginPath(); ctx.moveTo(x, 0.32); ctx.lineTo(x, 0.6); ctx.stroke(); });
+        var sg = ctx.createLinearGradient(0, 0.66, 0, 0.58);
+        sg.addColorStop(0, "#e9a75e"); sg.addColorStop(1, "#b9773a");
+        ctx.fillStyle = sg; rundRechteck(ctx, -1.64, 0.58, 0.72, 0.08, 0.03); ctx.fill();
+        ctx.strokeStyle = "#7a4520"; ctx.lineWidth = 0.018; ctx.stroke();
+        ctx.strokeStyle = "rgba(122,69,32,0.6)"; ctx.lineWidth = 0.012;
+        [-1.4, -1.16].forEach(function (x) { ctx.beginPath(); ctx.moveTo(x, 0.585); ctx.lineTo(x, 0.655); ctx.stroke(); });
+        ctx.strokeStyle = "#e8453c"; ctx.lineWidth = 0.02;                                 // Zugschnur
+        ctx.beginPath(); ctx.moveTo(-0.9, 0.55); ctx.quadraticCurveTo(-0.98, 0.72, -1.2, 0.68); ctx.stroke();
+        // Bordwand der Pritsche mit Spanngurt
+        karosserie(ctx, a, z, bordwand, -1.7, -0.3, 0.26, 0.46);
+        fuge(ctx, [[-1.24, 0.29], [-1.24, 0.43]], dunkel(c, 0.35));
+        fuge(ctx, [[-0.78, 0.29], [-0.78, 0.43]], dunkel(c, 0.35));
+        ctx.fillStyle = "#ffcf3a"; ctx.fillRect(-1.05, 0.26, 0.06, 0.48);
+        ctx.fillStyle = "#c79a1e"; ctx.fillRect(-1.065, 0.36, 0.09, 0.05);
+        glanz(ctx, -1.62, 0.42, -0.4, 0.42, 0.03);
+        ruecklicht(ctx, -1.74, 0.3, 0.06, 0.16);
+        // Ski-Stöcke und Skier lehnen hinten an der Kabine
+        rohr(ctx, [[-0.74, 0.3], [-0.6, 1.16]], 0.025, "#b6bdcc");
+        rohr(ctx, [[-0.8, 0.3], [-0.66, 1.12]], 0.025, "#b6bdcc");
+        ctx.fillStyle = "#2c3550";
+        [[-0.6, 1.16], [-0.66, 1.12]].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 0.035, 0, Math.PI * 2); ctx.fill(); });
+        ctx.strokeStyle = "#2c3550"; ctx.lineWidth = 0.015;
+        [[-0.78, 0.5], [-0.71, 0.5]].forEach(function (p) { ctx.beginPath(); ctx.ellipse(p[0], p[1], 0.05, 0.015, 0.15, 0, Math.PI * 2); ctx.stroke(); });
+        [["#2fb6e8", -0.6, 0.02], ["#ffd23f", -0.52, -0.03]].forEach(function (s) {
+          ctx.save(); ctx.translate(s[1], 0.3); ctx.rotate(-0.1 + s[2]);
+          ctx.fillStyle = s[0]; rundRechteck(ctx, -0.035, 0, 0.07, 0.98, 0.03); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(-0.035, 0.96); ctx.quadraticCurveTo(-0.04, 1.08, 0.06, 1.1); ctx.lineTo(0.035, 0.96); ctx.fill();   // Spitze
+          ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; rundRechteck(ctx, -0.035, 0, 0.07, 0.98, 0.03); ctx.stroke();
+          ctx.fillStyle = "#2c3550"; rundRechteck(ctx, -0.045, 0.38, 0.09, 0.16, 0.02); ctx.fill();   // Bindung
+          ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillRect(-0.012, 0.6, 0.012, 0.3);
+          ctx.restore();
+        });
+        // Kabine
+        karosserie(ctx, a, z, kabine, -0.34, 1.66, 0.26, 1.45);
+        glas(ctx, scheibe);
+        fuge(ctx, [[-0.26, 0.32], [-0.26, 0.76]], dunkel(c, 0.35));
+        fuge(ctx, [[0.62, 0.32], [0.62, 0.76]], dunkel(c, 0.35));
+        ctx.fillStyle = dunkel(c, 0.45); rundRechteck(ctx, 0.44, 0.6, 0.12, 0.035, 0.015); ctx.fill();   // Türgriff
+        // Trittstufe
+        ctx.fillStyle = "#9aa3b8"; rundRechteck(ctx, 0.0, 0.3, 0.3, 0.04, 0.015); ctx.fill();
+        // Motorhaube: Lüftungsschlitze, Auspuff, Scheinwerfer
+        ctx.fillStyle = dunkel(c, 0.4);
+        for (var i = 0; i < 4; i++) { rundRechteck(ctx, 1.16 + i * 0.1, 0.46, 0.05, 0.2, 0.02); ctx.fill(); }
+        var ag = ctx.createLinearGradient(1.1, 0, 1.2, 0);
+        ag.addColorStop(0, "#6b7387"); ag.addColorStop(0.5, "#eef1f7"); ag.addColorStop(1, "#5f6779");
+        ctx.fillStyle = ag; rundRechteck(ctx, 1.1, 0.76, 0.08, 0.36, 0.03); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.fillStyle = "#2c3550"; ctx.save(); ctx.translate(1.14, 1.12); ctx.rotate(-0.4); rundRechteck(ctx, -0.06, 0, 0.13, 0.03, 0.015); ctx.fill(); ctx.restore();
+        glanz(ctx, 1.12, 0.73, 1.48, 0.67, 0.035);
+        glanz(ctx, -0.22, 1.41, 0.72, 1.41, 0.04);
+        scheinwerfer(ctx, 1.6, 0.6, 0.06);
+        ctx.fillStyle = "#ff9e2c"; rundRechteck(ctx, 1.58, 0.42, 0.07, 0.06, 0.02); ctx.fill();          // Blinker
+        // Abschlepphaken vorn
+        ctx.strokeStyle = "#2c3550"; ctx.lineWidth = 0.04;
+        ctx.beginPath(); ctx.arc(1.7, 0.3, 0.05, -Math.PI * 0.5, Math.PI * 0.6); ctx.stroke();
+        // Dach: Lichtleiste mit Arbeitsscheinwerfern, Rundumleuchte
+        ctx.fillStyle = "#2c3550"; rundRechteck(ctx, -0.16, 1.45, 0.92, 0.07, 0.03); ctx.fill();
+        [0.2, 0.42, 0.64].forEach(function (x) {
+          ctx.fillStyle = "#c9ced9"; rundRechteck(ctx, x - 0.07, 1.47, 0.14, 0.08, 0.025); ctx.fill();
+          ctx.fillStyle = "#fff2a8"; rundRechteck(ctx, x - 0.05, 1.49, 0.1, 0.04, 0.015); ctx.fill();
+        });
+        var blink = 0.5 + 0.5 * Math.sin(z * 9);
+        var bg = ctx.createRadialGradient(-0.06, 1.57, 0, -0.06, 1.57, 0.3);
+        bg.addColorStop(0, "rgba(255,170,40," + (0.55 * blink).toFixed(2) + ")"); bg.addColorStop(1, "rgba(255,170,40,0)");
+        ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(-0.06, 1.57, 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#ff9e2c"; ctx.beginPath(); ctx.arc(-0.06, 1.52, 0.075, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255," + (0.3 + 0.5 * blink).toFixed(2) + ")"; ctx.fillRect(-0.09, 1.53, 0.025, 0.035);
+        // Lenkrad in der Kabine
+        ctx.strokeStyle = "#2c3550"; ctx.lineWidth = 0.045;
+        rohr(ctx, [[0.92, 0.76], [0.74, 0.98]], 0.04, "#4a5578");
+        ctx.beginPath(); ctx.ellipse(0.72, 1.0, 0.045, 0.12, 0.45, 0, Math.PI * 2); ctx.stroke();
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [0.12, 0.42, 0.48, 0.44], arme: [0.46, 0.82, 0.7, 1.02],
+               fahrerNachVorne: true, scheibe: scheibe, kette: true };
+    },
+
     mond: function (ctx, a, z) {
       var c = basisFarbe(a);
       var hinten = function () {
@@ -1399,6 +1502,106 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
   }
 
+  /* Kettenfahrwerk (Pistenraupe): Die Kette ist die konvexe Hülle aller Rollen – sie folgt
+     also der Federung. Die Stollen laufen mit dem Antriebsrad (hinten) mit, unten nach
+     hinten, oben nach vorn wie bei einer echten Kette. Lokale Koordinaten, y nach oben. */
+  var KETTE_DICKE = 0.085;
+  function huelleUmKreise(raeder, abzug) {
+    var pk = [];
+    raeder.forEach(function (R) {
+      for (var i = 0; i < 28; i++) {
+        var w = i * Math.PI * 2 / 28;
+        pk.push([R.lokalX + Math.cos(w) * (R.r - abzug), R.lokalY + Math.sin(w) * (R.r - abzug)]);
+      }
+    });
+    pk.sort(function (p, q) { return p[0] - q[0] || p[1] - q[1]; });
+    var kreuz = function (o, p, q) { return (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]); };
+    var unten = [], oben = [], i;
+    for (i = 0; i < pk.length; i++) {
+      while (unten.length >= 2 && kreuz(unten[unten.length - 2], unten[unten.length - 1], pk[i]) <= 0) unten.pop();
+      unten.push(pk[i]);
+    }
+    for (i = pk.length - 1; i >= 0; i--) {
+      while (oben.length >= 2 && kreuz(oben[oben.length - 2], oben[oben.length - 1], pk[i]) <= 0) oben.pop();
+      oben.push(pk[i]);
+    }
+    unten.pop(); oben.pop();
+    return unten.concat(oben);                 // gegen den Uhrzeigersinn (y nach oben)
+  }
+  function polyPfad(ctx, P) {
+    ctx.beginPath();
+    P.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); });
+    ctx.closePath();
+  }
+  function zeichneKette(ctx, fz, lackFarbe) {
+    var RR = fz.raeder, hinten = RR[0], vorn = RR[0];
+    RR.forEach(function (R) { if (R.ankerX < hinten.ankerX) hinten = R; if (R.ankerX > vorn.ankerX) vorn = R; });
+    var aussen = huelleUmKreise(RR, 0), innen = huelleUmKreise(RR, KETTE_DICKE);
+    // Kettenband und Innenraum
+    polyPfad(ctx, aussen); ctx.fillStyle = REIFEN; ctx.fill();
+    polyPfad(ctx, innen); ctx.fillStyle = "#363b48"; ctx.fill();
+    // Schwingen der Laufrollen und Kettenträger (Rahmen zwischen Antriebs- und Leitrad)
+    RR.forEach(function (R) {
+      if (R === hinten || R === vorn) return;
+      rohr(ctx, [[R.ankerX - 0.2, R.ankerY + 0.18], [R.lokalX, R.lokalY]], 0.07, "#4a5578");
+    });
+    var traeger = function () { rundRechteck(ctx, hinten.ankerX + 0.1, -0.04, vorn.ankerX - hinten.ankerX - 0.2, 0.1, 0.05); };
+    traeger(); ctx.fillStyle = dunkel(lackFarbe, 0.25); ctx.fill();
+    ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+    // Rollen
+    RR.forEach(function (R) {
+      var rv = R.r - KETTE_DICKE - 0.01, rot = R.k.a - R.chassisWinkel, i;
+      ctx.save(); ctx.translate(R.lokalX, R.lokalY); ctx.rotate(rot);
+      if (R === hinten) {                                  // Antriebsrad mit Zähnen, die in die Kette greifen
+        ctx.fillStyle = "#2b2f3a";
+        for (i = 0; i < 10; i++) {
+          ctx.save(); ctx.rotate(i * Math.PI / 5);
+          ctx.beginPath(); ctx.moveTo(rv * 0.8, -0.045); ctx.lineTo(rv + 0.05, -0.025); ctx.lineTo(rv + 0.05, 0.025); ctx.lineTo(rv * 0.8, 0.045); ctx.fill();
+          ctx.restore();
+        }
+        ctx.fillStyle = "#5b6377"; ctx.beginPath(); ctx.arc(0, 0, rv, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.fillStyle = dunkel(lackFarbe, 0.1); ctx.beginPath(); ctx.arc(0, 0, rv * 0.62, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#2b2f3a";
+        for (i = 0; i < 5; i++) { var w = i * Math.PI * 2 / 5; ctx.beginPath(); ctx.arc(Math.cos(w) * rv * 0.38, Math.sin(w) * rv * 0.38, rv * 0.1, 0, Math.PI * 2); ctx.fill(); }
+        felgenStil(ctx, rv * 0.62);
+        ctx.fillStyle = "#ffcf3a"; ctx.beginPath(); ctx.arc(0, 0, rv * 0.18, 0, Math.PI * 2); ctx.fill();
+      } else {                                             // Laufrolle / Leitrad: Gummiring, Felge, Nabe
+        ctx.fillStyle = "#4a5163"; ctx.beginPath(); ctx.arc(0, 0, rv, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        var fg = ctx.createRadialGradient(-rv * 0.2, rv * 0.2, rv * 0.05, 0, 0, rv * 0.74);
+        fg.addColorStop(0, "#ffffff"); fg.addColorStop(0.6, FELGE); fg.addColorStop(1, "#9aa3b8");
+        ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(0, 0, rv * 0.74, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#8f98ad"; ctx.lineWidth = 0.015; ctx.stroke();
+        ctx.fillStyle = "#8f98ad";
+        for (i = 0; i < 6; i++) { var ww = i * Math.PI / 3; ctx.beginPath(); ctx.arc(Math.cos(ww) * rv * 0.45, Math.sin(ww) * rv * 0.45, rv * 0.08, 0, Math.PI * 2); ctx.fill(); }
+        felgenStil(ctx, rv * 0.74);
+        ctx.fillStyle = R === vorn ? "#ffcf3a" : "#3b4566"; ctx.beginPath(); ctx.arc(0, 0, rv * 0.18, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    });
+    // Stollen auf dem Band – laufen mit dem Antriebsrad mit
+    var L = 0, seg = [];
+    for (var j = 0; j < aussen.length; j++) {
+      var p = aussen[j], q = aussen[(j + 1) % aussen.length], l = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      seg.push([p, q, l, L]); L += l;
+    }
+    var d = 0.135, weg = (hinten.k.a - hinten.chassisWinkel) * hinten.r;
+    var s = ((weg % d) + d) % d, k = 0;
+    ctx.lineCap = "butt";
+    for (; s < L; s += d) {
+      while (k < seg.length - 1 && seg[k][3] + seg[k][2] < s) k++;
+      var S = seg[k], t = S[2] > 0 ? (s - S[3]) / S[2] : 0;
+      var x = S[0][0] + (S[1][0] - S[0][0]) * t, y = S[0][1] + (S[1][1] - S[0][1]) * t;
+      var tx = (S[1][0] - S[0][0]) / (S[2] || 1), ty = (S[1][1] - S[0][1]) / (S[2] || 1), nx = -ty, ny = tx;   // nach innen
+      ctx.strokeStyle = "#7c869b"; ctx.lineWidth = 0.05;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + nx * (KETTE_DICKE - 0.012), y + ny * (KETTE_DICKE - 0.012)); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 0.014;
+      ctx.beginPath(); ctx.moveTo(x - tx * 0.015, y - ty * 0.015); ctx.lineTo(x - tx * 0.015 + nx * (KETTE_DICKE - 0.02), y - ty * 0.015 + ny * (KETTE_DICKE - 0.02)); ctx.stroke();
+    }
+    polyPfad(ctx, aussen); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.lineJoin = "round"; ctx.stroke();
+  }
+
   var taucherHelm = false;                   // Meeresgrund: Fiete trägt einen Taucherhelm (Glaskugel)
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {
     var form = KAROSSERIE[def.form] ? def.form : "buggy";
@@ -1407,8 +1610,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     var tempo = Math.hypot(fz.chassis.vx, fz.chassis.vy);
     var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : form === "eauto" ? "aero" : "normal";
 
-    // Federn
-    fz.raeder.forEach(function (R) {
+    // Federn (Kettenfahrzeug: Schwingen zeichnet zeichneKette)
+    if (!teile.kette) fz.raeder.forEach(function (R) {
       zeichneFeder(ctx, R.ankerX, R.ankerY, R.lokalX, R.lokalY, Math.min(0.13, R.r * 0.3));
     });
     var o = outfitVon(aussehen), kind = kindVon(aussehen);
@@ -1442,7 +1645,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     // Räder zuletzt (vorn)
     felgeJetzt = aussehen.felge || "standard";
-    fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
+    if (teile.kette) zeichneKette(ctx, fz, basisFarbe(aussehen));
+    else fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
     felgeJetzt = "standard";
   }
 
@@ -1824,8 +2028,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "rgba(30,44,82,0.15)";
       ctx.beginPath(); ctx.ellipse(b / 2, bodenY + 4, laenge * s * 0.45, 8, 0, 0, Math.PI * 2); ctx.fill();
     }
-    var rad0 = fz.raeder[0];
-    var unterkante = rad0.k.y - rad0.r;
+    var unterkante = Infinity;                           // tiefster Radpunkt (Kette: Antriebsrad hängt höher)
+    fz.raeder.forEach(function (R) { unterkante = Math.min(unterkante, R.k.y - R.r); });
     fz.chassis.a = Math.sin(zeit * 2.2) * 0.012;
     fz.raeder.forEach(function (R) { R.k.a = -zeit * 2.5; });
     var K = { x: 0, y: unterkante, s: s, b: b, h: h, ankerX: 0.5, ankerY: bodenY / h };
