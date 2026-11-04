@@ -356,14 +356,61 @@ FF.CONFIG = {
         { x:  0.95, y: -0.28, r: 0.24, masse: 5, antrieb: false }
       ],
       federung: { ruhe: 0.2, weg: 0.18, frequenz: 1.7, daempfung: 0.6 },
-      motor: { drehmoment: 260, vmax: 31 }, bremse: 1100, grip: 0.95,
-      tankSekunden: 23, luftsteuerung: 6.0, cwA: 0.9, abtrieb: 0,
-      turbine: { schub: 7.5, anlauf: 0.9, vmax: 31 },
+      motor: { drehmoment: 260, vmax: 20 }, bremse: 1100, grip: 0.95,
+      tankSekunden: 23, luftsteuerung: 5.0, cwA: 0.9, abtrieb: 0,
+      turbine: { schub: 2.8, anlauf: 1.4, vmax: 20 },
       huelle: [[-1.3, -0.3], [1.3, -0.3], [1.35, 0.25], [1.05, 0.3], [-0.95, 0.3], [-1.2, 1.05], [-1.95, 1.0], [-1.95, 0.6], [-1.3, 0.45]],
       dach: [[-0.95, 1.05], [0.3, 0.95]],
       kopf: { x: -0.1, y: 0.82, r: 0.28 },
       farbe: "pink", form: "sofa",
       klang: { art: "turbine", max: 30000, leerlauf: 7000, traegheit: 1.5, lautstaerke: 1.0, abrollen: 0.7 },
+      upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* Dampf-Lok mit Kohlewagen und kleinem Anhänger. Drei Starrkörper, jeweils über
+         ein Drehgelenk verbunden (physik.js): haken = Kupplung hinten, deichsel = Spitze
+         der Deichsel vorn am Anhänger, knick = größter Winkel zum Vordermann [rad],
+         gelenk = Federung der Kupplung (frequenz [Hz], daempfung ζ – wenig Dämpfung:
+         der Anhänger ruckelt und wackelt). Der Zug ist lang: Looping-Bahnen fährt er
+         nicht (er rollt unten durch), und in der Luft dreht er sich als Ganzes nur
+         langsam – luftsteuerung ist hier die Winkelbeschleunigung des ganzen Zuges,
+         maxDrehung die größte Drehrate [rad/s], die man selbst noch steuern kann.
+         Dampfmaschine: volle Kraft schon beim Anfahren (eck), Kuppelstangen verbinden
+         alle Räder (kuppelstange). bruchExtra [°]: so viel schiefer darf der lange Zug
+         landen, bevor es eine Bruchlandung ist (seine Federn schlucken mehr). */
+      id: "dampflok", name: "Dampf-Lok", emoji: "🚂", preis: 26000, preisBasis: 420,
+      text: "Tschu-tschu! Eine kleine Dampflok mit Kohlewagen und Anhänger. Zu lang für Saltos und Loopings – aber lenken kann man sie trotzdem.",
+      masse: 560, groesse: { laenge: 2.9, hoehe: 1.5 },
+      raeder: [
+        { x: -0.62, y: -0.12, r: 0.42, masse: 22, antrieb: true },
+        { x:  0.36, y: -0.12, r: 0.42, masse: 22, antrieb: true },
+        { x:  1.12, y: -0.12, r: 0.24, masse: 8, antrieb: true }
+      ],
+      federung: { ruhe: 0.24, weg: 0.18, frequenz: 1.8, daempfung: 0.45 },
+      motor: { drehmoment: 2500, vmax: 16, eck: 0.45 }, bremse: 2800, grip: 1.1,
+      tankSekunden: 27, luftsteuerung: 2.4, maxDrehung: 1.1, kuppelstange: true, bruchExtra: 10, cwA: 1.0, abtrieb: 0,
+      huelle: [[-1.38, -0.25], [1.5, -0.25], [1.56, 0.08], [1.38, 0.62], [-0.3, 0.62], [-0.26, 1.3], [-1.42, 1.3], [-1.38, 0.3]],
+      dach: [[-1.38, 1.36], [-0.3, 1.36], [1.02, 1.16]],
+      kopf: { x: -0.82, y: 0.74, r: 0.28 },
+      haken: [-1.5, -0.14],
+      anhaenger: [
+        { form: "kohlewagen", masse: 85, groesse: { laenge: 1.5, hoehe: 0.9 },
+          raeder: [ { x: -0.45, y: -0.14, r: 0.25, masse: 7 }, { x: 0.45, y: -0.14, r: 0.25, masse: 7 } ],
+          federung: { ruhe: 0.2, weg: 0.14, frequenz: 2.0, daempfung: 0.35 },
+          grip: 1.0, cwA: 0.5, abtrieb: 0,
+          huelle: [[-0.74, -0.2], [0.74, -0.2], [0.74, 0.55], [0.2, 0.78], [-0.2, 0.78], [-0.74, 0.55]],
+          deichsel: [1.2, 0.06], haken: [-0.86, 0.0], knick: 0.45,
+          gelenk: { frequenz: 6, daempfung: 0.35 } },
+        { form: "anhaenger", masse: 45, groesse: { laenge: 1.3, hoehe: 0.8 },
+          raeder: [ { x: -0.12, y: -0.1, r: 0.3, masse: 6 } ],
+          federung: { ruhe: 0.18, weg: 0.14, frequenz: 2.3, daempfung: 0.12 },
+          grip: 1.0, cwA: 0.4, abtrieb: 0,
+          huelle: [[-0.66, -0.14], [0.66, -0.14], [0.66, 0.42], [-0.66, 0.42]],
+          deichsel: [1.62, 0.02], knick: 0.6,
+          gelenk: { frequenz: 3.2, daempfung: 0.12 } }
+      ],
+      farbe: "schwarz", form: "dampflok",
+      klang: { art: "dampf", max: 420, lautstaerke: 1.0, abrollen: 1.3 },
       upgrades: ["motor", "reifen", "federung", "tank"]
     }
   ],
@@ -406,7 +453,8 @@ FF.CONFIG = {
     { id: "nacht",   name: "Nachtblau", wert: "#24345e", preis: 200 },
     { id: "mint",    name: "Minze",    wert: "#8ee6b8", preis: 200 },
     { id: "gold",    name: "Gold",     wert: "#f3c44a", preis: 1500, glanz: true },
-    { id: "regenbogen", name: "Regenbogen", wert: "regenbogen", preis: 3000 }
+    { id: "regenbogen", name: "Regenbogen", wert: "regenbogen", preis: 3000 },
+    { id: "schwarz", name: "Schwarz",  wert: "#2b2e38", preis: 0 }      // für die Dampf-Lok (hinten angehängt: Spielstand-Code)
   ],
   muster: [
     { id: "keins",   name: "Ohne",      icon: "⬜", preis: 0 },
@@ -1136,6 +1184,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "28", titel: "Dampf-Lok mit Anhänger", punkte: [
+      "🚂 Neues Fahrzeug Dampf-Lok: Tschu-tschu! Mit Kohlewagen und einem kleinen Anhänger an der Deichsel, der lustig hin und her wackelt",
+      "🚂 Der Zug ist lang: Saltos und Loopings gehen nicht – in der Luft kann man ihn aber trotzdem lenken",
+      "🛋️ Das Turbinen-Sofa ist jetzt gemütlicher: weniger Schub und nicht mehr ganz so schnell" ] },
     { version: "27", titel: "Kein Absturz hinter dem Start", punkte: [
       "🛑 Wer vom Start aus rückwärts fährt, wird nach gut einem Bildschirm sanft angehalten – das Auto fällt nicht mehr vom Rand der Welt" ] },
     { version: "26", titel: "Scheunen und schönere Röhren", punkte: [

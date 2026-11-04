@@ -155,7 +155,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.quellen = [];
     this.rpm = 0; this.t0 = ac.currentTime;
     this.zz = 99991;
-    if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine(); else this.baueVerbrenner();
+    if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine();
+    else if (P.art === "dampf") this.baueDampf(); else this.baueVerbrenner();
     this.baueFahrgeraeusch();
   }
   Motor.prototype.zufall = function () { this.zz = (this.zz * 16807) % 2147483647; return this.zz / 2147483647; };
@@ -270,6 +271,70 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.gG.gain.setTargetAtTime(L * an * 0.12 * rel, t, 0.1);
   };
 
+  /* Dampf-Lok: „Tschu-tschu" – jeder Kolbenhub stößt Dampf aus dem Schornstein. Bei
+     zwei doppelt wirkenden Zylindern sind das 4 Stöße je Radumdrehung, also
+     f = 4 · v / (2π · r). Jeder Stoß ist ein kurzer Rauschimpuls (Bandpass, dazu ein
+     dumpfer Anteil), betont im Takt TSCHU-tschu-TSCHU-tschu. Dazu leises Zischen
+     (Sicherheitsventil, beim Gasgeben lauter) und beim Start ein Pfiff. */
+  Motor.prototype.baueDampf = function () {
+    var ac = this.ac, P = this.P;
+    var q = rauschQuelle(ac);
+    var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 250;
+    var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1100; bp.Q.value = 0.7;
+    var gC = ac.createGain(); gC.gain.value = 0;
+    q.connect(hp); hp.connect(bp); bp.connect(gC); gC.connect(this.bus);
+    var tp = ac.createBiquadFilter(); tp.type = "lowpass"; tp.frequency.value = 220;
+    var gT = ac.createGain(); gT.gain.value = 0;
+    q.connect(tp); tp.connect(gT); gT.connect(this.bus);
+    var zh = ac.createBiquadFilter(); zh.type = "highpass"; zh.frequency.value = 3500;
+    var gZ = ac.createGain(); gZ.gain.value = 0;
+    q.connect(zh); zh.connect(gZ); gZ.connect(this.bus);
+    this.starte(q);
+    this.v = { gC: gC, gT: gT, gZ: gZ, bp: bp };
+    this.dampfTakt = 0; this.naechsterStoss = null;
+    if (P.pfiff !== false) this.pfeife(0.15);
+  };
+
+  /* Pfiff der Dampf-Lok (zwei Töne, kleine Terz, mit leichtem Vibrato) */
+  Motor.prototype.pfeife = function (verz) {
+    var ac = this.ac, t = ac.currentTime + (verz || 0), L = this.P.lautstaerke || 1;
+    var g = ac.createGain(); g.gain.value = 0; g.connect(this.bus);
+    var vib = ac.createOscillator(), vibG = ac.createGain(); vib.frequency.value = 6; vibG.gain.value = 9;
+    vib.connect(vibG);
+    [740, 880].forEach(function (f) {
+      var o = ac.createOscillator(); o.type = "triangle"; o.frequency.value = f;
+      vibG.connect(o.detune); o.connect(g); o.start(t); o.stop(t + 1.0);
+    });
+    vib.start(t); vib.stop(t + 1.0);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.03 * L, t + 0.06);
+    g.gain.setValueAtTime(0.03 * L, t + 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.95);
+  };
+
+  Motor.prototype.setzeDampf = function (z, tempo, gas, t, dt) {
+    var P = this.P, V = this.v, L = P.lautstaerke || 1;
+    var rate = z.laeuft ? 4 * tempo / (2 * Math.PI * (P.rad || 0.42)) : 0;     // Dampfstöße pro Sekunde
+    if (z.laeuft && !z.probe && gas > 0.05 && rate < 1.2) rate = 1.2 * gas;    // Anfahren: die ersten Stöße
+    if (z.probe) rate = gas > 0 ? 2 + 8 * Math.min(1, z.drehzahl || 0) : 0;   // Garage: im Stand „anfahren“
+    V.gZ.gain.setTargetAtTime(z.laeuft ? L * (0.004 + 0.01 * gas * Math.max(0, 1 - tempo / 6)) : 0, t, 0.1);
+    if (rate < 0.3) { this.naechsterStoss = null; return; }
+    var abst = 1 / rate, dauer = Math.min(0.17, 0.8 * abst);
+    if (this.naechsterStoss === null || this.naechsterStoss < t) this.naechsterStoss = t + 0.01;
+    V.bp.frequency.setTargetAtTime(900 + 25 * Math.min(rate, 30), t, 0.1);
+    var last = z.probe ? 0.3 + 0.6 * gas : gas;
+    while (this.naechsterStoss < t + dt + 0.04) {
+      var ts = this.naechsterStoss, betont = this.dampfTakt % 2 === 0 ? 1 : 0.6;
+      var spitze = L * (0.05 + 0.2 * last) * betont * (rate > 14 ? 0.75 : 1);
+      V.gC.gain.setValueAtTime(0.0001, ts);
+      V.gC.gain.linearRampToValueAtTime(spitze, ts + 0.008);
+      V.gC.gain.exponentialRampToValueAtTime(0.0001, ts + dauer);
+      V.gT.gain.setValueAtTime(0.0001, ts);
+      V.gT.gain.linearRampToValueAtTime(spitze * 1.6, ts + 0.01);
+      V.gT.gain.exponentialRampToValueAtTime(0.0001, ts + dauer * 0.8);
+      this.dampfTakt++;
+      this.naechsterStoss += abst;
+    }
+  };
+
   Motor.prototype.baueFahrgeraeusch = function () {
     var ac = this.ac;
     var q = rauschQuelle(ac);
@@ -314,6 +379,7 @@ var FF = globalThis.FF = globalThis.FF || {};
            : z.getriebe || (this.getriebe = this.getriebe || new FF.Getriebe(P)).schritt(r, v, gas, z.boden, z.laeuft, dt);
     if (P.art === "elektro") return this.setzeElektro(z, gt, tempo, gas, t, dt);
     if (P.art === "turbine") return this.setzeTurbine(z, gt, t);
+    if (P.art === "dampf") return this.setzeDampf(z, tempo, gas, t, dt);
 
     var abgeregelt = gt.begrenzer && Math.sin(t * 2 * Math.PI * 12) < 0;   // Begrenzer unterbricht die Zündung
     var last = gt.schalten ? gas * 0.45 : (abgeregelt ? gas * 0.3 : gas);
