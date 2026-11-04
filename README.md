@@ -357,8 +357,9 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🏎️ Blitz-Rakete | 15.000 | superschnell, Heckflügel mit echtem Abtrieb |
 | 🚀 Mondmobil | 22.000 | sechs angetriebene Räder, superweiche Federn, fährt mit Akku wie die echten Mondautos |
 | 🛹 E-Skateboard | 8.000 | das Kind steht drauf: leicht, wendig (Schwerpunkt hoch). Drehmoment bewusst klein (55 Nm), sonst kippt es beim Anfahren nach hinten (a > g·½Radstand/Schwerpunkthöhe ≈ 5,5 m/s²). Langer Radstand und große Rollen, damit Hangknicke das Vorderrad nicht hochschlagen; `balance`: das Kind lehnt sich am Boden vor und dämpft das Nicken (ab 6° Schieflage, bis 28 rad/s²). Mit Vollgas den Hang hinauf hebt die Nase bei 22° nur 11° (Flitzer 8°), erst ab ≈ 28° muss man kurz lupfen. Akku |
-| 🛋️ Turbinen-Sofa | 18.000 | Sofa auf Möbelrollen mit Flugzeugturbine an der Lehne. Die Räder treiben kaum an, die Turbine schiebt (7,5 m/s² entlang des Sofas, auch in der Luft, bis 112 km/h). Sie braucht ≈ 0,9 s zum Hochdrehen und läuft nach dem Loslassen nach; bei wenig Schwerkraft gedrosselt. Weiche Polster (1,7 Hz, Dämpfung 0,6, nach dem Aufkommen höchstens ein kleiner Hopser), durstig. Klang: Jaulen der Welle, Fauchen des Strahls, Grollen |
+| 🛋️ Turbinen-Sofa | 18.000 | Sofa auf Möbelrollen mit Flugzeugturbine an der Lehne. Die Räder treiben kaum an, die Turbine schiebt (2,8 m/s² entlang des Sofas, auch in der Luft, bis 72 km/h; früher 7,5 m/s² und 112 km/h – das war viel stärker als alle anderen). Sie braucht ≈ 1,4 s zum Hochdrehen und läuft nach dem Loslassen nach; bei wenig Schwerkraft gedrosselt. Weiche Polster (1,7 Hz, Dämpfung 0,6, nach dem Aufkommen höchstens ein kleiner Hopser), durstig. Klang: Jaulen der Welle, Fauchen des Strahls, Grollen |
 | ✈️ Propeller-Flieger | 30.000 | offenes Cockpit. Fährt wie ein Auto, aber der **Bodeneffekt** trägt: Auftrieb g·0,5·(v/22 m/s)², voll bis 1 m über normaler Höhe, bei 3,2 m weg – höher kommt er nicht. In der Luft schiebt der Propeller mit 3,5 m/s² (weniger als g, kein Steigflug). Ohne Luft (Mond) kein Auftrieb |
+| 🚂 Dampf-Lok | 26.000 | schwarze Dampflok mit Kohlewagen und kleinem Anhänger – drei eigene Starrkörper, verbunden über Drehgelenke (Deichsel an Kupplung). Die Kupplung federt (Kohlewagen 6 Hz, Anhänger 3,2 Hz mit wenig Dämpfung), darum ruckelt der Zug beim Anfahren und der einachsige Anhänger wackelt lustig; der Knickwinkel ist begrenzt (±26° bzw. ±34°). **Kuppelstangen**: alle drei Lok-Räder rollen gleich schnell, keins dreht allein durch. Volle Kraft schon beim Anfahren, gemütliche 58 km/h. Zu lang für Saltos und Loopings (Looping-Bahnen rollt er unten durch), aber in der Luft lässt sich der ganze Zug um seinen Schwerpunkt drehen (bis 1,1 rad/s) – genug, um die Nase zur Landung zu stellen. Der Ballon setzt den ganzen Zug auf flachen Boden. Klang: Tschu-tschu (4 Dampfstöße je Radumdrehung, betont im Takt), Zischen, Pfiff beim Start; Dampfwolken aus dem Schornstein im selben Takt |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
@@ -405,7 +406,8 @@ die Klemmbaustein-Welt).
   Drehzahlmesser: Skala in tausend U/min, in der Mitte die ganze Drehzahl
   („4.600 U/min“), darüber der Gang (Verbrenner, mit rotem Bereich),
   „⚡ E-Motor“ (ein Gang, Höchstdrehzahl Mondmobil 9.000, E-Auto 15.000,
-  Skateboard 22.000 U/min) oder „🔥 Turbine“ (Sofa, bis 30.000 U/min). Die
+  Skateboard 22.000 U/min), „🔥 Turbine“ (Sofa, bis 30.000 U/min) oder
+  „♨️ Dampf“ (Dampf-Lok, Raddrehzahl, bis ≈ 420 U/min). Die
   Gänge schaltet das virtuelle Getriebe wirklich (z. B. Flitzer: 2. Gang bei
   17, 3. bei 30, 4. bei 41 km/h)
 - 💡 **Tipps**: Erklär-Tipps (Luftsteuerung, Turbo, Welt-Ideen …) kommen nur die
@@ -529,6 +531,14 @@ einer Radaufhängung (wie der *Wheel Joint* in Box2D):
   wirken daraus `γ = 1/(h·(c + h·k))` und `Bias = C·h·k·γ`. Das bleibt auch bei
   harten Landungen stabil.
 - **Anschläge** oben und unten als Ungleichungs-Bindungen.
+- **Anhänger** (Dampf-Lok): weitere Starrkörper mit eigenen Rädern und Umriss.
+  Die Deichselspitze hängt mit einer *weichen Punkt-Bindung* (zwei Zeilen,
+  wieder Catto mit f und ζ) an der Kupplung des Vordermanns, dazu eine
+  Knickgrenze als Ungleichungs-Bindung auf den Relativwinkel. Die
+  Luftsteuerung dreht den ganzen Zug als Starrkörper um den gemeinsamen
+  Schwerpunkt (jeder Körper bekommt `α × r`, kein Netto-Schub).
+- **Kuppelstangen**: Bindung `(ω₀ − ω_K)·r₀ = (ωᵢ − ω_K)·rᵢ` zwischen den
+  Lok-Rädern, so überträgt jedes Rad Kraft nach seiner Last.
 - **Motor/Bremse** als Bindung auf die *relative* Drehzahl Rad ↔ Karosserie mit
   begrenztem Moment. Das **Gegenmoment wirkt auf die Karosserie**, deshalb
   macht der Flitzer beim Anfahren am Hang einen Wheelie.

@@ -683,6 +683,25 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.save();
     ctx.translate(lx, ly);
     ctx.rotate(a - R.chassisWinkel);
+    if (art === "lok") {                     // Dampf-Lok: Stahlreifen, rote Speichen, Gegengewicht
+      ctx.fillStyle = "#3d4352"; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#9aa3b8"; ctx.beginPath(); ctx.arc(0, 0, r * 0.97, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#c8322b"; ctx.beginPath(); ctx.arc(0, 0, r * 0.84, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#7c1a16"; ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#c8322b"; ctx.lineWidth = r * 0.09;
+      var nS = r > 0.3 ? 12 : 8;
+      for (var s = 0; s < nS; s++) {
+        var ws = s * Math.PI * 2 / nS;
+        ctx.beginPath(); ctx.moveTo(Math.cos(ws) * r * 0.15, Math.sin(ws) * r * 0.15); ctx.lineTo(Math.cos(ws) * r * 0.74, Math.sin(ws) * r * 0.74); ctx.stroke();
+      }
+      if (r > 0.3) {                         // Gegengewicht gegenüber dem Kurbelzapfen
+        ctx.fillStyle = "#c8322b"; ctx.beginPath(); ctx.arc(0, 0, r * 0.72, Math.PI * 0.72, Math.PI * 1.28); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = "#e0b24a"; ctx.beginPath(); ctx.arc(0, 0, r * 0.17, 0, Math.PI * 2); ctx.fill();
+      felgenStil(ctx, r * 0.6);
+      ctx.restore();
+      return;
+    }
     // Reifen
     ctx.fillStyle = REIFEN;
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
@@ -1006,6 +1025,92 @@ var FF = globalThis.FF = globalThis.FF || {};
         glanz(ctx, -0.9, 0.27, 0.9, 0.29, 0.03);
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.4, 0.3, 0.5, 0.42], arme: [-0.05, 0.6, 0.55, 0.62], fahrerNachVorneNicht: true };
+    },
+
+    dampflok: function (ctx, a, z, fz) {
+      // Kleine Dampf-Lok: Kessel mit Schornstein und Dampfdom, Führerhaus hinten (Fiete
+      // schaut aus dem Fenster), rote Räder mit Kuppel- und Treibstange, Schienenräumer
+      var c = basisFarbe(a), rot = "#c8322b", messing = "#e0b24a";
+      var R1 = fz.raeder[1];
+      var scheibe = [[-1.2, 0.5], [-0.48, 0.5], [-0.48, 1.12], [-1.2, 1.12]];
+      var yZyl = R1.lokalY + 0.17;
+      var kessel = function () { rundRechteck(ctx, -0.34, 0.04, 1.66, 0.58, 0.14); };
+      var haus = function () {
+        ctx.beginPath(); ctx.moveTo(-1.4, 0.0); ctx.lineTo(-0.28, 0.0); ctx.lineTo(-0.28, 1.24);
+        ctx.lineTo(-1.4, 1.24); ctx.closePath();
+      };
+      var hinten = function () {
+        ctx.fillStyle = "#2a2d35";                                              // Rahmen (Umlauf)
+        ctx.fillRect(-1.42, -0.27, 2.96, 0.27);
+        ctx.fillStyle = rot; ctx.fillRect(-1.42, -0.06, 2.96, 0.07);            // rote Kante
+      };
+      var vorne = function () {
+        // Zylinder mit Gleitbahn (die Treibstange kommt nach den Rädern)
+        ctx.fillStyle = "#4a505e"; rundRechteck(ctx, 1.0, yZyl - 0.13, 0.42, 0.26, 0.05); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.fillStyle = "#8a93a6"; ctx.fillRect(1.04, yZyl - 0.1, 0.05, 0.2); ctx.fillRect(1.33, yZyl - 0.1, 0.05, 0.2);
+        ctx.fillStyle = "#9aa3b8"; ctx.fillRect(0.6, yZyl + 0.06, 0.42, 0.03); ctx.fillRect(0.6, yZyl - 0.09, 0.42, 0.03);
+        // Kessel
+        karosserie(ctx, a, z, kessel, -0.34, 1.32, 0.04, 0.62);
+        ctx.fillStyle = "#1c1e24"; rundRechteck(ctx, 1.06, 0.04, 0.26, 0.58, 0.12); ctx.fill();   // Rauchkammer
+        ctx.strokeStyle = messing; ctx.lineWidth = 0.035;                       // Messingbänder
+        [0.12, 0.56, 1.04].forEach(function (x) { ctx.beginPath(); ctx.moveTo(x, 0.06); ctx.lineTo(x, 0.6); ctx.stroke(); });
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.02;                       // Griffstange
+        ctx.beginPath(); ctx.moveTo(-0.25, 0.44); ctx.lineTo(1.25, 0.44); ctx.stroke();
+        ctx.fillStyle = "#c9cfdb";                                               // Nieten an der Rauchkammer
+        [0.14, 0.33, 0.52].forEach(function (y) { ctx.beginPath(); ctx.arc(1.29, y, 0.018, 0, Math.PI * 2); ctx.fill(); });
+        // Schornstein mit Krone
+        ctx.fillStyle = "#1c1e24";
+        ctx.beginPath(); ctx.moveTo(0.99, 0.6); ctx.lineTo(1.15, 0.6); ctx.lineTo(1.17, 0.98); ctx.lineTo(0.97, 0.98); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#3a3e4a"; rundRechteck(ctx, 0.93, 0.96, 0.28, 0.12, 0.04); ctx.fill();
+        ctx.fillStyle = "#b5652e"; ctx.fillRect(0.93, 1.03, 0.28, 0.03);        // Kupferring
+        // Dampfdom (Messing) und Sanddom
+        var dg = ctx.createLinearGradient(0.36, 0, 0.68, 0);
+        dg.addColorStop(0, "#a87a22"); dg.addColorStop(0.4, "#ffe38a"); dg.addColorStop(1, "#b98a2a");
+        ctx.fillStyle = dg; ctx.beginPath(); ctx.moveTo(0.34, 0.6); ctx.quadraticCurveTo(0.36, 0.84, 0.52, 0.85);
+        ctx.quadraticCurveTo(0.68, 0.84, 0.7, 0.6); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = dunkel(c, 0.15); ctx.beginPath(); ctx.moveTo(0.0, 0.6); ctx.quadraticCurveTo(0.02, 0.76, 0.12, 0.76);
+        ctx.quadraticCurveTo(0.22, 0.76, 0.24, 0.6); ctx.closePath(); ctx.fill();
+        // Pfeife vorn am Führerhaus
+        ctx.fillStyle = messing; ctx.fillRect(-0.24, 0.62, 0.05, 0.22); rundRechteck(ctx, -0.27, 0.82, 0.11, 0.1, 0.03); ctx.fill();
+        // Lampe vorn
+        ctx.fillStyle = "#2a2d35"; ctx.fillRect(1.28, 0.66, 0.1, 0.16);
+        scheinwerfer(ctx, 1.4, 0.74, 0.06);
+        // Führerhaus (lackiert, mit Aufkleber), Fenster innen dunkel, Dach
+        karosserie(ctx, a, z, haus, -1.4, -0.28, 0.0, 1.24);
+        ctx.fillStyle = "#2a2018";
+        ctx.beginPath(); scheibe.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = messing; ctx.lineWidth = 0.04; ctx.stroke();
+        ctx.fillStyle = "#1c1e24"; rundRechteck(ctx, -1.5, 1.2, 1.32, 0.12, 0.05); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.fillRect(-1.46, 1.28, 1.24, 0.025);
+        // Messingschild mit Nummer
+        ctx.fillStyle = messing; rundRechteck(ctx, -1.18, 0.15, 0.62, 0.22, 0.08); ctx.fill();
+        ctx.strokeStyle = "#8a6418"; ctx.lineWidth = 0.02; ctx.stroke();
+        textLokal(ctx, "F 1", -0.87, 0.255, 0.17, "#5a3a08", true);
+        // Pufferbohle mit Puffern, Schienenräumer
+        ctx.fillStyle = rot; ctx.fillRect(1.46, -0.3, 0.1, 0.32); ctx.fillRect(-1.5, -0.3, 0.1, 0.32);
+        ctx.fillStyle = "#6b7387";
+        [[1.56, 1], [-1.5, -1]].forEach(function (pp) { ctx.fillRect(pp[1] > 0 ? pp[0] : pp[0] - 0.08, -0.2, 0.08, 0.06); ctx.fillRect(pp[1] > 0 ? pp[0] + 0.06 : pp[0] - 0.11, -0.25, 0.04, 0.16); });
+        ctx.fillStyle = rot;
+        ctx.beginPath(); ctx.moveTo(1.44, -0.3); ctx.lineTo(1.46, -0.6); ctx.lineTo(1.82, -0.6); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = dunkel(rot, 0.35); ctx.lineWidth = 0.025;
+        [0.3, 0.55, 0.8].forEach(function (t) { ctx.beginPath(); ctx.moveTo(1.45 + 0.01 * t, -0.3 - 0.3 * t); ctx.lineTo(1.46 + 0.36 * t, -0.6); ctx.stroke(); });
+        glanz(ctx, -0.2, 0.55, 1.0, 0.55, 0.03);
+      };
+      // Nach den Rädern: Kuppelstange (verbindet die Treibräder) und Treibstange zum Kolben
+      var nachRaedern = function () {
+        var A = fz.raeder[0], B = fz.raeder[1];
+        var w = A.k.a - A.chassisWinkel, rp = A.r * 0.55, cw = Math.cos(w), sw = Math.sin(w);
+        var p0 = [A.lokalX + rp * cw, A.lokalY + rp * sw], p1 = [B.lokalX + rp * cw, B.lokalY + rp * sw];
+        var L = 0.62, dy = yZyl - p1[1], xk = p1[0] + Math.sqrt(Math.max(0.01, L * L - dy * dy));
+        rohr(ctx, [[xk, yZyl], [1.05, yZyl]], 0.035, "#c9cfdb");                 // Kolbenstange
+        ctx.fillStyle = "#6b7387"; ctx.fillRect(xk - 0.06, yZyl - 0.06, 0.12, 0.12);   // Kreuzkopf
+        rohr(ctx, [p1, [xk, yZyl]], 0.06, "#b9c0cf");                            // Treibstange
+        rohr(ctx, [p0, p1], 0.06, "#d0d5df");                                    // Kuppelstange
+        [p0, p1].forEach(function (p) { ctx.fillStyle = "#4a505e"; ctx.beginPath(); ctx.arc(p[0], p[1], 0.04, 0, Math.PI * 2); ctx.fill(); });
+      };
+      return { hinten: hinten, vorne: vorne, nachRaedern: nachRaedern, ohneFedern: true,
+               fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
     },
 
     flugzeug: function (ctx, a, z, fz) {
@@ -1334,9 +1439,93 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   };
 
+  /* Anhänger der Dampf-Lok (lokale Koordinaten des Anhängers, y nach oben).
+     haken = Kupplung des Vordermanns in lokalen Koordinaten des Anhängers – dorthin
+     reicht die Deichsel, auch wenn die Kupplung gerade etwas nachgibt. */
+  var ANHAENGER = {
+    kohlewagen: function (ctx, a, z, A, haken) {
+      var c = basisFarbe(a), rot = "#c8322b";
+      // kurze Kupplung mit Bügel
+      rohr(ctx, [[0.72, 0.06], haken], 0.06, "#4a505e");
+      ctx.strokeStyle = "#2a2d35"; ctx.lineWidth = 0.035;
+      ctx.beginPath(); ctx.arc(haken[0], haken[1], 0.05, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "#2a2d35"; ctx.fillRect(-0.78, -0.24, 1.56, 0.12);          // Rahmen
+      ctx.fillStyle = rot; ctx.fillRect(-0.78, -0.14, 1.56, 0.05);
+      // Kohlehaufen (oben hinausragend)
+      ctx.fillStyle = "#16171c";
+      ctx.beginPath(); ctx.moveTo(-0.7, 0.5);
+      [[-0.55, 0.66], [-0.35, 0.72], [-0.15, 0.8], [0.05, 0.76], [0.25, 0.82], [0.45, 0.7], [0.62, 0.62], [0.7, 0.5]].forEach(function (p) { ctx.lineTo(p[0], p[1]); });
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#3a3d48";
+      [[-0.4, 0.66], [-0.05, 0.74], [0.3, 0.74], [0.52, 0.64], [-0.2, 0.62]].forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], 0.04, 0, Math.PI * 2); ctx.fill(); });
+      var kasten = function () { rundRechteck(ctx, -0.74, -0.1, 1.48, 0.62, 0.06); };
+      karosserie(ctx, a, z, kasten, -0.74, 0.74, -0.1, 0.52);
+      ctx.strokeStyle = "#e0b24a"; ctx.lineWidth = 0.03;
+      ctx.beginPath(); ctx.moveTo(-0.7, 0.44); ctx.lineTo(0.7, 0.44); ctx.stroke();
+      ctx.fillStyle = dunkel(c, 0.2); [-0.5, 0, 0.5].forEach(function (x) { ctx.fillRect(x - 0.015, -0.08, 0.03, 0.5); });
+      // Puffer hinten
+      ctx.fillStyle = rot; ctx.fillRect(-0.84, -0.24, 0.08, 0.3);
+      ctx.fillStyle = "#6b7387"; ctx.fillRect(-0.9, -0.12, 0.06, 0.06);
+    },
+    anhaenger: function (ctx, a, z, A, haken) {
+      // kleiner Holzwagen mit Gepäck und langer Deichsel (wackelt lustig)
+      var c = basisFarbe(a);
+      rohr(ctx, [[0.5, 0.0], [haken[0] - 0.06, haken[1]]], 0.05, "#6b4a2a");         // Deichsel (zwei Stangen)
+      rohr(ctx, [[0.62, 0.12], [haken[0] - 0.06, haken[1]]], 0.04, "#7a5232");
+      ctx.strokeStyle = "#4a505e"; ctx.lineWidth = 0.035;                          // Zugöse
+      ctx.beginPath(); ctx.arc(haken[0], haken[1], 0.06, 0, Math.PI * 2); ctx.stroke();
+      // Gepäck: Koffer, Paket mit Schleife, Ball
+      ctx.fillStyle = "#c46a2a"; rundRechteck(ctx, -0.55, 0.3, 0.5, 0.34, 0.05); ctx.fill();
+      ctx.strokeStyle = "#7a3c12"; ctx.lineWidth = 0.025; ctx.stroke();
+      ctx.fillStyle = "#e0b24a"; ctx.fillRect(-0.36, 0.64, 0.12, 0.04);
+      ctx.fillStyle = "#3cc35a"; rundRechteck(ctx, 0.0, 0.3, 0.38, 0.3, 0.03); ctx.fill();
+      ctx.fillStyle = "#ffd23f"; ctx.fillRect(0.16, 0.3, 0.06, 0.3); ctx.fillRect(0.0, 0.42, 0.38, 0.06);
+      ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(-0.15, 0.78, 0.12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(-0.19, 0.82, 0.04, 0, Math.PI * 2); ctx.fill();
+      // Holzkasten mit Brettern
+      var kasten = function () { rundRechteck(ctx, -0.66, -0.12, 1.32, 0.5, 0.05); };
+      ctx.fillStyle = "#a8743f"; kasten(); ctx.fill();
+      ctx.strokeStyle = "#6b4a2a"; ctx.lineWidth = 0.025;
+      [0.05, 0.22].forEach(function (y) { ctx.beginPath(); ctx.moveTo(-0.64, y); ctx.lineTo(0.64, y); ctx.stroke(); });
+      kasten(); ctx.lineWidth = 0.04; ctx.stroke();
+      ctx.fillStyle = c; ctx.fillRect(-0.66, 0.3, 1.32, 0.08);                     // Kante in Lokfarbe
+      // Fähnchen hinten
+      ctx.strokeStyle = "#4a505e"; ctx.lineWidth = 0.025;
+      ctx.beginPath(); ctx.moveTo(-0.6, 0.38); ctx.lineTo(-0.6, 1.05); ctx.stroke();
+      var weh = Math.sin(z * 9) * 0.04;
+      ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.moveTo(-0.6, 1.05); ctx.lineTo(-0.9, 0.97 + weh); ctx.lineTo(-0.6, 0.89); ctx.closePath(); ctx.fill();
+    }
+  };
+
+  /* Anhänger zeichnen (hinter der Lok, also vorher) */
+  function zeichneAnhaenger(ctx, K, fz, def, aussehen, zeit) {
+    var AN = fz.anhaenger || [];
+    for (var i = AN.length - 1; i >= 0; i--) {
+      var A = AN[i], C = A.chassis, V = FF.Physik.vordermann(fz, i), ad = def.anhaenger[i];
+      var ca = Math.cos(C.a), sa = Math.sin(C.a);
+      A.raeder.forEach(function (R) {
+        var dx = R.k.x - C.x, dy = R.k.y - C.y;
+        R.lokalX = ca * dx + sa * dy; R.lokalY = -sa * dx + ca * dy; R.chassisWinkel = C.a;
+      });
+      var H = V.chassis, hk = A.gelenk.haken, ch = Math.cos(H.a), shh = Math.sin(H.a);
+      var hx = H.x + ch * hk[0] - shh * hk[1] - C.x, hy = H.y + shh * hk[0] + ch * hk[1] - C.y;
+      var haken = [ca * hx + sa * hy, -sa * hx + ca * hy];
+      ctx.save();
+      ctx.translate(sx(K, C.x), sy(K, C.y));
+      ctx.rotate(-C.a);
+      ctx.scale(K.s, -K.s);
+      (ANHAENGER[ad.form] || ANHAENGER.kohlewagen)(ctx, aussehen, zeit, A, haken);
+      felgeJetzt = aussehen.felge || "standard";
+      A.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, ad.form === "anhaenger" ? "normal" : "lok"); });
+      felgeJetzt = "standard";
+      ctx.restore();
+    }
+  }
+
   /* Fahrzeug an seiner Weltposition zeichnen */
   function zeichneFahrzeug(ctx, K, fz, def, aussehen, zeit, ausdruck) {
     var C = fz.chassis;
+    if (fz.anhaenger && fz.anhaenger.length) zeichneAnhaenger(ctx, K, fz, def, aussehen, zeit);
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     // Radmitten in lokale Koordinaten umrechnen (für Federn, Gabel …)
     fz.raeder.forEach(function (R) {
@@ -1405,10 +1594,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
     var kp = fz.kopf;
     var tempo = Math.hypot(fz.chassis.vx, fz.chassis.vy);
-    var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : form === "eauto" ? "aero" : "normal";
+    var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : form === "eauto" ? "aero" : form === "dampflok" ? "lok" : "normal";
 
     // Federn
-    fz.raeder.forEach(function (R) {
+    if (!teile.ohneFedern) fz.raeder.forEach(function (R) {
       zeichneFeder(ctx, R.ankerX, R.ankerY, R.lokalX, R.lokalY, Math.min(0.13, R.r * 0.3));
     });
     var o = outfitVon(aussehen), kind = kindVon(aussehen);
@@ -1444,6 +1633,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     felgeJetzt = aussehen.felge || "standard";
     fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
     felgeJetzt = "standard";
+    if (teile.nachRaedern) teile.nachRaedern();
   }
 
   /* Ballon-Hilfe nach einem Überschlag */
@@ -1491,7 +1681,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var X = sx(K, C.x), Y = sy(K, C.y);
     // Kasten um das Fahrzeug (drehungsfest), bei Ballon-Hilfe nach oben verlängert –
     // anfangs schweben die Ballons vom oberen Bildrand herein (siehe zeichneHilfe)
-    var R = (0.55 * g.def.groesse.laenge + 1.4) * s, nachOben = R;
+    var R = (Math.max(0.55 * g.def.groesse.laenge, FF.Physik.zugHinten(g.def) + 0.3) + 1.4) * s, nachOben = R;
     if (g.hilfe) nachOben = Math.max(R, 6.4 * s, g.hilfe.t / g.hilfe.dauer < 0.28 ? Y : 0);
     var links = X - R, oben = Y - nachOben, breite = 2 * R, hoehe = R + nachOben;
     if (links > K.b || links + breite < 0 || oben > K.h || oben + hoehe < 0) return false;
@@ -1739,9 +1929,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
     zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "", String(kmh), 0, skalaSchritte(vmaxKmh), "km/h");
     var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
-    var titel = G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    var titel = G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    if (G.dampf) umin = Math.round(G.rpm / 10) * 10;
     zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
-                      G.elektro || G.turbine ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
+                      G.elektro || G.turbine || G.dampf ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
   }
 
   /* =========================================================================
@@ -1808,6 +1999,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       c = vorschauCache[def.id] = FF.Physik.baueFahrzeug(w, 0, bodenFlach);
       // statische Einfederung grob vorwegnehmen
       c.raeder.forEach(function (R) { R.k.y += 0.06; });
+      (c.anhaenger || []).forEach(function (A) { A.raeder.forEach(function (R) { R.k.y += 0.05; }); });
     }
     var fz = c;
     // Höhe aus Rädern, Umriss, Dach und Kopf bestimmen (Monstertruck ist hoch!)
@@ -1815,7 +2007,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.raeder.forEach(function (R) { unten = Math.min(unten, R.ankerY - R.L0 - R.r); });
     def.huelle.concat(def.dach || []).forEach(function (p) { oben = Math.max(oben, p[1]); });
     oben = Math.max(oben, def.kopf.y + def.kopf.r * (def.form === "mond" ? 1.6 : 1.15));
-    var laenge = def.groesse.laenge + 0.8, hoehe = (oben - unten) * 1.12 + 0.3;
+    var laenge = def.groesse.laenge + 0.8, hoehe = (oben - unten) * 1.12 + 0.3, mitteX = 0;
+    if (def.anhaenger) {                                 // Zug: von der Nase bis zum letzten Anhänger
+      var vorn = 0; def.huelle.forEach(function (p) { vorn = Math.max(vorn, p[0]); });
+      var hinten = FF.Physik.zugHinten(def);
+      laenge = vorn + hinten + 0.6; mitteX = (vorn - hinten) / 2;
+    }
     var s = Math.min(b / laenge, h / hoehe) * 0.92;
     var bodenY = h * 0.86;
     if (!ohneBuehne) {
@@ -1827,8 +2024,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     var rad0 = fz.raeder[0];
     var unterkante = rad0.k.y - rad0.r;
     fz.chassis.a = Math.sin(zeit * 2.2) * 0.012;
-    fz.raeder.forEach(function (R) { R.k.a = -zeit * 2.5; });
-    var K = { x: 0, y: unterkante, s: s, b: b, h: h, ankerX: 0.5, ankerY: bodenY / h };
+    fz.raeder.forEach(function (R) { R.k.a = -zeit * 2.5 * (def.kuppelstange ? 0.42 / R.r : 1); });
+    (fz.anhaenger || []).forEach(function (A) { A.raeder.forEach(function (R) { R.k.a = -zeit * 2.5 * 0.42 / R.r; }); });
+    var K = { x: mitteX, y: unterkante, s: s, b: b, h: h, ankerX: 0.5, ankerY: bodenY / h };
     var wippen = Math.sin(zeit * 2.2) * 0.012;
     fz.chassis.vx = 7;                                   // nur für den wehenden Umhang
     fz.chassis.y += wippen;

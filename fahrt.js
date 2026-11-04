@@ -67,10 +67,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.P = klang || {};
     this.elektro = this.P.art === "elektro";
     this.turbine = this.P.art === "turbine";
-    this.gaenge = this.elektro ? 1 : (this.P.gaenge || 4);
+    this.dampf = this.P.art === "dampf";                // Dampfmaschine: kein Getriebe, Drehzahl = Raddrehzahl
+    this.gaenge = this.elektro || this.dampf ? 1 : (this.P.gaenge || 4);
     this.leerlauf = this.elektro ? 0 : (this.P.leerlauf || 800);
     this.max = this.P.max || (this.elektro ? 12000 : 6000);
     if (this.turbine) { this.gaenge = 1; this.leerlauf = this.P.leerlauf || 8000; }
+    if (this.dampf) { this.leerlauf = 0; this.max = this.P.max || 400; }
     this.gang = 1; this.schaltZeit = 0;
     this.rf = 0;                  // Drehzahl relativ zur Höchstdrehzahl im Gang (> 1: Begrenzer)
     this.schalten = false; this.begrenzer = false;
@@ -84,7 +86,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.gang < G && v > 0.9 * gangOben(this.gang) && boden) { this.gang++; this.schaltZeit = 0.13; }
     else if (this.gang > 1 && v < 0.62 * gangOben(this.gang - 1)) { this.gang--; this.schaltZeit = 0.08; }
     var rf = r / gangOben(this.gang);
-    if (this.gang === 1 && !this.elektro) rf = Math.max(rf, gas * 0.42);   // Kupplung schleift beim Anfahren
+    if (this.gang === 1 && !this.elektro && !this.dampf) rf = Math.max(rf, gas * 0.42);   // Kupplung schleift beim Anfahren
     this.rf = rf;
     this.schalten = this.schaltZeit > 0;
     this.begrenzer = rf > 1 && gas > 0.5;
@@ -118,6 +120,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schw = C.schwierigkeit[o.schwierigkeit] || C.schwierigkeit.normal;
     this.bruchAn = o.bruchlandung !== false;   // Einstellung „Bruchlandung“ (aus: Auto prallt ab und fährt weiter)
     this.fz = FF.Physik.baueFahrzeug(this.werte, 0, this.gelaende);
+    this.zugHinten = FF.Physik.zugHinten(this.werte);   // Zug (Dampf-Lok): so weit [m] reicht er hinter die Lok
 
     var rSumme = 0, nA = 0;
     this.fz.raeder.forEach(function (R) { if (R.antrieb) { rSumme += R.r; nA++; } });
@@ -172,8 +175,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       // nur mit den Rädern am Boden – dann katapultiert die Feder das Auto senkrecht zum Auto-Boden hoch
       this.federLadung = 0; this.federZeit = 0.6; this.federSperre = X.federPause;
       var nx = -Math.sin(C.a), ny = Math.cos(C.a), dv = X.federSprung;
-      C.vx += nx * dv; C.vy += ny * dv;
-      fz.raeder.forEach(function (R) { R.k.vx += nx * dv; R.k.vy += ny * dv; });
+      FF.Physik.stoss(fz, nx * dv, ny * dv);
       this.melde("feder", { x: C.x, y: C.y });
       return true;
     }
@@ -389,13 +391,20 @@ var FF = globalThis.FF = globalThis.FF || {};
         R.motorMax = R.antrieb && motorAn ? Tmax * (w.rekuperation ? S.motorBremseElektro : S.motorBremse) / nA : 0;
       }
     }
+    // Anhänger (Dampf-Lok): rollen frei, beim Bremsen bremsen sie mit
+    fz.anhaenger.forEach(function (A) {
+      A.raeder.forEach(function (R) {
+        R.motorZiel = 0;
+        R.motorMax = bremsen ? w.bremse * bremsKraft / nAlle * 0.6 : 0;
+      });
+    });
   };
 
   /* Luftsteuerung (Spiel-Hilfe) und – im Modus "Leicht" – ein sanfter Stabilisator */
   Fahrt.prototype.setzeZusatzMoment = function () {
     var fz = this.fz, C = fz.chassis, st = fz.status, w = this.werte, J = C.J;
     var M = 0;
-    var inDerLuft = st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt;
+    var inDerLuft = st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt && !st.anhaengerBoden;
     if (this.zustand === "fahrt" && inDerLuft) {
       var steuer = this.gas - this.bremse;                   // + = Nase hoch
       M = steuer * w.luftsteuerung * J;
@@ -414,6 +423,13 @@ var FF = globalThis.FF = globalThis.FF || {};
         var M2 = (-(d - Math.sign(d) * frei) * 20 - C.w * (balanciert ? 7 : 3)) * J * stab;
         M += Math.max(-J * grenze, Math.min(J * grenze, M2));
       }
+    }
+    if (fz.anhaenger.length) {
+      // Zug: als Ganzes drehen (physik.js zugDrehen), selbst nur bis maxDrehung [rad/s] –
+      // so lässt sich die Nase zur Landung stellen, aber Saltos gehen nicht
+      var alpha = M / J, wm = w.maxDrehung || 1;
+      if ((alpha > 0 && C.w > wm) || (alpha < 0 && C.w < -wm)) alpha = 0;
+      fz.zusatzAlpha = alpha; M = 0;
     }
     fz.zusatzMoment = M;
   };
@@ -494,6 +510,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var vx = k.v * Math.cos(k.winkel), vy = k.v * Math.sin(k.winkel), C = fz.chassis;
     C.vx = vx; C.vy = vy; C.w = 0;
     fz.raeder.forEach(function (R) { R.k.vx = vx; R.k.vy = vy; });
+    FF.Physik.anhaengerTempo(fz);
     this.melde("katapult", { x: k.x, y: C.y });
   };
 
@@ -573,6 +590,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       Rd.k.w = C.w - K.v / Rd.r; Rd.k.a += Rd.k.w * h;
       if (Rd.antrieb) { dz += (K.v / Rd.r) / Rd.wMax; nA++; }
     });
+    FF.Physik.anhaengerTempo(fz);
     K.z = P.z;
     st.radKontakte = fz.raeder.length; st.tempo = K.v; st.vorwaerts = K.v; st.leistung = 0;
     st.drehzahl = nA ? dz / nA : 0; st.huellKontakt = st.dachKontakt = st.kopfKontakt = false;
@@ -621,8 +639,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (!drauf) continue;
       t.benutzt = true; t.boing = this.zeit;
       var vx = C.vx < -1 ? Math.min(C.vx, -4) : Math.max(C.vx, 6), dvx = vx - C.vx, dvy = t.v - C.vy;
-      C.vx += dvx; C.vy += dvy; C.w *= 0.3;
-      fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; });
+      FF.Physik.stoss(fz, dvx, dvy); C.w *= 0.3;
       this.melde("boing", { x: (t.x0 + t.x1) / 2, y: this.gelaende.hoeheBei((t.x0 + t.x1) / 2) });
     }
   };
@@ -673,7 +690,8 @@ var FF = globalThis.FF = globalThis.FF || {};
      Rückwärts-Salto absolut nur gut 290°, gegenüber dem Boden aber ganz herum. */
   Fahrt.prototype.pruefeLuft = function (h) {
     var st = this.fz.status, C = this.fz.chassis, Rg = FF.CONFIG.regeln, gel = this.gelaende;
-    var amBoden = st.radKontakte > 0 || st.huellKontakt || st.kopfKontakt;
+    // Zug: solange ein Anhänger noch am Boden ist, fliegt er nicht (hängt nur über der Kante)
+    var amBoden = st.radKontakte > 0 || st.huellKontakt || st.kopfKontakt || st.anhaengerBoden;
     if (!amBoden) {
       if (!this.flug) {
         // Bezug: der Hang unter dem hintersten Rad – das verlässt die Schanze zuletzt
@@ -690,7 +708,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.luftZeit > 0) {
       if (this.luftZeit > 0.3) this.melde("landung", { staerke: Math.min(1, this.luftZeit / 1.5) });
       // Bruchlandung: viel zu schief zum Hang aufgekommen
-      if (this.bruchAn && this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > (this.schw.bruchWinkel || 90) * Math.PI / 180) {
+      if (this.bruchAn && this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > ((this.schw.bruchWinkel || 90) + (this.werte.bruchExtra || 0)) * Math.PI / 180) {
         this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
         this.melde("bruch", { nase: schief > 0 ? "hoch" : "tief" });
         this.starteHilfe();
@@ -736,6 +754,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       for (var i = 0; i < Ls.length; i++) {
         var K = Ls[i];
         if (K.fertig || C.x < K.xc - 0.4 || C.x > K.xc + 1.2 || C.y > gel.loopMitte(K)) continue;
+        if (this.fz.anhaenger.length) {              // Zug: viel zu lang für den Looping – rollt unten durch
+          K.fertig = true;
+          this.melde("zuLang", { x: C.x, y: C.y });
+          continue;
+        }
         gel.aktiverLoop = L = K;
         L.phi = Math.atan2(C.x - L.xc, -(C.y - L.yc)); L.summe = 0; L.ohneKontakt = 0; L.gefallen = false;
         this.imLooping = true;
@@ -811,8 +834,9 @@ var FF = globalThis.FF = globalThis.FF || {};
      die längsten Steilstücke sind gut 35 m lang. */
   Fahrt.prototype.landeplatz = function (x, vorwaerts) {
     var gel = this.gelaende, ziel = this.endlos ? Infinity : gel.ziel - 2, d;
+    var hinten = 1.5 + (this.zugHinten || 0);    // Zug: auch unter den Anhängern muss es passen
     function flach(xp) {                          // unter dem ganzen Auto höchstens ≈ 20° bergauf, 27° bergab
-      for (var k = -1.5; k <= 1.5; k += 0.5) {
+      for (var k = -hinten; k <= 1.5; k += 0.5) {
         var sk = gel.steigungBei(xp + k);
         if (sk > 0.36 || sk < -0.5 || gel.gesperrt(xp + k)) return false;
       }
@@ -828,7 +852,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   Fahrt.prototype.starteHilfe = function (ueberX) {
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
     this.boostZeit = 0; this.fz.duese = 0; this.miniZeit = 0; this.fz.mini = 0;
-    var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3), true) : this.landeplatz(C.x);
+    var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3 + this.zugHinten), true) : this.landeplatz(C.x);
     var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
     var a0 = C.a, d = normWinkel(zielA - a0);

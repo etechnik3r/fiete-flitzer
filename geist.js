@@ -5,7 +5,7 @@
    das zweite Kind fährt danach gegen den halbdurchsichtigen "Geist".
 
    Aufzeichnung: alle CONFIG.regeln.geistTakt Sekunden (20 Hz) die Lage der
-   Karosserie, jedes Rad (lokale Lage + Drehwinkel), Gesichtsausdruck,
+   Karosserie, jedes Rad (lokale Lage + Drehwinkel), der Anhänger (Dampf-Lok), Gesichtsausdruck,
    Ballon-Hilfe und zurückgelegte Strecke.
    Wiedergabe:   lineare Interpolation zwischen den Proben. Der Geist hat ein
    eigenes Fahrzeug-Objekt nur zum Zeichnen – er nimmt an der Physik nicht
@@ -41,8 +41,13 @@ var FF = globalThis.FF = globalThis.FF || {};
       var dx = R.k.x - C.x, dy = R.k.y - C.y;
       r.push(ca * dx + sa * dy, -sa * dx + ca * dy, R.k.a);
     });
+    var an = null;                   // Anhänger (Dampf-Lok): Lage je Anhänger
+    if (fz.anhaenger && fz.anhaenger.length) {
+      an = [];
+      fz.anhaenger.forEach(function (A) { an.push(A.chassis.x, A.chassis.y, A.chassis.a); });
+    }
     this.proben.push({
-      t: fahrt.zeit, x: C.x, y: C.y, a: C.a, vx: C.vx, vy: C.vy, r: r,
+      t: fahrt.zeit, x: C.x, y: C.y, a: C.a, vx: C.vx, vy: C.vy, r: r, an: an,
       h: fahrt.hilfe ? fahrt.hilfe.t / fahrt.hilfe.dauer : -1,
       g: Math.max(0, AUSDRUECKE.indexOf(ausdruck || "normal")),
       s: fahrt.strecke
@@ -97,6 +102,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       R.k.y = C.y + sa * lx + ca * ly;
       R.k.a = mische(a.r[3 * j + 2], b.r[3 * j + 2], u);
     });
+    var AN = this.fz.anhaenger || [];
+    if (AN.length && a.an && b.an) {
+      AN.forEach(function (A, j) {
+        var x = mische(a.an[3 * j], b.an[3 * j], u), y = mische(a.an[3 * j + 1], b.an[3 * j + 1], u);
+        FF.Physik.stelleTeil(A, x, y, mische(a.an[3 * j + 2], b.an[3 * j + 2], u));
+        A.raeder.forEach(function (R) { R.k.a = -x / R.r; });
+      });
+    } else if (AN.length) FF.Physik.folgeAnhaenger(this.fz, null);
     var h = u < 0.5 ? a.h : b.h;
     this.hilfe = h >= 0 ? { t: h * FF.CONFIG.regeln.hoppla.dauer, dauer: FF.CONFIG.regeln.hoppla.dauer } : null;
     this.ausdruck = AUSDRUECKE[u < 0.5 ? a.g : b.g] || "normal";

@@ -146,7 +146,7 @@
   var ausdruck = "normal", ausdruckBis = 0;
   var spruchBis = 0;               // bis dahin läuft ein wichtiger gesprochener Hinweis (nicht überreden)
   var pedaleLuft = false;          // Pedale zeigen gerade die Luft-Pfeile
-  var auspuffTakt = 0, staubTakt = 0;
+  var auspuffTakt = 0, staubTakt = 0, dampfPhase = 0, dampfStand = 0;
   var luftTippDieseFahrt = false;            // "Gas hebt die Nase" wurde in dieser Fahrt schon geprüft
 
   function groesseAnpassen() {
@@ -257,6 +257,10 @@
     // In der Röhre: etwas weiter weg, damit man Loopings und Kurven ganz sieht
     roehrenZoom += ((fahrt.roehre ? 0.78 : 1) - roehrenZoom) * (sofort ? 1 : Math.min(1, dt * 1.5));
     kamera.s *= roehrenZoom;
+    if (fahrt.zugHinten) {                       // Dampf-Lok: etwas weiter weg und weniger voraus, damit der ganze Zug ins Bild passt
+      kamera.s *= quer ? 0.94 : 0.84;
+      zielX = ch.x + klemme(ch.vx * Kc.vorausschau, -3, 3) - 1.0;
+    }
     if (fahrt.welt.decke) {
       // Höhle: etwas weiter weg und so hoch, dass die Decke oben im Bild bleibt –
       // aber das Auto rutscht nie tiefer als 80 % der Bildhöhe
@@ -382,13 +386,14 @@
         }
       });
     }
+    if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.turbine && (fahrt.turbinenLauf || 0) > 0.25 && auspuffTakt <= 0) {     // Turbine: heiße Abgase hinter der Düse
       auspuffTakt = 0.05;
       var ct = Math.cos(ch.a), stt = Math.sin(ch.a), xt = -2.1 - fahrt.turbinenLauf * 0.8, yt = 0.8;
       partikel.neu({ art: "rauch", x: ch.x + ct * xt - stt * yt, y: ch.y + stt * xt + ct * yt,
                      vx: -ct * 3 + ch.vx * 0.4, vy: -stt * 3 + ch.vy * 0.4 + 0.3, t: 0, dauer: 0.5, r0: 0.15, r1: 0.6,
                      farbe: "rgba(210,215,230,0.8)", alpha: 0.45, reibung: 1.5 });
-    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro && !fahrt.werte.turbine) {   // Elektro: kein Auspuff
+    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro && !fahrt.werte.turbine && !fahrt.getriebe.dampf) {   // Elektro: kein Auspuff
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
@@ -404,6 +409,38 @@
       partikel.neu({ art: "rauch", x: ch.x + cb * xb, y: ch.y + sb * xb,
                      vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
                      t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
+    }
+  }
+
+  /* Dampf-Lok: Bei jedem Kolbenhub (4 je Radumdrehung, wie der Klang) pufft eine
+     Dampfwolke aus dem Schornstein, beim Anfahren zischt Dampf aus den Zylindern,
+     im Stand steigt ab und zu ein Wölkchen auf. */
+  function dampfWolken(dt) {
+    var fz = fahrt.fz, ch = fz.chassis, R = fz.raeder[0], welt = fahrt.welt;
+    if (fahrt.zustand === "ende") return;
+    var an = fahrt.tank > 0 && fahrt.zustand !== "hilfe", ca = Math.cos(ch.a), sa = Math.sin(ch.a);
+    var rate = an ? 4 * Math.abs(R.k.w - ch.w) / (2 * Math.PI) : 0;
+    if (an && fahrt.gas > 0.05 && rate < 1.2) rate = 1.2 * fahrt.gas;
+    dampfPhase += rate * dt;
+    var puff = dampfPhase >= 1;
+    if (puff) dampfPhase %= 1;
+    dampfStand -= dt;
+    if (!puff && an && rate < 0.3 && dampfStand <= 0) { puff = true; dampfStand = 0.8 + Math.random() * 0.6; }
+    if (!puff || (rate > 12 && Math.random() < 0.4)) return;
+    var gas = fahrt.gas, lx = 1.07, ly = 1.12;
+    var x = ch.x + ca * lx - sa * ly, y = ch.y + sa * lx + ca * ly;
+    if (welt.unterwasser) {
+      partikel.neu({ art: "blase", x: x, y: y, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.06, r1: 0.16, schwer: -0.35, reibung: 1.2 });
+      return;
+    }
+    partikel.neu({ art: "rauch", x: x, y: y, vx: ch.vx * 0.45 - sa * 1.2, vy: ch.vy * 0.45 + ca * (1.4 + 2.2 * gas),
+                   t: 0, dauer: 1.0 + 0.4 * gas, r0: 0.16, r1: 0.65 + 0.5 * gas,
+                   farbe: "rgba(246,247,251,0.95)", alpha: 0.5 + 0.3 * gas, reibung: 1.6 });
+    if (gas > 0.3 && Math.abs(fz.status.vorwaerts) < 3.5) {            // Anfahren: Zylinderhähne zischen
+      var zx = 1.45, zy = fz.raeder[1].lokalY !== undefined ? fz.raeder[1].lokalY + 0.17 : -0.2;
+      partikel.neu({ art: "rauch", x: ch.x + ca * zx - sa * zy, y: ch.y + sa * zx + ca * zy,
+                     vx: ch.vx * 0.3 + ca * 2.2 + (Math.random() - 0.5), vy: -0.3 + Math.random() * 0.6,
+                     t: 0, dauer: 0.6, r0: 0.1, r1: 0.5, farbe: "rgba(255,255,255,0.9)", alpha: 0.55, reibung: 2.5 });
     }
   }
 
@@ -512,6 +549,10 @@
           FF.Klang.sprich("Looping!");
           break;
         case "turbineVoll":
+          break;
+        case "zuLang":                   // Dampf-Lok: der Zug ist zu lang für den Looping
+          meldung("Zu lang für den Looping! 🚂");
+          FF.Klang.sprich("Tschu-tschu! Zu lang für den Looping!");
           break;
         case "boost":
           FF.Klang.spiele("boost");
