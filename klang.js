@@ -771,6 +771,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;
+      case "umdrehen":                 // Umdreh-Tor: Wusch + Glissando hinauf (kopfüber) bzw. hinunter
+        rauschen(0, 0.7, 0.14, 1400);
+        if (wert) { ton(330, 0, 0.55, "sine", 0.12, 1320); ton(660, 0.08, 0.5, "triangle", 0.06, 1980); }
+        else { ton(1320, 0, 0.55, "sine", 0.12, 330); ton(1980, 0.08, 0.5, "triangle", 0.06, 660); }
+        break;
       case "pups":                     // Pupswolken-Spur: kurzes, leises „Pfff“ (freundlich, nicht eklig)
         rauschen(0, 0.22, 0.05, 700); ton(120, 0, 0.18, "sawtooth", 0.025, 80);
         break;

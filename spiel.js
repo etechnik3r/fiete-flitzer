@@ -133,7 +133,7 @@
      2) ZUSTAND + CANVAS
      ========================================================================= */
   var canvas = $("spielfeld"), ctx = canvas.getContext("2d");
-  var himmelWelt = null;          // Welt, deren Himmelsverlauf gerade als CSS hinter dem Canvas liegt
+  var himmelWelt = null, himmelWarKopf = false;          // Welt, deren Himmelsverlauf gerade als CSS hinter dem Canvas liegt
   var B = 0, H = 0, DPR = 1;
   var modus = "titel";                 // titel | wahl | menue | fahrt
   var spielModus = "solo";             // solo | duell
@@ -242,6 +242,7 @@
      4) KAMERA
      ========================================================================= */
   var roehrenZoom = 1;
+  var kopfLage = 0;                         // Kopfüberwelt: 0 = normal, 1 = kopfüber (weich dazwischen beim Umklappen)
   function kameraNachfuehren(dt, sofort) {
     var Kc = C.kamera, ch = fahrt.fz.chassis;
     var quer = B >= H;
@@ -251,7 +252,7 @@
     kamera.zoom = sofort ? zoomZiel : kamera.zoom + (zoomZiel - kamera.zoom) * Math.min(1, dt * 1.2);
     kamera.s = basisS * kamera.zoom;
     kamera.ankerX = quer ? 0.4 : 0.38;
-    kamera.ankerY = quer ? 0.58 : 0.55;
+    kamera.ankerY = (quer ? 0.58 : 0.55) - 0.1 * kopfLage;   // kopfüber: Auto etwas höher, damit es gespiegelt in der Mitte fährt
     var zielX = ch.x + klemme(ch.vx * Kc.vorausschau, -3, 6);
     var zielY = ch.y + 0.6;
     // In der Röhre: etwas weiter weg, damit man Loopings und Kurven ganz sieht
@@ -733,6 +734,14 @@
           schwebeText(e.x + 2, e.y + 2, "Wuuusch! 🎯", "#ffd23f", true);
           setzeAusdruck("freude", 2.5);
           break;
+        case "umdrehen":                 // Kopfüberwelt: durchs Umdreh-Tor
+          FF.Klang.spiele("umdrehen", e.kopf ? 1 : 0);
+          meldung(e.kopf ? "Kopfüber! 🙃" : "Wieder richtig herum! 🙂");
+          konfettiWelt(e.x, e.y + 2.5, 16);
+          setzeAusdruck("staunen", 1.6);
+          if (e.kopf && ersteMale("tipp-kopf", 2)) { tipp("🙃 Alles steht kopf! Gas und Bremse sind gleich – und Sprünge gehen nach unten.", 4500, "Alles steht kopf!"); spruchBis = zeit + 3; }
+          else FF.Klang.sprich(e.kopf ? "Kopfüber!" : "Wieder richtig herum!");
+          break;
         case "spuk":                     // Geisterwelt: ein Geist taucht auf
           FF.Klang.spiele("spuk");
           if (Math.random() < 0.5) setzeAusdruck("staunen", 1.2);
@@ -870,6 +879,7 @@
   function starteFahrt(wi, li, endlos, strecke) {
     FF.Klang.init();
     fahrtInfo = { weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null };
+    kopfLage = 0;
     var fs = P.fahrzeuge[P.fahrzeug];
     fahrt = new FF.Fahrt({
       weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null,
@@ -2050,6 +2060,7 @@
     if (w.nacht) m.push("🔦 dunkel");
     if (w.decke) m.push("🪨 Höhlendecke");
     if (w.spuk) m.push("👻 Geister");
+    if (w.kopfueber) m.push("🙃 Umdreh-Tore");
     if (g.looping) m.push("🎢 Loopings");
     if (g.luecke) m.push("🕳️ Abgründe");
     if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : "🍄 Hüpfpilze");
@@ -2327,10 +2338,16 @@
       }
       partikel.aktualisiere(pausiert ? 0 : dt, fahrt.welt.schwerkraft);
       texteAktualisieren(pausiert ? 0 : dt);
-      if (himmelWelt !== fahrt.welt) { himmelWelt = fahrt.welt; canvas.style.background = FF.Grafik.himmelCss(himmelWelt); }
+      kopfLage += ((fahrt.kopf ? 1 : 0) - kopfLage) * Math.min(1, (pausiert ? 0 : dt) * 3.2);
+      if (Math.abs(kopfLage - (fahrt.kopf ? 1 : 0)) < 0.002) kopfLage = fahrt.kopf ? 1 : 0;
+      var kf = Math.cos(Math.PI * kopfLage), himmelKopf = kf < 0;
+      if (himmelWelt !== fahrt.welt || himmelKopf !== himmelWarKopf) {
+        himmelWelt = fahrt.welt; himmelWarKopf = himmelKopf;
+        canvas.style.background = FF.Grafik.himmelCss(himmelWelt, himmelKopf);
+      }
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       FF.Grafik.zeichneSzene(ctx, {
-        fahrt: fahrt, kamera: kamera, zeit: zeit, dt: pausiert ? 0 : dt, dpr: DPR, himmelPerCss: true,
+        fahrt: fahrt, kamera: kamera, zeit: zeit, dt: pausiert ? 0 : dt, dpr: DPR, himmelPerCss: true, kopf: kf,
         partikel: partikel, texte: texte, wetter: wetter,
         aussehen: aussehenVon(S.aktiv), ausdruck: ausdruck,
         geist: geist ? { fz: geist.obj.fz, def: geist.obj.def, aussehen: geist.aussehen, ausdruck: geist.obj.ausdruck,

@@ -144,7 +144,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.gas = 0; this.bremse = 0; this.rueckwaerts = false;
     this.muenzen = 0; this.bonus = 0;
     this.salti = 0; this.hoppla = 0; this.besteLuftzeit = 0;
-    this.zeit = 0; this.strecke = 0; this.akku = 0;
+    this.zeit = 0; this.strecke = 0; this.akku = 0; this.kopf = false;
     this.zustand = "fahrt";        // fahrt | hilfe | ziel | ende
     this.grund = null;             // "ziel" | "leer"
     this.ereignisse = [];
@@ -294,6 +294,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
     if (this.gelaende.objekte.length) this.pruefeObjekte();
+    if (this.gelaende.tore.length) this.pruefeTore();
     if (this.gelaende.katapulte.length && this.zustand === "fahrt") {          // in die Katapult-Schale gefahren?
       var KA = this.gelaende.katapulte;
       for (var ki = 0; ki < KA.length; ki++) {
@@ -1031,6 +1032,18 @@ var FF = globalThis.FF = globalThis.FF || {};
           break;
         }
       }
+    }
+  };
+
+  /* Kopfüberwelt: Wer durch ein Umdreh-Tor fährt (auch im Flug), dreht das Bild um.
+     Nur die Grafik dreht sich (spiel.js, grafik.js), die Physik bleibt gleich. */
+  Fahrt.prototype.pruefeTore = function () {
+    var T = this.gelaende.tore, x = this.fz.chassis.x;
+    for (var i = 0; i < T.length; i++) {
+      if (T[i].durch || x < T[i].x) continue;
+      T[i].durch = true;
+      this.kopf = !this.kopf;
+      this.melde("umdrehen", { x: T[i].x, y: this.gelaende.hoeheBei(T[i].x), kopf: this.kopf });
     }
   };
 

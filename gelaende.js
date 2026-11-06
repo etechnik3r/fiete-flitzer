@@ -261,6 +261,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
     this.objekte = [];             // Dinge auf der Strecke, die man umfährt (welt.objekte): Glas, Bausteine, Säulen
     this.objektX = 35;             // bis hierhin sind Objekte verteilt
+    this.tore = [];                // Umdreh-Tore (welt.kopfueber) {x, durch}: drehen das Bild um
+    this.torX = welt.kopfueber ? welt.kopfueber.start : Infinity;
     this.spuk = [];                // Geister (welt.spuk), die kurz vor dem Auto auftauchen {x, gesehen}
     this.katapulte = [];           // Katapulte {x, v, winkel, …}: halten das Auto fest und schleudern es über den Graben (fahrt.js)
     this.spukX = 60;
@@ -1104,6 +1106,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.obst.push({ x: xf, y: this.hoeheBei(xf) + 0.95, art: Math.floor(hf2 * 7), weg: false });
     }
 
+    // Umdreh-Tore (Kopfüberwelt): das erste gleich nach dem Start, dann alle 130–200 m
+    var KU = welt.kopfueber;
+    while (KU && this.torX < bis && this.torX < ende - 30) {
+      var xt = this.torX;
+      if (this.gesperrt(xt)) { this.torX += 5; continue; }
+      this.tore.push({ x: xt, durch: false });
+      this.torX += KU.abstand + KU.streuung * hash01(Math.round(xt), this.seed + 91);
+    }
+
     // Geister (nur Grafik und Klang): alle ~40–70 m einer, eigener Zufall
     while (welt.spuk && this.spukX < bis && this.spukX < ende - 20) {
       this.spuk.push({ x: this.spukX, gesehen: false, v: Math.floor(hash01(Math.round(this.spukX), this.seed + 71) * 1000) });
@@ -1210,7 +1221,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
-    filter(this.objekte); filter(this.spuk); filter(this.obst);
+    filter(this.objekte); filter(this.spuk); filter(this.obst); filter(this.tore);
     while (this.scheunen.length && this.scheunen[0].x1 < xHinten) this.scheunen.shift();
     while (this.roehren.length && this.roehren[0].x + this.roehren[0].span < xHinten) this.roehren.shift();
     var n = 0;

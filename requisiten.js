@@ -1201,7 +1201,9 @@
   function zeichne(ctx, typ, variante, x, y, px, spiegeln, q) {
     var st = stufe(px), c = sprite(typ, variante, st, q), f = px / st;
     ctx.save();
-    ctx.setTransform(spiegeln ? -f : f, 0, 0, f, x * q, (y + px * c.sinken) * q);
+    var KO = FF.Grafik && FF.Grafik.KOPF, yy = y + px * c.sinken;
+    if (KO && KO.f !== 1) ctx.setTransform(spiegeln ? -f : f, 0, 0, f * KO.f, x * q, (KO.h / 2 + KO.f * (yy - KO.h / 2)) * q);   // Kopfüberwelt
+    else ctx.setTransform(spiegeln ? -f : f, 0, 0, f, x * q, yy * q);
     ctx.drawImage(c, -c.width / 2, -c.height + 2);
     ctx.restore();
   }

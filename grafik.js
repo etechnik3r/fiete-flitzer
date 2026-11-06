@@ -70,11 +70,14 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Pixelgenau in Gerätepixeln kopieren: ohne Drehen und Skalieren nimmt der
      Browser den schnellen Kopierweg (gemessen: spart bei langsamen Geräten
      ein Sechstel der Bildzeit). Erwartet ctx nur mit q skaliert (zeichneSzene). */
+  /* Kopfüberwelt: setTransform() unten setzt die Spiegelung zurück – darum rechnen
+     zeichneEmoji und requisiten.js sie hier selbst ein (f: 1 oder bis −1, h: Bildhöhe). */
+  var KOPF = { f: 1, h: 0 };
   function zeichneEmoji(ctx, emoji, x, y, px, spiegeln, q) {
     // in Stufen vorgemalt, stufenlos verkleinert gezeichnet (kein Größensprung beim Zoomen)
     var st = FF.Requisiten.stufe(px), c = emojiSprite(emoji, st, q), f = px / st;
     ctx.save();
-    ctx.setTransform(spiegeln ? -f : f, 0, 0, f, x * q, y * q);
+    ctx.setTransform(spiegeln ? -f : f, 0, 0, f * KOPF.f, x * q, (KOPF.f === 1 ? y : KOPF.h / 2 + KOPF.f * (y - KOPF.h / 2)) * q);
     ctx.drawImage(c, -c.width / 2, -c.height / 2);
     ctx.restore();
   }
@@ -1955,10 +1958,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.globalAlpha = 1;
   };
 
-  function zeichneTexte(ctx, K, texte) {
+  function zeichneTexte(ctx, K, texte, kf) {
+    kf = kf === undefined ? 1 : kf;
     for (var i = 0; i < texte.length; i++) {
       var t = texte[i], u = t.t / t.dauer;
-      var X = sx(K, t.x), Y = sy(K, t.y) - u * 1.4 * K.s;
+      var Y0 = sy(K, t.y); if (kf !== 1) Y0 = K.h / 2 + kf * (Y0 - K.h / 2);   // Kopfüberwelt: Ort mitdrehen, Schrift nicht
+      var X = sx(K, t.x), Y = Y0 - u * 1.4 * K.s;
       var gr = (t.gross ? 0.75 : 0.5) * K.s * (u < 0.15 ? 0.6 + u / 0.15 * 0.4 : 1);
       ctx.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1;
       ctx.font = "800 " + Math.round(gr) + "px 'Baloo 2', sans-serif";
@@ -2089,6 +2094,14 @@ var FF = globalThis.FF = globalThis.FF || {};
     var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit, W = FF.GrafikWelt;
     taucherHelm = !!(welt.unterwasser || welt.helm);
     W.windAktualisieren(K, welt, gel, sz.dt);
+    // Kopfüberwelt: die ganze Welt wird um die Bildmitte gespiegelt (sz.kopf: 1 normal, −1 kopfüber,
+    // dazwischen klappt sie gerade um). Anzeigen und Schwebetexte bleiben richtig herum.
+    var kf = sz.kopf === undefined ? 1 : sz.kopf, gedreht = kf < 0.999;
+    KOPF.f = kf; KOPF.h = K.h;
+    if (gedreht) {
+      if (sz.himmelPerCss) ctx.clearRect(0, 0, K.b, K.h);
+      ctx.save(); ctx.translate(0, K.h / 2); ctx.scale(1, kf); ctx.translate(0, -K.h / 2);
+    }
     W.zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
     W.zeichneWolken(ctx, K, welt, z);
     sz.wetter.zeichne(ctx, K, sz.dt, z, true);
@@ -2106,6 +2119,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.katapulte.length) W.zeichneKatapulte(ctx, K, gel, f.zeit);
     if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "hinten");
     if (gel.roehren.length) W.zeichneRoehren(ctx, K, gel, welt, "hinten", z);
+    if (gel.tore.length) W.zeichneTore(ctx, K, gel, z, b[2], b[3]);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
@@ -2123,10 +2137,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "vorn");
     sz.partikel.zeichne(ctx, K);
     if (welt.nacht) W.zeichneNacht(ctx, K, f, sz);
-    zeichneTexte(ctx, K, sz.texte);
     sz.wetter.zeichne(ctx, K, sz.dt, z, false);
-    if (sz.geist && !geistSichtbar) zeichneGeistPfeil(ctx, K, sz.geist, f.fz.chassis);
     if (sz.kraefte) zeichneKraefte(ctx, K, f);
+    if (gedreht) ctx.restore();
+    KOPF.f = 1;
+    zeichneTexte(ctx, K, sz.texte, kf);
+    if (sz.geist && !geistSichtbar) zeichneGeistPfeil(ctx, K, sz.geist, f.fz.chassis);
     if (sz.instrumente) zeichneInstrumente(ctx, K, f);
   }
 
@@ -2206,6 +2222,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneMuenze: zeichneMuenze,
     Partikel: Partikel,
     emojiSprite: emojiSprite,
+    KOPF: KOPF,
     hell: hell, dunkel: dunkel,
     // Wetter und himmelCss trägt grafik-welt.js ein
     // für grafik-welt.js: gemeinsame Helfer
