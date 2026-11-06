@@ -382,13 +382,16 @@ Auf der Tür des Flitzers steht der Anfangsbuchstabe des Fahrers.
 Punkte, Sterne, Flammen, Blitze, Karo). Farben und Muster kauft man einmal und
 kann sie dann für alle Fahrzeuge nutzen.
 **💫 Spur** (jedes Kind hat seine eigene, für alle Fahrzeuge): Sternenstaub,
-Seifenblasen, Herzen, Funken, Konfetti oder Regenbogen fliegen beim Fahren
-hinter dem Auto her (1.500–10.000 Münzen, `spuren` in `config.js`) – damit
+Seifenblasen, Herzen, Funken, Konfetti, Regenbogen, grüne Pupswolken (mit leisem
+„Pfff“), Gummienten, Bananen, Popcorn, Tatzenabdrücke auf dem Boden oder Socken
+fliegen beim Fahren hinter dem Auto her (1.500–10.000 Münzen, `spuren` in `config.js`) – damit
 Münzen auch dann noch etwas wert sind, wenn alle Fahrzeuge gekauft sind.
 **🛞 Felgen** (jedes Kind, für alle Fahrzeuge): Silber, Gold, Stern, Blume,
 Neon, Regenbogen (1.500–6.000, `felgen`). **🐶 Beifahrer** (jedes Kind):
-Hund, Katze, Hase, Papagei, Dino, Einhorn fahren mit (3.000–12.000,
-`beifahrer`). Muster, Felgen, Beifahrer und Spuren stehen als gleichmäßiges
+Hund, Katze, Hase, Papagei, Dino, Einhorn, Wolf (heult nach jedem Salto
+„Auuu!“), Pinguin (watschelt), Panda (mampft Bambus), Fuchs (wackelt im
+Fahrtwind), Eule (dreht den Kopf) und Schildkröte (mit Sturzhelm) fahren mit
+(3.000–12.000, `beifahrer`). Muster, Felgen, Beifahrer und Spuren stehen als gleichmäßiges
 Kachel-Raster (`.kachel-liste`) in der Garage.
 
 **Themen-Himmel**: Jede Welt kann in `config.js` Sonne und Wolken an ihr Thema

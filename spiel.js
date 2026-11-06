@@ -445,7 +445,7 @@
   }
 
   /* Gekaufte Spur (config.spuren): Teilchen am Heck, solange das Auto fährt */
-  var spurTakt = 0, REGENBOGEN = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
+  var spurTakt = 0, pupsTakt = 0, tatzenSeite = false, REGENBOGEN = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
   function spurZiehen(dt) {
     var art = P.spur, ch = fahrt.fz.chassis;
     if (!art || art === "keine" || fahrt.zustand !== "fahrt" || Math.hypot(ch.vx, ch.vy) < 2.5) return;
@@ -472,6 +472,24 @@
     } else if (art === "konfetti") {
       partikel.neu({ art: "konfetti", x: x, y: y, vx: (zf() - 0.5) * 2, vy: 1 + zf() * 1.5, t: 0, dauer: 1.2,
                      farbe: REGENBOGEN[Math.floor(zf() * 6)], schwer: 0.3, reibung: 1, w: zf() * 6, dreh: (zf() - 0.5) * 10 });
+    } else if (art === "pups") {                          // grüne Wölkchen, ab und zu ein leises „Pfff“
+      partikel.neu({ art: "pups", x: x, y: y, vx: -ca * 0.8 + (zf() - 0.5) * 0.4, vy: 0.2 + zf() * 0.3, t: 0, dauer: 1.3,
+                     r0: 0.12, r1: 0.45 + zf() * 0.15, reibung: 1.5, w: zf() * 6 });
+      pupsTakt -= 0.12;
+      if (pupsTakt <= 0) { pupsTakt = 1.6 + zf() * 1.4; FF.Klang.spiele("pups"); }
+    } else if (art === "enten" || art === "bananen" || art === "socken") {   // fallen herunter und purzeln
+      partikel.neu({ art: "emoji", emoji: { enten: "🦆", bananen: "🍌", socken: "🧦" }[art], x: x, y: y, vx: -ca * 0.5 + (zf() - 0.5) * 1.2,
+                     vy: 1.2 + zf() * 1.2, t: 0, dauer: 1.4, r0: 0.38 + zf() * 0.1, schwer: 0.35, reibung: 0.6, w: zf() * 6,
+                     dreh: art === "enten" ? (zf() - 0.5) * 3 : (zf() - 0.5) * 9 });
+    } else if (art === "popcorn") {                       // poppt nach oben und fällt
+      for (var pc = 0; pc < 2; pc++) partikel.neu({ art: "popcorn", x: x, y: y, vx: (zf() - 0.5) * 2.5, vy: 2.5 + zf() * 2.5, t: 0, dauer: 1.1,
+                     r0: 0.09 + zf() * 0.05, schwer: 0.45, reibung: 0.5, w: zf() * 6, dreh: (zf() - 0.5) * 8 });
+    } else if (art === "tatzen") {                        // Abdrücke auf dem Boden, abwechselnd links/rechts
+      var tx = x, ty = fahrt.gelaende.hoeheBei(tx) + 0.07 + (tatzenSeite ? 0.08 : 0);
+      tatzenSeite = !tatzenSeite;
+      if (ch.y - ty < 2.5) partikel.neu({ art: "emoji", emoji: "🐾", x: tx, y: ty, vx: 0, vy: 0, t: 0, dauer: 2.2, r0: 0.45,
+                                          w: -Math.atan(fahrt.gelaende.hoeheBei(tx + 0.5) - fahrt.gelaende.hoeheBei(tx - 0.5)) });
+      spurTakt = 0.22;
     }
   }
 
@@ -539,6 +557,10 @@
           konfettiWelt(ch.x, ch.y + 1, 18);
           setzeAusdruck("freude", 1.6);
           FF.Klang.sprich(e.anzahl > 1 ? e.anzahl + " Saltos!" : "Salto!");
+          if (P.beifahrer === "wolf") {                     // der Wolf freut sich mit
+            setTimeout(function () { FF.Klang.spiele("heulen"); }, 650);
+            schwebeText(ch.x - 0.6, ch.y + 2.6, "Auuu! 🐺", "#cfe3ff");
+          }
           break;
         case "looping":
           FF.Klang.spiele("salto");

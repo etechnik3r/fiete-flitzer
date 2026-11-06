@@ -742,6 +742,22 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;
+      case "pups":                     // Pupswolken-Spur: kurzes, leises „Pfff“ (freundlich, nicht eklig)
+        rauschen(0, 0.22, 0.05, 700); ton(120, 0, 0.18, "sawtooth", 0.025, 80);
+        break;
+      case "heulen":                   // Wolf-Beifahrer nach dem Salto: „Auuu!“
+        (function () {
+          if (!ctx) return;
+          var t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(), v = ctx.createOscillator(), vg = ctx.createGain();
+          o.type = "triangle"; o.frequency.setValueAtTime(420, t);
+          o.frequency.exponentialRampToValueAtTime(760, t + 0.35); o.frequency.setValueAtTime(760, t + 0.8);
+          o.frequency.exponentialRampToValueAtTime(380, t + 1.3);
+          v.frequency.value = 6; vg.gain.value = 14; v.connect(vg); vg.connect(o.frequency);
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.15);
+          g.gain.setValueAtTime(0.09, t + 0.9); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.35);
+          o.connect(g); g.connect(master); o.start(t); v.start(t); o.stop(t + 1.4); v.stop(t + 1.4);
+        })();
+        break;
       case "meilenstein":
         ton(784, 0, 0.12, "triangle", 0.14); ton(1175, 0.1, 0.25, "triangle", 0.14);
         break;

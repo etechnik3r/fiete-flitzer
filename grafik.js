@@ -1625,9 +1625,24 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Beifahrer: ein Tier sitzt hinter dem Kind (beim Skateboard vorne auf dem Brett)
     if (aussehen.beifahrer) {
       var bx = form === "skateboard" ? 0.45 : kp.x - 0.52, by = form === "skateboard" ? -0.05 : kp.y - 0.08 + kind.groesse * 0.5;
-      var spr = emojiSprite(aussehen.beifahrer, 64, 1);
-      ctx.save(); ctx.translate(bx, by + Math.abs(Math.sin(zeit * 6)) * 0.03); ctx.scale(-1, -1);   // schaut nach vorn
-      ctx.drawImage(spr, -0.3, -0.3, 0.6, 0.6); ctx.restore();
+      var bfe = aussehen.beifahrer, spr = emojiSprite(bfe, 64, 1), hopp = Math.abs(Math.sin(zeit * 6)) * 0.03;
+      ctx.save(); ctx.translate(bx, by + hopp); ctx.scale(-1, -1);   // schaut nach vorn
+      // kleine Eigenarten der Tiere (Version 30)
+      if (bfe === "🐧") { ctx.translate(Math.sin(zeit * 3.2) * 0.05, 0); ctx.rotate(Math.sin(zeit * 6.4) * 0.22); }       // watschelt
+      else if (bfe === "🦊") ctx.rotate(Math.sin(zeit * 9) * 0.1);                                                    // im Fahrtwind
+      else if (bfe === "🦉" && Math.sin(zeit * 0.9) > 0.75) ctx.scale(-1, 1);                                         // dreht den Kopf
+      else if (bfe === "🐺") ctx.rotate(-0.06 + Math.sin(zeit * 2) * 0.04);
+      ctx.drawImage(spr, -0.3, -0.3, 0.6, 0.6);
+      if (bfe === "🐼") {                                     // Bambus zum Mampfen
+        var bam = emojiSprite("🎋", 40, 1), kau = Math.sin(zeit * 7) * 0.04;
+        ctx.save(); ctx.translate(0.24, 0.06 + kau); ctx.rotate(0.4); ctx.drawImage(bam, -0.2, -0.2, 0.4, 0.4); ctx.restore();
+      } else if (bfe === "🐢") {                              // Sturzhelm (Bildkoordinaten: −y oben, −x vorn)
+        ctx.fillStyle = "#e8413b"; ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025;
+        ctx.beginPath(); ctx.ellipse(-0.15, -0.06, 0.1, 0.085, 0, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.beginPath(); ctx.ellipse(-0.18, -0.1, 0.03, 0.018, -0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#ffd23f"; ctx.fillRect(-0.25, -0.075, 0.2, 0.02);
+      }
+      ctx.restore();
     }
     // Räder zuletzt (vorn)
     felgeJetzt = aussehen.felge || "standard";
@@ -1799,6 +1814,25 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
         ctx.strokeStyle = p.farbe || "#f2cf5e"; ctx.lineWidth = Math.max(1.5, 0.06 * K.s); ctx.lineCap = "round";
         ctx.beginPath(); ctx.moveTo(-sl, 0); ctx.lineTo(sl, 0); ctx.stroke();
+        ctx.restore();
+      } else if (p.art === "emoji") {                         // Spur-Gegenstand (Ente, Banane, Socke, Tatze)
+        var es = p.r0 * K.s, espr = emojiSprite(p.emoji, Math.min(96, Math.max(16, es * 1.2)), 1);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.drawImage(espr, -es / 2, -es / 2, es, es); ctx.restore();
+      } else if (p.art === "pups") {                          // grünes Pups-Wölkchen aus drei Kugeln
+        var pr = (p.r0 + (p.r1 - p.r0) * Math.sqrt(u)) * K.s;
+        ctx.fillStyle = "rgba(150,205,90,0.75)";
+        ctx.beginPath(); ctx.arc(X, Y, pr, 0, Math.PI * 2);
+        ctx.arc(X + pr * 0.75 * Math.cos(p.w), Y + pr * 0.6 * Math.sin(p.w), pr * 0.7, 0, Math.PI * 2);
+        ctx.arc(X - pr * 0.7 * Math.sin(p.w), Y + pr * 0.55 * Math.cos(p.w), pr * 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(200,240,150,0.6)"; ctx.beginPath(); ctx.arc(X - pr * 0.3, Y - pr * 0.3, pr * 0.35, 0, Math.PI * 2); ctx.fill();
+      } else if (p.art === "popcorn") {                       // Popcorn: weißes Knubbelchen mit gelbem Kern
+        var po = p.r0 * K.s;
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
+        ctx.fillStyle = "#fffaf0"; ctx.strokeStyle = "rgba(160,120,60,0.6)"; ctx.lineWidth = Math.max(1, po * 0.12);
+        ctx.beginPath(); ctx.arc(-po * 0.45, 0, po * 0.65, 0, Math.PI * 2); ctx.arc(po * 0.45, -po * 0.1, po * 0.6, 0, Math.PI * 2);
+        ctx.arc(0, -po * 0.55, po * 0.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#f2c94c"; ctx.beginPath(); ctx.arc(0, po * 0.35, po * 0.35, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       } else if (p.art === "konfetti") {
         ctx.save(); ctx.translate(X, Y); ctx.rotate(p.w || 0);
