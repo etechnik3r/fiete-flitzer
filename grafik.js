@@ -1682,6 +1682,30 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
   }
 
+  /* 🦸 Heldenumhang (Superheldenwelt, nach der Telefonzelle): großer roter Umhang mit
+     goldenem Saum, der hinter dem Auto im Wind flattert; in der letzten Sekunde blasser */
+  function zeichneHeldenumhang(ctx, kopf, rest, zeit, tempo) {
+    var x0 = kopf.x - 0.05, y0 = kopf.y - 0.32, wind = Math.min(1, tempo / 10), L = 1.4 + 0.5 * wind;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, rest);
+    var pfad = function (ein) {
+      ctx.beginPath(); ctx.moveTo(x0 + 0.12, y0 + 0.04);
+      for (var i = 1; i <= 8; i++) {
+        var t = i / 8, x = x0 - L * t, y = y0 + 0.1 - 0.55 * t * (1 - wind * 0.6) + Math.sin(zeit * 11 - t * 6) * 0.1 * t;
+        ctx.lineTo(x, y + (0.2 + 0.35 * t) * ein);
+      }
+      for (i = 8; i >= 0; i--) {
+        var t2 = i / 8, x2 = x0 - L * t2, y2 = y0 + 0.1 - 0.55 * t2 * (1 - wind * 0.6) + Math.sin(zeit * 11 - t2 * 6 + 0.6) * 0.1 * t2;
+        ctx.lineTo(x2, y2 - (0.2 + 0.35 * t2) * ein);
+      }
+      ctx.closePath();
+    };
+    pfad(1); ctx.fillStyle = "#ffd23f"; ctx.fill();
+    pfad(0.82); ctx.fillStyle = "#e8313b"; ctx.fill();
+    ctx.strokeStyle = "#9c1620"; ctx.lineWidth = 0.025; ctx.stroke();
+    ctx.restore();
+  }
+
   /* 🪽 Spoiler-Upgrade: Flügel hinten oben, mit jeder Stufe etwas größer und höher */
   function zeichneSpoiler(ctx, def, stufe) {
     var H = def.huelle, xs = Infinity, yt = -Infinity;
@@ -1721,6 +1745,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       zeichneAnzug(ctx, o, tk, kopf, KOPF_R);
       zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm || taucherHelm, kind, Math.min(1, tempo / 12), zeit);
     };
+    if (fz.umhang > 0) zeichneHeldenumhang(ctx, kopf, fz.umhang, zeit, tempo);
     teile.hinten();
     zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
@@ -1966,6 +1991,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       var X = sx(K, t.x), Y = Y0 - u * 1.4 * K.s;
       var gr = (t.gross ? 0.75 : 0.5) * K.s * (u < 0.15 ? 0.6 + u / 0.15 * 0.4 : 1);
       ctx.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1;
+      if (t.comic) {                                     // Comic-Sprechblase: gezackter Stern hinter der Schrift
+        var cr = gr * (1.25 + 0.12 * t.text.length);
+        ctx.save(); ctx.translate(X, Y); ctx.rotate(-0.12);
+        stern(ctx, 0, 0, cr, 12, 0.72); ctx.fillStyle = "#ffe14d"; ctx.fill();
+        ctx.lineWidth = Math.max(2, gr * 0.1); ctx.strokeStyle = TINTE; ctx.stroke();
+        stern(ctx, 0, 0, cr * 0.72, 12, 0.75); ctx.fillStyle = "#ff5b3b"; ctx.fill();
+        ctx.restore();
+      }
       ctx.font = "800 " + Math.round(gr) + "px 'Baloo 2', sans-serif";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.lineWidth = Math.max(2, gr * 0.16); ctx.strokeStyle = TINTE; ctx.lineJoin = "round";
@@ -2120,6 +2153,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "hinten");
     if (gel.roehren.length) W.zeichneRoehren(ctx, K, gel, welt, "hinten", z);
     if (gel.tore.length) W.zeichneTore(ctx, K, gel, z, b[2], b[3]);
+    if (gel.zellen.length) W.zeichneZellen(ctx, K, gel, "hinten", b[2], b[3]);
+    if (gel.katzen.length) W.zeichneKatzen(ctx, K, gel, z, b[2], b[3], sz.dpr || 1);
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
@@ -2135,6 +2170,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     } else zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
     if (gel.roehren.length) W.zeichneRoehren(ctx, K, gel, welt, "vorn", z);
     if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "vorn");
+    if (gel.zellen.length) W.zeichneZellen(ctx, K, gel, "vorn", b[2], b[3]);
     sz.partikel.zeichne(ctx, K);
     if (welt.nacht) W.zeichneNacht(ctx, K, f, sz);
     sz.wetter.zeichne(ctx, K, sz.dt, z, false);

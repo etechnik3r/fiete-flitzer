@@ -1237,6 +1237,35 @@ FF.CONFIG = {
                   abstandElemente: 28 },
       tankAbstand: 260, muenzAbstand: 22,
       level: [ { laenge: 760, seed: 3001 }, { laenge: 1000, seed: 3002 }, { laenge: 1250, seed: 3003 }, { laenge: 1500, seed: 3004 } ]
+    },
+    {
+      /* Superheldenwelt (Version 34): Stadt in der Abenddämmerung, gefahren wird über
+         Hochhausdächer mit Lücken. Am Himmel kreist ein Suchscheinwerfer mit Blitz
+         (welt.scheinwerfer). Keine Logos oder Namen – nur Superhelden-Elemente:
+           • Comic-Sprechblasen „BÄM!“, „ZACK!“ … bei Landung, Salto, Turbo (welt.comic)
+           • Telefonzellen (welt.held.zelle): durchfahren → Heldenumhang für einige
+             Sekunden: kleiner Schub, und in der Luft fällt man langsamer (gleiten)
+           • Kätzchen auf den Dächern retten (welt.held.katze): einsammeln gibt Münzen */
+      id: "helden", name: "Superheldenwelt", emoji: "🦸", hinweis: "Über die Dächer der Stadt – Umhang an und gleiten!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.015, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#2a2f6e", "#ff9f6e"], berge: ["#4a3f7a", "#33295c"],
+        boden: ["#4b5266", "#2e3242"], oberflaeche: "#6a7288", kante: "#ffd23f", punkte: "#3a4054",
+        wolken: "rgba(255,190,170,0.55)", fenster: "#ffe27a"
+      },
+      sonne: "sonne", sonnenDeko: "brille", wetter: null, wolkenStil: "wenige",
+      scheinwerfer: true, comic: true,
+      held: { zelle: { abstand: 170, dauer: 7, sinkMax: 3.2 }, katze: { abstand: 85, muenzen: 25 },
+              turbo: { beschl: 9, tempoMax: 1.5, dauer: 1.2 } },
+      tipp: ["🦸 Fahr durch die Telefonzelle – dann bekommst du einen Heldenumhang und kannst gleiten!", "Ab in die Telefonzelle!"],
+      deko: ["@laterne:2.4", "🏢:4.6", "@antenne:1.6", "@kiste:0.9", "🏬:4.0", "@solarpanel:1.1", "🚒:1.7", "@laterne:2.0", "🏢:3.6", "🚁:1.3:4.5", "@kiste:1.2", "🦸:1.0"],
+      beiwerk: ["@stein:0.3", "@kiste:0.45"], kulisse: ["stadt", "stadt", "stadt"], kulisseGroesse: 1.3,
+      gelaende: { amp: 5.0, welle: 46, holperAmp: 0.08, holperWelle: 8, trend: 0.012,
+                  maxAuf: 26, maxAb: 36, schanzen: 1.3, buckel: 0.5, steil: 0.4, taeler: 0.4, berg: 0.4, sprung: 1.1, wellen: 0.3, klippe: 1.0, rampe: 0.9, kuppe: 0.5, stufe: 1.5,
+                  luecke: 1.3, wildBasis: 0.35,
+                  abstandElemente: 24 },
+      tankAbstand: 280, muenzAbstand: 22,
+      level: [ { laenge: 800, seed: 3101 }, { laenge: 1060, seed: 3102 }, { laenge: 1320, seed: 3103 }, { laenge: 1580, seed: 3104 } ]
     }
   ],
 
@@ -1259,6 +1288,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "34", titel: "Die Superheldenwelt", punkte: [
+      "🦸 Neue Welt Superheldenwelt: über die Dächer der Stadt, am Himmel kreist der Suchscheinwerfer",
+      "📞 Fahr durch die Telefonzelle: Heldenumhang an – du bekommst Schwung und kannst gleiten!",
+      "🐱 Rette die Kätzchen auf den Dächern",
+      "💥 BÄM! ZACK! WUSCH! – Comic-Sprechblasen bei Landungen und Saltos" ] },
     { version: "33", titel: "Die Kopfüberwelt", punkte: [
       "🙃 Neue Welt Kopfüberwelt: Fahr durchs Umdreh-Tor – und plötzlich steht alles kopf!",
       "⬇️ Kopfüber springst du nach unten, der Himmel ist unten und der Boden oben",

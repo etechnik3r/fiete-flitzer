@@ -771,6 +771,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;
+      case "held":                     // Heldenumhang: Fanfare + Wusch
+        rauschen(0, 0.5, 0.12, 1800);
+        [392, 523, 659, 784].forEach(function (f, i) { ton(f, 0.05 + i * 0.09, 0.22, "square", 0.06); });
+        ton(1047, 0.42, 0.5, "triangle", 0.09);
+        break;
+      case "miau":                     // Kätzchen: kleines Miau (Ton gleitet hoch und runter)
+        ton(700, 0, 0.16, "triangle", 0.08, 1100); ton(1100, 0.15, 0.22, "triangle", 0.07, 650);
+        break;
       case "umdrehen":                 // Umdreh-Tor: Wusch + Glissando hinauf (kopfüber) bzw. hinunter
         rauschen(0, 0.7, 0.14, 1400);
         if (wert) { ton(330, 0, 0.55, "sine", 0.12, 1320); ton(660, 0.08, 0.5, "triangle", 0.06, 1980); }

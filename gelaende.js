@@ -261,6 +261,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
     this.objekte = [];             // Dinge auf der Strecke, die man umfährt (welt.objekte): Glas, Bausteine, Säulen
     this.objektX = 35;             // bis hierhin sind Objekte verteilt
+    this.zellen = [];              // Telefonzellen (welt.held.zelle) {x, benutzt}: Heldenumhang
+    this.katzen = [];              // Kätzchen zum Retten (welt.held.katze) {x, y, weg}
+    this.zelleX = 45; this.katzeX = 30;
     this.tore = [];                // Umdreh-Tore (welt.kopfueber) {x, durch}: drehen das Bild um
     this.torX = welt.kopfueber ? welt.kopfueber.start : Infinity;
     this.spuk = [];                // Geister (welt.spuk), die kurz vor dem Auto auftauchen {x, gesehen}
@@ -1106,6 +1109,24 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.obst.push({ x: xf, y: this.hoeheBei(xf) + 0.95, art: Math.floor(hf2 * 7), weg: false });
     }
 
+    // Superheldenwelt: Telefonzellen und Kätzchen auf ebenem Boden, eigener Zufall
+    var HE = welt.held;
+    while (HE && this.zelleX < bis - 5 && this.zelleX < ende - 25) {
+      var xz = this.zelleX, hz = hash01(Math.round(xz * 5), this.seed + 95);
+      var ebenZ = Math.abs(this.steigungBei(xz - 1.5)) < 0.2 && Math.abs(this.steigungBei(xz + 1.5)) < 0.2;
+      if (!ebenZ || this.gesperrt(xz) || this.verdecktBis(xz) || this.flughoehe(xz) > 0.6 || this.nahAnTank(xz, 6)) { this.zelleX = xz + 5; continue; }
+      this.zellen.push({ x: xz, benutzt: false });
+      this.zelleX = xz + HE.zelle.abstand * (0.75 + 0.5 * hz);
+    }
+    while (HE && this.katzeX < bis - 5 && this.katzeX < ende - 15) {
+      var xk = this.katzeX, hk = hash01(Math.round(xk * 5), this.seed + 96);
+      var ebenK = Math.abs(this.steigungBei(xk - 1)) < 0.3 && Math.abs(this.steigungBei(xk + 1)) < 0.3;
+      if (!ebenK || this.gesperrt(xk) || this.verdecktBis(xk) || this.flughoehe(xk) > 1.0 || this.nahAnTank(xk, 4) ||
+          this.zellen.some(function (z) { return Math.abs(z.x - xk) < 8; })) { this.katzeX = xk + 4; continue; }
+      this.katzen.push({ x: xk, y: this.hoeheBei(xk) + 0.7, weg: false });
+      this.katzeX = xk + HE.katze.abstand * (0.6 + 0.8 * hk);
+    }
+
     // Umdreh-Tore (Kopfüberwelt): das erste gleich nach dem Start, dann alle 130–200 m
     var KU = welt.kopfueber;
     while (KU && this.torX < bis && this.torX < ende - 30) {
@@ -1221,7 +1242,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
-    filter(this.objekte); filter(this.spuk); filter(this.obst); filter(this.tore);
+    filter(this.objekte); filter(this.spuk); filter(this.obst); filter(this.tore); filter(this.zellen); filter(this.katzen);
     while (this.scheunen.length && this.scheunen[0].x1 < xHinten) this.scheunen.shift();
     while (this.roehren.length && this.roehren[0].x + this.roehren[0].span < xHinten) this.roehren.shift();
     var n = 0;

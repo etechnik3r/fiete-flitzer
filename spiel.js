@@ -279,6 +279,14 @@
   /* =========================================================================
      5) EFFEKTE: Partikel, Schwebetexte, Meldungen, Konfetti, Popover
      ========================================================================= */
+  /* Superheldenwelt: Comic-Sprechblase (gezackter Stern hinter der Schrift) */
+  var COMIC = ["BÄM!", "ZACK!", "WUSCH!", "KAWUMM!", "PENG!", "HUI!", "ZOING!"], comicNr = 0, comicBis = 0;
+  function comic(x, y, wort) {
+    if (!fahrt || !fahrt.welt.comic || zeit < comicBis) return;
+    comicBis = zeit + 0.7;                                // nicht zu viele auf einmal
+    texte.push({ x: x, y: y, text: wort || COMIC[comicNr++ % COMIC.length], farbe: "#ffffff", gross: true, comic: true, t: 0, dauer: 1.2 });
+    if (texte.length > 24) texte.shift();
+  }
   function schwebeText(x, y, text, farbe, gross) {
     texte.push({ x: x, y: y, text: text, farbe: farbe, gross: gross, t: 0, dauer: gross ? 1.6 : 1.0 });
     if (texte.length > 24) texte.shift();
@@ -577,6 +585,7 @@
           break;
         case "salto":
           FF.Klang.spiele("salto");
+          comic(ch.x - 1.2, ch.y + 3, "ZACK!");
           meldung((e.anzahl > 1 ? e.anzahl + "× " : "") + "Salto!");
           schwebeText(ch.x, ch.y + 1.8, "+" + e.bonus, "#ffd23f", true);
           konfettiWelt(ch.x, ch.y + 1, 18);
@@ -734,6 +743,22 @@
           schwebeText(e.x + 2, e.y + 2, "Wuuusch! 🎯", "#ffd23f", true);
           setzeAusdruck("freude", 2.5);
           break;
+        case "zelle":                    // Superheldenwelt: durch die Telefonzelle → Heldenumhang
+          FF.Klang.spiele("held");
+          meldung("Heldenumhang an! 🦸");
+          comicBis = 0; comic(e.x + 2, e.y + 4.4, "WUSCH!");
+          funkeln(e.x + 1.5, e.y + 1.5, "#ffe14d", 10);
+          setzeAusdruck("freude", 2.5);
+          if (ersteMale("tipp-umhang", 2)) { tipp("🦸 Mit dem Umhang fällst du in der Luft ganz langsam – gleite über die Lücken!", 4500, "Mit dem Umhang kannst du gleiten!"); spruchBis = zeit + 3; }
+          else FF.Klang.sprich("Heldenumhang!");
+          break;
+        case "katze":                    // Kätzchen gerettet
+          FF.Klang.spiele("miau");
+          schwebeText(e.x, e.y + 1.2, "Gerettet! 🐱 +" + e.wert, "#ffe27a", true);
+          funkeln(e.x, e.y + 0.4, "#ffd1e8", 8);
+          setzeAusdruck("freude", 1.6);
+          if (ersteMale("tipp-katze", 1)) FF.Klang.sprich("Kätzchen gerettet!");
+          break;
         case "umdrehen":                 // Kopfüberwelt: durchs Umdreh-Tor
           FF.Klang.spiele("umdrehen", e.kopf ? 1 : 0);
           meldung(e.kopf ? "Kopfüber! 🙃" : "Wieder richtig herum! 🙂");
@@ -781,6 +806,7 @@
           break;
         case "landung":
           FF.Klang.spiele("landung", e.staerke);
+          if (e.staerke > 0.45) comic(ch.x + 1.2, ch.y + 2.2);
           fahrt.fz.raeder.forEach(function (R) {
             for (var k = 0; k < 4; k++) {
               partikel.neu({ art: "staub", x: R.k.x + (Math.random() - 0.5) * 0.6, y: R.k.y - R.r + 0.1,
@@ -2061,6 +2087,8 @@
     if (w.decke) m.push("🪨 Höhlendecke");
     if (w.spuk) m.push("👻 Geister");
     if (w.kopfueber) m.push("🙃 Umdreh-Tore");
+    if (w.held) m.push("📞 Heldenumhang", "🐱 Kätzchen retten");
+    if (w.comic) m.push("💥 Comic-Blasen");
     if (g.looping) m.push("🎢 Loopings");
     if (g.luecke) m.push("🕳️ Abgründe");
     if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : "🍄 Hüpfpilze");

@@ -61,7 +61,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **30 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **31 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
@@ -69,7 +69,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
   🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
-  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt.
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -208,6 +208,21 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   `setTransform` gezeichnet werden). Physik, Tasten, Anzeigen und Schwebetexte
   bleiben normal, darum ist auch das Geisterrennen fair. Kopfüber sitzt das Auto
   etwas höher im Bild (Kamera-Anker −0,1), damit es gespiegelt mittig fährt.
+- **🦸 Superheldenwelt** (Version 34): Stadt in der Abenddämmerung, Dächer mit
+  Stufen, Lücken (Grubensprünge) und Schanzen, am Himmel kreist ein
+  Suchscheinwerfer mit einem Blitz (`welt.scheinwerfer`). Bewusst ohne Logos,
+  Namen oder Figuren – nur allgemeine Helden-Elemente:
+  - **📞 Telefonzellen** (`welt.held.zelle`, etwa alle 130–210 m, `gelaende.zellen`):
+    Wer am Boden hindurchfährt, bekommt für 7 s einen großen **Heldenumhang**
+    (`fahrt.umhangZeit`) und einen kleinen Schub (1,2 s, 9 m/s², bis 1,5 ×
+    Höchsttempo). Mit Umhang sinkt man in der Luft höchstens mit 3,2 m/s (auf
+    Aufbau und Räder gleich, damit die Federn nicht gedehnt werden) – man gleitet
+    über die Lücken.
+  - **🐱 Kätzchen** (`welt.held.katze`, etwa alle 50–120 m auf ebenem Boden): sitzen
+    auf einer Kiste und rufen „Hilfe!“, Einsammeln gibt +25 Münzen.
+  - **💥 Comic-Sprechblasen** (`welt.comic`): „BÄM!“, „ZACK!“, „WUSCH!“ … als
+    gezackter Stern bei harten Landungen, Saltos und in der Telefonzelle
+    (höchstens eine alle 0,7 s).
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
