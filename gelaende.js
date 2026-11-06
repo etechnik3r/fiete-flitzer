@@ -530,7 +530,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       el.La = 8;
       el.Lb = 16 + 12 * r() + 6 * p.wild;
       var vor = r() < 0.62;
-      el.v = vor ? 5 + 3 * r() : -Math.min(5.5, 3 + 1.5 * r() + 1 * p.wild);
+      el.v = vor ? 7 + 3.5 * r() : -Math.min(6.5, 3.6 + 1.8 * r() + 1.2 * p.wild);   // v29: etwas schneller (vorher 5–8 bzw. 3–5,5)
       el.Lflach = el.La + el.Lb + 6;
       el.Lo = 18;
       el.xe = xs + el.Lflach + el.Lo;
@@ -803,8 +803,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   Gelaende.prototype.bandBei = function (x) {
     var B = this.baender;
     for (var i = 0; i < B.length; i++) {
-      // an den Enden steigt das Tempo über 2,5 m an – ein Sprung würde das Auto aushebeln
-      if (x >= B[i].x0 && x <= B[i].x1) return B[i].v * Math.min(1, (x - B[i].x0) / 2.5, (B[i].x1 - x) / 2.5);
+      // an den Enden steigt das Tempo über 3 m an – ein Sprung würde das Auto aushebeln
+      if (x >= B[i].x0 && x <= B[i].x1) return B[i].v * Math.min(1, (x - B[i].x0) / 3, (B[i].x1 - x) / 3);
     }
     return 0;
   };

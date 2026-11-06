@@ -127,11 +127,11 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     Lagerfeuer, Leuchtpilze und der Mond Licht schneiden. Münzen und Kanister
     schimmern, damit man sie findet; Glühwürmchen leuchten.
   - **🧸 Spielzeugfabrik** (`gelaende.band`, Version 17): **Förderbänder** auf
-    ebenem Boden, vorwärts (5–8 m/s) oder rückwärts (3–5,5 m/s). Die Reifen
+    ebenem Boden, vorwärts (7–10,5 m/s) oder rückwärts (3,6–6,5 m/s). Die Reifen
     haften relativ zum laufenden Band (`physik.js`, `kontakt.vBand`): Wer Gas
     gibt, ist um die Bandgeschwindigkeit schneller oder langsamer; wer rollen
     lässt, steht wie auf einem Laufband fast still, wer bremst, fährt mit. An
-    den Enden steigt das Tempo über 2,5 m an, sonst würde der Sprung das Auto
+    den Enden steigt das Tempo über 3 m an, sonst würde der Sprung das Auto
     aushebeln (wie eine Vollbremsung).
   - **🪐 Roter Planet** (Version 18): Mars mit g = 3,71 m/s² und Staubstürmen
     (`wind` wie im Herbststurm, aber nur 0,75 m/s², weil man so leicht ist),
@@ -503,6 +503,18 @@ Fahrzeug hat in `config.js` ein eigenes Klang-Profil.
   EU-Verordnung 540/2014 für E-Autos vorschreibt – erst beim Rollen, im
   Stand ist ein Elektromotor ganz still (kein „Standgas“).
 - Beim Mondmobil klingt es etwas „weltraumiger“.
+
+**Kein Ton auf dem Handy?** Der Ton startet erst mit einer Berührung. Auf
+Android zählt in Chrome beim Antippen erst `touchend`/`click` als Geste, nicht
+`pointerdown`, darum lauscht `klang.js` auf diese Ereignisse, bis der
+`AudioContext` wirklich läuft (plus ein stiller Mini-Puffer). Einige ältere
+Android-Handys (gemeldet: Motorola Moto G6) geben über den schnellen
+WebAudio-Ausgang trotzdem nichts aus. Dafür gibt es unter ⚙️ Einstellungen
+**📱 Handy-Ton**: Der Klang läuft dann über einen `MediaStream` in ein
+`<audio>`-Element (Ausgabeweg wie bei Videos), und beim nächsten App-Start wird
+der Kontext mit `latencyHint: "playback"` angelegt. **🔈 Ton testen** spielt
+eine Melodie, sagt „Hallo“ und zeigt den Zustand (läuft/angehalten,
+Abtastrate, Latenz, Ausgabeweg).
 
 **Fahrgeräusche** für alle: Abrollen und Reifenrauschen (nur mit
 Bodenkontakt) und Fahrtwind (∝ v²). Auf dem Mond gibt es keine Luft, also auch

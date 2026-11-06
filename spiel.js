@@ -1883,6 +1883,7 @@
     });
   }
   function einstellungenAnwenden() {
+    FF.Klang.setzeHandyTon(S.einstellungen.tonHandy);
     FF.Klang.setzeAn(S.einstellungen.ton);
     FF.Klang.setzeSprache(S.einstellungen.sprache);
     ausrichtungAnwenden();
@@ -1919,6 +1920,15 @@
       FF.Klang.spiele("klick");
       if (k === "sprache" && S.einstellungen.sprache) FF.Klang.sprich("Ich lese dir vor!");
     });
+  });
+  $("knopf-ton-test").addEventListener("click", function () {
+    FF.Klang.init();
+    if (!S.einstellungen.ton) { S.einstellungen.ton = true; speichere(); einstellungenAnwenden(); einstellungenAnzeigen(); }
+    FF.Klang.spiele("ziel");
+    if (S.einstellungen.sprache) FF.Klang.sprich("Hallo! Hörst du mich?");
+    var z = $("ton-zustand");
+    z.textContent = FF.Klang.tonZustand();
+    setTimeout(function () { z.textContent = FF.Klang.tonZustand(); }, 700);   // resume() braucht einen Moment
   });
   function oeffneEinstellungen() { FF.Klang.init(); FF.Klang.spiele("klick"); einstellungenAnzeigen(); codeAnzeigen(); oeffneModal("einstellungen"); }
 

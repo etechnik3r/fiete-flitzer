@@ -22,17 +22,88 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   var ctx = null, master = null, motor = null, dumpf = null;
   var an = true, sprachAn = true;
+  /* Handy-Ton (Einstellung „📱 Handy-Ton“, für ältere Android-Handys, z. B. Moto G6):
+     Manche Geräte geben über den schnellen WebAudio-Ausgang (AAudio, niedrige Latenz)
+     nichts aus, obwohl alles „läuft“. Dann geht der Klang über einen MediaStream in ein
+     gewöhnliches <audio>-Element (derselbe Weg wie bei Videos) und der Kontext wird mit
+     latencyHint "playback" angelegt (größerer Puffer, anderer Ausgabeweg). */
+  var handyTon = false, audioEl = null, streamZiel = null;
 
   function init() {
-    if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
-    var AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    ctx = new AC();
-    master = ctx.createGain();
-    master.gain.value = an ? 0.8 : 0;
-    // Tiefpass hinter allem: offen (unhörbar) – unter Wasser klingt alles dumpf
-    dumpf = ctx.createBiquadFilter(); dumpf.type = "lowpass"; dumpf.frequency.value = 20000; dumpf.Q.value = 0.7;
-    master.connect(dumpf); dumpf.connect(ctx.destination);
+    if (!ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      try { ctx = handyTon ? new AC({ latencyHint: "playback" }) : new AC(); } catch (e) { ctx = new AC(); }
+      master = ctx.createGain();
+      master.gain.value = an ? 0.8 : 0;
+      // Tiefpass hinter allem: offen (unhörbar) – unter Wasser klingt alles dumpf
+      dumpf = ctx.createBiquadFilter(); dumpf.type = "lowpass"; dumpf.frequency.value = Math.min(20000, ctx.sampleRate * 0.45); dumpf.Q.value = 0.7;
+      master.connect(dumpf);
+      verbindeAusgang();
+    }
+    wecke();
+  }
+
+  /* Ausgang: direkt an die Lautsprecher oder (Handy-Ton) über ein <audio>-Element */
+  function verbindeAusgang() {
+    if (!ctx) return;
+    try { dumpf.disconnect(); } catch (e) { /* war nicht verbunden */ }
+    if (handyTon && ctx.createMediaStreamDestination) {
+      if (!streamZiel) streamZiel = ctx.createMediaStreamDestination();
+      dumpf.connect(streamZiel);
+      if (!audioEl) { audioEl = document.createElement("audio"); audioEl.setAttribute("playsinline", ""); audioEl.autoplay = true; }
+      if (audioEl.srcObject !== streamZiel.stream) audioEl.srcObject = streamZiel.stream;
+    } else {
+      dumpf.connect(ctx.destination);
+      if (audioEl) audioEl.pause();
+    }
+  }
+
+  /* Aufwecken – nur innerhalb einer Berührung/eines Klicks erlaubt der Browser das.
+     Wichtig auf Android: „pointerdown“ beim Antippen zählt in Chrome NICHT als
+     Nutzer-Geste (erst „touchend“/„click“). Deshalb lauscht unten ein Wächter auf
+     diese Ereignisse, bis der Ton wirklich läuft. Dazu ein stiller Mini-Puffer:
+     manche Android- und iOS-Versionen geben den Ausgang erst damit frei. */
+  function wecke() {
+    if (!ctx) return;
+    if (ctx.state !== "running" && ctx.resume) {
+      try { var p = ctx.resume(); if (p && p.catch) p.catch(function () { /* nächste Geste */ }); } catch (e) { /* egal */ }
+    }
+    try {
+      var q = ctx.createBufferSource(); q.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      q.connect(ctx.destination); q.start(0);
+    } catch (e) { /* egal */ }
+    if (handyTon && audioEl && audioEl.paused) {
+      try { var p2 = audioEl.play(); if (p2 && p2.catch) p2.catch(function () { /* nächste Geste */ }); } catch (e) { /* egal */ }
+    }
+  }
+  function laeuft() { return !!ctx && ctx.state === "running" && (!handyTon || !audioEl || !audioEl.paused); }
+
+  if (typeof document !== "undefined" && document.addEventListener) {
+    ["touchend", "click", "keydown", "mousedown"].forEach(function (art) {
+      document.addEventListener(art, function () { if (!laeuft()) init(); }, true);
+    });
+    // zurück aus dem Hintergrund / nach einem Anruf („interrupted“): nächste Geste weckt
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && ctx) wecke(); });
+  }
+
+  function setzeHandyTon(wert) {
+    wert = !!wert;
+    if (wert === handyTon) return;
+    handyTon = wert;
+    verbindeAusgang();               // latencyHint gilt erst beim nächsten Start der App
+    wecke();
+  }
+
+  /* Für den Knopf „🔈 Ton testen“: Zustand in Worten (hilft bei der Fehlersuche) */
+  function tonZustand() {
+    if (!(window.AudioContext || window.webkitAudioContext)) return "Dieser Browser kann keinen WebAudio-Ton.";
+    if (!ctx) return "Ton noch nicht gestartet.";
+    var t = "WebAudio: " + ({ running: "läuft", suspended: "angehalten", interrupted: "unterbrochen", closed: "geschlossen" }[ctx.state] || ctx.state) +
+            " · " + ctx.sampleRate + " Hz";
+    if (ctx.baseLatency) t += " · " + Math.round(ctx.baseLatency * 1000) + " ms";
+    t += handyTon ? " · Handy-Ton " + (audioEl && !audioEl.paused ? "läuft" : "wartet") : " · direkt";
+    return t;
   }
 
   function setzeAn(wert) {
@@ -705,6 +776,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   FF.Klang = {
     init: init,
     setzeAn: setzeAn,
+    setzeHandyTon: setzeHandyTon, tonZustand: tonZustand,
     setzeSprache: function (wert) { sprachAn = wert; if (!wert && window.speechSynthesis) window.speechSynthesis.cancel(); },
     motorStart: motorStart, motorSetze: motorSetze, motorStopp: motorStopp, motorProbe: motorProbe,
     setzeUmgebung: setzeUmgebung, umgebungStaerke: umgebungStaerke,
