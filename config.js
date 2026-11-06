@@ -1184,6 +1184,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "29", titel: "Schnellere Förderbänder und Ton-Hilfe", punkte: [
+      "⏩ Spielzeugfabrik: Die Förderbänder laufen jetzt schneller – vorwärts ein richtiger Schub!",
+      "📱 Kein Ton auf dem Handy? In den Einstellungen gibt es jetzt „Handy-Ton“ und „Ton testen“" ] },
     { version: "28", titel: "Dampf-Lok mit Anhänger", punkte: [
       "🚂 Neues Fahrzeug Dampf-Lok: Tschu-tschu! Mit Kohlewagen und einem kleinen Anhänger an der Deichsel, der lustig hin und her wackelt",
       "🚂 Der Zug ist lang: Saltos und Loopings gehen nicht – in der Luft kann man ihn aber trotzdem lenken",

@@ -62,7 +62,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       version: 3,
       aktiv: C.kinder[0].id,
       spieler: {},
-      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true, ausrichtung: "quer" },
+      einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true, ausrichtung: "quer", tonHandy: false },
       duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
       gesehen: {},                          // welche Tipps schon wie oft kamen (bleibt über Neustarts)
       entwickler: { alleOffen: false, editor: false }   // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)

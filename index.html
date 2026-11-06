@@ -40,7 +40,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=28">
+  <link rel="stylesheet" href="style.css?v=29">
 </head>
 
 <body>
@@ -385,6 +385,14 @@
               <span class="opt-icon">🔬</span><span class="opt-name">Kräfte</span><span class="opt-schalter-status"></span>
             </button>
           </div>
+          <div class="opt-reihe opt-reihe-eins">
+            <button type="button" class="opt-karte opt-schalter" data-schalter="tonHandy">
+              <span class="opt-icon">📱</span><span class="opt-name">Handy-Ton</span><span class="opt-text">Kein Ton, obwohl laut gestellt? Einschalten (hilft auf manchen älteren Android-Handys). Danach die App einmal ganz schließen und neu öffnen.</span><span class="opt-schalter-status"></span>
+            </button>
+            <button type="button" class="opt-karte" id="knopf-ton-test">
+              <span class="opt-icon">🔈</span><span class="opt-name">Ton testen</span><span class="opt-text" id="ton-zustand">Spielt eine kleine Melodie und sagt „Hallo“.</span>
+            </button>
+          </div>
           <p class="opt-untertitel">🔬 Kräfte: zeigt beim Fahren Gewichtskraft, Normalkraft und Reibung als Pfeile.</p>
         </section>
 
@@ -568,18 +576,18 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=28"></script>
-  <script src="gelaende.js?v=28"></script>
-  <script src="physik.js?v=28"></script>
-  <script src="fahrt.js?v=28"></script>
-  <script src="geist.js?v=28"></script>
-  <script src="kinder.js?v=28"></script>
-  <script src="spielstand.js?v=28"></script>
-  <script src="requisiten.js?v=28"></script>
-  <script src="grafik.js?v=28"></script>
-  <script src="grafik-welt.js?v=28"></script>
-  <script src="klang.js?v=28"></script>
-  <script src="editor.js?v=28"></script>
-  <script src="spiel.js?v=28"></script>
+  <script src="config.js?v=29"></script>
+  <script src="gelaende.js?v=29"></script>
+  <script src="physik.js?v=29"></script>
+  <script src="fahrt.js?v=29"></script>
+  <script src="geist.js?v=29"></script>
+  <script src="kinder.js?v=29"></script>
+  <script src="spielstand.js?v=29"></script>
+  <script src="requisiten.js?v=29"></script>
+  <script src="grafik.js?v=29"></script>
+  <script src="grafik-welt.js?v=29"></script>
+  <script src="klang.js?v=29"></script>
+  <script src="editor.js?v=29"></script>
+  <script src="spiel.js?v=29"></script>
 </body>
 </html>
