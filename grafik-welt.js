@@ -45,6 +45,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     var r = Math.min(K.b, K.h) * 0.09;
     var x = K.b * 0.8, y = K.h * 0.3;
+    if (welt.scheinwerfer) zeichneScheinwerfer(ctx, K, zeit);
     if (welt.sonne === "sonne") {
       if (welt.sonnenArt && SONNEN[welt.sonnenArt]) SONNEN[welt.sonnenArt](ctx, x, y, r, zeit);
       else sonneMalen(ctx, x, y, r, zeit, welt.sonnenDeko);
@@ -1569,6 +1570,71 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* 📞 Telefonzelle (Superheldenwelt): blaue Zelle mit Glasfenstern und Schild.
+     „hinten“: Rückwand und Inneres (vor dem Auto gemalt), „vorn“: Rahmen und Dach
+     (nach dem Auto) – so fährt das Auto sichtbar hindurch. */
+  function zeichneZellen(ctx, K, gel, teil, x0, x1) {
+    var Z = gel.zellen, s = K.s;
+    for (var i = 0; i < Z.length; i++) {
+      var z = Z[i];
+      if (z.x < x0 - 4 || z.x > x1 + 4) continue;
+      var L = sx(K, z.x - 0.4), R = sx(K, z.x + 3.4), Yb = sy(K, gel.hoeheBei(z.x)), Yo = Yb - 3.6 * s, d = 0.22 * s;
+      if (teil === "hinten") {
+        ctx.fillStyle = "#1f4fa8"; ctx.fillRect(L, Yo, R - L, Yb - Yo);
+        ctx.fillStyle = z.benutzt ? "rgba(255,240,170,0.25)" : "rgba(255,240,170,0.55)";           // Licht innen
+        ctx.fillRect(L + d, Yo + d * 2.2, R - L - 2 * d, Yb - Yo - d * 2.2);
+        ctx.fillStyle = "#2a2f45"; ctx.fillRect(L + (R - L) * 0.62, Yo + 1.2 * s, 0.35 * s, 0.5 * s);   // Telefon
+        ctx.strokeStyle = "#2a2f45"; ctx.lineWidth = 0.05 * s;
+        ctx.beginPath(); ctx.moveTo(L + (R - L) * 0.62 + 0.17 * s, Yo + 1.7 * s); ctx.quadraticCurveTo(L + (R - L) * 0.55, Yo + 2.3 * s, L + (R - L) * 0.6, Yo + 2.6 * s); ctx.stroke();
+      } else {
+        ctx.fillStyle = "#2a63c9";
+        ctx.fillRect(L, Yo, d, Yb - Yo); ctx.fillRect(R - d, Yo, d, Yb - Yo);                   // Pfosten
+        ctx.fillRect(L - 0.1 * s, Yo - 0.15 * s, R - L + 0.2 * s, d * 2.2);                     // Dach
+        ctx.fillStyle = "rgba(200,230,255,0.22)"; ctx.fillRect(L + d, Yo + d * 2.2, R - L - 2 * d, (Yb - Yo) * 0.45);   // Glas oben
+        ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 0.04 * s;
+        for (var k = 1; k < 3; k++) { var yy = Yo + d * 2.2 + (Yb - Yo) * 0.15 * k; ctx.beginPath(); ctx.moveTo(L + d, yy); ctx.lineTo(R - d, yy); ctx.stroke(); }
+        ctx.fillStyle = "#ffe27a"; ctx.fillRect(L + (R - L) * 0.2, Yo - 0.05 * s, (R - L) * 0.6, d * 1.4);   // Schild
+        ctx.fillStyle = "#1f2a4f"; ctx.font = "800 " + Math.round(0.26 * s) + "px 'Baloo 2', sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("📞 UMZIEHEN", (L + R) / 2, Yo + d * 0.65);
+      }
+    }
+  }
+
+  /* 🐱 Kätzchen auf dem Dach: sitzt auf einer Kiste, ruft „Hilfe!“ */
+  function zeichneKatzen(ctx, K, gel, zeit, x0, x1, q) {
+    var KZ = gel.katzen, s = K.s, spr = FF.Grafik.emojiSprite;
+    for (var i = 0; i < KZ.length; i++) {
+      var k = KZ[i];
+      if (k.weg || k.x < x0 - 2 || k.x > x1 + 2) continue;
+      var X = sx(K, k.x), Yb = sy(K, gel.hoeheBei(k.x)), Y = sy(K, k.y) + Math.sin(zeit * 3 + k.x) * 0.04 * s;
+      ctx.fillStyle = "#b07a45"; ctx.fillRect(X - 0.35 * s, Yb - 0.3 * s, 0.7 * s, 0.3 * s);
+      ctx.strokeStyle = "#6e4423"; ctx.lineWidth = Math.max(1, 0.04 * s); ctx.strokeRect(X - 0.35 * s, Yb - 0.3 * s, 0.7 * s, 0.3 * s);
+      var g = spr("🐱", Math.max(16, Math.round(0.8 * s)), q);
+      ctx.drawImage(g, X - 0.5 * s, Y - 0.62 * s, 1.0 * s, 1.0 * s);
+      if (Math.sin(zeit * 2 + k.x) > 0.2) {
+        ctx.font = "800 " + Math.round(0.36 * s) + "px 'Baloo 2', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.lineWidth = Math.max(2, 0.08 * s); ctx.strokeStyle = "#1e2c52"; ctx.strokeText("Hilfe!", X + 0.8 * s, Y - 0.75 * s);
+        ctx.fillStyle = "#ffffff"; ctx.fillText("Hilfe!", X + 0.8 * s, Y - 0.75 * s);
+      }
+    }
+  }
+
+  /* Suchscheinwerfer am Abendhimmel (Superheldenwelt): Lichtkegel von unten, oben ein
+     heller Kreis mit einem Blitz – ein allgemeines Helden-Zeichen, kein Logo */
+  function zeichneScheinwerfer(ctx, K, zeit) {
+    var bx = K.b * 0.18, by = K.h, w = Math.sin(zeit * 0.25) * 0.25, cx = K.b * (0.42 + 0.12 * Math.sin(zeit * 0.25)), cy = K.h * 0.2, r = K.h * 0.09;
+    var g = ctx.createLinearGradient(bx, by, cx, cy);
+    g.addColorStop(0, "rgba(255,250,210,0.05)"); g.addColorStop(1, "rgba(255,250,210,0.28)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(bx - 8, by); ctx.lineTo(bx + 8, by); ctx.lineTo(cx + r, cy); ctx.lineTo(cx - r, cy); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(255,250,215,0.55)"; ctx.beginPath(); ctx.ellipse(cx, cy, r * 1.25, r, w * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(40,40,80,0.75)";
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.15, cy - r * 0.8); ctx.lineTo(cx - r * 0.45, cy + r * 0.1); ctx.lineTo(cx - r * 0.02, cy + r * 0.1);
+    ctx.lineTo(cx - r * 0.2, cy + r * 0.8); ctx.lineTo(cx + r * 0.45, cy - r * 0.15); ctx.lineTo(cx + r * 0.04, cy - r * 0.15); ctx.closePath(); ctx.fill();
+  }
+
   /* Umdreh-Tor (Kopfüberwelt): großer Bogen mit wirbelndem Regenbogen-Rand und
      Dreh-Pfeilen. Wer hindurchfährt, dreht das Bild um (fahrt.pruefeTore). */
   var TOR_FARBEN = ["#ff5b8a", "#ffb13b", "#ffe14d", "#4fd18b", "#3fb6ff", "#9b6bff"];
@@ -1811,7 +1877,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
-    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, zeichneKatapulte: zeichneKatapulte, zeichneTore: zeichneTore, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
+    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, zeichneKatapulte: zeichneKatapulte, zeichneTore: zeichneTore, zeichneZellen: zeichneZellen, zeichneKatzen: zeichneKatzen, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

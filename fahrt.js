@@ -163,6 +163,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.windZone = 0; this.letzterWind = -99;
     this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
     this.miniZeit = 0;             // Obstplantage: Mini-Turbo nach dem Einsammeln von Obst [s]
+    this.umhangZeit = 0;           // Superheldenwelt: Heldenumhang nach der Telefonzelle [s]
   }
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
@@ -269,7 +270,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     if (this.miniZeit > 0) {
       // Obst: kleiner Raketen-Schub (kürzer, schwächer und nicht so schnell wie der Turbo)
-      var O = this.welt.obst;
+      var O = this.welt.obst || this.welt.held.turbo;
       this.miniZeit = Math.max(0, this.miniZeit - h);
       if (this.boostZeit <= 0 && st.vorwaerts < O.tempoMax * w.motor.vmax) {
         C.vx += Math.cos(C.a) * O.beschl * h;
@@ -277,6 +278,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
     fz.mini = this.miniZeit;                    // für die Grafik: kleine Rakete
+    if (this.umhangZeit > 0) {
+      // Heldenumhang (Superheldenwelt): in der Luft sinkt man höchstens mit sinkMax [m/s] –
+      // auf alle Körper gleich, damit die Federn nicht gedehnt werden
+      this.umhangZeit = Math.max(0, this.umhangZeit - h);
+      var sinkMax = this.welt.held.zelle.sinkMax;
+      if (st.radKontakte === 0 && C.vy < -sinkMax) {
+        var dvU = Math.min(-sinkMax - C.vy, 2.2 * this.welt.schwerkraft * h);
+        C.vy += dvU; fz.raeder.forEach(function (R) { R.k.vy += dvU; });
+      }
+    }
+    fz.umhang = this.umhangZeit;                // für die Grafik: großer Umhang
     if (this.federZeit > 0) this.federZeit = Math.max(0, this.federZeit - h);
     if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
@@ -870,7 +882,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Ballon-Hilfe; ueberX: festgefahren → hinter diesem Punkt (weitester Fortschritt) absetzen */
   Fahrt.prototype.starteHilfe = function (ueberX) {
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
-    this.boostZeit = 0; this.fz.duese = 0; this.miniZeit = 0; this.fz.mini = 0;
+    this.boostZeit = 0; this.fz.duese = 0; this.miniZeit = 0; this.fz.mini = 0; this.umhangZeit = 0; this.fz.umhang = 0;
     var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3 + this.zugHinten), true) : this.landeplatz(C.x);
     var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
@@ -1018,6 +1030,29 @@ var FF = globalThis.FF = globalThis.FF || {};
           break;
         }
       }
+    }
+    var KZ = gel.katzen;                             // Superheldenwelt: Kätzchen retten
+    for (i = 0; i < KZ.length; i++) {
+      var kz = KZ[i];
+      if (kz.weg || Math.abs(kz.x - C.x) > reichweite) continue;
+      for (j = 0; j < pkt.length; j += 3) {
+        if (Math.hypot(kz.x - pkt[j], kz.y - pkt[j + 1]) < Rad + 0.5 + pkt[j + 2] * 0.6) {
+          kz.weg = true;
+          this.muenzen += this.welt.held.katze.muenzen;
+          this.melde("katze", { x: kz.x, y: kz.y, wert: this.welt.held.katze.muenzen });
+          break;
+        }
+      }
+    }
+    var ZE = gel.zellen;                             // Telefonzelle: hindurchfahren (am Boden)
+    for (i = 0; i < ZE.length; i++) {
+      var ze = ZE[i];
+      if (ze.benutzt || C.x < ze.x || C.x > ze.x + 3 || C.y - gel.hoeheBei(ze.x) > 3) continue;
+      ze.benutzt = true;
+      var HZ = this.welt.held;
+      this.umhangZeit = HZ.zelle.dauer;
+      this.miniZeit = HZ.turbo.dauer;
+      this.melde("zelle", { x: ze.x, y: gel.hoeheBei(ze.x) });
     }
     var OB = gel.obst;                               // Obst: kurzer Mini-Turbo
     for (i = 0; i < OB.length; i++) {
