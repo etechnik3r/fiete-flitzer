@@ -412,6 +412,32 @@ FF.CONFIG = {
       farbe: "schwarz", form: "dampflok",
       klang: { art: "dampf", max: 420, lautstaerke: 1.0, abrollen: 1.3 },
       upgrades: ["motor", "reifen", "federung", "tank"]
+    },
+    {
+      /* Wasserstoffauto (Version 31): Brennstoffzelle unter der Haube macht aus Wasserstoff
+         und Luft Strom – also fährt es wie ein E-Auto (volles Drehmoment aus dem Stand), aber
+         aus dem Auspuff kommt nur Wasser. Zwei große H₂-Tanks stehen hinten (der Schwerpunkt
+         liegt dadurch etwas weiter hinten: Mit Vollgas hebt die Nase leichter ab). Gesammelt
+         werden blaue H₂-Flaschen. Keine Rekuperation in den Tank – Wasserstoff entsteht nicht
+         beim Bremsen. */
+      id: "wasserstoff", name: "H₂-Blubber", emoji: "💧", preis: 12000, preisBasis: 300,
+      text: "Fährt mit Wasserstoff! Aus dem Auspuff tropft nur Wasser – sammle die blauen H₂-Flaschen.",
+      masse: 340, groesse: { laenge: 3.4, hoehe: 1.4 },
+      raeder: [
+        { x: -1.10, y: 0.00, r: 0.40, masse: 16, antrieb: true },
+        { x:  1.15, y: 0.00, r: 0.40, masse: 16, antrieb: false }
+      ],
+      federung: { ruhe: 0.32, weg: 0.24, frequenz: 1.9, daempfung: 0.5 },
+      motor: { drehmoment: 980, vmax: 19.5, eck: 0.55 }, bremse: 1400, grip: 1.0,
+      tankSekunden: 16, luftsteuerung: 5.0, cwA: 0.4, abtrieb: 0,
+      leerlauf: 0, wasserstoff: true,
+      huelle: [[-1.62, -0.30], [1.62, -0.30], [1.76, 0.04], [1.35, 0.36], [0.60, 0.44], [-0.20, 1.02], [-0.90, 0.60],
+               [-1.10, 1.12], [-1.55, 1.12], [-1.66, 0.10]],
+      dach: [[-0.55, 0.96], [0.10, 0.90], [-1.50, 1.14], [-1.15, 1.14]],
+      kopf: { x: -0.24, y: 0.64, r: 0.26 },
+      farbe: "weiss", form: "wasserstoff",
+      klang: { art: "elektro", surren: 1800, avasTon: 392, max: 14000, lautstaerke: 1.0, abrollen: 1.1, brennstoffzelle: true },
+      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
     }
   ],
 
@@ -1198,6 +1224,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "31", titel: "Das Wasserstoffauto", punkte: [
+      "💧 Neues Fahrzeug H₂-Blubber: fährt mit Wasserstoff – zwei große Tanks hinten drauf, blaue Schläuche, und aus dem Auspuff tropft nur Wasser!",
+      "🧪 Statt Kanister sammelt es blaue H₂-Flaschen" ] },
     { version: "30", titel: "Neue Tiere und lustige Spuren", punkte: [
       "🐺 Neue Beifahrer: Wolf (heult nach jedem Salto!), Pinguin, Panda, Fuchs, Eule und Schildkröte mit Sturzhelm",
       "💨 Neue Spuren: Pupswolken, Gummienten, Bananen, Popcorn, Tatzen und Socken" ] },

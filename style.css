@@ -152,6 +152,7 @@ button { font: inherit; color: inherit; }
   transition: width 0.15s linear, background 0.3s;
 }
 .tank-chip.akku .tank-fuellung { background: linear-gradient(90deg, #2fcf7d, #6ff3ff); }
+.tank-chip.wasserstoff .tank-fuellung { background: linear-gradient(90deg, #2f7fe0, #9fdcff); }
 .tank-chip.knapp .tank-fuellung { background: linear-gradient(90deg, #e8453c, #ff9e2c); }
 .tank-chip.knapp { animation: blinken 0.6s ease-in-out infinite; }
 @keyframes blinken { 0%, 100% { box-shadow: var(--sh-chip); } 50% { box-shadow: 0 0 0 5px rgba(232, 69, 60, 0.45), var(--sh-chip); } }

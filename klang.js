@@ -310,6 +310,17 @@ var FF = globalThis.FF = globalThis.FF || {};
     ein.connect(einG); einG.connect(this.bus); ein.start(t); ein.stop(t + 0.55);
     [surr, heul, pwm, lfo, a1, a2, trem].forEach(this.starte, this);
     this.v = { surr: surr, heul: heul, pwm: pwm, gS: gS, gH: gH, gP: gP, aG: aG, a1: a1, a2: a2, tremG: tremG };
+    if (P.brennstoffzelle) {
+      // Brennstoffzelle: der Luft-Kompressor heult mit der Last hoch (Rauschen + hoher Ton),
+      // beim Gaswegnehmen zischt das Ablassventil („Pssst“)
+      var kq = rauschQuelle(ac), kbp = ac.createBiquadFilter(); kbp.type = "bandpass"; kbp.Q.value = 1.4; kbp.frequency.value = 1500;
+      var kG = ac.createGain(); kG.gain.value = 0;
+      var kt = ac.createOscillator(); kt.type = "sine"; kt.frequency.value = 2400;
+      var ktG = ac.createGain(); ktG.gain.value = 0;
+      kq.connect(kbp); kbp.connect(kG); kG.connect(this.bus); kt.connect(ktG); ktG.connect(this.bus);
+      this.starte(kq); this.starte(kt);
+      this.v.kbp = kbp; this.v.kG = kG; this.v.kt = kt; this.v.ktG = ktG; this.kompr = 0; this.gasAlt = 0;
+    }
   };
 
   /* Flugzeugturbine (Turbinen-Sofa): hohes Jaulen der Welle, das mit der Drehzahl
@@ -539,6 +550,24 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.tremG.gain.setTargetAtTime(L * 0.005 * avas, t, 0.1);
     V.a1.frequency.setTargetAtTime(P.avasTon * (1 + 0.25 * Math.min(1, kmh / 20)), t, 0.1);
     V.a2.frequency.setTargetAtTime(P.avasTon * 1.5 * (1 + 0.25 * Math.min(1, kmh / 20)), t, 0.1);
+    if (P.brennstoffzelle) {
+      var last = z.laeuft ? gas : 0;
+      this.kompr += (last - this.kompr) * Math.min(1, dt * (last > this.kompr ? 2.5 : 1.2));   // Kompressor ist träge
+      var k = this.kompr;
+      V.kbp.frequency.setTargetAtTime(900 + 2600 * k, t, 0.05);
+      V.kG.gain.setTargetAtTime(L * 0.016 * k, t, 0.05);
+      V.kt.frequency.setTargetAtTime(1800 + 3200 * k, t, 0.05);
+      V.ktG.gain.setTargetAtTime(L * 0.003 * k, t, 0.05);
+      if (this.gasAlt > 0.5 && gas < 0.1 && z.laeuft) this.zisch();
+      this.gasAlt = gas;
+    }
+  };
+  Motor.prototype.zisch = function () {           // Ablassventil der Brennstoffzelle
+    var ac = this.ac, t = ac.currentTime;
+    var q = rauschQuelle(ac), hp = ac.createBiquadFilter(), g = ac.createGain();
+    hp.type = "highpass"; hp.frequency.value = 3200;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.035, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+    q.connect(hp); hp.connect(g); g.connect(this.bus); q.start(t); q.stop(t + 0.45);
   };
 
   Motor.prototype.stopp = function () {

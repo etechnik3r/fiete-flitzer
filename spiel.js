@@ -387,6 +387,7 @@
       });
     }
     if (fahrt.getriebe.dampf) dampfWolken(dt);
+    if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
     if (fahrt.werte.turbine && (fahrt.turbinenLauf || 0) > 0.25 && auspuffTakt <= 0) {     // Turbine: heiße Abgase hinter der Düse
       auspuffTakt = 0.05;
       var ct = Math.cos(ch.a), stt = Math.sin(ch.a), xt = -2.1 - fahrt.turbinenLauf * 0.8, yt = 0.8;
@@ -410,6 +411,26 @@
                      vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
                      t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
     }
+  }
+
+  /* H₂-Blubber: Aus dem Auspuff tropft Wasser (je mehr Gas, desto mehr), beim Gasgeben
+     kommen kleine Dampfwölkchen dazu – mehr kommt bei einer Brennstoffzelle nicht heraus. */
+  var tropfTakt = 0;
+  function wasserAuspuff(dt) {
+    if (fahrt.zustand === "ende" || fahrt.tank <= 0) return;
+    var ch = fahrt.fz.chassis, ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -1.84, ly = -0.16, gas = fahrt.gas;
+    tropfTakt -= dt;
+    if (tropfTakt > 0) return;
+    tropfTakt = 0.45 - 0.33 * gas + Math.random() * 0.1;
+    var x = ch.x + ca * lx - sa * ly, y = ch.y + sa * lx + ca * ly;
+    if (fahrt.welt.unterwasser) {
+      partikel.neu({ art: "blase", x: x, y: y, vx: ch.vx * 0.3, vy: 0.4, t: 0, dauer: 1.2, r0: 0.04, r1: 0.12, schwer: -0.35, reibung: 1.2 });
+      return;
+    }
+    partikel.neu({ art: "tropfen", x: x, y: y, vx: ch.vx * 0.8 - ca * 0.4, vy: ch.vy * 0.8 - 0.2, t: 0, dauer: 0.7, r0: 0.07,
+                   farbe: "rgba(110,190,255,0.95)", schwer: 1, reibung: 0.3 });
+    if (gas > 0.4 && Math.random() < 0.6) partikel.neu({ art: "rauch", x: x, y: y, vx: -ca * 1.2 + ch.vx * 0.5, vy: 0.5 - sa * 1.2 + ch.vy * 0.5,
+                   t: 0, dauer: 0.6, r0: 0.06, r1: 0.3, farbe: "rgba(240,248,255,0.95)", alpha: 0.45, reibung: 1.8 });
   }
 
   /* Dampf-Lok: Bei jedem Kolbenhub (4 je Radumdrehung, wie der Klang) pufft eine
@@ -510,6 +531,9 @@
 
   /* Benzin oder Akku? Texte passend zum Fahrzeug */
   function energie(def) {
+    if (def.wasserstoff) return { icon: "💧", name: "Wasserstoff", voll: "💧 Aufgetankt!", knapp: "💧 Wasserstoff wird knapp – sammle eine blaue H₂-Flasche!",
+      knappSag: "Wasserstoff wird knapp!", leer: "Wasserstoff leer! 💧", ergebnis: "Wasserstoff leer – gut gefahren!", garage: "den H₂-Tank 💧",
+      info: "💧 Dein Wasserstoff<small>Sammle die blauen H₂-Flaschen. Aus dem Auspuff kommt nur Wasser!</small>" };
     return def.akku
       ? { icon: "🔋", name: "Akku", voll: "⚡ Geladen!", knapp: "🔋 Akku wird leer – sammle eine grüne Batterie!", knappSag: "Akku wird leer!",
           leer: "Akku leer! 🔋", ergebnis: "Akku leer – gut gefahren!", garage: "den Akku 🔋",
@@ -881,6 +905,7 @@
     $("hud-tank-icon").textContent = en.icon;
     $("hud-tank").setAttribute("aria-label", en.name);
     $("hud-tank").classList.toggle("akku", !!fahrt.def.akku);
+    $("hud-tank").classList.toggle("wasserstoff", !!fahrt.def.wasserstoff);
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
     $("hud-geist-strecke").hidden = !(endlos && geist);
@@ -1721,7 +1746,7 @@
       ["💪 Kraft", (w.motor.drehmoment / rA) / (mGes * 9.81) / 1.1],
       ["🛞 Grip", (w.grip * (nA === w.raeder.length ? 1.25 : 1)) / 1.9],
       ["🌀 Federung", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
-      [def.akku ? "🔋 Akku" : "⛽ Tank", w.tankSekunden / 70],
+      [def.akku ? "🔋 Akku" : def.wasserstoff ? "💧 H₂-Tank" : "⛽ Tank", w.tankSekunden / 70],
       ["🤸 Saltos", w.luftsteuerung / 9]
     ];
   }
@@ -1752,6 +1777,7 @@
     def.upgrades.forEach(function (key) {
       var U = C.upgrades[key], stufe = fs.upgrades[key] || 0, voll = stufe >= U.stufen;
       if (key === "tank" && def.akku) U = { name: "Akku", icon: "🔋", text: "Größerer Akku – weiter fahren", stufen: U.stufen };
+      if (key === "tank" && def.wasserstoff) U = { name: "H₂-Tank", icon: "💧", text: "Größere Wasserstoff-Tanks – weiter fahren", stufen: U.stufen };
       var preis = voll ? 0 : upgradePreis(def, key, stufe);
       var punkte = "";
       for (var i = 0; i < U.stufen; i++) punkte += '<span class="' + (i < stufe ? "an" : "") + '"></span>';
