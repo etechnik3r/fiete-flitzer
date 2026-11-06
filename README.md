@@ -61,7 +61,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **29 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **30 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
@@ -69,7 +69,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
   🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
-  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt.
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -198,6 +198,16 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     16), nie unter 7 m/s, kein Benzinverbrauch. Jeder Looping gibt +20 und lädt
     die Sprungfeder, entlang der Fahrlinie liegen Münzen. Am Ende kommt es
     waagrecht auf dem Boden heraus. Die Kamera zoomt in der Röhre etwas heraus.
+- **🙃 Kopfüberwelt** (Version 33, `welt.kopfueber`): Gleich nach dem Start (12 m)
+  steht ein **Umdreh-Tor** (Regenbogen-Bogen mit Dreh-Pfeilen, `gelaende.tore`,
+  dann alle 130–200 m eins). Fährt das Auto hindurch (`fahrt.pruefeTore`, auch im
+  Flug), klappt das ganze Bild in gut einer halben Sekunde um: Boden oben, Himmel
+  unten, Sprünge gehen nach unten; das nächste Tor dreht wieder zurück. Nur die
+  Grafik steht kopf (`zeichneSzene` spiegelt um die Bildmitte, `sz.kopf` von 1 bis
+  −1; Emojis und Requisiten rechnen die Spiegelung selbst ein, weil sie mit
+  `setTransform` gezeichnet werden). Physik, Tasten, Anzeigen und Schwebetexte
+  bleiben normal, darum ist auch das Geisterrennen fair. Kopfüber sitzt das Auto
+  etwas höher im Bild (Kamera-Anker −0,1), damit es gespiegelt mittig fährt.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring

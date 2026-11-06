@@ -25,8 +25,8 @@ var FF = globalThis.FF = globalThis.FF || {};
      ========================================================================= */
   /* Himmelsverlauf: entweder hier gemalt oder – schneller – als CSS-Hintergrund
      hinter dem durchsichtigen Canvas (himmelPerCss, siehe himmelCss()). */
-  function himmelCss(welt) {
-    var verlauf = "linear-gradient(" + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
+  function himmelCss(welt, kopf) {
+    var verlauf = "linear-gradient(" + (kopf ? "to top, " : "") + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
     // Vulkaninsel: Glühen am Horizont gleich im CSS-Hintergrund (kostet dann keine Malzeit)
     if (welt.sonne === "glut") return "radial-gradient(ellipse 70% 45% at 60% 62%, rgba(255,120,60,0.4), rgba(255,90,40,0)), " + verlauf;
     return verlauf;
@@ -1569,6 +1569,48 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Umdreh-Tor (Kopfüberwelt): großer Bogen mit wirbelndem Regenbogen-Rand und
+     Dreh-Pfeilen. Wer hindurchfährt, dreht das Bild um (fahrt.pruefeTore). */
+  var TOR_FARBEN = ["#ff5b8a", "#ffb13b", "#ffe14d", "#4fd18b", "#3fb6ff", "#9b6bff"];
+  function zeichneTore(ctx, K, gel, zeit, x0, x1) {
+    var T = gel.tore, s = K.s;
+    for (var i = 0; i < T.length; i++) {
+      var t = T[i];
+      if (t.x < x0 - 4 || t.x > x1 + 4) continue;
+      var X = sx(K, t.x), Yb = sy(K, gel.hoeheBei(t.x)), w = 1.9 * s, hgt = 5.2 * s, Ym = Yb - hgt + w;
+      // schimmernde Fläche
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(X - w, Yb); ctx.lineTo(X - w, Ym); ctx.arc(X, Ym, w, Math.PI, 0); ctx.lineTo(X + w, Yb); ctx.closePath();
+      var g = ctx.createLinearGradient(0, Ym - w, 0, Yb);
+      g.addColorStop(0, "rgba(210,180,255," + (t.durch ? 0.12 : 0.32) + ")"); g.addColorStop(1, "rgba(150,230,255," + (t.durch ? 0.06 : 0.2) + ")");
+      ctx.fillStyle = g; ctx.fill();
+      ctx.clip();
+      // wirbelnde Streifen in der Fläche
+      ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 0.12 * s;
+      for (var k = 0; k < 4; k++) {
+        var r = ((zeit * 0.6 + k / 4) % 1) * w * 1.6;
+        ctx.beginPath(); ctx.arc(X, Ym + w * 0.6, r, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+      // Regenbogen-Rahmen
+      TOR_FARBEN.forEach(function (fa, j) {
+        var d = (j - 2.5) * 0.09 * s;
+        ctx.strokeStyle = fa; ctx.lineWidth = 0.1 * s;
+        ctx.beginPath(); ctx.moveTo(X - w - d, Yb); ctx.lineTo(X - w - d, Ym); ctx.arc(X, Ym, w + d, Math.PI, 0); ctx.lineTo(X + w + d, Yb); ctx.stroke();
+      });
+      // zwei Dreh-Pfeile oben (drehen sich)
+      ctx.save(); ctx.translate(X, Ym - w - 0.9 * s); ctx.rotate(zeit * 2.5);
+      ctx.strokeStyle = "#ffffff"; ctx.fillStyle = "#ffffff"; ctx.lineWidth = 0.14 * s; ctx.lineCap = "round";
+      for (var a = 0; a < 2; a++) {
+        ctx.rotate(Math.PI);
+        ctx.beginPath(); ctx.arc(0, 0, 0.5 * s, 0.2, Math.PI - 0.5); ctx.stroke();
+        var px = Math.cos(Math.PI - 0.5) * 0.5 * s, py = Math.sin(Math.PI - 0.5) * 0.5 * s;
+        ctx.beginPath(); ctx.moveTo(px - 0.2 * s, py - 0.05 * s); ctx.lineTo(px + 0.12 * s, py - 0.22 * s); ctx.lineTo(px + 0.05 * s, py + 0.18 * s); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   /* Katapult: Holzgestell auf Rädern, A-Bock mit Drehpunkt, Wurfarm mit Schale.
      Nach dem Schuss (k.schuss, Fahrtzeit) schwingt der Arm in 0,25 s nach oben. */
   function zeichneKatapulte(ctx, K, gel, fahrzeit) {
@@ -1769,7 +1811,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,
-    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, zeichneKatapulte: zeichneKatapulte, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
+    zeichneSchwebezonen: zeichneSchwebezonen, zeichneObjekte: zeichneObjekte, zeichneSpuk: zeichneSpuk, zeichneKatapulte: zeichneKatapulte, zeichneTore: zeichneTore, baustein: baustein, STEIN_FARBEN: STEIN_FARBEN
   };
   FF.Grafik.Wetter = Wetter;
   FF.Grafik.himmelCss = himmelCss;

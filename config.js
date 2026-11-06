@@ -1214,6 +1214,29 @@ FF.CONFIG = {
                   abstandElemente: 13 },
       tankAbstand: 320, muenzAbstand: 22,
       level: [ { laenge: 800, seed: 2901 }, { laenge: 1050, seed: 2902 }, { laenge: 1300, seed: 2903 }, { laenge: 1550, seed: 2904 } ]
+    },
+    {
+      /* Kopfüberwelt (Version 33): Kurz nach dem Start fährt man durch ein Umdreh-Tor –
+         das ganze Bild klappt um, der Boden ist oben, der Himmel unten, Sprünge gehen
+         nach unten. Weitere Tore drehen hin und her (welt.kopfueber, gelaende.tore,
+         fahrt.pruefeTore). Die Physik bleibt dieselbe, nur die Grafik steht kopf –
+         darum ist auch das Geisterrennen fair. Tasten und Anzeigen bleiben normal. */
+      id: "kopfueber", name: "Kopfüberwelt", emoji: "🙃", hinweis: "Alles steht kopf – Sprünge gehen nach unten!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.016, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#7ad7ff", "#fff1c9"], berge: ["#ffb6e1", "#c9a2ff"],
+        boden: ["#7a4fc2", "#55348f"], oberflaeche: "#4fd1a5", kante: "#b6ffd9", punkte: "#9b74e0"
+      },
+      sonne: "sonne", wetter: "konfetti", sonnenDeko: "brille", wolkenStil: "zuckerwatte",
+      kopfueber: { start: 12, abstand: 130, streuung: 70 },
+      tipp: ["🙃 Fahr durchs Umdreh-Tor – dann steht alles kopf! Gas und Bremse bleiben gleich.", "Gleich steht alles kopf!"],
+      deko: ["@laubbaum:3.0", "🎈:1.2:1.6", "@pilz:1.0", "@blumen:0.7", "@laubbaum:2.4", "🎈:1.0:2.4", "@busch:1.0", "🦇:0.7:3.0", "@pilz:1.4", "🐒:0.9"],
+      beiwerk: ["@gras:0.4", "@blumen:0.45", "@stein:0.35"], kulisse: ["wald", "wolkenberg", "wald"],
+      gelaende: { amp: 6.5, welle: 42, holperAmp: 0.18, holperWelle: 6, trend: 0.015,
+                  maxAuf: 28, maxAb: 38, schanzen: 1.2, buckel: 1.0, steil: 0.7, taeler: 0.7, berg: 0.6, sprung: 0.9, wellen: 0.8, klippe: 0.5, rampe: 0.8, kuppe: 0.8, stufe: 0.7, wildBasis: 0.3,
+                  abstandElemente: 28 },
+      tankAbstand: 260, muenzAbstand: 22,
+      level: [ { laenge: 760, seed: 3001 }, { laenge: 1000, seed: 3002 }, { laenge: 1250, seed: 3003 }, { laenge: 1500, seed: 3004 } ]
     }
   ],
 
@@ -1236,6 +1259,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "33", titel: "Die Kopfüberwelt", punkte: [
+      "🙃 Neue Welt Kopfüberwelt: Fahr durchs Umdreh-Tor – und plötzlich steht alles kopf!",
+      "⬇️ Kopfüber springst du nach unten, der Himmel ist unten und der Boden oben",
+      "🔄 Weitere Tore drehen die Welt wieder um – hin und her" ] },
     { version: "32", titel: "Vier neue Upgrades", punkte: [
       "🌪️ Luft-Kreisel: hält dich in der Luft ruhig – so landest du leichter sauber",
       "🪽 Spoiler: drückt dich auf die Straße und macht etwas schneller – man sieht ihn hinten am Auto!",
