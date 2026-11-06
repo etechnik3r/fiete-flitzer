@@ -160,7 +160,7 @@ FF.CONFIG = {
       farbe: "orange", form: "buggy",
       klang: { art: "verbrenner", zylinder: 4, takte: 4, leerlauf: 900, max: 5600, gaenge: 4, abkling: 7, ungleich: 0.35,
                rohr: 0.0065, rueck: 0.45, koerper: 150, hell: 1.0, diesel: 0.1, unruhe: 12, traegheit: 12, lautstaerke: 1.0 },
-      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau", "allrad"]
     },
     {
       id: "traktor", name: "Trecker", emoji: "🚜", preis: 2000, preisBasis: 150,
@@ -179,7 +179,7 @@ FF.CONFIG = {
       farbe: "gruen", form: "traktor",
       klang: { art: "verbrenner", zylinder: 3, takte: 4, leerlauf: 750, max: 2700, gaenge: 4, abkling: 6, ungleich: 0.25,
                rohr: 0.011, rueck: 0.55, koerper: 95, hell: 0.7, diesel: 0.9, unruhe: 10, traegheit: 7, lautstaerke: 1.05, abrollen: 1.2 },
-      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "allrad"]
     },
     {
       id: "moped", name: "Hüpf-Moped", emoji: "🛵", preis: 3500, preisBasis: 160,
@@ -198,7 +198,7 @@ FF.CONFIG = {
       farbe: "tuerkis", form: "moped",
       klang: { art: "verbrenner", zylinder: 1, takte: 2, leerlauf: 1700, max: 9500, gaenge: 3, abkling: 9, ungleich: 0.1,
                rohr: 0.0035, rueck: 0.6, koerper: 420, hell: 1.3, diesel: 0.05, unruhe: 20, traegheit: 18, lautstaerke: 0.75, abrollen: 0.6 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       id: "eauto", name: "E-Auto", emoji: "⚡", preis: 5000, preisBasis: 180,
@@ -218,7 +218,7 @@ FF.CONFIG = {
       kopf: { x: -0.14, y: 0.5, r: 0.26 },
       farbe: "eisblau", form: "eauto",
       klang: { art: "elektro", surren: 2100, avasTon: 330, max: 15000, lautstaerke: 1.0, abrollen: 1.1 },
-      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau", "allrad"]
     },
     {
       id: "bus", name: "Bummel-Bus", emoji: "🚌", preis: 7000, preisBasis: 220,
@@ -237,7 +237,7 @@ FF.CONFIG = {
       farbe: "gelb", form: "bus",
       klang: { art: "verbrenner", zylinder: 6, takte: 4, leerlauf: 650, max: 2500, gaenge: 5, abkling: 6, ungleich: 0.15,
                rohr: 0.013, rueck: 0.5, koerper: 80, hell: 0.65, diesel: 0.6, unruhe: 8, traegheit: 6, lautstaerke: 1.1, abrollen: 1.3 },
-      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau", "allrad"]
     },
     {
       id: "monster", name: "Monster-Max", emoji: "🛻", preis: 10000, preisBasis: 280,
@@ -256,7 +256,7 @@ FF.CONFIG = {
       farbe: "rot", form: "monster",
       klang: { art: "verbrenner", zylinder: 8, takte: 4, leerlauf: 750, max: 5800, gaenge: 4, abkling: 6, ungleich: 0.4, v8: true,
                rohr: 0.008, rueck: 0.5, koerper: 105, hell: 0.85, diesel: 0.1, unruhe: 14, traegheit: 10, lautstaerke: 1.15, knallen: 0.3, abrollen: 1.4 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       id: "renner", name: "Blitz-Rakete", emoji: "🏎️", preis: 15000, preisBasis: 340,
@@ -275,7 +275,7 @@ FF.CONFIG = {
       farbe: "blau", form: "renner",
       klang: { art: "verbrenner", zylinder: 10, takte: 4, leerlauf: 1200, max: 9500, gaenge: 6, abkling: 11, ungleich: 0.15,
                rohr: 0.0045, rueck: 0.45, koerper: 260, hell: 1.4, diesel: 0, unruhe: 10, traegheit: 16, lautstaerke: 0.9, knallen: 0.5, abrollen: 0.8 },
-      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau", "allrad"]
     },
     {
       id: "mond", name: "Mondmobil", emoji: "🚀", preis: 22000, preisBasis: 400,
@@ -295,7 +295,7 @@ FF.CONFIG = {
       kopf: { x: -0.05, y: 0.70, r: 0.32 },
       farbe: "weiss", form: "mond",
       klang: { art: "elektro", surren: 900, avasTon: 220, max: 9000, weltraum: true, lautstaerke: 1.0, abrollen: 1.0 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       /* E-Skateboard: Das Kind steht drauf (Schwerpunkt hoch, Kopf oben) – leicht,
@@ -317,7 +317,7 @@ FF.CONFIG = {
       kopf: { x: 0.02, y: 0.86, r: 0.28 },
       farbe: "lila", form: "skateboard",
       klang: { art: "elektro", surren: 3200, avasTon: 440, max: 22000, lautstaerke: 0.8, abrollen: 0.9 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       /* Propeller-Flieger mit offenem Cockpit: fährt wie ein Auto, aber nahe am Boden
@@ -341,7 +341,7 @@ FF.CONFIG = {
       farbe: "rot", form: "flugzeug",
       klang: { art: "verbrenner", zylinder: 4, takte: 4, leerlauf: 800, max: 2900, gaenge: 1, abkling: 8, ungleich: 0.2,
                rohr: 0.005, rueck: 0.4, koerper: 140, hell: 1.15, diesel: 0.05, unruhe: 10, traegheit: 8, lautstaerke: 1.0, abrollen: 0.8 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       /* Turbinen-Sofa: ein Sofa auf Möbelrollen, hinten eine Flugzeugturbine. Die Räder
@@ -364,7 +364,7 @@ FF.CONFIG = {
       kopf: { x: -0.1, y: 0.82, r: 0.28 },
       farbe: "pink", form: "sofa",
       klang: { art: "turbine", max: 30000, leerlauf: 7000, traegheit: 1.5, lautstaerke: 1.0, abrollen: 0.7 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       /* Dampf-Lok mit Kohlewagen und kleinem Anhänger. Drei Starrkörper, jeweils über
@@ -411,7 +411,7 @@ FF.CONFIG = {
       ],
       farbe: "schwarz", form: "dampflok",
       klang: { art: "dampf", max: 420, lautstaerke: 1.0, abrollen: 1.3 },
-      upgrades: ["motor", "reifen", "federung", "tank"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     },
     {
       /* Wasserstoffauto (Version 31): Brennstoffzelle unter der Haube macht aus Wasserstoff
@@ -437,7 +437,7 @@ FF.CONFIG = {
       kopf: { x: -0.24, y: 0.64, r: 0.26 },
       farbe: "weiss", form: "wasserstoff",
       klang: { art: "elektro", surren: 1800, avasTon: 392, max: 14000, lautstaerke: 1.0, abrollen: 1.1, brennstoffzelle: true },
-      upgrades: ["motor", "reifen", "federung", "tank", "allrad"]
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau", "allrad"]
     }
   ],
 
@@ -450,6 +450,11 @@ FF.CONFIG = {
     reifen:   { name: "Reifen",   icon: "🛞", stufen: 5, text: "Mehr Grip – weniger Durchdrehen", faktor: 1.75 },
     federung: { name: "Federung", icon: "🌀", stufen: 5, text: "Weicher landen, weniger Hüpfen", faktor: 1.75 },
     tank:     { name: "Tank",     icon: "⛽", stufen: 5, text: "Größerer Tank – weiter fahren",  faktor: 1.75 },
+    // Version 32: vier weitere Upgrades (Wirkung in upgradeWirkung, berechneWerte in fahrt.js)
+    kreisel:  { name: "Luft-Kreisel", icon: "🌪️", stufen: 5, text: "Hält dich in der Luft ruhig – leichter sauber landen", faktor: 1.75 },
+    spoiler:  { name: "Spoiler",  icon: "🪽", stufen: 5, text: "Drückt das Auto auf die Straße, etwas schneller", faktor: 1.75 },
+    bremse:   { name: "Bremsen",  icon: "🛑", stufen: 5, text: "Kräftiger bremsen, schneller rückwärts", faktor: 1.6 },
+    leichtbau: { name: "Leichtbau", icon: "🪶", stufen: 5, text: "Leichter: schneller los und weitere Sprünge", faktor: 1.8 },
     allrad:   { name: "Allrad",   icon: "4×4", stufen: 1, text: "Alle Räder treiben an",       faktor: 1, preisMal: 9 }
   },
   /* Wirkung pro Upgrade-Stufe */
@@ -459,7 +464,14 @@ FF.CONFIG = {
     reifenGrip: 0.08,          // +0,08 Reibwert je Stufe
     federDaempfung: 0.07,      // +0,07 Dämpfungsgrad je Stufe
     federWeg: 0.07,            // +7 % Federweg je Stufe
-    tank: 0.22                 // +22 % Tankinhalt je Stufe
+    tank: 0.22,                // +22 % Tankinhalt je Stufe
+    kreisel: 0.12,             // Gegensteuern in der Luft: +12 % Drehmoment je Stufe (Stufe 5: +60 %)
+    kreiselRuhe: 0.5,          // ohne Pedal: Drehung in der Luft gedämpft, 0,5/s je Stufe
+    spoilerAbtrieb: 0.15,      // +0,15 m² Abtriebsbeiwert·Fläche je Stufe (Blitz-Rakete hat ab Werk 1,4)
+    spoilerTempo: 0.02,        // +2 % Höchstgeschwindigkeit je Stufe
+    bremse: 0.15,              // +15 % Bremskraft je Stufe
+    rueckwaerts: 0.1,          // +10 % Rückwärtskraft je Stufe
+    leichtbau: 0.025           // −2,5 % Masse des Aufbaus je Stufe (Stufe 5: −12,5 %)
   },
 
   /* -------------------------------------------------------------------------
@@ -1224,6 +1236,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "32", titel: "Vier neue Upgrades", punkte: [
+      "🌪️ Luft-Kreisel: hält dich in der Luft ruhig – so landest du leichter sauber",
+      "🪽 Spoiler: drückt dich auf die Straße und macht etwas schneller – man sieht ihn hinten am Auto!",
+      "🛑 Bremsen: kräftiger bremsen und schneller rückwärts",
+      "🪶 Leichtbau: leichter, schneller los und weitere Sprünge" ] },
     { version: "31", titel: "Das Wasserstoffauto", punkte: [
       "💧 Neues Fahrzeug H₂-Blubber: fährt mit Wasserstoff – zwei große Tanks hinten drauf, blaue Schläuche, und aus dem Auspuff tropft nur Wasser!",
       "🧪 Statt Kanister sammelt es blaue H₂-Flaschen" ] },

@@ -1679,6 +1679,26 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
   }
 
+  /* 🪽 Spoiler-Upgrade: Flügel hinten oben, mit jeder Stufe etwas größer und höher */
+  function zeichneSpoiler(ctx, def, stufe) {
+    var H = def.huelle, xs = Infinity, yt = -Infinity;
+    H.forEach(function (p) { xs = Math.min(xs, p[0]); });
+    H.forEach(function (p) { if (p[0] < xs + 0.6) yt = Math.max(yt, p[1]); });
+    var b = 0.36 + 0.07 * stufe, h = 0.12 + 0.04 * stufe, x0 = xs + 0.05, y0 = yt + h;
+    ctx.lineCap = "round";
+    [[x0 + b * 0.25, "#2c3550"], [x0 + b * 0.75, "#2c3550"]].forEach(function (st) {   // zwei Stützen
+      ctx.strokeStyle = st[1]; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(st[0], yt - 0.02); ctx.lineTo(st[0] + 0.03, y0); ctx.stroke();
+    });
+    // Flügel: flaches Profil, Hinterkante etwas höher (Anstellwinkel), vorne rund
+    ctx.save(); ctx.translate(x0, y0); ctx.rotate(-0.1);
+    rundRechteck(ctx, -0.02, -0.035, b + 0.04, 0.08, 0.04);
+    ctx.fillStyle = stufe >= 5 ? "#ffd23f" : "#3b4566"; ctx.fill();
+    ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.45)"; ctx.fillRect(0.04, 0.012, b - 0.08, 0.016);
+    ctx.fillStyle = "#e8413b"; rundRechteck(ctx, -0.05, -0.09, 0.06, 0.2, 0.02); ctx.fill();   // Endplatte
+    ctx.restore();
+  }
+
   var taucherHelm = false;                   // Meeresgrund: Fiete trägt einen Taucherhelm (Glaskugel)
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {
     var form = KAROSSERIE[def.form] ? def.form : "buggy";
@@ -1702,6 +1722,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
     teile.vorne();
+    if (aussehen.spoiler && form !== "skateboard" && form !== "dampflok" && form !== "renner") zeichneSpoiler(ctx, def, aussehen.spoiler);
     if (!teile.fahrerZuerst && !teile.fahrerVorDach && !teile.fahrerNachVorne) fahrer();
     if (teile.fahrerNachVorne) {
       // Fiete sitzt hinter einer Scheibe: nur durch das Fenster sichtbar
