@@ -1080,8 +1080,15 @@ var FF = globalThis.FF = globalThis.FF || {};
           ctx.beginPath(); ctx.arc(sx(K, xb), Y - 0.02 * K.s, (0.04 + 0.12 * Math.min(1, ub / 0.8)) * K.s, Math.PI, 0); ctx.stroke();
         }
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = dunkel(farbe, 0.4); ctx.lineWidth = Math.max(1.5, 0.07 * K.s);
+        ctx.strokeStyle = welt.wasser.schleim ? "rgba(220,255,160,0.9)" : dunkel(farbe, 0.4); ctx.lineWidth = Math.max(1.5, 0.07 * K.s);
         ctx.beginPath(); ctx.moveTo(sx(K, p.x0 + 0.1), Y); ctx.lineTo(sx(K, p.x1 - 0.1), Y); ctx.stroke();
+        if (welt.wasser.schleim) {                             // Schleim zieht Fäden am Rand
+          ctx.strokeStyle = "rgba(140,240,70,0.8)"; ctx.lineWidth = Math.max(1, 0.05 * K.s);
+          [p.x0 + 0.3, p.x1 - 0.3].forEach(function (xf, n) {
+            var lang = (0.25 + 0.15 * Math.sin(zeit * 1.3 + n * 2 + i)) * K.s;
+            ctx.beginPath(); ctx.moveTo(sx(K, xf), Y); ctx.quadraticCurveTo(sx(K, xf) + (n ? 6 : -6), Y - lang * 0.6, sx(K, xf) + (n ? 3 : -3), Y - lang); ctx.stroke();
+          });
+        }
         continue;
       }
       // Spiegelung: heller Rand und zwei Glanzstriche
@@ -1112,6 +1119,27 @@ var FF = globalThis.FF = globalThis.FF || {};
       var basis = gel.hoeheBei(t.x0 - 0.5), dt = fahrzeit - t.boing;
       var wabbel = dt >= 0 && dt < 0.8 ? Math.sin(dt * 28) * Math.exp(-dt * 5) * 0.25 : 0;
       var top = function (x) { var u = (x - t.x0) / (t.x1 - t.x0); return basis + (t.H + 0.12) * (1 - wabbel) * Math.sin(Math.PI * Math.max(0, Math.min(1, u)) * 0.92 + Math.PI * 0.04); };
+      if (gel.welt.trampolinStil === "schleim") {                   // Wackelschleim: grüner Glibberhügel mit Glanz und Blasen
+        var wb = dt >= 0 && dt < 1.2 ? Math.sin(dt * 18) * Math.exp(-dt * 3.5) : 0;
+        ctx.beginPath(); ctx.moveTo(X0, sy(K, basis + 0.05));
+        for (var xw = t.x0 - 0.35; xw <= t.x1 + 0.35; xw += 0.2) {
+          var uw = (xw - t.x0) / (t.x1 - t.x0);
+          ctx.lineTo(sx(K, xw + Math.sin(uw * Math.PI * 2) * wb * 0.15), sy(K, top(xw) + Math.sin(uw * 9 + fahrzeit * 3) * 0.04));
+        }
+        ctx.lineTo(X1, sy(K, basis + 0.05)); ctx.closePath();
+        var gw = ctx.createLinearGradient(0, sy(K, basis + t.H + 0.2), 0, sy(K, basis));
+        gw.addColorStop(0, "rgba(170,255,110,0.92)"); gw.addColorStop(1, "rgba(60,180,40,0.92)");
+        ctx.fillStyle = gw; ctx.fill();
+        ctx.strokeStyle = "rgba(30,110,20,0.6)"; ctx.lineWidth = Math.max(1, 0.05 * K.s); ctx.stroke();
+        ctx.fillStyle = "rgba(235,255,210,0.75)";
+        for (var bb = 0; bb < 5; bb++) {
+          var ub = ((fahrzeit * 0.25 + bb / 5) % 1), xb = t.x0 + (t.x1 - t.x0) * (0.15 + 0.7 * ((bb * 0.37) % 1));
+          ctx.beginPath(); ctx.arc(sx(K, xb), sy(K, basis + (top(xb) - basis) * ub), (0.05 + 0.05 * ub) * K.s, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = Math.max(1, 0.08 * K.s);
+        ctx.beginPath(); ctx.arc(sx(K, t.x0 + (t.x1 - t.x0) * 0.35), sy(K, basis + t.H * 0.55), (t.x1 - t.x0) * 0.22 * K.s, 1.15 * Math.PI, 1.45 * Math.PI); ctx.stroke();
+        continue;
+      }
       if (gel.welt.trampolinStil === "matte") {                     // echtes Trampolin: Beine, Rahmen, blaue Matte
         ctx.strokeStyle = "#3a4152"; ctx.lineWidth = Math.max(2, 0.12 * K.s); ctx.lineCap = "round";
         ctx.beginPath();
@@ -1150,7 +1178,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6; this.letztesX = null; this.letztesY = null;
     if (!art) return;
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
-    var n = { sterne: 70, feuerwerk: 40, schnee: 20, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26, adler: 3, fledermaeuse: 7 }[art] || 14;
+    var n = { sterne: 70, feuerwerk: 40, schnee: 20, schleim: 12, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26, adler: 3, fledermaeuse: 7 }[art] || 14;
     for (var i = 0; i < n; i++) {
       this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.35 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
@@ -1183,6 +1211,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "staub") { t.y += Math.sin(zeit * 0.7 + t.p) * 6 * dt; t.x += (-14 - 10 * t.g) * dt - dx * 0.8; }
       else if (art === "glitzer") { t.y += Math.sin(zeit * 0.5 + t.p) * 5 * dt - 3 * dt; t.x += Math.cos(zeit * 0.4 + t.p) * 4 * dt - dx * 0.7; }
       else if (art === "regen") { t.y += (620 + 260 * t.g) * dt; t.x += -90 * dt - dx * 0.9; }
+      else if (art === "schleim") { t.y += (70 + 70 * t.g) * dt; t.x += -dx * 0.6; }
       else if (art === "pollen") { t.y += Math.sin(zeit * 0.6 + t.p) * 8 * dt - 4 * dt; t.x += (10 + 6 * t.g) * dt - dx * 0.7; }
       else if (art === "laub") {                                  // fliegt mit dem Wind (windJetzt: −1 … 1)
         t.y += (18 + 14 * t.g) * dt + Math.sin(zeit * 1.7 + t.p) * 20 * dt;
@@ -1233,6 +1262,13 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (art === "staub") {
         ctx.fillStyle = "rgba(196,150,92," + (0.22 + 0.18 * t.g) + ")";
         ctx.beginPath(); ctx.arc(t.x, t.y, 1.5 + 2.2 * t.g, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "schleim") {                        // giftgrüner Tropfen (oben spitz)
+        var sr = 2.2 + 2.2 * t.g;
+        ctx.fillStyle = "rgba(120,235,60,0.85)";
+        ctx.beginPath(); ctx.moveTo(t.x, t.y - sr * 2.4);
+        ctx.quadraticCurveTo(t.x + sr * 1.1, t.y - sr * 0.3, t.x, t.y + sr);
+        ctx.quadraticCurveTo(t.x - sr * 1.1, t.y - sr * 0.3, t.x, t.y - sr * 2.4); ctx.fill();
+        ctx.fillStyle = "rgba(230,255,200,0.8)"; ctx.beginPath(); ctx.arc(t.x - sr * 0.3, t.y - sr * 0.3, sr * 0.3, 0, Math.PI * 2); ctx.fill();
       } else if (art === "regen") {
         ctx.strokeStyle = "rgba(215,230,255," + (0.35 + 0.25 * t.g) + ")"; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x - 3 - 2 * t.g, t.y - 12 - 8 * t.g); ctx.stroke();
@@ -1438,11 +1474,36 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* Förderbänder: Gummiband mit laufenden Pfeilen (Richtung und Tempo), Rollen an
      den Enden, gelb-schwarzer Rand. Die Oberkante liegt genau auf dem Boden. */
+  /* Schleimbach (Schleimwelt): flaches grünes Band, das sichtbar entgegen fließt –
+     Wellenkämme, Blasen und hellere Schlieren wandern mit b.v */
+  function zeichneSchleimbach(ctx, K, gel, b, zeit) {
+    var s = K.s, X0 = sx(K, b.x0 - 0.6), X1 = sx(K, b.x1 + 0.6), y = gel.hoeheBei((b.x0 + b.x1) / 2), Yo = sy(K, y + 0.06), Yu = sy(K, y - 0.4);
+    ctx.beginPath(); ctx.moveTo(X0, Yu);
+    for (var x = b.x0 - 0.6; x <= b.x1 + 0.6; x += 0.3) {
+      var rand = Math.min(1, (x - b.x0 + 0.6) / 1.2, (b.x1 + 0.6 - x) / 1.2);
+      ctx.lineTo(sx(K, x), Yo - (0.05 + Math.sin(x * 2.2 - zeit * b.v * 2.2) * 0.05) * s * rand);
+    }
+    ctx.lineTo(X1, Yu); ctx.closePath();
+    var g = ctx.createLinearGradient(0, Yo, 0, Yu);
+    g.addColorStop(0, "#a6f55a"); g.addColorStop(1, "#3fae2a");
+    ctx.fillStyle = g; ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.rect(X0, Yo - 0.3 * s, X1 - X0, Yu - Yo + 0.3 * s); ctx.clip();
+    var abst = 1.6, vers = ((zeit * b.v) % abst + abst) % abst;
+    ctx.strokeStyle = "rgba(225,255,190,0.7)"; ctx.lineWidth = Math.max(2, 0.07 * s); ctx.lineCap = "round";
+    for (var xs = b.x0 - abst + vers; xs < b.x1 + abst; xs += abst) {
+      ctx.beginPath(); ctx.moveTo(sx(K, xs), Yo + 0.12 * s); ctx.quadraticCurveTo(sx(K, xs + 0.35), Yo + 0.05 * s, sx(K, xs + 0.7), Yo + 0.13 * s); ctx.stroke();
+      ctx.fillStyle = "rgba(240,255,220,0.7)";
+      ctx.beginPath(); ctx.arc(sx(K, xs + 1.1), Yo + 0.26 * s, 0.07 * s, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function zeichneBaender(ctx, K, gel, zeit) {
     var B = gel.baender, s = K.s;
     for (var i = 0; i < B.length; i++) {
       var b = B[i], X0 = sx(K, b.x0), X1 = sx(K, b.x1);
       if (X1 < -20 || X0 > K.b + 20) continue;
+      if (gel.welt.schleimbach) { zeichneSchleimbach(ctx, K, gel, b, zeit); continue; }
       var y = gel.hoeheBei((b.x0 + b.x1) / 2), Yo = sy(K, y), Yu = sy(K, y - 0.45), r = (Yu - Yo) / 2;
       ctx.fillStyle = "#3a3f4b";
       ctx.beginPath(); ctx.moveTo(X0, Yo); ctx.lineTo(X1, Yo); ctx.arc(X1, Yo + r, r, -Math.PI / 2, Math.PI / 2); ctx.lineTo(X0, Yu); ctx.arc(X0, Yo + r, r, Math.PI / 2, Math.PI * 1.5); ctx.fill();

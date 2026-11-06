@@ -1750,6 +1750,17 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
     teile.vorne();
+    if (fz.flecken && fz.flecken.length) {                 // Schleimwelt: grüne Flecken auf dem Auto
+      fz.flecken.forEach(function (f) {
+        ctx.globalAlpha = Math.min(1, f.t / 2) * 0.9; ctx.fillStyle = "#7fe23a";
+        ctx.beginPath();
+        for (var k = 0; k < 10; k++) { var wk = f.w + k * Math.PI / 5, rk = f.r * (k % 2 ? 0.65 : 1); ctx.lineTo(f.x + Math.cos(wk) * rk, f.y + Math.sin(wk) * rk); }
+        ctx.closePath(); ctx.fill();
+        ctx.fillRect(f.x - f.r * 0.12, f.y - f.r * 1.6, f.r * 0.24, f.r * 0.9);          // läuft herunter
+        ctx.fillStyle = "rgba(230,255,200,0.8)"; ctx.beginPath(); ctx.arc(f.x - f.r * 0.3, f.y + f.r * 0.25, f.r * 0.2, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
     if (aussehen.spoiler && form !== "skateboard" && form !== "dampflok" && form !== "renner") zeichneSpoiler(ctx, def, aussehen.spoiler);
     if (!teile.fahrerZuerst && !teile.fahrerVorDach && !teile.fahrerNachVorne) fahrer();
     if (teile.fahrerNachVorne) {
