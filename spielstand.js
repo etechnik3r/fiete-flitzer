@@ -154,8 +154,9 @@ var FF = globalThis.FF = globalThis.FF || {};
      Spielstand-Code
      ------------------------------------------------------------------------- */
   var ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  var CODE_VERSION = 2;               // 2: mit Felgen und Beifahrern (Codes der Version 1 werden weiter gelesen)
-  var UPG = ["motor", "reifen", "federung", "tank"];
+  var CODE_VERSION = 3;               // 2: mit Felgen und Beifahrern, 3: vier weitere Upgrades (ältere Codes werden weiter gelesen)
+  var UPG = ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"];
+  var UPG_ALT = UPG.slice(0, 4);       // Codes bis Version 2
 
   function Schreiber() { this.bits = []; }
   Schreiber.prototype.bit = function (v) { this.bits.push(v ? 1 : 0); };
@@ -292,7 +293,7 @@ var FF = globalThis.FF = globalThis.FF || {};
           fs.gekauft = !!r.bit();
           if (fs.gekauft) {
             fs.upgrades = {};
-            UPG.forEach(function (u) { var st = r.feld(3); if (st) fs.upgrades[u] = st; });
+            (version >= 3 ? UPG : UPG_ALT).forEach(function (u) { var st = r.feld(3); if (st) fs.upgrades[u] = st; });
             if (r.bit()) fs.upgrades.allrad = 1;
             var fa = C.farben[r.feld(5)], mu = C.muster[r.feld(4)];
             if (fa) fs.farbe = fa.id;

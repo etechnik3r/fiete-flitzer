@@ -364,8 +364,15 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
-Federweg), ⛽ Tank (beim E-Auto 🔋 Akku). Bei manchen Fahrzeugen gibt es
-zusätzlich **4×4 Allrad**. In der Garage spielt **🔊 Motor anhören** den
+Federweg), ⛽ Tank (beim E-Auto 🔋 Akku), dazu seit Version 32: 🌪️ **Luft-Kreisel**
+(ohne Pedal dämpft er die Drehung in der Luft, 0,5/s je Stufe; beim Gegensteuern
++12 % Drehmoment je Stufe – bewusst nicht mehr Drehkraft in Drehrichtung, sonst
+überschlägt sich, wer Gas hält, öfter), 🪽 **Spoiler** (+0,15 Abtrieb und +2 %
+Höchsttempo je Stufe, man sieht ihn hinten am Auto), 🛑 **Bremsen** (+15 %
+Bremskraft, +10 % Rückwärtskraft je Stufe) und 🪶 **Leichtbau** (−2,5 % Masse je
+Stufe; nicht beim Trecker, der braucht sein Gewicht). Bei manchen Fahrzeugen gibt es
+zusätzlich **4×4 Allrad**. Der Spielstand-Code (Version 3) enthält die neuen
+Stufen, ältere Codes werden weiter gelesen. In der Garage spielt **🔊 Motor anhören** den
 Klang jedes Fahrzeugs ab.
 **💇 Look** (gratis, jedes Kind hat seinen eigenen): Fiete ohne oder mit
 schwarzer Baseball-Cap, Jonte mit Dutt oder mit offenen Haaren. Der Look gilt

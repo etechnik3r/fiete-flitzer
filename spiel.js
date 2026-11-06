@@ -111,7 +111,7 @@
     var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
     var bf = C.beifahrer.filter(function (b) { return b.id === prof.beifahrer; })[0];
     return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindMitLook(kindId),
-             felge: prof.felge || "standard", beifahrer: bf ? bf.emoji : "" };
+             felge: prof.felge || "standard", beifahrer: bf ? bf.emoji : "", spoiler: (fs.upgrades && fs.upgrades.spoiler) || 0 };
   }
 
   /* Kind als Bild (Brustbild oder nur Kopf) – gezeichnet mit denselben

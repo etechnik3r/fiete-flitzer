@@ -150,8 +150,11 @@ function fahre(weltIndex, stufe, fzId, upg, maxZeit, art) {
   return e;
 }
 
+var mitNeuenUpgrades = argv.indexOf("--neue-upgrades") >= 0;   // auch Luft-Kreisel, Spoiler, Bremsen, Leichtbau
 function upgradesAlle(stufe) {
-  return { motor: stufe, reifen: stufe, federung: stufe, tank: stufe, allrad: stufe >= 4 ? 1 : 0 };
+  var u = { motor: stufe, reifen: stufe, federung: stufe, tank: stufe, allrad: stufe >= 4 ? 1 : 0 };
+  if (mitNeuenUpgrades) { u.kreisel = u.spoiler = u.bremse = u.leichtbau = stufe; (process.env.OHNE || "").split(",").forEach(function (k) { if (k) u[k] = 0; }); }
+  return u;
 }
 /* "auto": so viele Upgrades, wie man bis zu dieser Welt ungefähr erspielt hat */
 function upgradesFuer(weltIndex) {
@@ -502,7 +505,7 @@ function spielstandTests() {
     p.muenzen = Math.floor(z() * 200000);
     C.fahrzeuge.forEach(function (f, fi) {
       var fs = p.fahrzeuge[f.id]; fs.gekauft = fs.gekauft || z() < 0.6;
-      if (fs.gekauft) { fs.upgrades = { motor: 1 + fi % 5, reifen: fi % 6 }; if (z() < 0.5) fs.upgrades.allrad = 1; fs.farbe = C.farben[fi].id; fs.muster = C.muster[fi % C.muster.length].id; }
+      if (fs.gekauft) { fs.upgrades = { motor: 1 + fi % 5, reifen: fi % 6, kreisel: 1 + fi % 4, leichtbau: 1 + fi % 3 }; if (z() < 0.5) fs.upgrades.allrad = 1; fs.farbe = C.farben[fi].id; fs.muster = C.muster[fi % C.muster.length].id; }
       if (fs.gekauft && !fs.upgrades.reifen) delete fs.upgrades.reifen;
     });
     p.fahrzeug = "moped"; p.fahrzeuge.moped.gekauft = true;

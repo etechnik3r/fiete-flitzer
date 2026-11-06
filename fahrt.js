@@ -51,6 +51,16 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.federung.daempfung += U.federDaempfung * fe;
     w.federung.weg *= 1 + U.federWeg * fe;
     w.tankSekunden *= (1 + U.tank * ta) * S.tank;
+    // Version 32: Luft-Kreisel, Spoiler, Bremsen, Leichtbau
+    var kr = upg.kreisel || 0, sp = upg.spoiler || 0, br = upg.bremse || 0, lb = def.upgrades && def.upgrades.indexOf("leichtbau") < 0 ? 0 : upg.leichtbau || 0;
+    if (w.maxDrehung) w.maxDrehung *= 1 + U.kreisel * kr * 0.5;           // Zug: auch etwas schneller drehen
+    w.abtrieb = (w.abtrieb || 0) + U.spoilerAbtrieb * sp;
+    w.motor.vmax *= 1 + U.spoilerTempo * sp;
+    w.bremse *= 1 + U.bremse * br;
+    w.rueckMal = 1 + U.rueckwaerts * br;
+    w.masse *= 1 - U.leichtbau * lb;
+    w.spoiler = sp;                                                         // für die Grafik
+    w.kreisel = kr;
     if (upg.allrad) w.raeder.forEach(function (r) { r.antrieb = true; });
     w.luftsteuerung *= S.luftsteuerung;
     w.stabilisator = S.stabilisator;
@@ -384,7 +394,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         R.motorMax = w.bremse * bremsKraft / nAlle;
       } else if (this.rueckwaerts && motorAn) {
         R.motorZiel = R.wMax * S.rueckwaertsTempo;
-        R.motorMax = R.antrieb ? Tkurve * S.rueckwaertsKraft * this.bremse / nA : 0;
+        R.motorMax = R.antrieb ? Tkurve * S.rueckwaertsKraft * (w.rueckMal || 1) * this.bremse / nA : 0;
       } else {
         // ohne Pedal: Motorbremse – beim Elektroauto stärker (Generator lädt den Akku)
         R.motorZiel = 0;
@@ -411,6 +421,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       if ((steuer > 0 && C.w > 5.5) || (steuer < 0 && C.w < -5.5)) M = 0;
       if (w.stabilisator && Math.abs(steuer) < 0.1) {
         M += (-3 * normWinkel(C.a) - 1.5 * C.w) * J * w.stabilisator;
+      }
+      // Luft-Kreisel (Upgrade): hält das Auto in der Luft ruhig wie ein Kreiselinstrument.
+      // Ohne Pedal dämpft er die Drehung, beim Gegensteuern fängt er sie schneller ab.
+      // (Mehr Drehkraft in Drehrichtung wäre schlecht: Wer Gas hält, überschlägt sich dann öfter.)
+      if (w.kreisel) {
+        var UK = FF.CONFIG.upgradeWirkung;
+        if (Math.abs(steuer) < 0.1) M -= C.w * J * UK.kreiselRuhe * w.kreisel;
+        else if (steuer * C.w < 0) M *= 1 + UK.kreisel * w.kreisel;          // Gegensteuern wirkt stärker
       }
     } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {
       // Stabilisator (Leicht) bzw. Gleichgewichtssinn (Skateboard: das Kind balanciert)
