@@ -61,7 +61,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **31 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **32 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
@@ -69,7 +69,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
   🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
-  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt.
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -223,6 +223,22 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   - **💥 Comic-Sprechblasen** (`welt.comic`): „BÄM!“, „ZACK!“, „WUSCH!“ … als
     gezackter Stern bei harten Landungen, Saltos und in der Telefonzelle
     (höchstens eine alle 0,7 s).
+- **🟢 Schleimwelt** (Version 35): giftgrüner, aber freundlicher Schleim.
+  - **Schleimpfützen** (`welt.wasser.schleim`): bremsen wie Matsch (0,12 · v² ·
+    Tiefe) und kleben zusätzlich gleichmäßig (`kleben` 2,2 m/s² bei voller Tiefe),
+    sodass auch langsame Autos stecken bleiben, wenn sie keinen Schwung haben.
+    Schleim zieht Fäden am Rand, es blubbert, „Schlurp!“.
+  - **Schleimbäche** (`welt.schleimbach`, Bau-Element `band`): fließen immer gegen
+    die Fahrtrichtung (2,5–4,5 m/s, langsamer als die Rückwärtsbänder der
+    Spielzeugfabrik) und sind als grüner Strom mit wandernden Wellen gemalt.
+  - **Schleimtropfen** (`welt.schleimtropfen`, etwa alle 2–5 s): fallen in 1 s aus
+    4,9 m genau dorthin, wo das Auto gleich ist; ein Treffer hinterlässt einen
+    grünen Fleck auf dem Auto (nur Grafik, höchstens 9, verblassen nach 9–13 s).
+    Dazu fallen grüne Tropfen als Wetter (`wetter: "schleim"`).
+  - **Wackelschleim-Hügel**: Trampoline im Stil `schleim` (grüner Glibber mit
+    Blasen, wabbelt nach dem Sprung), und der Boden federt (`abprall` 0,26).
+  - Deko: **Glibbermonster** (`@glibber`, ein oder zwei Glubschaugen) und
+    **Schleimfässer** (`@schleimfass`), im Hintergrund Rohre.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring

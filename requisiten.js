@@ -773,6 +773,41 @@
       g.fillStyle = dunkel(f, 0.35); g.beginPath(); g.arc(0, y, r * 0.25, 0, Math.PI * 2); g.fill();
       g.fillStyle = dunkel(f, 0.1); for (i = 0; i < 4; i++) { g.beginPath(); g.arc(Math.cos(i * 1.57 + 0.7) * r * 0.52, y + Math.sin(i * 1.57 + 0.7) * r * 0.52, r * 0.1, 0, Math.PI * 2); g.fill(); }
     } },
+    // Schleimwelt (Version 35): freundliches Glibbermonster und ein Fass, aus dem Schleim quillt
+    glibber: { breite: 1.2, sinken: 0.02, male: function (g, u, R) {
+      var f = ["#7fe23a", "#5fd65a", "#a6ef4a", "#3fcf8a"][Math.floor(R() * 4)], b = u * 0.58;
+      var gr = g.createLinearGradient(0, -u, 0, 0); gr.addColorStop(0, hell(f, 0.25)); gr.addColorStop(1, dunkel(f, 0.15));
+      g.fillStyle = gr;
+      g.beginPath(); g.moveTo(-b, 0);
+      g.bezierCurveTo(-b * 1.05, -u * 0.6, -b * 0.6, -u * 1.02, 0, -u);
+      g.bezierCurveTo(b * 0.6, -u * 1.02, b * 1.05, -u * 0.6, b, 0);
+      for (var k = 4; k >= 0; k--) g.quadraticCurveTo(-b + (k + 0.5) * b * 0.4, u * (k % 2 ? 0.08 : -0.02), -b + k * b * 0.4, 0);
+      g.fill();
+      g.strokeStyle = dunkel(f, 0.4); g.lineWidth = Math.max(1, u * 0.035); g.stroke();
+      var aug = R() < 0.35 ? 1 : 2, ay = -u * 0.62;
+      for (var a = 0; a < aug; a++) {
+        var ax = aug === 1 ? 0 : (a ? b * 0.34 : -b * 0.34), ar = u * (aug === 1 ? 0.2 : 0.14);
+        g.fillStyle = "#ffffff"; g.beginPath(); g.arc(ax, ay, ar, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#1e2c52"; g.beginPath(); g.arc(ax + ar * 0.25, ay + ar * 0.1, ar * 0.5, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#ffffff"; g.beginPath(); g.arc(ax + ar * 0.4, ay - ar * 0.15, ar * 0.17, 0, Math.PI * 2); g.fill();
+      }
+      g.strokeStyle = "#1e2c52"; g.lineWidth = Math.max(1, u * 0.04); g.lineCap = "round";     // Lächeln
+      g.beginPath(); g.arc(0, -u * 0.38, u * 0.14, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.45)"; g.beginPath(); g.ellipse(-b * 0.45, -u * 0.72, u * 0.08, u * 0.14, -0.5, 0, Math.PI * 2); g.fill();
+    } },
+    schleimfass: { breite: 0.8, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.36, f = ["#5a6a8a", "#8a5a6a", "#6a5a8a"][Math.floor(R() * 3)];
+      var gr = g.createLinearGradient(-b, 0, b, 0); gr.addColorStop(0, dunkel(f, 0.2)); gr.addColorStop(0.4, hell(f, 0.25)); gr.addColorStop(1, dunkel(f, 0.3));
+      g.fillStyle = gr; g.fillRect(-b, -u * 0.9, b * 2, u * 0.9);
+      g.fillStyle = dunkel(f, 0.4); g.fillRect(-b, -u * 0.68, b * 2, u * 0.06); g.fillRect(-b, -u * 0.3, b * 2, u * 0.06);
+      g.fillStyle = "#7fe23a";                                // Schleim quillt oben heraus und läuft herunter
+      g.beginPath(); g.ellipse(0, -u * 0.9, b * 1.05, u * 0.09, 0, 0, Math.PI * 2); g.fill();
+      [[-b * 0.6, 0.35], [b * 0.1, 0.55], [b * 0.65, 0.25]].forEach(function (d) {
+        g.beginPath(); g.moveTo(d[0] - u * 0.05, -u * 0.9); g.lineTo(d[0] - u * 0.04, -u * (0.9 - d[1]));
+        g.arc(d[0], -u * (0.9 - d[1]), u * 0.045, Math.PI, 0, true); g.lineTo(d[0] + u * 0.05, -u * 0.9); g.fill();
+      });
+      g.fillStyle = "rgba(230,255,190,0.8)"; g.beginPath(); g.arc(-b * 0.3, -u * 0.92, u * 0.035, 0, Math.PI * 2); g.fill();
+    } },
     kiste: { breite: 1.1, sinken: 0, male: function (g, u, R) {
       var b = u * 0.52, f = "#c9955a";
       var gr = g.createLinearGradient(-b, 0, b, 0); gr.addColorStop(0, hell(f, 0.15)); gr.addColorStop(1, dunkel(f, 0.2));

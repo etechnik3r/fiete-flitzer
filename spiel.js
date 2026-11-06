@@ -397,6 +397,7 @@
     }
     if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
+    if (fahrt.welt.schleimtropfen || fahrt.fz.flecken) schleimTropfen(dt);
     if (fahrt.werte.turbine && (fahrt.turbinenLauf || 0) > 0.25 && auspuffTakt <= 0) {     // Turbine: heiße Abgase hinter der Düse
       auspuffTakt = 0.05;
       var ct = Math.cos(ch.a), stt = Math.sin(ch.a), xt = -2.1 - fahrt.turbinenLauf * 0.8, yt = 0.8;
@@ -419,6 +420,42 @@
       partikel.neu({ art: "rauch", x: ch.x + cb * xb, y: ch.y + sb * xb,
                      vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
                      t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
+    }
+  }
+
+  /* Schleimwelt: Ab und zu fällt ein dicker Tropfen von oben genau dorthin, wo das Auto
+     gleich ist; trifft er, bleibt ein grüner Fleck auf dem Auto (nur Grafik, verblasst). */
+  var schleimTakt = 2, schleimFaelle = [];
+  function schleimFleck(n) {
+    var fz = fahrt.fz, L = fahrt.werte.groesse.laenge, H0 = fahrt.werte.groesse.hoehe;
+    fz.flecken = fz.flecken || [];
+    for (var i = 0; i < n; i++) {
+      if (fz.flecken.length >= 9) fz.flecken.shift();
+      fz.flecken.push({ x: (Math.random() - 0.5) * L * 0.8, y: Math.random() * H0 * 0.55, r: 0.1 + Math.random() * 0.12, t: 9 + Math.random() * 4, w: Math.random() * 6 });
+    }
+  }
+  function schleimTropfen(dt) {
+    var ST = fahrt.welt.schleimtropfen, ch = fahrt.fz.chassis, fz = fahrt.fz;
+    if (fz.flecken) fz.flecken = fz.flecken.filter(function (f) { f.t -= dt; return f.t > 0; });
+    if (!ST || fahrt.zustand !== "fahrt") return;
+    schleimTakt -= dt;
+    if (schleimTakt <= 0) {
+      schleimTakt = ST.abstand * (0.6 + 0.8 * Math.random());
+      var x = ch.x + ch.vx * 1.0 + (Math.random() - 0.5) * 0.8, h0 = 4.9;       // fällt in 1 s aus 4,9 m (g · t² / 2)
+      partikel.neu({ art: "tropfen", x: x, y: ch.y + 1 + h0, vx: 0, vy: 0, t: 0, dauer: 1.0, r0: 0.2, farbe: "rgba(120,235,60,0.95)", schwer: 1, reibung: 0 });
+      schleimFaelle.push({ x: x, t: 1.0 });
+    }
+    for (var i = schleimFaelle.length - 1; i >= 0; i--) {
+      var f = schleimFaelle[i];
+      f.t -= dt;
+      if (f.t > 0) continue;
+      schleimFaelle.splice(i, 1);
+      if (Math.abs(f.x - ch.x) < fahrt.werte.groesse.laenge * 0.55) {
+        schleimFleck(1); FF.Klang.spiele("schlurp", 0.4);
+        if (Math.random() < 0.5) schwebeText(ch.x, ch.y + 2, ["Iiih!", "Glibber!", "Schleim! 🟢"][Math.floor(Math.random() * 3)], "#c6ff7a", false);
+        for (var k = 0; k < 6; k++) partikel.neu({ art: "tropfen", x: f.x, y: ch.y + 1.2, vx: (Math.random() - 0.5) * 4, vy: 1 + Math.random() * 2,
+                                                   t: 0, dauer: 0.6, r0: 0.07, farbe: "rgba(120,235,60,0.95)", schwer: 1, reibung: 0.3 });
+      }
     }
   }
 
@@ -651,13 +688,19 @@
           }
           break;
         case "platsch":                  // in eine Pfütze gefahren (Bauernhof: Matsch)
-          var matsch = fahrt.welt.wasser && fahrt.welt.wasser.schlamm;
-          FF.Klang.spiele(matsch ? "matsch" : "platsch", e.staerke);
+          var matsch = fahrt.welt.wasser && fahrt.welt.wasser.schlamm, schleim = matsch && fahrt.welt.wasser.schleim;
+          FF.Klang.spiele(schleim ? "schlurp" : matsch ? "matsch" : "platsch", e.staerke);
           for (var pt = 0; pt < 6 + 10 * e.staerke; pt++) {
             var pw = Math.PI * (0.15 + 0.7 * Math.random()), pv = (matsch ? 1.5 : 2) + Math.random() * (matsch ? 3 : 4) * (0.5 + e.staerke);
             partikel.neu({ art: "tropfen", x: e.x + (Math.random() - 0.5) * 0.8, y: e.y + 0.05, vx: Math.cos(pw) * pv, vy: Math.sin(pw) * pv,
                            t: 0, dauer: 0.7 + Math.random() * 0.3, r0: (matsch ? 0.09 : 0.07) + Math.random() * 0.07,
-                           farbe: matsch ? "rgba(110,72,38,0.95)" : "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.4 });
+                           farbe: schleim ? "rgba(120,230,60,0.95)" : matsch ? "rgba(110,72,38,0.95)" : "rgba(190,225,255,0.9)", schwer: 1, reibung: 0.4 });
+          }
+          if (schleim) {
+            if (e.staerke > 0.45) { schwebeText(e.x, e.y + 1.6, "Schlurp! 🟢", "#c6ff7a", false); setzeAusdruck("staunen", 1.2); }
+            schleimFleck(2);
+            if (ersteMale("tipp-schleim", 2)) FF.Klang.sprich("Iiih, Schleim!");
+            break;
           }
           if (e.staerke > 0.55) { schwebeText(e.x, e.y + 1.6, matsch ? "Matsch! 🐷" : "Platsch! 💦", matsch ? "#e8c08a" : "#bfe4ff", false); setzeAusdruck("freude", 1.2); }
           if (ersteMale(matsch ? "tipp-matsch" : "tipp-platsch", 2)) FF.Klang.sprich(matsch ? "Matsch!" : "Platsch!");
@@ -706,11 +749,12 @@
           break;
         case "boing":                    // Hüpfpilz
           FF.Klang.spiele("boing");
-          schwebeText(e.x, e.y + 2.2, "Boing! 🍄", "#ffd23f", true);
+          var tStil = fahrt.welt.trampolinStil;
+          schwebeText(e.x, e.y + 2.2, tStil === "schleim" ? "Wabbel! 🟢" : tStil === "matte" ? "Boing! 🤸" : "Boing! 🍄", tStil === "schleim" ? "#c6ff7a" : "#ffd23f", true);
           funkeln(e.x, e.y + 0.8, "#ffffff", 8);
           setzeAusdruck("freude", 2.5);
           if (ersteMale("tipp-boing", 2)) {
-            tipp("🍄 Boing! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Boing!"); spruchBis = zeit + 3;
+            tipp((tStil === "schleim" ? "🟢 Wabbel!" : "🍄 Boing!") + " In der Luft mit Gas und Bremse die Nase gerade halten", 4500, tStil === "schleim" ? "Wabbel!" : "Boing!"); spruchBis = zeit + 3;
           }
           break;
         case "objekt":                   // Glas zerspringt, Bausteine fliegen, Säule zerfällt
@@ -783,6 +827,12 @@
           }
           break;
         case "band":                     // Förderband
+          if (fahrt.welt.schleimbach) {                   // Schleimwelt: Schleimbach statt Förderband
+            FF.Klang.spiele("schlurp", 0.8);
+            schwebeText(ch.x, ch.y + 2, "Schleimbach! 🟢", "#c6ff7a", true);
+            if (ersteMale("tipp-schleimbach", 2)) { tipp("🟢 Der Schleimbach fließt dir entgegen und klebt – gib kräftig Gas!", 4000, "Schleimbach! Gib Gas!"); spruchBis = zeit + 3; }
+            break;
+          }
           FF.Klang.spiele("band", e.v > 0);
           schwebeText(ch.x, ch.y + 2, e.v > 0 ? "Förderband ⏩" : "Förderband ⏪", e.v > 0 ? "#7dffb8" : "#ffd6a0", true);
           if (ersteMale("tipp-band" + (e.v > 0 ? "+" : "-"), 2)) {
@@ -905,7 +955,7 @@
   function starteFahrt(wi, li, endlos, strecke) {
     FF.Klang.init();
     fahrtInfo = { weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null };
-    kopfLage = 0;
+    kopfLage = 0; schleimFaelle = []; schleimTakt = 2;
     var fs = P.fahrzeuge[P.fahrzeug];
     fahrt = new FF.Fahrt({
       weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null,
@@ -2089,15 +2139,17 @@
     if (w.kopfueber) m.push("🙃 Umdreh-Tore");
     if (w.held) m.push("📞 Heldenumhang", "🐱 Kätzchen retten");
     if (w.comic) m.push("💥 Comic-Blasen");
+    if (w.schleimbach) m.push("🟢 Schleimbäche");
+    if (w.schleimtropfen) m.push("💚 Schleimtropfen");
     if (g.looping) m.push("🎢 Loopings");
     if (g.luecke) m.push("🕳️ Abgründe");
-    if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : "🍄 Hüpfpilze");
-    if (g.band) m.push("⏩ Förderbänder");
+    if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : w.trampolinStil === "schleim" ? "🟩 Wackelschleim" : "🍄 Hüpfpilze");
+    if (g.band && !w.schleimbach) m.push("⏩ Förderbänder");
     if (g.schwebe) m.push("✨ Schwebe-Säulen");
     if (g.katapult) m.push("🎯 Katapulte");
     if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : "🧱 Bausteine fliegen");
     if (w.objekte && w.objekte.saeule) m.push("🏛️ Säulen");
-    if (w.wasser && w.wasser.schlamm) { m.splice(m.indexOf("💧 Pfützen"), 1, "🐷 Matsch"); }
+    if (w.wasser && w.wasser.schlamm) { m.splice(m.indexOf("💧 Pfützen"), 1, w.wasser.schleim ? "🫠 klebriger Schleim" : "🐷 Matsch"); }
     if (g.scheune) m.push("🛖 Scheunen mit Stroh");
     if (w.obst) m.push("🍎 Obst-Turbo");
     if (g.roehreAbstand) m.push("🌀 Röhren");

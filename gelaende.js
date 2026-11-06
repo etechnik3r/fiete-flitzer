@@ -536,6 +536,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       el.Lb = 16 + 12 * r() + 6 * p.wild;
       var vor = r() < 0.62;
       el.v = vor ? 7 + 3.5 * r() : -Math.min(6.5, 3.6 + 1.8 * r() + 1.2 * p.wild);   // v29: etwas schneller (vorher 5–8 bzw. 3–5,5)
+      if (this.welt.schleimbach) el.v = -(2.5 + 2 * Math.abs(el.v % 1));               // Schleimbach: fließt immer entgegen, langsamer
       el.Lflach = el.La + el.Lb + 6;
       el.Lo = 18;
       el.xe = xs + el.Lflach + el.Lo;

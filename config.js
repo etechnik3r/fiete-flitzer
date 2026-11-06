@@ -1266,6 +1266,36 @@ FF.CONFIG = {
                   abstandElemente: 24 },
       tankAbstand: 280, muenzAbstand: 22,
       level: [ { laenge: 800, seed: 3101 }, { laenge: 1060, seed: 3102 }, { laenge: 1320, seed: 3103 }, { laenge: 1580, seed: 3104 } ]
+    },
+    {
+      /* Schleimwelt (Version 35): giftgrüner Schleim überall – aber freundlich.
+           • Schleimpfützen (welt.wasser mit schleim): kleben – bremsen wie Matsch und
+             zusätzlich gleichmäßig (kleben [m/s²] · Eintauchtiefe), auch wenn man langsam ist
+           • Schleimbäche (Bau-Element "band" mit welt.schleimbach): fließen immer gegen
+             die Fahrtrichtung (2,5–4,5 m/s) und bremsen
+           • Schleimtropfen fallen von oben aufs Auto (welt.schleimtropfen) und lassen
+             grüne Flecken zurück, die langsam verblassen
+           • Wackelschleim-Hügel (Trampoline im Stil "schleim"), dazu federt der Boden (abprall)
+           • Blubberblasen in den Pfützen, freundliche Glibbermonster und Schleimfässer */
+      id: "schleim", name: "Schleimwelt", emoji: "🟢", hinweis: "Giftgrüner Schleim – klebrig und glibberig!",
+      schwerkraft: 9.81, grip: 1.05, rollwiderstand: 0.02, abprall: 0.26, luftdichte: 1.2,
+      farben: {
+        himmel: ["#3b2a5e", "#b6ef7a"], berge: ["#5a8a3a", "#3d6a2a"],
+        boden: ["#4c3a66", "#2e2342"], oberflaeche: "#7fe23a", kante: "#ccff7a", punkte: "#3a2c52", wasser: "#6ee83a",
+        wolken: "rgba(200,255,170,0.55)"
+      },
+      sonne: "sonne", sonnenDeko: "brille", wetter: "schleim", wolkenStil: "zuckerwatte",
+      wasser: { tiefe: 0.5, maxBreite: 13, bremse: 0.12, schlamm: true, schleim: true, kleben: 2.2 },
+      schleimbach: true, schleimtropfen: { abstand: 3.2 }, trampolinStil: "schleim",
+      tipp: ["🟢 Schleim! Pfützen und Bäche sind klebrig – nimm Schwung! Die Wackelhügel federn dich hoch.", "Achtung, klebriger Schleim!"],
+      deko: ["@glibber:1.0", "@schleimfass:1.1", "@pilz:1.0", "@glibber:1.4", "@baumtot:2.6", "@schleimfass:0.9", "@glibber:0.8", "@kristall:1.0", "🐸:0.6", "@glibber:1.2"],
+      beiwerk: ["@stein:0.35", "@gras:0.4", "@pilz:0.35"], kulisse: ["roehren", "wolkenberg", "roehren"],
+      gelaende: { amp: 6.0, welle: 40, holperAmp: 0.16, holperWelle: 6, trend: 0.014,
+                  maxAuf: 27, maxAb: 36, schanzen: 1.1, buckel: 0.9, steil: 0.6, taeler: 1.1, berg: 0.6, sprung: 0.9, wellen: 0.8, klippe: 0.4, rampe: 0.7, kuppe: 0.7, stufe: 0.6,
+                  trampolin: 0.7, band: 1.0, wildBasis: 0.3,
+                  abstandElemente: 26 },
+      tankAbstand: 240, muenzAbstand: 22,
+      level: [ { laenge: 800, seed: 3201 }, { laenge: 1060, seed: 3202 }, { laenge: 1320, seed: 3203 }, { laenge: 1580, seed: 3204 } ]
     }
   ],
 
@@ -1288,6 +1318,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "35", titel: "Die Schleimwelt", punkte: [
+      "🟢 Neue Welt Schleimwelt: Überall tropft giftgrüner Schleim!",
+      "🫠 Schleimpfützen und Schleimbäche sind klebrig – nimm Schwung!",
+      "💚 Schleimtropfen landen auf deinem Auto und machen grüne Flecken",
+      "🟩 Wackelschleim-Hügel federn dich hoch, freundliche Glibbermonster schauen zu" ] },
     { version: "34", titel: "Die Superheldenwelt", punkte: [
       "🦸 Neue Welt Superheldenwelt: über die Dächer der Stadt, am Himmel kreist der Suchscheinwerfer",
       "📞 Fahr durch die Telefonzelle: Heldenumhang an – du bekommst Schwung und kannst gleiten!",

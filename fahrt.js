@@ -633,6 +633,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.melde("roehreAus", { x: C.x, y: C.y });
   };
 
+  function v_quadrat(v) { return v * v; }
+
   /* Pfützen: Räder, die ins Wasser tauchen, spritzen (Ereignis "platsch") und
      bremsen das Auto: a = bremse · v² · Eintauchtiefe (Mittel über alle Räder).
      Die Bremse wirkt auf Karosserie und Räder gleich (wie die Schwerkraft). */
@@ -650,7 +652,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.imWasser = tief > 0;
     if (!tief) return;
     tief /= fz.raeder.length;
-    var v = C.vx, dv = Math.min(Math.abs(v), W.bremse * tief * v * v * h) * (v > 0 ? -1 : 1);
+    var a = W.bremse * tief * v_quadrat(C.vx);
+    if (W.kleben) a += W.kleben * Math.min(1, tief / 0.3);   // Schleim klebt: bremst auch langsame Autos
+    var v = C.vx, dv = Math.min(Math.abs(v), a * h) * (v > 0 ? -1 : 1);
     C.vx += dv;
     fz.raeder.forEach(function (R) { R.k.vx += dv; });
   };
