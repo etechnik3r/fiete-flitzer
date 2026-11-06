@@ -482,7 +482,14 @@ FF.CONFIG = {
     { id: "hase",    name: "Hase",     icon: "🐰", emoji: "🐰", preis: 4000 },
     { id: "papagei", name: "Papagei",  icon: "🦜", emoji: "🦜", preis: 5000 },
     { id: "dino",    name: "Mini-Dino", icon: "🦖", emoji: "🦖", preis: 8000 },
-    { id: "einhorn", name: "Einhorn",  icon: "🦄", emoji: "🦄", preis: 12000 }
+    { id: "einhorn", name: "Einhorn",  icon: "🦄", emoji: "🦄", preis: 12000 },
+    // Version 30: sechs neue Tiere, jedes mit einer kleinen Eigenart (grafik.js, Beifahrer)
+    { id: "wolf",    name: "Wolf",     icon: "🐺", emoji: "🐺", preis: 6000 },   // heult nach jedem Salto „Auuu!“
+    { id: "pinguin", name: "Pinguin",  icon: "🐧", emoji: "🐧", preis: 4500 },   // watschelt hin und her
+    { id: "panda",   name: "Panda",    icon: "🐼", emoji: "🐼", preis: 7000 },   // mampft Bambus
+    { id: "fuchs",   name: "Fuchs",    icon: "🦊", emoji: "🦊", preis: 5000 },   // wackelt im Fahrtwind
+    { id: "eule",    name: "Eule",     icon: "🦉", emoji: "🦉", preis: 5500 },   // dreht ab und zu den Kopf
+    { id: "schildkroete", name: "Schildkröte", icon: "🐢", emoji: "🐢", preis: 6500 }   // mit Sturzhelm
   ],
   /* Spuren: Was hinter dem Auto herfliegt, solange es fährt (spiel.js spurZiehen).
      Einmal kaufen, für alle Fahrzeuge – damit Münzen auch später noch etwas wert sind. */
@@ -493,7 +500,14 @@ FF.CONFIG = {
     { id: "herzen",     name: "Herzen",       icon: "💖", preis: 3500 },
     { id: "funken",     name: "Funken",       icon: "🔥", preis: 5000 },
     { id: "konfetti",   name: "Konfetti",     icon: "🎊", preis: 7000 },
-    { id: "regenbogen", name: "Regenbogen",   icon: "🌈", preis: 10000 }
+    { id: "regenbogen", name: "Regenbogen",   icon: "🌈", preis: 10000 },
+    // Version 30: lustige Spuren
+    { id: "pups",       name: "Pupswolken",   icon: "💨", preis: 2000 },
+    { id: "enten",      name: "Gummienten",   icon: "🦆", preis: 3000 },
+    { id: "bananen",    name: "Bananen",      icon: "🍌", preis: 3000 },
+    { id: "popcorn",    name: "Popcorn",      icon: "🍿", preis: 4000 },
+    { id: "tatzen",     name: "Tatzen",       icon: "🐾", preis: 4500 },
+    { id: "socken",     name: "Socken",       icon: "🧦", preis: 6000 }
   ],
 
   /* -------------------------------------------------------------------------
@@ -1184,6 +1198,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "30", titel: "Neue Tiere und lustige Spuren", punkte: [
+      "🐺 Neue Beifahrer: Wolf (heult nach jedem Salto!), Pinguin, Panda, Fuchs, Eule und Schildkröte mit Sturzhelm",
+      "💨 Neue Spuren: Pupswolken, Gummienten, Bananen, Popcorn, Tatzen und Socken" ] },
     { version: "29", titel: "Schnellere Förderbänder und Ton-Hilfe", punkte: [
       "⏩ Spielzeugfabrik: Die Förderbänder laufen jetzt schneller – vorwärts ein richtiger Schub!",
       "📱 Kein Ton auf dem Handy? In den Einstellungen gibt es jetzt „Handy-Ton“ und „Ton testen“" ] },
