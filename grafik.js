@@ -297,7 +297,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (i = 0; i < T.length; i++) {
       var t = T[i];
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
-      (akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
+      (akku === "h2" ? zeichneH2Flasche : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
     var RK = gel.raketen || [];
     for (i = 0; i < RK.length; i++) {
@@ -360,6 +360,28 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.scale(s, -s);
     blitzForm(ctx, 0, 0, 0.5);
     ctx.fillStyle = "#ffe066"; ctx.fill();
+    ctx.restore();
+  }
+
+  /* Blaue Wasserstoff-Flasche (H₂-Blubber): Druckflasche mit Ventil und „H₂“ */
+  function zeichneH2Flasche(ctx, X, Y, s, zeit) {
+    var w = 0.46 * s, h = 0.82 * s;
+    ctx.save();
+    ctx.translate(X, Y);
+    var gl = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.1);
+    gl.addColorStop(0, "rgba(140,210,255," + (0.45 + 0.2 * Math.sin(zeit * 5)) + ")");
+    gl.addColorStop(1, "rgba(140,210,255,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, s * 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#8f9ab3"; rundRechteck(ctx, -w * 0.16, -h * 0.66, w * 0.32, h * 0.16, 0.03 * s); ctx.fill();   // Ventil
+    ctx.fillStyle = "#3b4566"; rundRechteck(ctx, -w * 0.36, -h * 0.7, w * 0.72, h * 0.07, 0.02 * s); ctx.fill();   // Handrad
+    rundRechteck(ctx, -w / 2, -h / 2, w, h, w * 0.48);
+    var g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, "#2f7fe0"); g.addColorStop(0.35, "#7cc4ff"); g.addColorStop(1, "#1f5fb8");
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = "#163f80"; ctx.lineWidth = Math.max(1, 0.06 * s); ctx.stroke();
+    ctx.font = "800 " + Math.round(0.34 * s) + "px 'Baloo 2', sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#ffffff";
+    ctx.fillText("H₂", 0, 0.04 * s);
     ctx.restore();
   }
 
@@ -1356,6 +1378,75 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: hinten, vorne: vorne, fahrerKoerper: null, fahrerZuerst: true };
     },
 
+    /* H₂-Blubber: rundes Kapselauto mit Glaskuppel, hinten zwei stehende H₂-Tanks,
+       zwei blaue Schläuche zur Brennstoffzelle unter der Haube, Wasser-Auspuff. */
+    wasserstoff: function (ctx, a, z) {
+      var c = basisFarbe(a);
+      var scheibe = [[0.56, 0.44], [0.38, 0.74], [0.02, 0.96], [-0.42, 0.98], [-0.78, 0.80], [-0.92, 0.50]];
+      var koerper = function () {
+        ctx.beginPath();
+        ctx.moveTo(-1.58, -0.28); ctx.lineTo(1.5, -0.28);
+        ctx.quadraticCurveTo(1.82, -0.24, 1.76, 0.06);
+        ctx.quadraticCurveTo(1.66, 0.34, 1.2, 0.38);
+        ctx.quadraticCurveTo(0.8, 0.4, 0.58, 0.46);
+        ctx.bezierCurveTo(0.4, 0.86, 0.1, 1.06, -0.36, 1.06);
+        ctx.bezierCurveTo(-0.78, 1.06, -0.94, 0.78, -0.98, 0.5);
+        ctx.lineTo(-1.5, 0.46);
+        ctx.quadraticCurveTo(-1.7, 0.4, -1.66, 0.06);
+        ctx.quadraticCurveTo(-1.66, -0.26, -1.58, -0.28);
+        ctx.closePath();
+      };
+      var tank = function (x, hinten) {          // stehende Druckflasche
+        var w = 0.3, y0 = 0.36, y1 = 1.12;
+        rundRechteck(ctx, x - w / 2, y0, w, y1 - y0, w * 0.48);
+        var g = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+        g.addColorStop(0, hinten ? "#9cb3cf" : "#c5d8ee"); g.addColorStop(0.4, hinten ? "#e6eef8" : "#ffffff"); g.addColorStop(1, hinten ? "#7d93b0" : "#9fb6d2");
+        ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.04; ctx.stroke();
+        ctx.fillStyle = "#2f7fe0"; ctx.fillRect(x - w / 2 + 0.02, 0.62, w - 0.04, 0.2);       // blaues Band
+        textLokal(ctx, "H₂", x, 0.725, 0.19, "#ffffff", true);
+        ctx.fillStyle = "#8f9ab3"; rundRechteck(ctx, x - 0.05, y1 - 0.02, 0.1, 0.09, 0.02); ctx.fill();   // Ventil
+        ctx.fillStyle = "#3b4566"; rundRechteck(ctx, x - 0.09, y1 + 0.06, 0.18, 0.04, 0.02); ctx.fill();
+      };
+      var schlauch = function (x0, y0, x1, y1, x2, y2, x3, y3, farbe) {
+        [[TINTE, 0.1], [farbe, 0.07], ["rgba(255,255,255,0.45)", 0.022]].forEach(function (L) {
+          ctx.strokeStyle = L[0]; ctx.lineWidth = L[1]; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3); ctx.stroke();
+        });
+      };
+      var hinten = function () {
+        tank(-1.36, true);                        // der hintere Tank steht etwas versetzt dahinter
+      };
+      var vorne = function () {
+        auspuff(ctx, -1.82, -0.16, 0.3, 0.06);
+        karosserie(ctx, a, z, koerper, -1.66, 1.82, -0.28, 1.06);
+        glas(ctx, scheibe);
+        tank(-1.16, false);
+        // zwei blaue Schläuche: von den Tank-Ventilen im Bogen nach vorn zur Brennstoffzelle
+        var wipp = Math.sin(z * 3) * 0.02;
+        schlauch(-1.36, 1.16, -1.75, 1.5 + wipp, -1.8, 0.2, -0.6, 0.12, "#1f6fe0");
+        schlauch(-1.16, 1.16, -0.92, 1.42 + wipp, -1.08, 0.22, 0.9, 0.18, "#39a0ff");
+        // Brennstoffzelle unter der Haube: Kasten mit Lüftungsschlitzen
+        ctx.fillStyle = "#2c3550"; rundRechteck(ctx, 0.72, 0.06, 0.62, 0.24, 0.05); ctx.fill();
+        ctx.fillStyle = "#39a0ff";
+        for (var i = 0; i < 4; i++) { rundRechteck(ctx, 0.78 + i * 0.14, 0.1, 0.07, 0.16, 0.03); ctx.fill(); }
+        // blaues Leuchtband unten, Wassertropfen-Dekor an der Tür
+        ctx.fillStyle = "#2c3550"; rundRechteck(ctx, -1.2, -0.36, 2.5, 0.1, 0.04); ctx.fill();
+        ctx.fillStyle = "#7cc4ff"; rundRechteck(ctx, -1.15, -0.34, 2.4, 0.03, 0.015); ctx.fill();
+        ctx.fillStyle = "#2f7fe0"; ctx.beginPath();
+        ctx.moveTo(-0.1, 0.32); ctx.bezierCurveTo(-0.24, 0.12, -0.2, -0.04, -0.1, -0.04);
+        ctx.bezierCurveTo(0.0, -0.04, 0.04, 0.12, -0.1, 0.32); ctx.fill();
+        ctx.strokeStyle = dunkel(c, 0.35); ctx.lineWidth = 0.02; ctx.stroke();
+        fuge(ctx, [[0.5, 0.42], [0.46, -0.2], [-0.92, -0.2], [-0.94, 0.48]], dunkel(c, 0.3));
+        // Scheinwerfer-Leiste, Rücklicht
+        var lg = ctx.createLinearGradient(1.3, 0, 1.85, 0);
+        lg.addColorStop(0, "rgba(185,230,255,0)"); lg.addColorStop(1, "rgba(185,230,255,0.6)");
+        ctx.fillStyle = lg; rundRechteck(ctx, 1.3, 0.02, 0.6, 0.2, 0.08); ctx.fill();
+        ctx.fillStyle = "#e9f6ff"; rundRechteck(ctx, 1.44, 0.1, 0.28, 0.06, 0.03); ctx.fill();
+        ruecklicht(ctx, -1.72, 0.14, 0.1, 0.14);
+        glanz(ctx, 0.4, 0.38, 1.2, 0.33, 0.04);
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
+    },
     eauto: function (ctx, a, z) {
       var c = basisFarbe(a);
       var scheibe = [[0.58, 0.38], [0.1, 0.7], [-0.55, 0.72], [-1.15, 0.6], [-1.3, 0.34]];
@@ -1594,7 +1685,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
     var kp = fz.kopf;
     var tempo = Math.hypot(fz.chassis.vx, fz.chassis.vy);
-    var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : form === "eauto" ? "aero" : form === "dampflok" ? "lok" : "normal";
+    var artRad = form === "traktor" ? "traktor" : form === "monster" ? "monster" : form === "mond" ? "mond" : form === "eauto" || form === "wasserstoff" ? "aero" : form === "dampflok" ? "lok" : "normal";
 
     // Federn
     if (!teile.ohneFedern) fz.raeder.forEach(function (R) {
@@ -1997,7 +2088,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku, sz.dpr || 1);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : "", sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     if (f.roehre && f.roehre.z) {
