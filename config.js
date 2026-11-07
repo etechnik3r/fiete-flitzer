@@ -465,13 +465,15 @@ FF.CONFIG = {
     federDaempfung: 0.07,      // +0,07 Dämpfungsgrad je Stufe
     federWeg: 0.07,            // +7 % Federweg je Stufe
     tank: 0.22,                // +22 % Tankinhalt je Stufe
-    kreisel: 0.12,             // Gegensteuern in der Luft: +12 % Drehmoment je Stufe (Stufe 5: +60 %)
-    kreiselRuhe: 0.5,          // ohne Pedal: Drehung in der Luft gedämpft, 0,5/s je Stufe
-    spoilerAbtrieb: 0.15,      // +0,15 m² Abtriebsbeiwert·Fläche je Stufe (Blitz-Rakete hat ab Werk 1,4)
-    spoilerTempo: 0.02,        // +2 % Höchstgeschwindigkeit je Stufe
-    bremse: 0.15,              // +15 % Bremskraft je Stufe
-    rueckwaerts: 0.1,          // +10 % Rückwärtskraft je Stufe
-    leichtbau: 0.025           // −2,5 % Masse des Aufbaus je Stufe (Stufe 5: −12,5 %)
+    // Version 36: die vier neuen Upgrades deutlich schwächer (vorher 0,12 / 0,5 / 0,15 /
+    // 0,02 / 0,15 / 0,1 / 0,025) – sie sollen sich lohnen, aber das Spiel nicht leicht machen
+    kreisel: 0.04,             // Gegensteuern in der Luft: +4 % Drehmoment je Stufe (Stufe 5: +20 %)
+    kreiselRuhe: 0.12,         // ohne Pedal: Drehung in der Luft gedämpft, 0,12/s je Stufe
+    spoilerAbtrieb: 0.04,      // +0,04 m² Abtriebsbeiwert·Fläche je Stufe (Blitz-Rakete hat ab Werk 1,4)
+    spoilerTempo: 0.006,       // +0,6 % Höchstgeschwindigkeit je Stufe (Stufe 5: +3 %)
+    bremse: 0.06,              // +6 % Bremskraft je Stufe
+    rueckwaerts: 0.04,         // +4 % Rückwärtskraft je Stufe
+    leichtbau: 0.008           // −0,8 % Masse des Aufbaus je Stufe (Stufe 5: −4 %)
   },
 
   /* -------------------------------------------------------------------------
@@ -1318,6 +1320,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "36", titel: "Fairer fahren", punkte: [
+      "⚖️ Luft-Kreisel, Spoiler, Bremsen und Leichtbau wirken jetzt viel schwächer",
+      "🎛️ Gas und Bremse zugleich: Jetzt zählt das Gas – der Trick mit den perfekten Sprüngen geht nicht mehr" ] },
     { version: "35", titel: "Die Schleimwelt", punkte: [
       "🟢 Neue Welt Schleimwelt: Überall tropft giftgrüner Schleim!",
       "🫠 Schleimpfützen und Schleimbäche sind klebrig – nimm Schwung!",

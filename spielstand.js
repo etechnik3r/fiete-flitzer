@@ -65,7 +65,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true, ausrichtung: "quer", tonHandy: false },
       duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
       gesehen: {},                          // welche Tipps schon wie oft kamen (bleibt über Neustarts)
-      entwickler: { alleOffen: false, editor: false }   // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
+      entwickler: { alleOffen: false, editor: false, gasBremseAlt: false }   // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
     };
     C.kinder.forEach(function (k) { s.spieler[k.id] = neuesProfil(); s.duell.siege[k.id] = 0; });
     return s;
@@ -137,7 +137,7 @@ var FF = globalThis.FF = globalThis.FF || {};
           if (d.einstellungen[k] !== undefined) s.einstellungen[k] = d.einstellungen[k];
         });
         if (d && d.gesehen && typeof d.gesehen === "object") Object.keys(d.gesehen).forEach(function (k) { s.gesehen[k] = +d.gesehen[k] || 0; });
-        if (d && d.entwickler) { s.entwickler.alleOffen = d.entwickler.alleOffen === true; s.entwickler.editor = d.entwickler.editor === true; }
+        if (d && d.entwickler) { s.entwickler.alleOffen = d.entwickler.alleOffen === true; s.entwickler.editor = d.entwickler.editor === true; s.entwickler.gasBremseAlt = d.entwickler.gasBremseAlt === true; }
         if (d && Array.isArray(d.strecken)) s.strecken = d.strecken;
         if (alt) C.kinder.forEach(function (k) { alteFreischaltungen(s.spieler[k.id]); });
       }
