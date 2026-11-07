@@ -404,6 +404,19 @@
       partikel.neu({ art: "rauch", x: ch.x + ct * xt - stt * yt, y: ch.y + stt * xt + ct * yt,
                      vx: -ct * 3 + ch.vx * 0.4, vy: -stt * 3 + ch.vy * 0.4 + 0.3, t: 0, dauer: 0.5, r0: 0.15, r1: 0.6,
                      farbe: "rgba(210,215,230,0.8)", alpha: 0.45, reibung: 1.5 });
+    } else if (fahrt.def.form === "lkw" && fahrt.tank > 0 && auspuffTakt <= 0) {   // Donner-Truck: schwarzer Rauch aus beiden Rohren
+      var gl = fahrt.gas, ck = Math.cos(ch.a), sk = Math.sin(ch.a);
+      auspuffTakt = gl > 0.3 ? 0.06 : 0.28;
+      if (gasWarAn < 0.3 && gl > 0.6) auspuffTakt = 0;                 // beim Gasgeben ein dicker Schwall
+      gasWarAn = gl;
+      [[-0.32, 2.74], [-0.5, 2.7]].forEach(function (r, n) {
+        if (n && Math.random() < 0.5) return;
+        var xk = ch.x + ck * r[0] - sk * r[1], yk = ch.y + sk * r[0] + ck * r[1];
+        if (welt.unterwasser) { partikel.neu({ art: "blase", x: xk, y: yk, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.2, schwer: -0.35, reibung: 1.2 }); return; }
+        partikel.neu({ art: "rauch", x: xk, y: yk, vx: ch.vx * 0.5 - sk * (1 + 2 * gl), vy: ch.vy * 0.5 + ck * (1 + 2.5 * gl),
+                       t: 0, dauer: 0.9 + 0.6 * gl, r0: 0.12, r1: 0.45 + 0.6 * gl, farbe: gl > 0.3 ? "rgba(35,35,40,0.95)" : "rgba(90,90,100,0.8)",
+                       alpha: gl > 0.3 ? 0.75 : 0.35, reibung: 1.3 });
+      });
     } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro && !fahrt.werte.turbine && !fahrt.getriebe.dampf) {   // Elektro: kein Auspuff
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
@@ -512,7 +525,7 @@
   }
 
   /* Gekaufte Spur (config.spuren): Teilchen am Heck, solange das Auto fährt */
-  var spurTakt = 0, pupsTakt = 0, tatzenSeite = false, REGENBOGEN = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
+  var gasWarAn = 0, spurTakt = 0, pupsTakt = 0, tatzenSeite = false, REGENBOGEN = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
   function spurZiehen(dt) {
     var art = P.spur, ch = fahrt.fz.chassis;
     if (!art || art === "keine" || fahrt.zustand !== "fahrt" || Math.hypot(ch.vx, ch.vy) < 2.5) return;
