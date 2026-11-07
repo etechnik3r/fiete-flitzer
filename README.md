@@ -431,7 +431,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 📦 Seifenkiste | 3.000 | Aus einem Umzugskarton gebastelt: Klebeband kreuz und quer, Name, Blitz und Smiley mit Filzstift, hochgeklappte Laschen, Seil zum Lenken. Kein Motor: Das Kind läuft unten durch den offenen Boden (Füße mit Laufschritt, Tapp-Geräusch; ohne Gas liegen die Füße vorne auf der Kante). Rollt ohne Pedal ganz frei (`freilauf`, keine Motorbremse) – bergab schneller als ihr Lauftempo (9,5 m/s). Statt Benzin **Puste**: Rollen ohne Gas ab 2 m/s bringt sie langsam zurück (`puste.erholung`), Äpfel 🍎 statt Kanister. Pappe federt weich, darf 15° schiefer landen. Upgrades heißen „Turnschuhe“ und „Puste“ |
 | 🛴 E-Scooter | 5.000 | Tretroller mit Motor im Hinterrad, Kind steht drauf. Zieht sofort los (`eck` 0,8), aber nur 10 m/s; wendigstes Fahrzeug in der Luft (`luftsteuerung` 8,5), balanciert am Boden selbst, lädt beim Bremsen. **Stunts** (nur Grafik, `stuntAktualisieren` in spiel.js): ab 1,6 m Höhe abwechselnd Abflug (am Lenker ausgestreckt), Freihändig, Ein Bein – vor der Landung (Höhe + 0,4 s Fallweg unter 1,3 m) steht das Kind wieder auf dem Brett |
 | 🛷 Schnee-Schlitten | 9.000 | Alter Holzschlitten auf Kufen (Version 41). Hinten ein **Schnee-Tank ❄️** mit **Schneekanone**: Sie schießt Schnee im Bogen über das Kind, er landet direkt vor den Kufen – **nur auf Schnee gleiten sie** (µ 0,025), auf blankem Boden kratzen sie (µ 0,6) und der Schlitten bleibt stehen. Die Kanone schaltet sich selbst: an, solange die Kufen am Boden sind oder der Schlitten in weniger als 0,45 s landet (dann beschneit sie den Landeplatz); hoch in der Luft, im Looping und kopfüber aus, in den Schneebergen gar nicht (dort liegt schon Schnee). Die Flocken fliegen 0,7 s im Bogen über das Kind und landen immer kurz vor den Kufen (Ziel = Kufenspitze nach der Flugzeit); der Schnee liegt nur unmittelbar davor (0,9 m). Der Schnee bleibt liegen. Antrieb: **Holzpropeller** hinten (5 m/s² Schub, auch in der Luft, bis 40 km/h – gemütlich, aber er gleitet lange (µ 0,025); in der Luft träge (`luftsteuerung` 3,4); rückwärts mit der Bremse im Stand), Bremse am Boden = Bremskralle. Sammelt blaue Schnee-Kanister. Upgrades „Propeller“ und „Schnee-Tank“ |
-| 🛁 Badewanne | 4.000 | Spaßmobil (Version 42): Wanne mit Löwenfüßen auf Rollen, Kind im Schaumbad, Quietscheente. Antrieb: Der **Abfluss spritzt einen Wasserstrahl nach hinten** (Rückstoß 4 m/s², bis 36 km/h). Der Tank ist das **Badewasser**: Der Strahl verbraucht es, und es **schwappt**: Die Wasseroberfläche ist ein gedämpftes Pendel, das der scheinbaren Schwerkraft g − a folgt; steht sie schiefer als der Rand erlaubt (voll ≈ 21°, halb ≈ 38°), läuft Wasser über – bei Sprüngen (im Flug schwebt das Wasser, beim Aufsetzen schwappt es), beim Bremsen, im Looping und kopfüber. Ausgelaufenes Wasser und der Strahl bleiben als Pfützen liegen. Sammelt blaue Eimer 🪣. Klang: Rauschen des Strahls und Gluckern |
+| 🛁 Badewanne | 4.000 | Spaßmobil (Version 42): Wanne mit Löwenfüßen auf Rollen, Kind im Schaumbad, Quietscheente. Antrieb: Der **Abfluss spritzt einen Wasserstrahl nach hinten** (Rückstoß 4 m/s², bis 36 km/h). Der Tank ist das **Badewasser** (75 s Strahl): Der Strahl verbraucht es, und es **schwappt**: Die Wasseroberfläche ist ein gedämpftes Pendel, das der scheinbaren Schwerkraft g − a folgt; steht sie schiefer als der Rand erlaubt (voll ≈ 26°, halb ≈ 47°), läuft Wasser über – beim Aufsetzen nach Sprüngen (im Flug schwebt das Wasser mit), beim Bremsen und kopfüber; ein Looping kostet nur ≈ 5–7 %. Profi-Roboter: in Blumenwiese, Wüste, Baustelle, Bonbon-Land, Achterbahn-Park, Pfützenland und Raumstation Level 1–2 im Ziel. Ausgelaufenes Wasser und der Strahl bleiben als Pfützen liegen. Sammelt blaue Eimer 🪣. Klang: Rauschen des Strahls und Gluckern |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
@@ -887,16 +887,28 @@ nächste Wolke. Messung (Roboter „Profi“, Flitzer): alle 4 Level im Ziel ohn
 wer höchstens 7 m/s fährt, braucht in Level 3 rund 30-mal den Ballon, mit 5 m/s
 kommt er in Level 3 und 4 nicht mehr ins Ziel.
 
-**Zirkus** (`gelaende.seil`, `gelaende.wippe`): bewegliche Fahrflächen. Die Physik
-fährt auf `gel.h`, gezeichnet wird der Boden aus `gel.hBild`; Brücke und Wippe werden
-jeden Schritt neu eingetragen (`dynSchritt`).
-- **Seilbrücke** über der Manege (mit Netz): Seil mit Einzellast – die tiefste Stelle
-  liegt unter dem Auto, der Durchhang wächst mit u·(1−u) und der Masse und schwingt
-  als Feder-Dämpfer (1,1 Hz, ζ 0,18). Langsam sinkt man bis 2 m ein und muss am Ende
-  aus der Mulde heraus; schnell schaukelt die Brücke einen hoch.
-- **Wippe**: Brett 10–12 m auf einem Bock. J·θ'' = −m·g·(x − x_Bock)·cos θ. Langsam
-  kippt sie sanft (≈ 20°), schnell kippt sie nicht mehr rechtzeitig – man fliegt vom
-  hohen Ende (bis 4,5 m hoch).
+**Zirkus** (Version 43 neu gebaut): Man fährt im Zirkuszelt durch die Manege
+(`welt.zelt`). Die Zeltbahnen sind ein kegelförmiger CSS-Verlauf hinter dem Canvas
+(kostet beim Malen nichts), davor Masten mit Lichterketten, Zuschauerränge (einmal in
+eine Kachel gemalt, zwei Bilder für „Jubeln“), der rote Manegen-Rand und zwei
+Scheinwerfer. Der Boden ist Sägespäne auf rotem Samt. Bewegliche Fahrflächen: Die
+Physik fährt auf `gel.h`, gezeichnet wird der Boden aus `gel.hBild`; jedes Kunststück
+wird jeden Schritt neu eingetragen (`dynSchritt`). Sie kommen dicht hintereinander
+(`gelaende.dicht`, alle ≈ 30 m):
+- **Wippe**: Brett 10–12 m auf einem Bock, J·θ'' = −m·g·(x − x_Bock)·cos θ. Langsam
+  kippt sie sanft, schnell fliegt man vom hohen Ende (bis 4,5 m hoch).
+- **Hochseil**: Holzrampe auf einen Turm (3,2–4,8 m), über das Seil (Seil mit
+  Einzellast, hängt unter dem Auto bis ≈ 0,9 m durch und schwingt), am zweiten Turm
+  Sprung in die Manege – dort hängt ein Feuerreifen (Grafik).
+- **Klapprampe**: Brett mit Scharnier unten und Feder (J·θ'' = −m·g·r·cos θ +
+  k·(θ0 − θ)). Die Feder hält das leere Brett, das Auto drückt es herunter: langsam
+  klappt es flach (≈ 2°), schnell springt man hoch ab (bis 3,8 m).
+- dazu Trampoline und kleine Schanzen.
+
+An fast senkrechten Kanten (Turmende, Rampenende, Wolkenlücken) zählt bei den
+Karosserie-Punkten der senkrechte Abstand (`punktKontakt`), sonst würde das Auto an
+der Kante weggeschleudert. Leistung (Chromium, 4× gedrosselte CPU): wie die anderen
+Welten (≈ 23–31 Bilder/s).
 
 ### Eigene Welt bauen
 

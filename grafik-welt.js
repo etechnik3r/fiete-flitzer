@@ -28,6 +28,10 @@ var FF = globalThis.FF = globalThis.FF || {};
   function himmelCss(welt, kopf) {
     var verlauf = "linear-gradient(" + (kopf ? "to top, " : "") + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
     // Vulkaninsel: Glühen am Horizont gleich im CSS-Hintergrund (kostet dann keine Malzeit)
+    // Zirkus: Zeltbahnen als kegelförmiger Verlauf (Spitze über der Bildmitte) plus Schatten –
+    // malt der Browser selbst, kostet im Canvas nichts
+    if (welt.zelt) return "linear-gradient(rgba(10,2,8,0.86), rgba(20,4,14,0.5) 45%, rgba(30,6,18,0.3)), " +
+                          "repeating-conic-gradient(from 135deg at 50% -70%, #7a1426 0deg 3deg, #cdb48e 3deg 6deg)";
     if (welt.sonne === "glut") return "radial-gradient(ellipse 70% 45% at 60% 62%, rgba(255,120,60,0.4), rgba(255,90,40,0)), " + verlauf;
     return verlauf;
   }
@@ -950,6 +954,132 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* =========================================================================
+     ZIRKUSZELT (welt.zelt): statt Himmel das Innere eines Zirkuszelts. Von hinten nach vorn:
+     Zeltwand mit rot-cremefarbenen Bahnen (laufen zur Zeltspitze zusammen), Zeltkante oben,
+     Masten mit Lichterketten, Zuschauerränge (vorab in eine Kachel gemalt, zwei Bilder für
+     „Jubeln“), Manegen-Rand, zwei schwenkende Scheinwerfer. Alles mit Parallaxe.
+     ========================================================================= */
+  var publikum = { hoehe: 0, kacheln: null };
+  function publikumKachel(rowH, variante) {
+    var TW = 720, rows = 4, c = document.createElement("canvas");
+    c.width = TW; c.height = Math.ceil(rows * rowH + rowH * 0.6);
+    var g = c.getContext("2d");
+    var HAUT = ["#f6d2b0", "#e8b48a", "#c98c5f", "#8d5a3b", "#5e3a26"], HAAR = ["#3a2618", "#6b4423", "#d9b56b", "#1f1f1f", "#a5532a", "#e8e0d0"];
+    var HEMD = ["#e8453c", "#3fb6ff", "#ffd23f", "#4fd18b", "#9b6bff", "#ff8a1f", "#ff5b8a", "#ffffff", "#2f6fd6"];
+    for (var r = 0; r < rows; r++) {
+      var y0 = c.height - (r + 1) * rowH, dunkel = r * 0.16, gr = rowH * (1 - r * 0.08);
+      g.fillStyle = mische("#5a1630", "#1c0812", dunkel); g.fillRect(0, y0 + gr * 0.62, TW, rowH * 0.5);   // Sitzbank
+      var zz = FF.zufallsQuelle(100 + r * 13);   // gleiche Leute in beiden Bildern (nur die Arme ändern sich)
+      for (var x = 8 + zz() * 10; x < TW - 8; x += gr * 0.62 + zz() * gr * 0.25) {
+        var haut = HAUT[Math.floor(zz() * HAUT.length)], haar = HAAR[Math.floor(zz() * HAAR.length)], hemd = HEMD[Math.floor(zz() * HEMD.length)];
+        var jubel = variante === 1 && zz() < 0.45, hoch = jubel ? gr * 0.06 : 0, kr = gr * 0.17;
+        var bx = x, by = y0 + gr * 0.66;
+        g.globalAlpha = 1 - dunkel * 0.9;
+        g.fillStyle = hemd; g.beginPath(); g.ellipse(bx, by, gr * 0.22, gr * 0.24, 0, Math.PI, 0); g.fill();       // Schultern
+        if (jubel) {                                                  // Arme hoch
+          g.strokeStyle = hemd; g.lineWidth = gr * 0.08; g.lineCap = "round";
+          g.beginPath(); g.moveTo(bx - gr * 0.16, by - gr * 0.1); g.lineTo(bx - gr * 0.26, by - gr * 0.55);
+          g.moveTo(bx + gr * 0.16, by - gr * 0.1); g.lineTo(bx + gr * 0.26, by - gr * 0.55); g.stroke();
+          g.fillStyle = haut; g.beginPath(); g.arc(bx - gr * 0.26, by - gr * 0.58, gr * 0.05, 0, 7); g.arc(bx + gr * 0.26, by - gr * 0.58, gr * 0.05, 0, 7); g.fill();
+        }
+        g.fillStyle = haut; g.beginPath(); g.arc(bx, by - gr * 0.34 - hoch, kr, 0, Math.PI * 2); g.fill();          // Kopf
+        g.fillStyle = haar; g.beginPath(); g.arc(bx, by - gr * 0.38 - hoch, kr * 1.02, Math.PI * 1.05, Math.PI * 1.95); g.fill();
+        if (zz() < 0.12) { g.fillStyle = "#e8453c"; g.beginPath(); g.moveTo(bx - kr * 0.7, by - gr * 0.46 - hoch); g.lineTo(bx, by - gr * 0.8 - hoch); g.lineTo(bx + kr * 0.7, by - gr * 0.46 - hoch); g.fill(); }  // Partyhut
+      }
+      g.globalAlpha = 1;
+    }
+    return c;
+  }
+  function zeichneZelt(ctx, K, welt, zeit, gel, perCss) {
+    var W = K.b, H = K.h, s = K.s;
+    // Bezug: Bodenhöhe in der Bildmitte (geglättet), damit die Ränge mit der Manege mitgehen
+    var yB = sy(K, gel.hoeheBildBei(K.x));
+    publikum.yRef = publikum.yRef === undefined ? yB : publikum.yRef + (yB - publikum.yRef) * 0.08;
+    var yRand = Math.max(H * 0.38, Math.min(H * 0.92, H * 0.3 + (publikum.yRef - H * 0.3) * 0.75));
+    // Zeltwand (Verlauf, Bahnen zur Zeltspitze, Schatten, Borte) ist fest: einmal je Bildgröße
+    // vorab in ein eigenes Bild malen und dann nur noch kopieren (spart auf alten Handys viel)
+    var tr = ctx.getTransform ? ctx.getTransform() : { a: 1 }, q = tr.a || 1;
+    if (perCss) {
+      ctx.clearRect(0, 0, W, H);                                 // Zeltwand kommt aus dem CSS-Hintergrund (himmelCss)
+      var bw0 = Math.max(26, H * 0.07);                          // nur die Borte oben malen
+      for (var i0 = 0; i0 * bw0 < W + bw0; i0++) {
+        ctx.fillStyle = i0 % 2 ? "#ffcf3f" : "#c8102e";
+        ctx.beginPath(); ctx.moveTo(i0 * bw0, 0); ctx.lineTo((i0 + 1) * bw0, 0); ctx.lineTo((i0 + 1) * bw0, H * 0.03);
+        ctx.quadraticCurveTo((i0 + 0.5) * bw0, H * 0.075, i0 * bw0, H * 0.03); ctx.closePath(); ctx.fill();
+      }
+    } else if (!publikum.wand || publikum.wandW !== W || publikum.wandH !== H || publikum.wandQ !== q) {
+      var c = document.createElement("canvas"); c.width = Math.ceil(W * q); c.height = Math.ceil(H * q);
+      var w = c.getContext("2d"); w.scale(q, q);
+      var g = w.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#14060f"); g.addColorStop(0.6, "#3a1024"); g.addColorStop(1, "#4a1430");
+      w.fillStyle = g; w.fillRect(0, 0, W, H);
+      var sw = Math.max(60, H * 0.22), cx = W / 2, yW = H;
+      for (var i = -6; i * sw < W + 6 * sw; i++) {
+        var xb0 = i * sw - sw * 3, xb1 = xb0 + sw, f = 0.3;
+        w.fillStyle = i % 2 ? "#7a1426" : "#cdb48e";
+        w.beginPath(); w.moveTo(xb0, yW); w.lineTo(xb1, yW); w.lineTo(cx + (xb1 - cx) * f, 0); w.lineTo(cx + (xb0 - cx) * f, 0); w.closePath(); w.fill();
+      }
+      var sch = w.createLinearGradient(0, 0, 0, H);
+      sch.addColorStop(0, "rgba(10,2,8,0.85)"); sch.addColorStop(0.45, "rgba(20,4,14,0.45)"); sch.addColorStop(1, "rgba(30,6,18,0.3)");
+      w.fillStyle = sch; w.fillRect(0, 0, W, H);
+      var bw = Math.max(26, H * 0.07);
+      for (i = 0; i * bw < W + bw; i++) {
+        w.fillStyle = i % 2 ? "#ffcf3f" : "#c8102e";
+        w.beginPath(); w.moveTo(i * bw, 0); w.lineTo((i + 1) * bw, 0); w.lineTo((i + 1) * bw, H * 0.03);
+        w.quadraticCurveTo((i + 0.5) * bw, H * 0.075, i * bw, H * 0.03); w.closePath(); w.fill();
+      }
+      publikum.wand = c; publikum.wandW = W; publikum.wandH = H; publikum.wandQ = q;
+    }
+    if (!perCss) ctx.drawImage(publikum.wand, 0, 0, W, H);
+    var yW = yRand, i;
+    // Masten mit Lichterketten
+    var ma = 0.25, mAb = 30 * s * ma, mo = -((K.x * s * ma) % mAb), mB = Math.max(6, H * 0.022);
+    var masten = [];
+    for (var xm = mo - mAb; xm < W + mAb; xm += mAb) masten.push(xm);
+    masten.forEach(function (x) {
+      var gm = ctx.createLinearGradient(x - mB, 0, x + mB, 0); gm.addColorStop(0, "#3a2a20"); gm.addColorStop(0.5, "#8a6a4a"); gm.addColorStop(1, "#2a1e16");
+      ctx.fillStyle = gm; ctx.fillRect(x - mB / 2, 0, mB, yW);
+      ctx.fillStyle = "#ffcf3f"; for (var k = 1; k < 4; k++) ctx.fillRect(x - mB * 0.7, yW * k / 4, mB * 1.4, Math.max(2, mB * 0.3));
+    });
+    var LF = ["#ffd23f", "#ff5b8a", "#3fb6ff", "#4fd18b", "#ff8a1f"];
+    for (i = 0; i + 1 < masten.length; i++) {
+      var xa = masten[i], xe = masten[i + 1], ya = H * 0.13, durch = H * 0.07;
+      ctx.strokeStyle = "rgba(40,20,20,0.8)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(xa, ya); ctx.quadraticCurveTo((xa + xe) / 2, ya + 2 * durch, xe, ya); ctx.stroke();
+      for (var k2 = 1; k2 < 12; k2++) {
+        var u = k2 / 12, lx = xa + (xe - xa) * u, ly = ya + 4 * durch * u * (1 - u) * 1.0, an = ((k2 + Math.floor(zeit * 3)) % 3) !== 0;
+        ctx.fillStyle = an ? LF[k2 % LF.length] : "rgba(80,60,60,0.8)";
+        ctx.beginPath(); ctx.arc(lx, ly + 3, Math.max(2, H * 0.007), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // Zuschauer
+    var rowH = Math.round(Math.max(18, H * 0.075));
+    if (publikum.hoehe !== rowH || !publikum.kacheln) { publikum.hoehe = rowH; publikum.kacheln = [publikumKachel(rowH, 0), publikumKachel(rowH, 1)]; }
+    var kach = publikum.kacheln[(Math.floor(zeit * 2.2) % 3 === 0) ? 1 : 0], TW = kach.width;
+    var po = -((K.x * s * 0.4) % TW), yT = yRand - kach.height + rowH * 0.25;
+    for (var xk = po - TW; xk < W; xk += TW) ctx.drawImage(kach, xk, yT);
+    // Manegen-Rand vor den Zuschauern
+    var hR = Math.max(8, H * 0.035);
+    ctx.fillStyle = "#c8102e"; ctx.fillRect(0, yRand, W, hR);
+    ctx.fillStyle = "#ffcf3f"; ctx.fillRect(0, yRand, W, Math.max(2, hR * 0.22));
+    var so = -((K.x * s * 0.55) % (hR * 5));
+    for (var xs2 = so; xs2 < W + hR * 5; xs2 += hR * 5) {
+      ctx.beginPath(); for (var z2 = 0; z2 < 10; z2++) { var w2 = -Math.PI / 2 + z2 * Math.PI / 5, r2 = (z2 % 2 ? 0.18 : 0.42) * hR; ctx.lineTo(xs2 + Math.cos(w2) * r2, yRand + hR * 0.6 + Math.sin(w2) * r2); }
+      ctx.fill();
+    }
+    // dunkler Bereich zwischen Rand und Manege – nur bis knapp unter den Boden (der Boden deckt den Rest)
+    var yBis = Math.min(H, Math.max(yRand + hR, yB + 0.6 * s));
+    if (yBis > yRand + hR) { ctx.fillStyle = "#2a0812"; ctx.fillRect(0, yRand + hR, W, yBis - yRand - hR); }
+    // Scheinwerfer (zwei Kegel von oben, schwenken langsam)
+    [[0.12, 0.7, 0.0], [0.88, 0.45, 2.1]].forEach(function (L) {
+      var qx = W * L[0], zx = W * (L[1] + 0.12 * Math.sin(zeit * 0.4 + L[2])), zy = H * 0.86, br = H * 0.16;
+      var gl = ctx.createLinearGradient(qx, 0, zx, zy);
+      gl.addColorStop(0, "rgba(255,245,210,0.22)"); gl.addColorStop(1, "rgba(255,245,210,0.04)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.moveTo(qx - 6, 0); ctx.lineTo(qx + 6, 0); ctx.lineTo(zx + br, zy); ctx.lineTo(zx - br, zy); ctx.closePath(); ctx.fill();
+    });
+  }
+
   /* Zirkus: Hochseil-Brücken (Masten, Bretter, Halteseile, Netz in der Grube) und Wippen
      (Bock mit Stern, gestreiftes Brett). Die Fahrfläche kommt aus gel.seilY / gel.wippeY. */
   function zeichneZirkus(ctx, K, gel, zeit) {
@@ -957,6 +1087,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (var n = 0; n < gel.dyn.length; n++) {
       var D = gel.dyn[n];
       if (D.i0 < 0 || D.b < b[2] - 2 || D.a > b[3] + 2) continue;
+      if (D.typ === "hochseil") { zeichneHochseil(ctx, K, gel, D); continue; }
+      if (D.typ === "klapp") { zeichneKlapp(ctx, K, gel, D, zeit); continue; }
       if (D.typ === "seil") {
         var xa = D.a + 0.6, xb = D.b - 0.6, mH = 2.6, x, i, N = 24;
         // Netz unten in der Grube
@@ -1006,6 +1138,69 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = Math.max(1, 0.03 * K.s); ctx.strokeRect(-L / 2, 0, L, dB);
         ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.arc(0, 0, 0.12 * K.s, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+      }
+    }
+  }
+
+  function streifenMast(ctx, K, x, y0, y1, w) {
+    var X = sx(K, x), n = Math.max(3, Math.round((y1 - y0) / 0.5)), bw = w * K.s;
+    for (var j = 0; j < n; j++) { ctx.fillStyle = j % 2 ? "#ffffff" : "#e8453c"; ctx.fillRect(X - bw / 2, sy(K, y0 + (y1 - y0) * (j + 1) / n), bw, (y1 - y0) / n * K.s + 1); }
+  }
+  function zeichneHochseil(ctx, K, gel, D) {
+    var xr = D.rampe, xT1 = D.rampe + D.Lr, i, x, N = 28;
+    // Holzrampe: Unterbau (Stützen) und Belag
+    ctx.fillStyle = "#6b4423";
+    for (x = xr + 1.5; x < xT1; x += 1.8) { var yo = gel.hochseilY(D, x); ctx.fillRect(sx(K, x) - 0.07 * K.s, sy(K, yo), 0.14 * K.s, (yo - D.yG) * K.s); }
+    ctx.strokeStyle = "#c98d4f"; ctx.lineWidth = 0.2 * K.s; ctx.lineCap = "butt"; ctx.beginPath();
+    for (x = xr; x <= xT1 + 0.01; x += 0.5) { var yr = gel.hochseilY(D, x) - 0.1; if (x === xr) ctx.moveTo(sx(K, x), sy(K, yr)); else ctx.lineTo(sx(K, x), sy(K, yr)); }
+    ctx.stroke();
+    // Türme: Plattform auf gestreiftem Mast
+    [[xT1, D.a], [D.b, D.ende]].forEach(function (T) {
+      streifenMast(ctx, K, (T[0] + T[1]) / 2, D.yG, D.yA - 0.2, 0.35);
+      ctx.fillStyle = "#2f6fd6"; ctx.fillRect(sx(K, T[0]), sy(K, D.yA), (T[1] - T[0]) * K.s, 0.25 * K.s);
+      ctx.fillStyle = "#ffd23f"; ctx.fillRect(sx(K, T[0]), sy(K, D.yA) + 0.18 * K.s, (T[1] - T[0]) * K.s, 0.07 * K.s);
+    });
+    // Sicherheitsnetz unter dem Seil
+    var yN = D.yG + 0.8;
+    ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = Math.max(1, 0.025 * K.s); ctx.beginPath();
+    for (x = D.a + 0.4; x < D.b - 0.6; x += 0.6) { ctx.moveTo(sx(K, x), sy(K, yN)); ctx.lineTo(sx(K, x + 0.3), sy(K, yN - 0.3)); ctx.lineTo(sx(K, x + 0.6), sy(K, yN)); }
+    ctx.stroke();
+    // das Hochseil (dick, gedreht) und Abspannseile zum Boden
+    ctx.strokeStyle = "#e9dcb8"; ctx.lineWidth = 0.13 * K.s; ctx.lineCap = "round"; ctx.beginPath();
+    for (i = 0; i <= N; i++) { x = D.a + (D.b - D.a) * i / N; var ys = gel.seilY(D, x) - 0.06; if (i) ctx.lineTo(sx(K, x), sy(K, ys)); else ctx.moveTo(sx(K, x), sy(K, ys)); }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(150,110,60,0.6)"; ctx.lineWidth = 0.04 * K.s; ctx.setLineDash([0.12 * K.s, 0.12 * K.s]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = "rgba(230,220,190,0.6)"; ctx.lineWidth = Math.max(1, 0.03 * K.s);
+    ctx.beginPath(); ctx.moveTo(sx(K, D.ende), sy(K, D.yA)); ctx.lineTo(sx(K, D.ende + 2.5), sy(K, D.yG)); ctx.stroke();
+  }
+  function zeichneKlapp(ctx, K, gel, D, zeit) {
+    var X0 = sx(K, D.xh), Y0 = sy(K, D.yH), c = D.Lk * Math.cos(D.th), sn = D.Lk * Math.sin(D.th);
+    // Feder unter dem Brett (Zickzack von Boden zur Brettmitte)
+    var xm = D.xh + c * 0.6, ym = D.yH + sn * 0.6, nZ = 7;
+    ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = Math.max(1.5, 0.06 * K.s); ctx.beginPath(); ctx.moveTo(sx(K, xm), sy(K, D.yH));
+    for (var k = 1; k <= nZ; k++) ctx.lineTo(sx(K, xm + (k % 2 ? 0.18 : -0.18)), sy(K, D.yH + (ym - D.yH - 0.1) * k / nZ));
+    ctx.stroke();
+    ctx.save(); ctx.translate(X0, Y0); ctx.rotate(-D.th);
+    var L = D.Lk * K.s, dB = 0.22 * K.s;
+    for (var k2 = 0; k2 < 6; k2++) { ctx.fillStyle = k2 % 2 ? "#ffffff" : "#2f6fd6"; ctx.fillRect(k2 * L / 6, 0, L / 6 + 1, dB); }
+    ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = Math.max(1, 0.03 * K.s); ctx.strokeRect(0, 0, L, dB);
+    ctx.fillStyle = "#ffd23f"; ctx.beginPath();                           // Pfeil nach oben aufs Brett
+    ctx.moveTo(L * 0.45, dB * 0.2); ctx.lineTo(L * 0.6, dB * 0.5); ctx.lineTo(L * 0.45, dB * 0.8); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.arc(X0, Y0, 0.13 * K.s, 0, Math.PI * 2); ctx.fill();   // Scharnier
+  }
+  /* Feuerreifen hinter dem Sprung vom Hochseil (nur Grafik) */
+  function zeichneReifen(ctx, K, gel, zeit) {
+    var b = sichtbereich(K, gel);
+    for (var n = 0; n < gel.reifen.length; n++) {
+      var R = gel.reifen[n]; if (R.x < b[2] - 3 || R.x > b[3] + 3) continue;
+      var X = sx(K, R.x), Y = sy(K, gel.hoeheBildBei(R.x) + R.hoch + R.r), rr = R.r * K.s;
+      ctx.strokeStyle = "#5a5f6e"; ctx.lineWidth = Math.max(1, 0.06 * K.s); ctx.beginPath(); ctx.moveTo(X, Y + rr); ctx.lineTo(X, sy(K, gel.hoeheBildBei(R.x))); ctx.stroke();   // Ständer
+      ctx.strokeStyle = "#8a8f9e"; ctx.lineWidth = 0.12 * K.s; ctx.beginPath(); ctx.ellipse(X, Y, rr * 0.35, rr, 0, 0, Math.PI * 2); ctx.stroke();
+      for (var k = 0; k < 16; k++) {                                       // Flammen rundherum
+        var w = k / 16 * Math.PI * 2, fx = X + Math.cos(w) * rr * 0.35, fy = Y + Math.sin(w) * rr, fl = (0.25 + 0.15 * Math.sin(zeit * 9 + k * 1.7)) * K.s;
+        ctx.fillStyle = k % 2 ? "rgba(255,140,30,0.9)" : "rgba(255,220,60,0.9)";
+        ctx.beginPath(); ctx.moveTo(fx - 0.08 * K.s, fy); ctx.quadraticCurveTo(fx, fy - fl * 1.4, fx + 0.08 * K.s, fy); ctx.fill();
       }
     }
   }
@@ -2077,7 +2272,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   FF.GrafikWelt = {
-    zeichneSchneeDecke: zeichneSchneeDecke, zeichneZirkus: zeichneZirkus,
+    zeichneSchneeDecke: zeichneSchneeDecke, zeichneZirkus: zeichneZirkus, zeichneZelt: zeichneZelt, zeichneReifen: zeichneReifen,
     zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
