@@ -2,7 +2,7 @@
    FIETE FLITZER – requisiten.js
    Gezeichnete Kulisse statt Emojis: Steine, Bäume, Tannen, Palmen, Kakteen,
    Farne, Vulkankegel, Kristalle, Dinosaurier, Riesenblumen, Kürbisse,
-   Korallen, Laternen …, jeweils in mehreren Varianten.
+   Korallen, Laternen, Chips, Roboter …, jeweils in mehreren Varianten.
 
    RECHENZEIT: Jede Variante wird EINMAL in ein kleines Bild (Canvas) gemalt
    und danach nur noch pixelgenau kopiert – genau wie vorher die Emojis.
@@ -981,6 +981,97 @@
       }
       g.fillStyle = f2; g.beginPath(); g.arc(0, -u * 0.95, u * 0.1, 0, Math.PI * 2); g.fill();
       g.fillStyle = "rgba(255,255,255,0.6)"; g.beginPath(); g.arc(-u * 0.03, -u * 0.98, u * 0.035, 0, Math.PI * 2); g.fill();
+    } },
+    // Datenwelt (Version 41): Mikrochip, freundlicher Roboter, Server-Schrank, Bildschirm
+    chip: { breite: 1.2, sinken: 0, male: function (g, u, R) {
+      var f = ["#1e2633", "#26344f", "#1d3d36", "#3a2a4f"][Math.floor(R() * 4)], b = u * 0.42, h = u * 0.78, yb = -u * 0.14;
+      g.fillStyle = "#c9cfdb";                                          // Beinchen
+      for (var i = 0; i < 5; i++) {
+        var py = yb - h + (i + 0.5) * h / 5;
+        g.fillRect(-b - u * 0.1, py - u * 0.03, u * 0.1, u * 0.06); g.fillRect(b, py - u * 0.03, u * 0.1, u * 0.06);
+        g.fillRect(-b + (i + 0.5) * b * 2 / 5 - u * 0.03, yb, u * 0.06, -yb);
+      }
+      var gr = g.createLinearGradient(-b, yb - h, b, yb); gr.addColorStop(0, hell(f, 0.25)); gr.addColorStop(1, dunkel(f, 0.2));
+      g.fillStyle = gr; g.fillRect(-b, yb - h, b * 2, h);
+      g.strokeStyle = dunkel(f, 0.5); g.lineWidth = Math.max(1, u * 0.025); g.strokeRect(-b, yb - h, b * 2, h);
+      g.fillStyle = "#f3c44a"; g.fillRect(-b * 0.42, yb - h * 0.71, b * 0.84, h * 0.42);  // goldener Kern
+      g.strokeStyle = "#b08a1f"; g.lineWidth = Math.max(1, u * 0.015);
+      for (i = 1; i < 4; i++) { g.beginPath(); g.moveTo(-b * 0.42 + i * b * 0.21, yb - h * 0.71); g.lineTo(-b * 0.42 + i * b * 0.21, yb - h * 0.29); g.stroke(); }
+      g.fillStyle = "rgba(255,255,255,0.75)"; g.beginPath(); g.arc(-b * 0.72, yb - h * 0.85, u * 0.04, 0, Math.PI * 2); g.fill();   // Markierungspunkt
+      if (R() < 0.5) {                                                  // manche Chips lächeln
+        g.fillStyle = "#1e2c52"; g.fillRect(-b * 0.25, yb - h * 0.6, u * 0.06, u * 0.06); g.fillRect(b * 0.13, yb - h * 0.6, u * 0.06, u * 0.06);
+        g.strokeStyle = "#1e2c52"; g.lineWidth = Math.max(1, u * 0.03); g.beginPath(); g.arc(0, yb - h * 0.48, u * 0.08, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+      }
+    } },
+    roboter: { breite: 0.95, sinken: 0, male: function (g, u, R) {
+      var f = ["#c9d2e0", "#7fb2ff", "#ffb347", "#8ee6b8"][Math.floor(R() * 4)], winkt = R() < 0.6;
+      var metall = function (x, y, w, h) {
+        var gr = g.createLinearGradient(x, 0, x + w, 0); gr.addColorStop(0, hell(f, 0.3)); gr.addColorStop(1, dunkel(f, 0.25));
+        g.fillStyle = gr; g.fillRect(x, y, w, h); g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(x, y, w, h);
+      };
+      g.fillStyle = "#3a4152";                                           // Kettenrad unten
+      g.beginPath(); g.ellipse(0, -u * 0.08, u * 0.3, u * 0.08, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#7d8597"; [-0.2, 0, 0.2].forEach(function (q) { g.beginPath(); g.arc(q * u, -u * 0.08, u * 0.04, 0, Math.PI * 2); g.fill(); });
+      g.fillStyle = dunkel(f, 0.3); g.fillRect(-u * 0.05, -u * 0.22, u * 0.1, u * 0.08);
+      g.strokeStyle = dunkel(f, 0.2); g.lineWidth = u * 0.06; g.lineCap = "round";                // Arme
+      g.beginPath(); g.moveTo(-u * 0.24, -u * 0.42); g.lineTo(-u * 0.36, -u * 0.28); g.stroke();
+      g.beginPath(); g.moveTo(u * 0.24, -u * 0.42);
+      if (winkt) g.lineTo(u * 0.4, -u * 0.62); else g.lineTo(u * 0.36, -u * 0.28);
+      g.stroke();
+      g.fillStyle = dunkel(f, 0.2); g.beginPath(); g.arc(-u * 0.37, -u * 0.27, u * 0.045, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(u * 0.41, winkt ? -u * 0.64 : -u * 0.27, u * 0.045, 0, Math.PI * 2); g.fill();
+      metall(-u * 0.24, -u * 0.52, u * 0.48, u * 0.32);                   // Bauch mit Lämpchen
+      ["#e8453c", "#ffd23f", "#3cc35a"].forEach(function (c, i) { g.fillStyle = c; g.beginPath(); g.arc(-u * 0.12 + i * u * 0.12, -u * 0.36, u * 0.035, 0, Math.PI * 2); g.fill(); });
+      g.fillStyle = "#3a4152"; g.fillRect(-u * 0.04, -u * 0.58, u * 0.08, u * 0.07);           // Hals
+      metall(-u * 0.22, -u * 0.86, u * 0.44, u * 0.29);                   // Kopf
+      g.strokeStyle = "#3a4152"; g.lineWidth = Math.max(1, u * 0.025);   // Antenne
+      g.beginPath(); g.moveTo(0, -u * 0.86); g.lineTo(0, -u * 0.95); g.stroke();
+      g.fillStyle = ["#e8453c", "#46f0ff", "#ffd23f"][Math.floor(R() * 3)]; g.beginPath(); g.arc(0, -u * 0.97, u * 0.035, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#14203a"; g.fillRect(-u * 0.17, -u * 0.81, u * 0.34, u * 0.15);          // Gesichtsfeld
+      g.fillStyle = "#46f0ff"; g.beginPath(); g.arc(-u * 0.08, -u * 0.75, u * 0.04, 0, Math.PI * 2); g.arc(u * 0.08, -u * 0.75, u * 0.04, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#46f0ff"; g.lineWidth = Math.max(1, u * 0.018);
+      g.beginPath(); g.arc(0, -u * 0.72, u * 0.05, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+    } },
+    server: { breite: 0.5, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.22, f = "#2b3346";
+      var gr = g.createLinearGradient(-b, 0, b, 0); gr.addColorStop(0, hell(f, 0.2)); gr.addColorStop(1, dunkel(f, 0.3));
+      g.fillStyle = gr; g.fillRect(-b, -u, b * 2, u);
+      g.strokeStyle = "#151a26"; g.lineWidth = Math.max(1, u * 0.012); g.strokeRect(-b, -u, b * 2, u);
+      var n = 8, eh = (u * 0.92) / n;
+      for (var i = 0; i < n; i++) {
+        var y = -u * 0.96 + i * eh;
+        g.fillStyle = "#1b2130"; g.fillRect(-b * 0.85, y, b * 1.7, eh * 0.8);
+        g.fillStyle = "rgba(255,255,255,0.12)";
+        for (var k = 0; k < 4; k++) g.fillRect(-b * 0.75 + k * b * 0.22, y + eh * 0.25, b * 0.14, eh * 0.3);
+        var c = ["#3cff8a", "#46f0ff", "#46f0ff", "#ffb347", "#3cff8a"][Math.floor(R() * 5)];
+        g.fillStyle = c; g.fillRect(b * 0.35, y + eh * 0.25, b * 0.14, eh * 0.3);
+        if (R() < 0.5) { g.fillStyle = "#3cff8a"; g.fillRect(b * 0.58, y + eh * 0.25, b * 0.1, eh * 0.3); }
+      }
+    } },
+    monitor: { breite: 1.1, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.52, h = u * 0.62, yb = -u * 0.3;
+      g.fillStyle = "#7d8597"; g.fillRect(-u * 0.06, yb, u * 0.12, -yb - u * 0.05);      // Fuß
+      g.fillStyle = "#5a6275"; g.fillRect(-u * 0.25, -u * 0.06, u * 0.5, u * 0.06);
+      g.fillStyle = "#e9edf5"; g.fillRect(-b, yb - h, b * 2, h);                         // Rahmen
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(-b, yb - h, b * 2, h);
+      var sx0 = -b * 0.86, sy0 = yb - h * 0.9, sb = b * 1.72, sh = h * 0.8;
+      var gr = g.createLinearGradient(0, sy0, 0, sy0 + sh); gr.addColorStop(0, "#0d2a56"); gr.addColorStop(1, "#071630");
+      g.fillStyle = gr; g.fillRect(sx0, sy0, sb, sh);
+      var bild = Math.floor(R() * 3);
+      if (bild === 0) {                                                   // Smiley
+        g.fillStyle = "#ffd23f"; g.beginPath(); g.arc(0, sy0 + sh / 2, sh * 0.32, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#1e2c52"; g.fillRect(-sh * 0.14, sy0 + sh * 0.36, sh * 0.07, sh * 0.1); g.fillRect(sh * 0.07, sy0 + sh * 0.36, sh * 0.07, sh * 0.1);
+        g.strokeStyle = "#1e2c52"; g.lineWidth = Math.max(1, sh * 0.05); g.beginPath(); g.arc(0, sy0 + sh * 0.52, sh * 0.14, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      } else if (bild === 1) {                                            // Einsen und Nullen
+        g.fillStyle = "#7dffb8"; g.font = "bold " + Math.max(6, Math.round(sh * 0.2)) + "px monospace"; g.textAlign = "left"; g.textBaseline = "top";
+        for (var z = 0; z < 4; z++) { var t = ""; for (var c2 = 0; c2 < 5; c2++) t += R() < 0.5 ? "1" : "0"; g.fillText(t, sx0 + sb * 0.08, sy0 + sh * (0.06 + z * 0.23)); }
+      } else {                                                            // Balkendiagramm
+        ["#46f0ff", "#7dffb8", "#ffd23f", "#ff6fb5"].forEach(function (c, i) {
+          var bh = sh * (0.25 + 0.55 * R()); g.fillStyle = c; g.fillRect(sx0 + sb * (0.12 + i * 0.2), sy0 + sh * 0.9 - bh, sb * 0.13, bh);
+        });
+      }
+      g.fillStyle = "rgba(255,255,255,0.12)"; g.beginPath(); g.moveTo(sx0, sy0); g.lineTo(sx0 + sb * 0.4, sy0); g.lineTo(sx0, sy0 + sh * 0.6); g.closePath(); g.fill();
+      g.fillStyle = "#3cff8a"; g.beginPath(); g.arc(b * 0.8, yb - h * 0.05, u * 0.02, 0, Math.PI * 2); g.fill();
     } }
   };
 
