@@ -70,7 +70,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **32 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **34 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
@@ -78,7 +78,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
   🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
-  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt.
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt · ☁️ Wolkeninseln · 🎪 Zirkus.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -430,7 +430,8 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🚛 Donner-Truck | 14.000 | Amerikanische Zugmaschine: lange Haube mit Chromgrill, Schlafkabine mit Dachspoiler, Chrom-Tank, zwei hohe Auspuffrohre mit schwarzem Rauch (beim Gasgeben ein dicker Schwall). Kräftig, aber träge: Höchsttempo gut 41 km/h, aber 9.000 Nm bis fast zum Höchsttempo (`eck` 0,9) auf beiden Hinterachsen – bergauf kaum Tempoverlust. Pfützen, Matsch und Schleim bremsen ihn nur zu 30 % (`matschFest`). In der Luft sehr träge (`luftsteuerung` 1,7), dafür darf er wie die Lok 10° schiefer landen. Kein Leichtbau, kein Allrad |
 | 📦 Seifenkiste | 3.000 | Aus einem Umzugskarton gebastelt: Klebeband kreuz und quer, Name, Blitz und Smiley mit Filzstift, hochgeklappte Laschen, Seil zum Lenken. Kein Motor: Das Kind läuft unten durch den offenen Boden (Füße mit Laufschritt, Tapp-Geräusch; ohne Gas liegen die Füße vorne auf der Kante). Rollt ohne Pedal ganz frei (`freilauf`, keine Motorbremse) – bergab schneller als ihr Lauftempo (9,5 m/s). Statt Benzin **Puste**: Rollen ohne Gas ab 2 m/s bringt sie langsam zurück (`puste.erholung`), Äpfel 🍎 statt Kanister. Pappe federt weich, darf 15° schiefer landen. Upgrades heißen „Turnschuhe“ und „Puste“ |
 | 🛴 E-Scooter | 5.000 | Tretroller mit Motor im Hinterrad, Kind steht drauf. Zieht sofort los (`eck` 0,8), aber nur 10 m/s; wendigstes Fahrzeug in der Luft (`luftsteuerung` 8,5), balanciert am Boden selbst, lädt beim Bremsen. **Stunts** (nur Grafik, `stuntAktualisieren` in spiel.js): ab 1,6 m Höhe abwechselnd Abflug (am Lenker ausgestreckt), Freihändig, Ein Bein – vor der Landung (Höhe + 0,4 s Fallweg unter 1,3 m) steht das Kind wieder auf dem Brett |
-| 🛷 Schnee-Schlitten | 9.000 | Alter Holzschlitten auf Kufen (Version 41). Hinten ein **Schnee-Tank ❄️** mit **Schneekanone**: Sie schießt Schnee im Bogen über das Kind, er landet direkt vor den Kufen – **nur auf Schnee gleiten sie** (µ 0,035), auf blankem Boden kratzen sie (µ 0,6) und der Schlitten bleibt stehen. Die Kanone schaltet sich selbst: an, solange die Kufen am Boden sind oder der Schlitten in weniger als 0,45 s landet (dann beschneit sie den Landeplatz); hoch in der Luft, im Looping und kopfüber aus, in den Schneebergen gar nicht (dort liegt schon Schnee). Die Flocken fliegen 0,3 s, darum landen sie bei Tempo weiter vorn. Der Schnee bleibt liegen. Antrieb: **Holzpropeller** hinten (6,2 m/s² Schub, auch in der Luft, bis 54 km/h; rückwärts mit der Bremse im Stand), Bremse am Boden = Bremskralle. Sammelt blaue Schnee-Kanister. Upgrades „Propeller“ und „Schnee-Tank“ |
+| 🛷 Schnee-Schlitten | 9.000 | Alter Holzschlitten auf Kufen (Version 41). Hinten ein **Schnee-Tank ❄️** mit **Schneekanone**: Sie schießt Schnee im Bogen über das Kind, er landet direkt vor den Kufen – **nur auf Schnee gleiten sie** (µ 0,025), auf blankem Boden kratzen sie (µ 0,6) und der Schlitten bleibt stehen. Die Kanone schaltet sich selbst: an, solange die Kufen am Boden sind oder der Schlitten in weniger als 0,45 s landet (dann beschneit sie den Landeplatz); hoch in der Luft, im Looping und kopfüber aus, in den Schneebergen gar nicht (dort liegt schon Schnee). Die Flocken fliegen 0,7 s im Bogen über das Kind und landen immer kurz vor den Kufen (Ziel = Kufenspitze nach der Flugzeit); der Schnee liegt nur unmittelbar davor (0,9 m). Der Schnee bleibt liegen. Antrieb: **Holzpropeller** hinten (5 m/s² Schub, auch in der Luft, bis 40 km/h – gemütlich, aber er gleitet lange (µ 0,025); in der Luft träge (`luftsteuerung` 3,4); rückwärts mit der Bremse im Stand), Bremse am Boden = Bremskralle. Sammelt blaue Schnee-Kanister. Upgrades „Propeller“ und „Schnee-Tank“ |
+| 🛁 Badewanne | 4.000 | Spaßmobil (Version 42): Wanne mit Löwenfüßen auf Rollen, Kind im Schaumbad, Quietscheente. Antrieb: Der **Abfluss spritzt einen Wasserstrahl nach hinten** (Rückstoß 4 m/s², bis 36 km/h). Der Tank ist das **Badewasser**: Der Strahl verbraucht es, und es **schwappt**: Die Wasseroberfläche ist ein gedämpftes Pendel, das der scheinbaren Schwerkraft g − a folgt; steht sie schiefer als der Rand erlaubt (voll ≈ 21°, halb ≈ 38°), läuft Wasser über – bei Sprüngen (im Flug schwebt das Wasser, beim Aufsetzen schwappt es), beim Bremsen, im Looping und kopfüber. Ausgelaufenes Wasser und der Strahl bleiben als Pfützen liegen. Sammelt blaue Eimer 🪣. Klang: Rauschen des Strahls und Gluckern |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
@@ -572,6 +573,7 @@ Fahrzeug hat in `config.js` ein eigenes Klang-Profil.
 | Monster-Max | V8 mit Kreuzebenen-Bollern und Fehlzündungs-Puff |
 | Blitz-Rakete | hochdrehender 10-Zylinder, 6 Gänge |
 | E-Auto, Mondmobil | Elektromotor |
+| Badewanne | Rauschen des Wasserstrahls (wird mit dem Strahl lauter und heller) und Gluckern im Abfluss |
 | Schnee-Schlitten | alter Holzpropeller: „Wop-wop“ der zwei Blätter (Rauschen, mit der Blattfrequenz 2·Drehzahl/60 moduliert, bis 60 Hz), weiches Brummen und ein kleiner knatternder Motor |
 
 **Elektro** (leise, wie echte E-Autos):
@@ -591,9 +593,14 @@ Android zählt in Chrome beim Antippen erst `touchend`/`click` als Geste, nicht
 `AudioContext` wirklich läuft (plus ein stiller Mini-Puffer). Einige ältere
 Android-Handys (gemeldet: Motorola Moto G6) geben über den schnellen
 WebAudio-Ausgang trotzdem nichts aus. Dafür gibt es unter ⚙️ Einstellungen
-**📱 Handy-Ton**: Der Klang läuft dann über einen `MediaStream` in ein
-`<audio>`-Element (Ausgabeweg wie bei Videos), und beim nächsten App-Start wird
-der Kontext mit `latencyHint: "playback"` angelegt. **🔈 Ton testen** spielt
+**📱 Handy-Ton**. Seit Version 42 nutzt er die WebAudio-Ausgabe gar nicht mehr
+(der frühere Weg über einen `MediaStream` half auf dem Moto G6 nicht): Jeder
+Effekt wird in einem `OfflineAudioContext` berechnet (braucht keinen
+Lautsprecher), als WAV-Datei verpackt und über normale `<audio>`-Elemente
+gespielt – derselbe Weg wie bei Videos und Klingeltönen. Der Motor ist eine
+nahtlose WAV-Schleife von einer Sekunde, deren Tonhöhe (`playbackRate`, ohne
+Tonhöhenkorrektur) und Lautstärke Drehzahl und Gas folgen. Umgebungsgeräusche
+(Regen, Wind) fehlen in diesem Modus. **🔈 Ton testen** spielt
 eine Melodie, sagt „Hallo“ und zeigt den Zustand (läuft/angehalten,
 Abtastrate, Latenz, Ausgabeweg).
 
@@ -863,6 +870,33 @@ wird in einer kleinen eigenen Ebene gemalt.
 | `werkzeuge/browsertest.js` | Prüfungen im echten Browser (Playwright) |
 
 Der Code ist durchgehend **auf Deutsch kommentiert**.
+
+### ☁️ Wolkeninseln und 🎪 Zirkus (Version 42)
+
+**Wolkeninseln** (`welt.wolken`, eigener Strecken-Generator in `gelaende.js`): Die
+Strecke besteht aus einzelnen Wolken (18–34 m) mit Lücken. Liegt die nächste Wolke
+tiefer (1,2–3 m), reicht Schwung; endet eine Wolke in einer Schanze, ist die Lücke
+breiter. Jede Wolke **sinkt, solange man auf ihr fährt** – erst langsam, dann
+schneller (Level 1: bis 0,4 m/s, Level 4: bis 1 m/s), leere Wolken steigen wieder
+auf. Sie wird dabei grauer und es nieselt. Die Lückenweiten sind mit der Wurfparabel
+für 9 m/s Absprungtempo ausgelegt – inklusive des Absinkens, das man bei diesem Tempo
+hat, und abzüglich einer Autolänge (sonst schlägt das Hinterrad an der Kante an).
+Wer zu langsam ist, liegt bald tiefer als die nächste Wolke. Wer in eine Lücke fällt
+oder an der Wand der nächsten Wolke hängt (3 s), den bringt der Ballon auf die
+nächste Wolke. Messung (Roboter „Profi“, Flitzer): alle 4 Level im Ziel ohne Hilfe;
+wer höchstens 7 m/s fährt, braucht in Level 3 rund 30-mal den Ballon, mit 5 m/s
+kommt er in Level 3 und 4 nicht mehr ins Ziel.
+
+**Zirkus** (`gelaende.seil`, `gelaende.wippe`): bewegliche Fahrflächen. Die Physik
+fährt auf `gel.h`, gezeichnet wird der Boden aus `gel.hBild`; Brücke und Wippe werden
+jeden Schritt neu eingetragen (`dynSchritt`).
+- **Seilbrücke** über der Manege (mit Netz): Seil mit Einzellast – die tiefste Stelle
+  liegt unter dem Auto, der Durchhang wächst mit u·(1−u) und der Masse und schwingt
+  als Feder-Dämpfer (1,1 Hz, ζ 0,18). Langsam sinkt man bis 2 m ein und muss am Ende
+  aus der Mulde heraus; schnell schaukelt die Brücke einen hoch.
+- **Wippe**: Brett 10–12 m auf einem Bock. J·θ'' = −m·g·(x − x_Bock)·cos θ. Langsam
+  kippt sie sanft (≈ 20°), schnell kippt sie nicht mehr rechtzeitig – man fliegt vom
+  hohen Ende (bis 4,5 m hoch).
 
 ### Eigene Welt bauen
 

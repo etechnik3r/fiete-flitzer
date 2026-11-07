@@ -107,7 +107,7 @@ function profiFahrer() {
       return { gas: false, bremse: true };
     }
     klemm = (st.tempo < 0.5 && f.gas > 0.9) ? klemm + dt : 0;
-    if (klemm > 1.5) { klemm = 0; rueck = 5; rueckBis = C.x - 12; }
+    if (klemm > 1.5 && !gel.wolken.length) { klemm = 0; rueck = 5; rueckBis = C.x - 12; }   // Wolken: hinter einem ist eine Lücke
     var rel = FF.normWinkel(a - Math.atan(gel.steigungBei(C.x)));   // + = Nase höher als der Boden
     if (rel > 0.5 || (rel > 0.3 && C.w > 0.6)) {                 // Überschlag nach hinten droht
       statistik.gasWeg += dt;
@@ -118,6 +118,7 @@ function profiFahrer() {
     var vorX = C.x + 3 + Math.max(0, v) * 0.6;
     var gef = Math.min(gel.steigungBei(vorX), gel.steigungBei(vorX + 4));
     var vMax = gef < -0.9 ? 8 : (gef < -0.6 ? 11 : 99);
+    if (gel.wolken.length && gel.wolkenLuecke(vorX) || gel.wolken.length && gel.wolkenLuecke(vorX + 4)) vMax = 99;   // Wolken: vor der Lücke nicht bremsen, sondern springen
     if (v > vMax) { statistik.bremse += dt; return { gas: false, bremse: true }; }
     return { gas: true, bremse: false };
   }

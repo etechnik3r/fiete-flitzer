@@ -217,7 +217,7 @@ var FF = globalThis.FF = globalThis.FF || {};
                   looping: (g.looping || 0) * (0.6 + wild), luecke: (g.luecke || 0) * (0.6 + wild),
                   trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild),
                   schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild),
-                  scheune: 0 },
+                  scheune: 0, seil: (g.seil || 0) * (0.7 + wild), wippe: (g.wippe || 0) * (0.7 + wild) },
       // Bauernhof: Scheunen gleichmäßig über das Level verteilt (nicht zufällig)
       scheuneAbstand: g.scheunen ? (this.endlos ? 150 : (optionen.laenge - 150) / g.scheunen) : 0,
       scheunenAnzahl: g.scheunen || 0,
@@ -295,6 +295,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       for (var k = 0; k < nR; k++) this.raketenPlan.push(40 + (this.ziel - 90) * (k + 0.3 + 0.4 * rr()) / nR);
     }
     this.naechstesSchild = 100;
+    // Wolkeninseln (welt.wolken): eigene Strecke aus einzelnen Wolken mit Lücken dazwischen
+    this.wolken = [];              // {x0, x1, y, schanze, sink, last, …} – nach x sortiert
+    this.dyn = [];                 // bewegliche Fahrflächen (Zirkus): Seilbrücken und Wippen, siehe dynSchritt
+    this.hBild = null;             // Boden für die Grafik, wenn die Fahrfläche (h) davon abweicht (Brücke über der Manege)
+    this.stufe = this.endlos ? 1 : optionen.stufe;
+    if (welt.wolken) this.wolkenRnd = zufallsQuelle(this.seed * 6007 + 41);
 
     this.erweitereBis(this.endlos ? 400 : this.ziel + 140);
   }
@@ -315,7 +321,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune"];
+               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -528,6 +534,28 @@ var FF = globalThis.FF = globalThis.FF || {};
       var xk = xs + el.La + el.Lk;
       this.schwebezonen.push({ x0: xk - 1, x1: xk + el.Lz, f: 0.18, platziert: false });
       this.sperrzonen.push([xk - 4, xk + el.Lz + 22]);  // dort kein Kanister (man schwebt drüber und landet erst danach), kein Ballon-Absetzen
+    } else if (typ === "seil") {
+      // Hochseil-Brücke über einer Grube (Manege mit Netz): Anlauf, Brücke (G), Auslauf. Die
+      // Brücke hängt unter der Last durch und schwingt nach (dynSchritt).
+      el.flach = true;
+      el.La = 14; el.G = 12 + 5 * r() + 4 * p.wild; el.D = 4; el.Lf = 12;
+      el.Lflach = el.La + el.G + el.Lf; el.Lo = 18;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xa = xs + el.La, xb = xa + el.G;
+      this.dyn.push({ typ: "seil", a: xa - 0.8, b: xb + 0.8, ruhe: 0.25, tief: (1.7 + 0.6 * r()) * (0.85 + 0.25 * p.wild),
+                      d: 0, v: 0, xl: (xa + xb) / 2, i0: -1 });
+      this.sperrzonen.push([xa - 1.5, xb + 1.5]);
+    } else if (typ === "wippe") {
+      // Wippe: ein langes Brett auf einem Bock. Man fährt auf das untere Ende hinauf; über der
+      // Mitte kippt sie. Wer zu schnell ist, fliegt vom hohen Ende – also vorsichtig!
+      el.flach = true;
+      el.La = 12; var Lw = 10 + 2 * r(), Hp = 1.6 + 0.4 * r() + 0.3 * p.wild;
+      el.Lw = Lw; el.Lf = 14;
+      el.Lflach = el.La + Lw + el.Lf; el.Lo = 16;
+      el.xe = xs + el.Lflach + el.Lo;
+      var th = Math.asin(Hp / (Lw / 2)), xp = xs + el.La + Lw / 2 * Math.cos(th);
+      this.dyn.push({ typ: "wippe", xp: xp, Hp: Hp, Lw: Lw, thMax: th, th: th, w: 0, a: xp - Lw / 2 - 0.5, b: xp + Lw / 2 + 0.5, i0: -1 });
+      this.sperrzonen.push([xp - Lw / 2 - 1, xp + Lw / 2 + 2]);
     } else if (typ === "band") {
       // Förderband auf ebenem Boden: vorwärts (schiebt mit) oder rückwärts (dagegen anfahren!).
       // Rückwärts nur so schnell, dass jedes Fahrzeug dagegen ankommt.
@@ -627,6 +655,14 @@ var FF = globalThis.FF = globalThis.FF || {};
         return 0;
       case "band":
         return 0;                                   // nur ebener Boden – das Band selbst steht in baender
+      case "wippe":
+        return 0;                                   // ebener Boden – die Wippe selbst steht in dyn
+      case "seil":
+        var ss = s - el.La;                         // Grube unter der Brücke (Manege mit Netz)
+        if (ss < 0 || ss > el.G) return 0;
+        if (ss < 1.2) aus.steilAb = true;
+        if (ss > el.G - 1.2) aus.steilAuf = true;
+        return ss < 0.6 || ss > el.G - 0.6 ? 0 : -el.D;
       case "scheune":
       case "roehre":
         return 0;                                   // nur ebener Boden – Scheune und Röhre stehen in scheunen/roehren
@@ -657,6 +693,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Höhenprofil berechnen ---------- */
   Gelaende.prototype.erweitereBis = function (xBis) {
+    if (this.welt.wolken) { this.erweitereWolken(xBis); return; }
     var p = this.p, dx = this.dx, hilf = { steilAb: false, steilAuf: false };
     var alpha = 0.4;                                   // Tiefpass-Koeffizient pro Abtastschritt
     var tanAuf = Math.tan(p.maxAuf), tanAb = Math.tan(p.maxAb), tanKante = Math.tan(68 * GRAD);
@@ -705,8 +742,214 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.tp1 += alpha * (this.aus - this.tp1);
       this.tp2 += alpha * (this.tp1 - this.tp2);
       this.h.push(this.tp2);
+      if (this.hBild) this.hBild.push(this.tp2);
+    }
+    this.dynAnlegen();
+    this.platziereInhalte(this.xEnde() - 40);
+  };
+
+  /* =========================================================================
+     ZIRKUS: bewegliche Fahrflächen. Die Physik fährt auf h; dort wird über dem Boden (hBild)
+     die Brücke bzw. das Wippbrett eingetragen und jeden Schritt neu berechnet.
+     ========================================================================= */
+  Gelaende.prototype.dynAnlegen = function () {
+    for (var n = 0; n < this.dyn.length; n++) {
+      var D = this.dyn[n];
+      if (D.i0 >= 0 || D.b + 1 > this.xEnde()) continue;
+      if (!this.hBild) this.hBild = this.h.slice();
+      D.i0 = Math.max(0, Math.floor((D.a - this.x0) / this.dx)); D.i1 = Math.ceil((D.b - this.x0) / this.dx);
+      D.yA = this.hBild[D.i0]; D.yB = this.hBild[D.i1];
+      if (D.typ === "wippe") D.yP = this.hoeheBildBei(D.xp) + D.Hp;
+      this.dynEintragen(D);
+    }
+  };
+  Gelaende.prototype.hoeheBildBei = function (x) {
+    var hb = this.hBild || this.h, f = (x - this.x0) / this.dx, i = Math.max(0, Math.min(hb.length - 2, Math.floor(f))), t = f - i;
+    return hb[i] * (1 - t) + hb[i + 1] * t;
+  };
+  /* Fahrfläche der Seilbrücke bei x: gerade Linie zwischen den Ankern, in Ruhe leicht
+     durchhängend, unter Last ein „V“ mit der tiefsten Stelle unter dem Auto (Seil mit
+     Einzellast), Tiefe d schwingt (dynSchritt) */
+  Gelaende.prototype.seilY = function (D, x) {
+    var L = D.b - D.a, u = Math.max(0, Math.min(1, (x - D.a) / L));
+    var ul = Math.max(0.05, Math.min(0.95, (D.xl - D.a) / L));
+    var v = u < ul ? u / ul : (1 - u) / (1 - ul);
+    v = 0.75 * v + 0.25 * Math.sin(Math.PI * u);                     // etwas runder
+    return D.yA + (D.yB - D.yA) * u - D.ruhe * 4 * u * (1 - u) - D.d * v;
+  };
+  Gelaende.prototype.wippeY = function (D, x) { return D.yP + (x - D.xp) * Math.tan(D.th); };
+  Gelaende.prototype.dynEintragen = function (D) {
+    for (var i = D.i0; i <= D.i1; i++) {
+      var x = this.x0 + i * this.dx, boden = this.hBild[i];
+      if (D.typ === "seil") this.h[i] = x > D.a + 0.6 && x < D.b - 0.6 ? this.seilY(D, x) : boden;
+      else {
+        var c = D.Lw / 2 * Math.cos(D.th);
+        this.h[i] = Math.abs(x - D.xp) <= c ? Math.max(boden, this.wippeY(D, x)) : boden;
+      }
+    }
+  };
+  /* Ein Schritt: Last (Auto mit Rädern auf der Fläche) → Seil-Tiefe / Wippen-Winkel.
+     masse = Gesamtmasse des Autos [kg], xl = Lastpunkt (Mitte der Räder auf der Fläche) */
+  Gelaende.prototype.dynSchritt = function (h, fz, melde) {
+    var g = this.welt.schwerkraft;
+    for (var n = 0; n < this.dyn.length; n++) {
+      var D = this.dyn[n];
+      if (D.i0 < 0) continue;
+      var sx = 0, k = 0;
+      for (var j = 0; j < fz.raeder.length; j++) {
+        var R = fz.raeder[j];
+        if (R.kontakt.aktiv && R.kontakt.pen > -0.08 && R.k.x > D.a + 0.3 && R.k.x < D.b - 0.3) { sx += R.k.x; k++; }
+      }
+      var last = k > 0, xl = last ? sx / k : 0, m = fz.masseGesamt || 250;
+      if (D.typ === "seil") {
+        // Seil mit Einzellast: Durchhang ∝ u(1−u); schwer = tiefer. Feder-Dämpfer (≈ 1,1 Hz, ζ 0,18)
+        var L = D.b - D.a;
+        if (last) D.xl = xl;
+        var u = (D.xl - D.a) / L, ziel = last ? D.tief * 4 * u * (1 - u) * Math.min(1.4, Math.pow(m / 250, 0.35)) : 0;
+        var om = 2 * Math.PI * 1.1;
+        D.v += (om * om * (ziel - D.d) - 2 * 0.18 * om * D.v) * h;
+        D.d += D.v * h;
+        if (D.d < -0.3) { D.d = -0.3; D.v = 0; }
+        if (Math.abs(D.v) > 0.6 && last && !D.knarz) { D.knarz = true; melde("seil", { x: xl, staerke: Math.min(1, Math.abs(D.v) / 3) }); }
+        if (Math.abs(D.v) < 0.2) D.knarz = false;
+      } else {
+        // Wippe: J·θ'' = −m·g·(x − xp)·cos θ − Dämpfung; Brett 60 kg
+        var r = last ? xl - D.xp : 0, J = 60 * D.Lw * D.Lw / 12 + (last ? m * r * r : 0);
+        D.w += ((last ? -m * g * r * Math.cos(D.th) : 0) / J - 0.8 * D.w) * h;
+        D.th += D.w * h;
+        if (D.th > D.thMax || D.th < -D.thMax) {
+          if (Math.abs(D.w) > 0.4) melde("wippe", { x: D.xp + Math.sign(D.th) * -D.Lw / 2, staerke: Math.min(1, Math.abs(D.w) / 2) });
+          D.th = Math.max(-D.thMax, Math.min(D.thMax, D.th)); D.w = -0.15 * D.w;       // Anschlag: kleiner Rückprall
+        }
+      }
+      this.dynEintragen(D);
+    }
+  };
+
+  /* =========================================================================
+     WOLKENINSELN (welt.wolken)
+     Die Strecke besteht aus einzelnen Wolken mit Lücken dazwischen. Man springt von Wolke zu
+     Wolke: Liegt die nächste tiefer, reicht Schwung; manche Wolken enden in einer Schanze,
+     dann ist die Lücke breiter und die nächste Wolke darf höher liegen. Unter Last sinkt eine
+     Wolke (immer schneller) – wer trödelt, liegt bald tiefer als die nächste Wolke und kommt
+     nicht mehr hinüber. Leere Wolken steigen langsam wieder auf (wolkenSchritt).
+     Lücken: Boden 40 m tiefer, Sperrzone (kein Kanister, kein Ballon-Absetzen) und „verdeckt“
+     (keine Münz-Reihen). Wer hineinfällt, den trägt der Ballon auf die nächste Wolke (fahrt.js).
+     Die Sprungweiten sind mit einer Referenz-Absprunggeschwindigkeit vRef ausgelegt (Wurf-
+     parabel), je Level mit einem größeren Anteil der möglichen Weite.
+     ========================================================================= */
+  Gelaende.prototype.planeWolke = function () {
+    var W = this.welt.wolken, r = this.wolkenRnd, g = this.welt.schwerkraft, st = this.stufe;
+    var L = this.wolken, vor = L[L.length - 1];
+    if (!vor) {                                            // Start: lange, ruhige Wolke
+      L.push(this.neueWolke(this.x0, 85, 0, null));         // reicht bis 45 m hinter den Start
+      return;
+    }
+    var anteil = W.anteil[st];                             // so viel der möglichen Sprungweite wird verlangt
+    var schanze = !!vor.schanze;                           // endet die Wolke mit einer Schanze, ist der Sprung weit
+    // So tief ist die Wolke gesunken, wenn man sie mit vRef überquert (wer langsamer ist,
+    // sinkt tiefer – dann wird der Sprung knapp). Die Sprünge sind ab dieser Höhe ausgelegt.
+    var tAuf = (vor.x1 - vor.x0) / W.vRef, sMax = W.sinkMax[st], sb = W.sinkBeschl[st];
+    var tVoll = Math.max(0, (sMax - W.sinkStart) / sb);
+    var sExp = vor === L[0] ? 0 : (tAuf < tVoll ? W.sinkStart * tAuf + 0.5 * sb * tAuf * tAuf
+                                               : W.sinkStart * tVoll + 0.5 * sb * tVoll * tVoll + sMax * (tAuf - tVoll));
+    var yAb = vor.y - sExp + (vor.schanze ? vor.schanze.H : 0);   // Absprunghöhe (Lippe)
+    var G, y;
+    if (schanze) {
+      // Absprung mit ≈ 26° von der Lippe; nächste Wolke bis 1,5 m höher als die Lippe
+      var dy = 0.2 + 1.6 * r(), v = W.vRef * 0.85, th = 0.42;          // nächste Wolke liegt etwas tiefer als die Lippe
+      var vx = v * Math.cos(th), vy = v * Math.sin(th);
+      var t = (vy + Math.sqrt(vy * vy + 2 * g * Math.max(-vy * vy / (2 * g) + 0.01, dy))) / g;   // Fallzeit bis dy unter die Lippe
+      // Das ganze Auto (≈ 3 m) muss hinter der Kante landen, sonst schlägt das Hinterrad an
+      G = Math.max(2.6, anteil * vx * t - W.autoLaenge);
+      y = yAb - dy;
+    } else {
+      var fall = W.fall[0] + (W.fall[1] - W.fall[0]) * r();   // nächste Wolke liegt so viel tiefer
+      fall = Math.max(W.fall[0], fall + 0.06 * Math.min(0, yAb));   // tief unten: kleinere Stufen (nie weniger als fall[0])
+      var tf = Math.sqrt(2 * fall / g);
+      G = Math.max(2.4, anteil * W.vRef * tf - W.autoLaenge);
+      y = yAb - fall;
+    }
+    var len = W.laenge[0] + (W.laenge[1] - W.laenge[0]) * r();
+    len *= 1 - 0.12 * st;
+    var x0 = vor.x1 + G;
+    // Schanzen-Wolken bringen einen wieder nach oben (die nächste liegt nur knapp unter der Lippe);
+    // je tiefer man ist, desto öfter kommen sie
+    var pS = W.schanzen[st] + Math.min(0.4, Math.max(0, -y - 6) * 0.04);
+    var sch = r() < pS ? { L: 7 + 3 * r(), H: 1.3 + 0.8 * r() } : null;
+    var w = this.neueWolke(x0, len, y, sch);
+    this.sperrzonen.push([vor.x1 - 1.8, x0 + 2.5]);
+    this.verdeckt.push([vor.x1 - 0.3, x0 + 0.3]);
+    this.lippen.push({ x: vor.x1 - 0.4, hoehe: 1, platziert: false });    // Münz-Bogen über die Lücke
+    L.push(w);
+    this.wolkeGrund = Math.min(this.wolkeGrund || 0, y);
+  };
+  Gelaende.prototype.neueWolke = function (x0, len, y, schanze) {
+    // Ziel: die letzte Wolke reicht sicher über die Ziellinie hinaus
+    if (!this.endlos && x0 + len > this.ziel - 30) { len = Math.max(len, this.ziel + 300 - x0); schanze = null; }
+    return { x0: x0, x1: x0 + len, y: y, schanze: schanze, sink: 0, rate: 0, last: false, form: Math.floor(this.wolkenRnd() * 1000) };
+  };
+  /* Höhe der unbelasteten Wolke w an der Stelle x: Grundhöhe, kleine Puffel, runde Kanten,
+     am Ende evtl. die Schanze */
+  Gelaende.prototype.wolkenProfil = function (w, x) {
+    var s = x - w.x0, e = w.x1 - x, y = w.y + 0.12 * rauschen(x / 2.6, w.form) ;
+    if (w.schanze) {
+      var a = w.x1 - w.schanze.L - 0.8;
+      if (x > a) { var u = Math.min(1, (x - a) / w.schanze.L); y += w.schanze.H * u * u; }
+    }
+    var R = s < e ? 0.3 : 0.3, d = Math.min(s, e);            // Kanten nur leicht gerundet (sonst taucht die Nase ab / prallt das Rad ab)
+    if (d < R && !(s < R && w === this.wolken[0])) y -= R - Math.sqrt(Math.max(0, R * R - (R - d) * (R - d)));
+    return y;
+  };
+  Gelaende.prototype.wolkeBei = function (x) {
+    var L = this.wolken;
+    for (var i = L.length - 1; i >= 0; i--) { if (x >= L[i].x0) return x <= L[i].x1 ? L[i] : null; }
+    return null;
+  };
+  /* Unterkante, unter der man aus einer Lücke gerettet wird, und das Ende dieser Lücke */
+  Gelaende.prototype.wolkenLuecke = function (x) {
+    var L = this.wolken;
+    for (var i = 0; i < L.length - 1; i++) {
+      if (x > L[i].x1 && x < L[i + 1].x0) return { unten: Math.min(L[i].y - L[i].sink, L[i + 1].y - L[i + 1].sink) - 6, ende: L[i + 1].x0 };
+    }
+    return null;
+  };
+  Gelaende.prototype.erweitereWolken = function (xBis) {
+    while (this.xEnde() < xBis || this.h.length === 0) {
+      var x = this.x0 + this.h.length * this.dx;
+      while (!this.wolken.length || this.wolken[this.wolken.length - 1].x1 < x + 60) this.planeWolke();
+      var w = this.wolkeBei(x);
+      if (w) {
+        if (w.i0 === undefined) { w.i0 = this.h.length; w.prof = []; }
+        var hp = this.wolkenProfil(w, x);
+        w.prof.push(hp); w.i1 = this.h.length;
+        this.h.push(hp - w.sink);
+      } else this.h.push((this.wolkeGrund || 0) - 40);
     }
     this.platziereInhalte(this.xEnde() - 40);
+  };
+  /* Wolken sinken unter Last und steigen leer wieder auf. belastet = Wolke unter dem Auto
+     (oder null). Mit der Wolke bewegen sich Münzen, Kanister und Deko darauf. */
+  Gelaende.prototype.wolkenSchritt = function (h, belastet) {
+    var W = this.welt.wolken, L = this.wolken, st = this.stufe;
+    for (var i = 0; i < L.length; i++) {
+      var w = L[i];
+      if (w.i0 === undefined) continue;
+      var alt = w.sink;
+      if (w === belastet && w !== L[0]) {
+        w.rate = Math.min(W.sinkMax[st], Math.max(w.rate, W.sinkStart) + W.sinkBeschl[st] * h);
+        w.sink += w.rate * h;
+      } else {
+        w.rate = 0;
+        if (w.sink > 0) w.sink = Math.max(0, w.sink - W.heben * h);
+      }
+      w.last = w === belastet;
+      var d = w.sink - alt;
+      if (!d) continue;
+      for (var k = w.i0; k <= w.i1 && k - w.i0 < w.prof.length; k++) this.h[k] = w.prof[k - w.i0] - w.sink;
+      var verschiebe = function (liste) { for (var j = 0; j < liste.length; j++) { var o = liste[j]; if (o.x >= w.x0 && o.x <= w.x1) { o.y -= d; if (o.fuss !== undefined) o.fuss -= d; } } };
+      verschiebe(this.muenzen); verschiebe(this.tanks); verschiebe(this.raketen); verschiebe(this.deko); verschiebe(this.schilder);
+    }
   };
 
   /* Rohhöhe aus Rauschen und Trend (ohne Bau-Elemente) */
@@ -927,6 +1170,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var s = this.steigungBei(px), l = Math.sqrt(1 + s * s);
     var abstand = (py - boden) / l;
     var treffer = abstand <= rand;
+    // Wolkeninseln: An den fast senkrechten Wänden der Lücken wäre der Lot-Abstand winzig, obwohl
+    // der Punkt hoch über dem Lückengrund schwebt – dort zählt der senkrechte Abstand
+    if (treffer && this.wolken.length && py - boden > rand + 0.05) treffer = false;
+    if (treffer && this.wolken.length && -abstand > 0.2) abstand = -0.2;   // tief in der Wand: nicht wegschleudern, nur sanft herausschieben
     if (treffer) { aus.nx = -s / l; aus.ny = 1 / l; aus.pen = -abstand; }
     return treffer;                                 // die Karosserie streift die Looping-Bahn nicht (nur die Räder fahren darauf)
   };
@@ -1003,7 +1250,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     // dichter, und jeder Abschnitt verlangt ungefähr gleich viel Benzin.
     // (Im Endlos-Modus werden die Abstände langsam größer.)
     while (this.tankX < bis && this.tankX < ende - 10) {
-      var sl = this.steigungBei(this.tankX);
+      var sl = this.wolken.length && this.verdecktBis(this.tankX) ? 0 : this.steigungBei(this.tankX);   // Wolken: die Lückenwände zählen nicht
       this.tankRest -= this.dx * Math.max(0.4, 1 + 3 * Math.max(0, sl) - 0.6 * Math.max(0, -sl)) / 1.3;
       this.tankX += this.dx;
       if (this.tankRest <= 0) {
@@ -1204,6 +1451,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var h1 = hash01(Math.round(xd * 10), this.seed + 3), h2 = hash01(Math.round(xd * 10), this.seed + 4);
       var typ = teile[0].charAt(0) === "@" ? teile[0].slice(1) : null;
       var spiegeln = r() < 0.5, nass = this.wasserBei(xd) > this.hoeheBei(xd) - 0.05;
+      if (welt.wolken && (!this.wolkeBei(xd) || !this.wolkeBei(xd + 1) || !this.wolkeBei(xd - 1))) { this.naechsteDeko += 2 + r() * 3; continue; }   // nicht über der Lücke
       if (nass) {
         // In der Pfütze steht kein Baum – dort schwimmt ab und zu eine Ente (im Matsch: ein Schwein suhlt sich)
         var tier = welt.wasser.tier, gt = tier ? 0.95 : 0.75;
@@ -1226,7 +1474,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Meter-Schilder
     while (this.naechstesSchild < bis && this.naechstesSchild < (this.endlos ? Infinity : this.ziel - 20)) {
       var xs = this.naechstesSchild;
-      this.schilder.push({ x: xs, y: this.hoeheBei(xs), text: xs + " m" });
+      if (welt.wolken && this.verdecktBis(xs - 1)) xs = this.verdecktBis(xs - 1) + 2.5;
+      this.schilder.push({ x: xs, y: this.hoeheBei(xs), text: this.naechstesSchild + " m" });
       this.naechstesSchild += 100;
     }
 
@@ -1245,6 +1494,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
     filter(this.objekte); filter(this.spuk); filter(this.obst); filter(this.tore); filter(this.zellen); filter(this.katzen);
     while (this.scheunen.length && this.scheunen[0].x1 < xHinten) this.scheunen.shift();
+    while (this.wolken.length > 3 && this.wolken[1].x1 < xHinten - 60) this.wolken.shift();
+    while (this.dyn.length && this.dyn[0].b < xHinten) this.dyn.shift();
     while (this.roehren.length && this.roehren[0].x + this.roehren[0].span < xHinten) this.roehren.shift();
     var n = 0;
     while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
