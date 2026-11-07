@@ -960,7 +960,7 @@
     fahrt = new FF.Fahrt({
       weltIndex: wi, stufe: li, endlos: !!endlos, strecke: strecke || null,
       fahrzeugId: P.fahrzeug, upgrades: fs.upgrades, schwierigkeit: S.einstellungen.schwierigkeit,
-      bruchlandung: S.einstellungen.bruchlandung
+      bruchlandung: S.einstellungen.bruchlandung, gasBremseAlt: !!S.entwickler.gasBremseAlt
     });
     // Geisterrennen: 1. Fahrt wird aufgezeichnet, 2. Fahrt sieht den Geist
     aufnahme = null; geist = null;
@@ -2261,7 +2261,14 @@
   function entwicklerAnzeigen() {
     $("dev-alle-offen").classList.toggle("aktiv", S.entwickler.alleOffen);
     $("dev-editor").classList.toggle("aktiv", !!S.entwickler.editor);
+    $("dev-gasbremse").classList.toggle("aktiv", !!S.entwickler.gasBremseAlt);
   }
+  $("dev-gasbremse").addEventListener("click", function () {
+    S.entwickler.gasBremseAlt = !S.entwickler.gasBremseAlt;
+    speichere(); entwicklerAnzeigen();
+    FF.Klang.spiele("klick");
+    popover(S.entwickler.gasBremseAlt ? "🎛️ Gas + Bremse zugleich: alte Wirkung (Auto bleibt in der Luft ruhig)" : "🎛️ Gas + Bremse zugleich: Gas hat Vorrang", 2200);
+  });
   $("dev-editor").addEventListener("click", function () {
     S.entwickler.editor = !S.entwickler.editor;
     speichere(); entwicklerAnzeigen();

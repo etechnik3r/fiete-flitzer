@@ -57,12 +57,14 @@ var nurWelt = arg("welt", null);
 var schwierigkeit = arg("schwierigkeit", "normal");
 
 /* ---------- Roboter-Fahrer ---------- */
-var fahrerArt = arg("vollgas", false) ? "vollgas" : arg("loslassen", false) ? "loslassen" : (arg("kind", false) ? "kind" : "profi");
+var fahrerArt = arg("beide", false) ? "beide" : arg("vollgas", false) ? "vollgas" : arg("loslassen", false) ? "loslassen" : (arg("kind", false) ? "kind" : "profi");
 
 function inDerLuft(st) { return st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt; }
 
 /* "Vollgas": lässt das Gas nie los */
 function vollgasEingabe() { return { gas: true, bremse: false }; }
+// „Beide“: hält Gas und Bremse zugleich gedrückt (Prüfung, dass das keine Abkürzung ist)
+function beideEingabe() { return { gas: true, bremse: true }; }
 
 /* "Loslassen": am Boden Vollgas, in der Luft nichts drücken – bremst nie */
 function loslassenEingabe(f) { return inDerLuft(f.fz.status) ? { gas: false, bremse: false } : { gas: true, bremse: false }; }
@@ -124,13 +126,14 @@ function profiFahrer() {
 
 function neuerFahrer(art) {
   if (art === "vollgas") return { eingabe: vollgasEingabe, statistik: null };
+  if (art === "beide") return { eingabe: beideEingabe, statistik: null };
   if (art === "loslassen") return { eingabe: loslassenEingabe, statistik: null };
   if (art === "kind") return { eingabe: kindEingabe, statistik: null };
   return profiFahrer();
 }
 
 function fahre(weltIndex, stufe, fzId, upg, maxZeit, art) {
-  var f = new FF.Fahrt({ weltIndex: weltIndex, stufe: stufe, fahrzeugId: fzId, upgrades: upg, schwierigkeit: schwierigkeit });
+  var f = new FF.Fahrt({ weltIndex: weltIndex, stufe: stufe, fahrzeugId: fzId, upgrades: upg, schwierigkeit: schwierigkeit, gasBremseAlt: arg("gasbremse-alt", false) });
   var dt = 1 / 60, minTank = 1, tanks = 0, fahrer = neuerFahrer(art || fahrerArt), luftSpruenge = 0, luft = 0;
   maxZeit = maxZeit || 400;
   while (f.zustand !== "ende" && f.zeit < maxZeit) {

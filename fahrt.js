@@ -113,6 +113,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function Fahrt(o) {
     var C = FF.CONFIG;
     this.weltIndex = o.weltIndex;
+    this.gasBremseAlt = !!o.gasBremseAlt;     // Entwickler: alte Wirkung von Gas + Bremse zugleich
     this.welt = C.welten[o.weltIndex];
     this.endlos = !!o.endlos;
     this.stufe = o.stufe || 0;
@@ -429,10 +430,16 @@ var FF = globalThis.FF = globalThis.FF || {};
     var M = 0;
     var inDerLuft = st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt && !st.anhaengerBoden;
     if (this.zustand === "fahrt" && inDerLuft) {
-      var steuer = this.gas - this.bremse;                   // + = Nase hoch
+      // Gas und Bremse zugleich: Gas hat Vorrang (wie am Boden). Früher (bis Version 35)
+      // hoben sich beide auf (steuer = 0), und Stabilisator bzw. Luft-Kreisel hielten das
+      // Auto dann ruhig, während am Boden Vollgas lief – mit beiden Pedalen gelang jeder
+      // Sprung von allein. Wieder einschalten: Entwickler-Bereich „Gas+Bremse alt“.
+      var beide = this.gas > 0.1 && this.bremse > 0.1;
+      var steuer = beide && !this.gasBremseAlt ? this.gas : this.gas - this.bremse;   // + = Nase hoch
+      var losgelassen = this.gasBremseAlt ? Math.abs(steuer) < 0.1 : this.gas < 0.1 && this.bremse < 0.1;
       M = steuer * w.luftsteuerung * J;
       if ((steuer > 0 && C.w > 5.5) || (steuer < 0 && C.w < -5.5)) M = 0;
-      if (w.stabilisator && Math.abs(steuer) < 0.1) {
+      if (w.stabilisator && losgelassen) {
         M += (-3 * normWinkel(C.a) - 1.5 * C.w) * J * w.stabilisator;
       }
       // Luft-Kreisel (Upgrade): hält das Auto in der Luft ruhig wie ein Kreiselinstrument.
@@ -440,7 +447,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       // (Mehr Drehkraft in Drehrichtung wäre schlecht: Wer Gas hält, überschlägt sich dann öfter.)
       if (w.kreisel) {
         var UK = FF.CONFIG.upgradeWirkung;
-        if (Math.abs(steuer) < 0.1) M -= C.w * J * UK.kreiselRuhe * w.kreisel;
+        if (losgelassen) M -= C.w * J * UK.kreiselRuhe * w.kreisel;
         else if (steuer * C.w < 0) M *= 1 + UK.kreisel * w.kreisel;          // Gegensteuern wirkt stärker
       }
     } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {

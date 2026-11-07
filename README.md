@@ -52,7 +52,16 @@ Auswahl dort nicht – im Browser bestimmt einfach die Handyhaltung das Format.
 | ⏸️ / Esc / P | Pause |
 | K (Tastatur) | Kräfte-Pfeile an/aus |
 
-Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten.
+Multitouch geht: Gas und Bremse lassen sich gleichzeitig halten – dann hat **Gas
+Vorrang**, am Boden wie in der Luft (seit Version 36). Bis Version 35 hoben sich
+beide Pedale in der Luft auf (`steuer = gas − bremse = 0`), während am Boden
+Vollgas lief, und Stabilisator (Leicht) bzw. Luft-Kreisel hielten das Auto ruhig,
+weil ihre Dämpfung schon bei `|steuer| < 0,1` einsetzte. Mit beiden Pedalen gelang
+so fast jeder Sprung von allein (Robotertest `--beide`, Stufe 5, alle Welten: 101
+von 128 Leveln im Ziel, ohne die neuen Upgrades 85, jetzt 15). Die Dämpfung wirkt
+nur noch, wenn beide Pedale los sind. Die alte Wirkung lässt sich im
+Entwickler-Bereich mit **🎛️ Gas+Bremse alt** wieder einschalten
+(`fahrt.gasBremseAlt`, Robotertest: `--gasbremse-alt`).
 
 Vor jeder Fahrt zählt eine **Start-Ampel 🚦** 3 – 2 – 1 – LOS (rot, rot,
 rot-gelb, grün, je 0,8 s). Bis dahin stehen Physik, Zeit und Geist still,
@@ -405,13 +414,12 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
-Federweg), ⛽ Tank (beim E-Auto 🔋 Akku), dazu seit Version 32: 🌪️ **Luft-Kreisel**
-(ohne Pedal dämpft er die Drehung in der Luft, 0,5/s je Stufe; beim Gegensteuern
-+12 % Drehmoment je Stufe – bewusst nicht mehr Drehkraft in Drehrichtung, sonst
-überschlägt sich, wer Gas hält, öfter), 🪽 **Spoiler** (+0,15 Abtrieb und +2 %
-Höchsttempo je Stufe, man sieht ihn hinten am Auto), 🛑 **Bremsen** (+15 %
-Bremskraft, +10 % Rückwärtskraft je Stufe) und 🪶 **Leichtbau** (−2,5 % Masse je
-Stufe; nicht beim Trecker, der braucht sein Gewicht). Bei manchen Fahrzeugen gibt es
+Federweg), ⛽ Tank (beim E-Auto 🔋 Akku), dazu seit Version 32 vier Upgrades, die bewusst nur wenig bringen (Version 36
+deutlich abgeschwächt): 🌪️ **Luft-Kreisel** (ohne Pedal dämpft er die Drehung in
+der Luft, 0,12/s je Stufe; beim Gegensteuern +4 % Drehmoment je Stufe), 🪽
+**Spoiler** (+0,04 Abtrieb und +0,6 % Höchsttempo je Stufe, man sieht ihn hinten
+am Auto), 🛑 **Bremsen** (+6 % Bremskraft, +4 % Rückwärtskraft je Stufe) und 🪶
+**Leichtbau** (−0,8 % Masse je Stufe; nicht beim Trecker). Bei manchen Fahrzeugen gibt es
 zusätzlich **4×4 Allrad**. Der Spielstand-Code (Version 3) enthält die neuen
 Stufen, ältere Codes werden weiter gelesen. In der Garage spielt **🔊 Motor anhören** den
 Klang jedes Fahrzeugs ab.
