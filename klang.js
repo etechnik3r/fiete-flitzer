@@ -771,6 +771,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "windstoss":                // Wind dreht: kurzes Rauschen
         rauschen(0, 0.9, 0.12, 600);
         break;
+      case "tapp":                     // Seifenkiste: Schritt auf dem Boden
+        rauschen(0, 0.05, 0.05, 900); ton(140, 0, 0.05, "sine", 0.05, 90);
+        break;
       case "schlurp":                  // Schleim: glibberiges Schlurpen (Ton gleitet hinunter, dazu Blubbern)
         rauschen(0, 0.25 + 0.2 * (wert || 0.5), 0.1 + 0.12 * (wert || 0.5), 600);
         ton(520, 0, 0.18, "sine", 0.12, 160); ton(300, 0.12, 0.1, "sine", 0.07, 520); ton(240, 0.22, 0.08, "sine", 0.05, 420);

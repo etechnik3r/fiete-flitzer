@@ -409,6 +409,8 @@
     if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
     if (fahrt.welt.schleimtropfen || fahrt.fz.flecken) schleimTropfen(dt);
+    if (fahrt.def.form === "scooter") stuntAktualisieren(dt);
+    if (fahrt.werte.fussAntrieb) schritte();
     if (fahrt.werte.turbine && (fahrt.turbinenLauf || 0) > 0.25 && auspuffTakt <= 0) {     // Turbine: heiße Abgase hinter der Düse
       auspuffTakt = 0.05;
       var ct = Math.cos(ch.a), stt = Math.sin(ch.a), xt = -2.1 - fahrt.turbinenLauf * 0.8, yt = 0.8;
@@ -445,6 +447,31 @@
                      vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
                      t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
     }
+  }
+
+  /* E-Scooter: Bei hohen Sprüngen zeigt das Kind einen Trick und steht vor der Landung
+     wieder auf dem Brett. fz.stunt.u läuft weich von 0 (steht) bis 1 (Trick) – nur Grafik. */
+  var STUNTS = [["flieger", "Abflug! 🦸"], ["haende", "Freihändig! 🙌"], ["bein", "Ein Bein! 🦵"]], stuntNr = 0, stuntArt = null;
+  function stuntAktualisieren(dt) {
+    var fz = fahrt.fz, C = fz.chassis, st = fz.status;
+    fz.stunt = fz.stunt || { art: null, u: 0 };
+    var luft = st.radKontakte === 0 && !st.huellKontakt && fahrt.zustand === "fahrt" && !fahrt.hilfe;
+    var hoehe = C.y - fahrt.gelaende.hoeheBei(C.x);
+    var bald = C.vy < 0 && hoehe + C.vy * 0.4 < 1.3;                     // Landung naht: rechtzeitig wieder hinstellen
+    if (luft && !stuntArt && fahrt.luftZeit > 0.2 && hoehe > 1.6 && !bald) {
+      var S0 = STUNTS[stuntNr++ % STUNTS.length]; stuntArt = S0[0];
+      schwebeText(C.x, C.y + 1.8, S0[1], "#ffe27a", false);
+    }
+    var ziel = luft && stuntArt && !bald && hoehe > 1.1 ? 1 : 0;
+    fz.stunt.u += (ziel - fz.stunt.u) * Math.min(1, dt * (ziel ? 5 : 10));
+    if (!luft && fz.stunt.u < 0.03) { stuntArt = null; fz.stunt.u = 0; }
+    fz.stunt.art = stuntArt || fz.stunt.art;
+  }
+  /* Seifenkiste: Tapp-tapp bei jedem Schritt */
+  var schrittAlt = 0;
+  function schritte() {
+    var fz = fahrt.fz, n = Math.floor((fz.lauf || 0) / Math.PI);
+    if (n !== schrittAlt) { schrittAlt = n; if (fz.laeuft) FF.Klang.spiele("tapp"); }
   }
 
   /* Schleimwelt: Ab und zu fällt ein dicker Tropfen von oben genau dorthin, wo das Auto
@@ -601,6 +628,9 @@
 
   /* Benzin oder Akku? Texte passend zum Fahrzeug */
   function energie(def) {
+    if (def.puste) return { icon: "💨", name: "Puste", voll: "🍎 Mampf – neue Puste!", knapp: "💨 Die Puste wird knapp – rollen lassen oder einen Apfel sammeln!",
+      knappSag: "Die Puste wird knapp!", leer: "Keine Puste mehr! 💨", ergebnis: "Keine Puste mehr – gut gelaufen!", garage: "die Puste 💨",
+      info: "💨 Deine Puste<small>Laufen kostet Puste. Rollst du ohne Gas, kommt sie langsam zurück – und Äpfel 🍎 geben neue!</small>" };
     if (def.wasserstoff) return { icon: "💧", name: "Wasserstoff", voll: "💧 Aufgetankt!", knapp: "💧 Wasserstoff wird knapp – sammle eine blaue H₂-Flasche!",
       knappSag: "Wasserstoff wird knapp!", leer: "Wasserstoff leer! 💧", ergebnis: "Wasserstoff leer – gut gefahren!", garage: "den H₂-Tank 💧",
       info: "💧 Dein Wasserstoff<small>Sammle die blauen H₂-Flaschen. Aus dem Auspuff kommt nur Wasser!</small>" };
@@ -925,6 +955,11 @@
           tipp(e.text, 4000, e.text.replace(/[^\wäöüÄÖÜß!.,\s-]/g, ""));
           break;
         case "geladen":
+          if (fahrt.werte.puste) {
+            schwebeText(ch.x, ch.y + 1.3, "+💨", "#cfe9ff", false);
+            if (!fahrt.ladeTippGezeigt) { fahrt.ladeTippGezeigt = true; tipp("💨 Rollen lassen: Ohne Gas kommt die Puste zurück!", 3500, "Rollen lassen, dann kommt die Puste zurück!"); }
+            break;
+          }
           schwebeText(ch.x, ch.y + 1.3, "+⚡", "#7dffb8", false);
           if (!fahrt.ladeTippGezeigt) {
             fahrt.ladeTippGezeigt = true;
@@ -1950,7 +1985,7 @@
       ["💪 Kraft", (w.motor.drehmoment / rA) / (mGes * 9.81) / 1.1],
       ["🛞 Grip", (w.grip * (nA === w.raeder.length ? 1.25 : 1)) / 1.9],
       ["🌀 Federung", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
-      [def.akku ? "🔋 Akku" : def.wasserstoff ? "💧 H₂-Tank" : "⛽ Tank", w.tankSekunden / 70],
+      [def.akku ? "🔋 Akku" : def.wasserstoff ? "💧 H₂-Tank" : def.puste ? "💨 Puste" : "⛽ Tank", w.tankSekunden / 70],
       ["🤸 Saltos", w.luftsteuerung / 9]
     ];
   }
@@ -1981,6 +2016,8 @@
     def.upgrades.forEach(function (key) {
       var U = C.upgrades[key], stufe = fs.upgrades[key] || 0, voll = stufe >= U.stufen;
       if (key === "tank" && def.akku) U = { name: "Akku", icon: "🔋", text: "Größerer Akku – weiter fahren", stufen: U.stufen };
+      if (key === "tank" && def.puste) U = { name: "Puste", icon: "💨", text: "Mehr Puste – weiter laufen", stufen: U.stufen };
+      if (key === "motor" && def.fussAntrieb) U = { name: "Turnschuhe", icon: "👟", text: "Schnellere Füße – mehr Kraft beim Laufen", stufen: U.stufen };
       if (key === "tank" && def.wasserstoff) U = { name: "H₂-Tank", icon: "💧", text: "Größere Wasserstoff-Tanks – weiter fahren", stufen: U.stufen };
       var preis = voll ? 0 : upgradePreis(def, key, stufe);
       var punkte = "";
