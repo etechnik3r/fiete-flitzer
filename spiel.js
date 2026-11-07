@@ -409,6 +409,7 @@
         }
         var ko = R.kontakt;
         if (!ko.aktiv || ko.pen < -0.02) return;
+        if (fahrt.werte.kufen) { kufenStaub(R, ko); return; }
         var tx = ko.ny, ty = -ko.nx;
         var vBoden = R.k.vx * tx + R.k.vy * ty;
         var schlupf = Math.abs(-R.k.w * R.r - vBoden);
@@ -420,6 +421,7 @@
         }
       });
     }
+    if (fahrt.werte.kufen) schneeKanone(dt);
     if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
     if (fahrt.welt.schleimtropfen || fahrt.fz.flecken) schleimTropfen(dt);
@@ -444,7 +446,7 @@
                        t: 0, dauer: 0.9 + 0.6 * gl, r0: 0.12, r1: 0.45 + 0.6 * gl, farbe: gl > 0.3 ? "rgba(35,35,40,0.95)" : "rgba(90,90,100,0.8)",
                        alpha: gl > 0.3 ? 0.75 : 0.35, reibung: 1.3 });
       });
-    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.getriebe.elektro && !fahrt.werte.turbine && !fahrt.getriebe.dampf) {   // Elektro: kein Auspuff
+    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.werte.kufen && !fahrt.getriebe.elektro && !fahrt.werte.turbine && !fahrt.getriebe.dampf) {   // Elektro: kein Auspuff
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
@@ -461,6 +463,41 @@
                      vx: -cb * 3 + ch.vx * 0.3, vy: 0.5 - sb * 3 + ch.vy * 0.3,
                      t: 0, dauer: 0.6, r0: 0.2, r1: 0.7, farbe: "rgba(255,190,120,0.9)", alpha: 0.55, reibung: 1.5 });
     }
+  }
+
+  /* Schnee-Schlitten: Die Kanone schießt Schneeflocken im Bogen über das Kind. Jede Flocke
+     fliegt genau so, dass sie nach „flug“ Sekunden im gerade beschneiten Stück landet
+     (fahrt.fz.kanoneZiel = [xa, xb]) – dann verschwindet sie, und dort liegt der Schnee. */
+  var kanonenTakt = 0;
+  function schneeKanone(dt) {
+    var fz = fahrt.fz, ch = fz.chassis, Z = fz.kanoneZiel, gel = fahrt.gelaende;
+    kanonenTakt -= dt;
+    if (!fz.kanone || !Z || kanonenTakt > 0) return;
+    kanonenTakt = 0.025;
+    var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -0.42, ly = 1.3;
+    var x0 = ch.x + ca * lx - sa * ly, y0 = ch.y + sa * lx + ca * ly, g = fahrt.welt.schwerkraft;
+    for (var k = 0; k < 3; k++) {
+      var xt = Z[0] + Math.random() * (Z[1] - Z[0]), yt = gel.hoeheBei(xt) + 0.1;
+      var flug = fahrt.werte.kanone.flug * (0.85 + Math.random() * 0.3);
+      partikel.neu({ art: "tropfen", x: x0, y: y0, t: 0, dauer: flug, schwer: 1, reibung: 0,
+                     vx: (xt - x0) / flug, vy: (yt - y0 + 0.5 * g * flug * flug) / flug,
+                     r0: 0.06 + Math.random() * 0.07, farbe: k ? "rgba(255,255,255,0.95)" : "rgba(225,240,255,0.95)" });
+    }
+    if (Math.random() < 0.35) {                                 // Pulver staubt beim Auftreffen
+      var xp = Z[0] + Math.random() * (Z[1] - Z[0]);
+      partikel.neu({ art: "staub", x: xp, y: gel.hoeheBei(xp) + 0.15, vx: ch.vx * 0.3 + (Math.random() - 0.5), vy: 0.4 + Math.random() * 0.5,
+                     t: 0, dauer: 0.5, r0: 0.08, r1: 0.3, farbe: "#ffffff", alpha: 0.7, reibung: 2 });
+    }
+  }
+  /* Kufen: auf Schnee stiebt etwas Pulver, auf blankem Boden kratzen sie (Staub in Bodenfarbe) */
+  function kufenStaub(R, ko) {
+    var v = Math.hypot(R.k.vx, R.k.vy);
+    if (v < 1.5 || Math.random() > 0.35) return;
+    var px = R.k.x - ko.nx * R.r, py = R.k.y - ko.ny * R.r, ch = fahrt.fz.chassis;
+    var schnee = fahrt.welt.schneeBoden || fahrt.gelaende.schneeBei(px);
+    partikel.neu({ art: "staub", x: px, y: py + 0.05, vx: -ch.vx * 0.15 + (Math.random() - 0.5), vy: 0.5 + Math.random() * 0.7,
+                   t: 0, dauer: 0.5 + Math.random() * 0.3, r0: 0.08, r1: schnee ? 0.28 : 0.4,
+                   farbe: schnee ? "#ffffff" : fahrt.welt.farben.punkte, alpha: schnee ? 0.6 : 0.8, reibung: 2 });
   }
 
   /* E-Scooter: Bei hohen Sprüngen zeigt das Kind einen Trick und steht vor der Landung
@@ -645,6 +682,9 @@
     if (def.puste) return { icon: "💨", name: "Puste", voll: "🍎 Mampf – neue Puste!", knapp: "💨 Die Puste wird knapp – rollen lassen oder einen Apfel sammeln!",
       knappSag: "Die Puste wird knapp!", leer: "Keine Puste mehr! 💨", ergebnis: "Keine Puste mehr – gut gelaufen!", garage: "die Puste 💨",
       info: "💨 Deine Puste<small>Laufen kostet Puste. Rollst du ohne Gas, kommt sie langsam zurück – und Äpfel 🍎 geben neue!</small>" };
+    if (def.schneeTank) return { icon: "❄️", name: "Schnee-Tank", voll: "❄️ Schnee nachgefüllt!", knapp: "❄️ Der Schnee wird knapp – sammle einen blauen Schnee-Kanister!",
+      knappSag: "Der Schnee wird knapp!", leer: "Kein Schnee mehr! ❄️", ergebnis: "Schnee alle – gut gerodelt!", garage: "den Schnee-Tank ❄️",
+      info: "❄️ Dein Schnee-Tank<small>Die Kanone schießt Schnee vor die Kufen, der Propeller schiebt. Sammle die blauen Schnee-Kanister!</small>" };
     if (def.wasserstoff) return { icon: "💧", name: "Wasserstoff", voll: "💧 Aufgetankt!", knapp: "💧 Wasserstoff wird knapp – sammle eine blaue H₂-Flasche!",
       knappSag: "Wasserstoff wird knapp!", leer: "Wasserstoff leer! 💧", ergebnis: "Wasserstoff leer – gut gefahren!", garage: "den H₂-Tank 💧",
       info: "💧 Dein Wasserstoff<small>Sammle die blauen H₂-Flaschen. Aus dem Auspuff kommt nur Wasser!</small>" };
@@ -929,7 +969,7 @@
             for (var k = 0; k < 4; k++) {
               partikel.neu({ art: "staub", x: R.k.x + (Math.random() - 0.5) * 0.6, y: R.k.y - R.r + 0.1,
                              vx: (Math.random() - 0.5) * 4, vy: 0.5 + Math.random() * 1.5, t: 0, dauer: 0.7,
-                             r0: 0.15, r1: 0.6, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 2 });
+                             r0: 0.15, r1: 0.6, farbe: fahrt.werte.kufen && (fahrt.welt.schneeBoden || fahrt.gelaende.schneeBei(R.k.x)) ? "#ffffff" : fahrt.welt.farben.punkte, alpha: 0.7, reibung: 2 });
             }
           });
           break;
@@ -1065,6 +1105,7 @@
     $("hud-tank").setAttribute("aria-label", en.name);
     $("hud-tank").classList.toggle("akku", !!fahrt.def.akku);
     $("hud-tank").classList.toggle("wasserstoff", !!fahrt.def.wasserstoff);
+    $("hud-tank").classList.toggle("schnee", !!fahrt.def.schneeTank);
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
     $("hud-geist-strecke").hidden = !(endlos && geist);
@@ -2018,6 +2059,14 @@
     var nA = 0, rA = 0;
     w.raeder.forEach(function (r) { if (r.antrieb) { nA++; rA += r.r; } });
     rA /= nA;
+    if (w.kufen) return [                                     // Schnee-Schlitten: keine angetriebenen Räder
+      ["🏎️ Tempo", w.propeller.vmax / 34],
+      ["💪 Kraft", w.propeller.schub / 9.81 / 1.1],
+      ["🛷 Gleiten", 0.9],
+      ["🌀 Federung", 0.15],
+      ["❄️ Schnee-Tank", w.tankSekunden / 70],
+      ["🤸 Saltos", w.luftsteuerung / 9]
+    ];
     return [
       ["🏎️ Tempo", w.motor.vmax / 34],
       ["💪 Kraft", (w.motor.drehmoment / rA) / (mGes * 9.81) / 1.1],
@@ -2055,7 +2104,9 @@
       var U = C.upgrades[key], stufe = fs.upgrades[key] || 0, voll = stufe >= U.stufen;
       if (key === "tank" && def.akku) U = { name: "Akku", icon: "🔋", text: "Größerer Akku – weiter fahren", stufen: U.stufen };
       if (key === "tank" && def.puste) U = { name: "Puste", icon: "💨", text: "Mehr Puste – weiter laufen", stufen: U.stufen };
+      if (key === "motor" && def.propeller) U = { name: "Propeller", icon: "🌀", text: "Größerer Propeller – schiebt kräftiger", stufen: U.stufen };
       if (key === "motor" && def.fussAntrieb) U = { name: "Turnschuhe", icon: "👟", text: "Schnellere Füße – mehr Kraft beim Laufen", stufen: U.stufen };
+      if (key === "tank" && def.schneeTank) U = { name: "Schnee-Tank", icon: "❄️", text: "Mehr Schnee im Tank – weiter rodeln", stufen: U.stufen };
       if (key === "tank" && def.wasserstoff) U = { name: "H₂-Tank", icon: "💧", text: "Größere Wasserstoff-Tanks – weiter fahren", stufen: U.stufen };
       var preis = voll ? 0 : upgradePreis(def, key, stufe);
       var punkte = "";

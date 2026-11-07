@@ -62,6 +62,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.spoiler = sp;                                                         // für die Grafik
     w.kreisel = kr;
     if (upg.allrad) w.raeder.forEach(function (r) { r.antrieb = true; });
+    if (w.propeller) {                                                      // Schlitten: Motor-Upgrade = stärkerer Propeller
+      w.propeller.schub *= 1 + 0.6 * U.motorDrehmoment * m;
+      w.propeller.vmax *= 1 + U.motorTempo * m;
+    }
     w.luftsteuerung *= S.luftsteuerung;
     w.stabilisator = S.stabilisator;
     return w;
@@ -76,7 +80,8 @@ var FF = globalThis.FF = globalThis.FF || {};
   function Getriebe(klang) {
     this.P = klang || {};
     this.elektro = this.P.art === "elektro";
-    this.turbine = this.P.art === "turbine";
+    this.turbine = this.P.art === "turbine" || this.P.art === "propeller";   // Drehzahl folgt dem Hochlaufen, nicht den Rädern
+    this.propeller = this.P.art === "propeller";
     this.dampf = this.P.art === "dampf";                // Dampfmaschine: kein Getriebe, Drehzahl = Raddrehzahl
     this.gaenge = this.elektro || this.dampf ? 1 : (this.P.gaenge || 4);
     this.leerlauf = this.elektro ? 0 : (this.P.leerlauf || 800);
@@ -165,7 +170,79 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
     this.miniZeit = 0;             // Obstplantage: Mini-Turbo nach dem Einsammeln von Obst [s]
     this.umhangZeit = 0;           // Superheldenwelt: Heldenumhang nach der Telefonzelle [s]
+    if (this.werte.kufen) this.schneeAnlegen();
   }
+
+  /* -------------------------------------------------------------------------
+     Schnee-Schlitten: Schneedecke, Schneekanone, Propeller
+     Die Schneedecke ist ein Raster mit 25 cm Zellen (1 = Schnee liegt), über die absolute
+     x-Position adressiert. gel.schneeBei(x) fragt physik.js für die Kufen-Reibung ab.
+     ------------------------------------------------------------------------- */
+  var SCHNEE_ZELLE = 0.25, SCHNEE_VERSATZ = 400;          // 400 Zellen = 100 m Platz hinter dem Start
+  Fahrt.prototype.schneeAnlegen = function () {
+    var gel = this.gelaende, D = { daten: new Uint8Array(8192), zelle: SCHNEE_ZELLE, versatz: SCHNEE_VERSATZ, neu: [] };
+    gel.schneeDecke = D;
+    gel.schneeBei = function (x) {
+      var i = Math.floor(x / SCHNEE_ZELLE) + SCHNEE_VERSATZ;
+      return i >= 0 && i < D.daten.length && D.daten[i] === 1;
+    };
+    this.kanoneAn = false; this.propLauf = 0; this.turbinenLauf = 0;
+    this.schneeLegen(this.fz.chassis.x - 1.6, this.fz.chassis.x + 1.6);   // am Start steht er schon auf Schnee
+  };
+  Fahrt.prototype.schneeLegen = function (xa, xb) {
+    var D = this.gelaende.schneeDecke;
+    var i0 = Math.max(0, Math.floor(xa / SCHNEE_ZELLE) + SCHNEE_VERSATZ), i1 = Math.floor(xb / SCHNEE_ZELLE) + SCHNEE_VERSATZ;
+    if (i1 >= D.daten.length) {                           // Endlos: Raster wächst mit
+      var neu = new Uint8Array(Math.max(D.daten.length * 2, i1 + 1024));
+      neu.set(D.daten); D.daten = neu;
+    }
+    for (var i = i0; i <= i1; i++) {
+      if (D.daten[i] !== 1) { D.daten[i] = 1; D.neu.push(i); }    // neu: für die Grafik (Schnee „landet“)
+    }
+    if (D.neu.length > 400) D.neu.splice(0, D.neu.length - 400);
+  };
+  Fahrt.prototype.schlittenSchritt = function (h) {
+    var w = this.werte, P = w.propeller, KA = w.kanone, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
+    var laeuft = this.zustand === "fahrt" && this.tank > 0;
+    // Propeller: dreht mit Gas hoch, rückwärts mit der Bremse im Stand
+    var ziel = laeuft ? (this.gas > 0.01 ? this.gas : this.rueckwaerts ? -P.rueck * this.bremse : 0) : 0;
+    var lauf = this.propLauf;
+    lauf += Math.max(-h / P.anlauf, Math.min(h / P.anlauf, ziel - lauf));
+    this.propLauf = lauf; this.turbinenLauf = Math.abs(lauf); fz.propeller = lauf;
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var schub = P.schub * lauf * (0.4 + 0.6 * gRel);
+    if ((schub > 0 && st.vorwaerts < P.vmax) || (schub < 0 && st.vorwaerts > -3)) {
+      var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
+      C.vx += ax * h; C.vy += ay * h;
+      fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+    }
+    // Bremskralle (nur vorwärts, nicht beim Rückwärtsfahren)
+    fz.kufenBremse = this.rueckwaerts ? 0 : this.bremse;
+
+    // Schneekanone: an, wenn die Kufen auf dem Boden sind oder der Schlitten gleich landet.
+    // Aus: in der Luft, kopfüber, im Looping, in Schneewelten, ohne Tank.
+    var an = false, xa = 0, xb = 0;
+    if (laeuft && !this.welt.schneeBoden) {
+      var ca = Math.cos(C.a), sa = Math.sin(C.a);
+      var schief = Math.abs(normWinkel(C.a - Math.atan(gel.steigungBei(C.x))));
+      var xv = C.x + ca * 1.15, yv = C.y + sa * 1.15 - ca * 0.3;          // Kufenspitze vorn
+      var hoehe = yv - gel.hoeheBei(xv);
+      var aufLoop = false;
+      fz.raeder.forEach(function (R) { if (R.kontakt.aktiv && R.kontakt.ny < 0.35) aufLoop = true; });
+      if (schief < 0.9 && !aufLoop && ca > 0.3) {
+        var tempo = Math.max(0, st.vorwaerts);
+        if (hoehe < 0.45 || st.radKontakte > 0) {        // Kufen am Boden (oder knapp darüber)
+          an = true; xa = xv + 0.1; xb = xv + KA.reichweite + KA.flug * tempo;   // die Flocken fliegen flug Sekunden, der Schlitten fährt so lange weiter
+        } else if (C.vy < -0.5 && hoehe / -C.vy < KA.vorlauf) {   // gleich landen: Schnee auf den Landeplatz
+          var tl = hoehe / -C.vy, xl = xv + C.vx * tl;
+          an = true; xa = xl - 1.6; xb = xl + KA.reichweite + KA.flug * tempo;
+        }
+      }
+    }
+    if (an) this.schneeLegen(xa, xb);
+    if (an !== this.kanoneAn) this.melde(an ? "kanoneAn" : "kanoneAus");
+    this.kanoneAn = an; fz.kanone = an; fz.kanoneZiel = an ? [Math.max(xa, xb - KA.reichweite), xb] : null;   // Grafik: dort landen die Flocken
+  };
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
   /* Geht der Knopf JETZT? (Nur dann leuchtet er bunt.) */
@@ -297,6 +374,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.wasser) this.wasser(h);
     if (w.auftrieb) this.fliegen(h);
     if (w.turbine) this.turbinenSchub(h);
+    if (w.kufen) this.schlittenSchritt(h);
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (C.x < S.rueckGrenzeWand && C.vx < 0) {               // unsichtbare Wand am Weltanfang (auch im Flug)
       C.vx = 0;
@@ -337,6 +415,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var pAnteil = Math.min(1, st.leistung / this.leistungMax);
       var L = w.leerlauf !== undefined ? w.leerlauf : Rg.leerlaufAnteil;
       var last = w.turbine ? 0.25 + 0.75 * (this.turbinenLauf || 0) : 0.55 * Math.min(1, gasWirk) + 0.45 * pAnteil;   // Turbine: Verbrauch nach Drehzahl
+      if (w.kufen) last = 0.7 * Math.abs(this.propLauf) + (this.kanoneAn ? w.kanone.verbrauch : 0);          // Schlitten: Propeller + Schneekanone
       this.tank -= (L + (1 - L) * last) / w.tankSekunden * h;
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
@@ -409,6 +488,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     for (var i = 0; i < nAlle; i++) {
       var R = fz.raeder[i];
+      if (w.kufen) { R.motorZiel = 0; R.motorMax = 1e5; continue; }   // Kufen: drehen sich nicht (Gleitreibung)
       var rel = Math.abs(R.k.w - C.w);
       var wEck = this.eck * R.wMax;
       var Tkurve = rel <= wEck ? Tmax : Tmax * wEck / rel;   // konstantes Moment, dann konstante Leistung
@@ -956,6 +1036,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     FF.Physik.setzeAufBoden(fz, this.gelaende, hf.x, hf.a1);
     this.hilfe = null;
     this.zustand = "fahrt";
+    if (this.werte.kufen) this.schneeLegen(hf.x - 1.4, hf.x + 1.4);    // Schlitten: der Ballon setzt ihn auf ein Schneefeld
     this.melde("hilfeFertig");
   };
 

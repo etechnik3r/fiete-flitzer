@@ -407,6 +407,17 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.anhaenger.forEach(function (A) { A.chassis.w += dw; });
   }
 
+  /* Schnee-Schlitten: Reibwert einer Kufe. Auf Schnee (von der Kanone gelegt oder in einer
+     Schneewelt) gleitet sie, auf blankem Boden kratzt sie. Looping-Bahnen und andere
+     Flächen über dem Boden sind glatt (Metall/Holz). Die Bremskralle gräbt sich ein. */
+  function kufenMu(T, gel, welt, k, R, ko) {
+    var K = T.werte.kufen;
+    var px = k.x - R.r * ko.nx, py = k.y - R.r * ko.ny;
+    var aufBoden = ko.ny > 0.35 && Math.abs(py - gel.hoeheBei(px)) < 0.25;
+    var glatt = !aufBoden || welt.schneeBoden || (gel.schneeBei && gel.schneeBei(px));
+    return (glatt ? K.muSchnee : K.muKratz) + (T.kufenBremse || 0) * K.bremsMu;
+  }
+
   /* 2) Kontakte erkennen + 3) vorbereiten (inkl. Warmstart) */
   function kontakteVorbereiten(T, gel, welt, h, P) {
     var C = T.chassis, RR = T.raeder, nR = RR.length, i, R, k, ko, p;
@@ -422,7 +433,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         ko.rx = -R.r * ko.nx; ko.ry = -R.r * ko.ny;
         ko.rollMax = crr * R.r;
         ko.vBand = band ? gel.bandBei(k.x) : 0;
-        vorbereiteKontakt(k, ko, h, abprall, grip, P);
+        vorbereiteKontakt(k, ko, h, abprall, T.werte.kufen ? kufenMu(T, gel, welt, k, R, ko) : grip, P);
       } else { ko.jn = ko.jt = ko.jr = 0; }
     }
     var muH = P.huellReibung * welt.grip;

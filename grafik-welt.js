@@ -1933,7 +1933,30 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Schnee-Schlitten: die von der Schneekanone gelegte Schneedecke (25-cm-Raster, siehe
+     fahrt.js schneeAnlegen) als weißes, leicht welliges Band auf dem Boden. Pro Bild nur die
+     sichtbaren Zellen; zusammenhängende Stücke werden ein einziger Pfad. */
+  function zeichneSchneeDecke(ctx, K, gel) {
+    var D = gel.schneeDecke; if (!D) return;
+    var b = sichtbereich(K, gel), Z = D.zelle, V = D.versatz, dat = D.daten;
+    var j0 = Math.max(0, Math.floor(b[2] / Z) + V), j1 = Math.min(dat.length - 1, Math.floor(b[3] / Z) + V);
+    var dick = function (j) { return 0.1 + 0.05 * (FF.rauschen(j * 0.9, 31) * 0.5 + 0.5); };
+    ctx.lineJoin = "round";
+    for (var j = j0; j <= j1; j++) {
+      if (dat[j] !== 1) continue;
+      var s0 = j; while (j + 1 <= j1 && dat[j + 1] === 1) j++;
+      var s1 = j + 1, k, x;
+      ctx.beginPath();
+      for (k = s0; k <= s1; k++) { x = (k - V) * Z; ctx.lineTo(sx(K, x), sy(K, gel.hoeheBei(x) + (k === s0 || k === s1 ? 0.02 : dick(k)))); }
+      for (k = s1; k >= s0; k--) { x = (k - V) * Z; ctx.lineTo(sx(K, x), sy(K, gel.hoeheBei(x) - 0.06)); }
+      ctx.closePath();
+      ctx.fillStyle = "#fbfdff"; ctx.fill();
+      ctx.strokeStyle = "rgba(150,190,230,0.75)"; ctx.lineWidth = Math.max(1, 0.03 * K.s); ctx.stroke();
+    }
+  }
+
   FF.GrafikWelt = {
+    zeichneSchneeDecke: zeichneSchneeDecke,
     zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,

@@ -430,6 +430,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🚛 Donner-Truck | 14.000 | Amerikanische Zugmaschine: lange Haube mit Chromgrill, Schlafkabine mit Dachspoiler, Chrom-Tank, zwei hohe Auspuffrohre mit schwarzem Rauch (beim Gasgeben ein dicker Schwall). Kräftig, aber träge: Höchsttempo gut 41 km/h, aber 9.000 Nm bis fast zum Höchsttempo (`eck` 0,9) auf beiden Hinterachsen – bergauf kaum Tempoverlust. Pfützen, Matsch und Schleim bremsen ihn nur zu 30 % (`matschFest`). In der Luft sehr träge (`luftsteuerung` 1,7), dafür darf er wie die Lok 10° schiefer landen. Kein Leichtbau, kein Allrad |
 | 📦 Seifenkiste | 3.000 | Aus einem Umzugskarton gebastelt: Klebeband kreuz und quer, Name, Blitz und Smiley mit Filzstift, hochgeklappte Laschen, Seil zum Lenken. Kein Motor: Das Kind läuft unten durch den offenen Boden (Füße mit Laufschritt, Tapp-Geräusch; ohne Gas liegen die Füße vorne auf der Kante). Rollt ohne Pedal ganz frei (`freilauf`, keine Motorbremse) – bergab schneller als ihr Lauftempo (9,5 m/s). Statt Benzin **Puste**: Rollen ohne Gas ab 2 m/s bringt sie langsam zurück (`puste.erholung`), Äpfel 🍎 statt Kanister. Pappe federt weich, darf 15° schiefer landen. Upgrades heißen „Turnschuhe“ und „Puste“ |
 | 🛴 E-Scooter | 5.000 | Tretroller mit Motor im Hinterrad, Kind steht drauf. Zieht sofort los (`eck` 0,8), aber nur 10 m/s; wendigstes Fahrzeug in der Luft (`luftsteuerung` 8,5), balanciert am Boden selbst, lädt beim Bremsen. **Stunts** (nur Grafik, `stuntAktualisieren` in spiel.js): ab 1,6 m Höhe abwechselnd Abflug (am Lenker ausgestreckt), Freihändig, Ein Bein – vor der Landung (Höhe + 0,4 s Fallweg unter 1,3 m) steht das Kind wieder auf dem Brett |
+| 🛷 Schnee-Schlitten | 9.000 | Alter Holzschlitten auf Kufen (Version 41). Hinten ein **Schnee-Tank ❄️** mit **Schneekanone**: Sie schießt Schnee im Bogen über das Kind, er landet direkt vor den Kufen – **nur auf Schnee gleiten sie** (µ 0,035), auf blankem Boden kratzen sie (µ 0,6) und der Schlitten bleibt stehen. Die Kanone schaltet sich selbst: an, solange die Kufen am Boden sind oder der Schlitten in weniger als 0,45 s landet (dann beschneit sie den Landeplatz); hoch in der Luft, im Looping und kopfüber aus, in den Schneebergen gar nicht (dort liegt schon Schnee). Die Flocken fliegen 0,3 s, darum landen sie bei Tempo weiter vorn. Der Schnee bleibt liegen. Antrieb: **Holzpropeller** hinten (6,2 m/s² Schub, auch in der Luft, bis 54 km/h; rückwärts mit der Bremse im Stand), Bremse am Boden = Bremskralle. Sammelt blaue Schnee-Kanister. Upgrades „Propeller“ und „Schnee-Tank“ |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
 Höchstgeschwindigkeit), 🛞 Reifen (Reibwert µ), 🌀 Federung (Dämpfung und
@@ -571,6 +572,7 @@ Fahrzeug hat in `config.js` ein eigenes Klang-Profil.
 | Monster-Max | V8 mit Kreuzebenen-Bollern und Fehlzündungs-Puff |
 | Blitz-Rakete | hochdrehender 10-Zylinder, 6 Gänge |
 | E-Auto, Mondmobil | Elektromotor |
+| Schnee-Schlitten | alter Holzpropeller: „Wop-wop“ der zwei Blätter (Rauschen, mit der Blattfrequenz 2·Drehzahl/60 moduliert, bis 60 Hz), weiches Brummen und ein kleiner knatternder Motor |
 
 **Elektro** (leise, wie echte E-Autos):
 
@@ -639,6 +641,16 @@ und Stoßzahl). Für die Haftreibung gilt `|F_t| ≤ µ·F_N`. Das ist der
 Spitzenwert der Kraftschlusskurve (Pacejkas *Magic Formula*). Darüber dreht das
 Rad durch, und es staubt. Der Rollwiderstand wirkt als Gegenmoment
 `c_rr·F_N·r`.
+
+**Kufen (Schnee-Schlitten).** Der Schlitten hat statt Rädern drei kleine
+Kontaktpunkte je Kufe, die fest mit dem Aufbau verbunden sind (Motor-Bindung mit
+sehr großem Moment auf Relativdrehzahl 0). Sie drehen sich also nicht, und es
+wirkt reine Gleitreibung `F = µ·F_N`. µ hängt davon ab, ob an dieser Stelle
+Schnee liegt (`gel.schneeBei(x)`, Raster mit 25-cm-Zellen, 1 Byte je Zelle,
+1 km = 4 KB): 0,035 auf Schnee, 0,6 auf blankem Boden. Looping-Bahnen gelten
+als glatt. Gezeichnet werden nur die sichtbaren Zellen (rund 160 je Bild).
+Gegenprobe ohne Schnee: Der Schlitten bleibt in Blumenwiese 2 nach 316 m und im
+Freizeitpark nach 119 m stehen.
 
 **Längsdynamik.** Am Hang wirkt die Hangabtriebskraft `m·g·sin α`, die
 Normalkraft sinkt auf `m·g·cos α`. Die Lastverlagerung auf die Hinterachse
