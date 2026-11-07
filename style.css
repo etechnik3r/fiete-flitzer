@@ -1338,3 +1338,46 @@ button { font: inherit; color: inherit; }
 .editor-knopf.aktiv { border-color: #2f6fd6; background: #dfe9ff; }
 .editor-los { color: #fff; background: linear-gradient(180deg, #34d39a, #28c08a); padding: 0 20px; font-size: 1.1rem; }
 .editor-karte .welt-kopf { color: #fff; }
+
+/* Eigener Charakter (Version 38): Kärtchen in der Spielerwahl und Einstell-Dialog */
+.wahl-karte.eigen { position: relative; background: linear-gradient(180deg, #f2fff4, #dff5e6); }
+.wahl-karte.eigen.neu { border-style: dashed; background: linear-gradient(180deg, #ffffff, #f1f4fb); }
+.wahl-plus { display: flex; align-items: center; justify-content: center; width: clamp(100px, 18vw, 140px); aspect-ratio: 130 / 140; font-size: 3.4rem; color: var(--muted); }
+.wahl-zahnrad {
+  position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border-radius: 50%;
+  border: none; background: #eef1f8; font-size: 1.3rem; cursor: pointer; box-shadow: var(--sh-chip);
+}
+.spielerwahl-karten.vier .wahl-karte { width: clamp(130px, 21vw, 200px); }
+@media (orientation: landscape) and (max-height: 500px) {
+  .spielerwahl-karten.vier .wahl-karte { width: clamp(130px, 21vw, 185px); }
+  .wahl-plus { width: 96px; height: 103px; font-size: 2.6rem; }
+}
+.eigen-modal { max-width: 640px; }
+.eigen-inhalt { display: flex; gap: 14px; align-items: flex-start; }
+.eigen-vorschau-spalte { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 0 0 auto; }
+.eigen-vorschau { width: 130px; height: 140px; background: #eef4ff; border-radius: 20px; }
+.eigen-name {
+  width: 140px; padding: 10px 12px; font: 800 1.05rem var(--font-display, sans-serif); text-align: center;
+  border: 3px solid #e3e8f4; border-radius: 14px; background: #fff;
+}
+.eigen-name:focus { outline: none; border-color: var(--accent); }
+.eigen-wahl { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eigen-zeile { display: flex; flex-direction: column; gap: 5px; }
+.eigen-zeile-titel { font-family: var(--font-display); font-weight: 800; font-size: 1rem; }
+.eigen-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; }
+.eigen-knopf {
+  min-width: 44px; min-height: 44px; padding: 6px 12px; border-radius: 14px; border: 3px solid #e3e8f4;
+  background: #f7f9fe; font-weight: 800; cursor: pointer;
+}
+.eigen-knopf.aktiv { border-color: var(--accent); background: #fff5e6; }
+.eigen-farbe { width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #d5dbe8; cursor: pointer; }
+.eigen-farbe.aktiv { box-shadow: 0 0 0 4px var(--accent); }
+.eigen-fuss { display: flex; justify-content: space-between; gap: 10px; padding: 10px 18px 14px; border-top: 2px solid #eef1f8; }
+.eigen-fuss .gruen-knopf, .eigen-fuss .zweit-knopf { margin: 0; flex: 1 1 0; }
+@media (max-width: 560px) { .eigen-inhalt { flex-direction: column; align-items: center; } }
+.eigen-vorschau-spalte { position: sticky; top: 0; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .eigen-vorschau { width: 104px; height: 112px; }
+  .eigen-name { width: 120px; padding: 7px 8px; }
+  .eigen-wahl { gap: 6px; }
+}

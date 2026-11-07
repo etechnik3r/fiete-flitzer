@@ -65,10 +65,25 @@ var FF = globalThis.FF = globalThis.FF || {};
       einstellungen: { ton: true, sprache: true, schwierigkeit: "normal", instrumente: true, kraefte: false, bruchlandung: false, tipps: true, ausrichtung: "quer", tonHandy: false },
       duell: { welt: 0, stufe: 0, endlos: false, siege: {} },
       gesehen: {},                          // welche Tipps schon wie oft kamen (bleibt über Neustarts)
-      entwickler: { alleOffen: false, editor: false, gasBremseAlt: false }   // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
+      entwickler: { alleOffen: false, editor: false, gasBremseAlt: false },  // versteckter Entwickler-Bereich (Einstellungen → 7× auf die Version tippen)
+      eigen: neuesEigen()                   // eigener Charakter (Version 38): Name und Aussehen
     };
     C.kinder.forEach(function (k) { s.spieler[k.id] = neuesProfil(); s.duell.siege[k.id] = 0; });
     return s;
+  }
+
+  /* Eigener Charakter: aktiv = in der Spielerwahl als eigenes Kärtchen sichtbar */
+  var EIGEN_WAHL = {
+    geschlecht: ["m", "w"], haare: ["kurz", "mittel", "lang"],
+    haarfarbe: ["blond", "rotblond", "rot", "hellbraun", "braun", "schwarz", "blau", "pink"],
+    augen: ["braun", "blau", "gruen", "grau", "hasel"], haut: ["hell", "mittel", "oliv", "dunkel"]
+  };
+  function neuesEigen() { return { aktiv: false, name: "", geschlecht: "m", haare: "kurz", haarfarbe: "braun", augen: "braun", haut: "hell" }; }
+  function uebernimmEigen(ziel, d) {
+    if (!d || typeof d !== "object") return;
+    ziel.aktiv = d.aktiv === true;
+    if (typeof d.name === "string") ziel.name = d.name.replace(/[<>&"]/g, "").trim().slice(0, 14);
+    Object.keys(EIGEN_WAHL).forEach(function (k) { if (EIGEN_WAHL[k].indexOf(d[k]) >= 0) ziel[k] = d[k]; });
   }
 
   /* Gespeicherte Daten vorsichtig in ein frisches Profil übernehmen */
@@ -139,6 +154,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (d && d.gesehen && typeof d.gesehen === "object") Object.keys(d.gesehen).forEach(function (k) { s.gesehen[k] = +d.gesehen[k] || 0; });
         if (d && d.entwickler) { s.entwickler.alleOffen = d.entwickler.alleOffen === true; s.entwickler.editor = d.entwickler.editor === true; s.entwickler.gasBremseAlt = d.entwickler.gasBremseAlt === true; }
         if (d && Array.isArray(d.strecken)) s.strecken = d.strecken;
+        if (d) uebernimmEigen(s.eigen, d.eigen);
         if (alt) C.kinder.forEach(function (k) { alteFreischaltungen(s.spieler[k.id]); });
       }
     } catch (e) { /* kaputter Speicher → frisch anfangen */ }
@@ -154,7 +170,7 @@ var FF = globalThis.FF = globalThis.FF || {};
      Spielstand-Code
      ------------------------------------------------------------------------- */
   var ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  var CODE_VERSION = 3;               // 2: mit Felgen und Beifahrern, 3: vier weitere Upgrades (ältere Codes werden weiter gelesen)
+  var CODE_VERSION = 4;               // 2: mit Felgen und Beifahrern, 3: vier weitere Upgrades, 4: eigener Charakter (ältere Codes werden weiter gelesen)
   var UPG = ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"];
   var UPG_ALT = UPG.slice(0, 4);       // Codes bis Version 2
 
@@ -243,6 +259,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       ["fahrten", "meter", "salti", "muenzen"].forEach(function (k) { w.zahl(p.statistik[k]); });
       w.zahl(S.duell.siege[kind.id]);
     });
+    // ab Version 4: Aussehen des eigenen Charakters (sein Profil steht oben mit den Kindern)
+    var E = S.eigen || neuesEigen();
+    w.bit(E.aktiv); w.text(E.name || "");
+    Object.keys(EIGEN_WAHL).forEach(function (k) { w.feld(Math.max(0, EIGEN_WAHL[k].indexOf(E[k])), 3); });
     var bytes = zuBytes(w.bits), ps = pruefsumme(bytes);
     bytes.push(ps >> 8, ps & 255);
     // Bytes → Base32 (5 Bit je Zeichen)
@@ -328,6 +348,14 @@ var FF = globalThis.FF = globalThis.FF || {};
           S.spieler[kind.id] = sauber; S.duell.siege[kind.id] = siege;
         }
       }
+      if (version >= 4) {
+        var ed = { aktiv: !!r.bit(), name: r.text() };
+        Object.keys(EIGEN_WAHL).forEach(function (k) { ed[k] = EIGEN_WAHL[k][r.feld(3)]; });
+        uebernimmEigen(S.eigen, ed);
+      } else if (alterStand && alterStand.eigen) {        // alter Code ohne eigenen Charakter: den vom Gerät behalten
+        uebernimmEigen(S.eigen, alterStand.eigen);
+        if (alterStand.spieler && alterStand.spieler.eigen) S.spieler.eigen = alterStand.spieler.eigen;
+      }
       if (C.kinder[aktiv]) S.aktiv = C.kinder[aktiv].id;
       return { ok: true, stand: S };
     } catch (e) {
@@ -338,6 +366,6 @@ var FF = globalThis.FF = globalThis.FF || {};
   FF.Spielstand = {
     neuesFahrzeug: neuesFahrzeug, neuesProfil: neuesProfil, neuerSpielstand: neuerSpielstand,
     uebernimmProfil: uebernimmProfil, weltIndex: weltIndex, lade: lade, alsText: alsText,
-    codeErzeugen: codeErzeugen, codeLesen: codeLesen
+    codeErzeugen: codeErzeugen, codeLesen: codeLesen, EIGEN_WAHL: EIGEN_WAHL, neuesEigen: neuesEigen
   };
 })();

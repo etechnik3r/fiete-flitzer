@@ -588,7 +588,10 @@ FF.CONFIG = {
      ------------------------------------------------------------------------- */
   kinder: [
     { id: "fiete", name: "Fiete", groesse: 0, breite: 1 },
-    { id: "jonte", name: "Jonte", groesse: 0.09, breite: 0.86 }
+    { id: "jonte", name: "Jonte", groesse: 0.09, breite: 0.86 },
+    // Version 38: eigener Charakter – Name und Aussehen stellt man im Spiel ein
+    // (Spielerwahl → ⚙️ am Kärtchen, gespeichert in spielstand.eigen, Aussehen: kinder.js setzeEigenes)
+    { id: "eigen", name: "Ich", groesse: 0.04, breite: 0.93, eigen: true }
   ],
 
   /* -------------------------------------------------------------------------
@@ -1347,6 +1350,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "38", titel: "Dein eigener Charakter", punkte: [
+      "🧒 Bei „Wer fährt?“ gibt es jetzt ein eigenes Kärtchen: Name, Junge oder Mädchen, Haare kurz, mittel oder lang, Haar-, Augen- und Hautfarbe",
+      "⚙️ Mit dem Zahnrad am Kärtchen kannst du deinen Charakter jederzeit ändern – er hat eigene Münzen, eigene Garage und eigene Level" ] },
     { version: "37", titel: "Der Donner-Truck", punkte: [
       "🚛 Neues Fahrzeug: eine riesige Zugmaschine mit hohen Auspuffrohren und schwarzem Rauch",
       "💪 Gemütlich, aber bärenstark: Berge, Matsch und Schleim bremsen ihn kaum – in der Luft ist er ganz träge" ] },
