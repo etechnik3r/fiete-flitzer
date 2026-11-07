@@ -93,6 +93,47 @@ var FF = globalThis.FF = globalThis.FF || {};
       { id: "lang", name: "Haare offen", icon: "💇", frisur: "lang" }
     ]
   };
+  /* Eigener Charakter (Version 38): Auswahl im Spiel → Steckbrief.
+     Haare: kurz = Pony wie Fiete, mittel = Pony mit Haaren bis zum Kinn,
+     lang = offen bis zur Rückenmitte wie Jonte. */
+  var EIGEN_FARBEN = {
+    haar: {
+      blond:     { name: "Blond",      farbe: ["#e8c36a", "#f8e2a0", "#b48a3c"] },
+      rotblond:  { name: "Rotblond",   farbe: ["#dc9a52", "#f6cd8c", "#a2622d"] },
+      rot:       { name: "Rot",        farbe: ["#c4532a", "#e8834f", "#8a3216"] },
+      hellbraun: { name: "Hellbraun",  farbe: ["#9a7a5e", "#c6a888", "#64493a"] },
+      braun:     { name: "Braun",      farbe: ["#6b4630", "#916650", "#432a1b"] },
+      schwarz:   { name: "Schwarz",    farbe: ["#2e2724", "#55493f", "#141110"] },
+      blau:      { name: "Blau",       farbe: ["#3f7fe0", "#8fc0ff", "#22509e"] },
+      pink:      { name: "Pink",       farbe: ["#ff7ab8", "#ffb6da", "#c94487"] }
+    },
+    augen: {
+      braun: { name: "Braun", farbe: "#5c3519" }, blau: { name: "Blau", farbe: "#3a78c8" },
+      gruen: { name: "Grün", farbe: "#3f8f4a" }, grau: { name: "Grau", farbe: "#6f7f8f" },
+      hasel: { name: "Haselnuss", farbe: "#8a6a2f" }
+    },
+    haut: {
+      hell:   { name: "Hell",   farbe: ["#ffdcc6", "#d99a7c"] }, mittel: { name: "Mittel", farbe: ["#f0c19c", "#c48a64"] },
+      oliv:   { name: "Oliv",   farbe: ["#d9a578", "#a87148"] }, dunkel: { name: "Dunkel", farbe: ["#9c6a45", "#6d4529"] }
+    }
+  };
+  function setzeEigenes(e) {
+    var H = (EIGEN_FARBEN.haar[e.haarfarbe] || EIGEN_FARBEN.haar.braun).farbe;
+    var Au = (EIGEN_FARBEN.augen[e.augen] || EIGEN_FARBEN.augen.braun).farbe;
+    var Ht = (EIGEN_FARBEN.haut[e.haut] || EIGEN_FARBEN.haut.hell).farbe;
+    var maedchen = e.geschlecht === "w";
+    AUSSEHEN.eigen = {
+      haut: Ht[0], hautRand: Ht[1], wangen: maedchen ? "rgba(255,112,110,0.36)" : "rgba(255,120,110,0.16)",
+      haar: H[0], haarHell: H[1], haarDunkel: H[2],
+      brauen: H[2], augen: Au,
+      brauenDicke: maedchen ? 0.9 : 1.4, brauenBogen: maedchen ? 1 : 0.4, wimpern: maedchen ? 1.3 : 0.5,
+      frisur: e.haare === "lang" ? "lang" : e.haare === "mittel" ? "mittel" : "pony",
+      gesicht: maedchen ? { breite: 0.97, hoehe: 1.0, kinn: 0.1 } : { breite: 0.98, hoehe: 1.02, kinn: -0.03 },
+      ohr: 1, brille: null, mund: maedchen ? "verschmitzt" : "schief"
+    };
+    mitVariante = {};
+  }
+
   function varianteVon(id, vid) {
     var L = VARIANTEN[id] || [];
     for (var i = 0; i < L.length; i++) if (L[i].id === vid) return L[i];
@@ -101,6 +142,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   // Steckbrief + gewählte Variante (zwischengespeichert, denn das läuft in jedem Bild)
   var mitVariante = {};
+  setzeEigenes({});                         // Grundform des eigenen Charakters
   function aussehenVon(kind) {
     var A = grundAussehen(kind), v = kind && kind.variante ? varianteVon(kind.id, kind.variante) : null;
     if (!v || v === (VARIANTEN[kind.id] || [])[0]) return A;
@@ -399,13 +441,15 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Offene lange Haare: glatt hinter dem Kopf über den Rücken bis etwa zur
      Rückenmitte, unten leicht ungleiche Spitzen; wehen bei Tempo nach hinten.
      Vorne wie "dutt" hinters Ohr gestrichen. */
-  function haareLangHinten(ctx, A, wind, zeit, lw) {
+  function haareLangHinten(ctx, A, wind, zeit, lw, kurzer) {
     var w = wind * 0.5, u = wind * 0.35, welle = Math.sin(zeit * 9) * 0.08 * wind;
     var P = [
       pol(95, 1.06), pol(140, 1.13), [-1.13, 0.12], [-1.12, -0.6], [-1.08, -1.4],
       [-1.02, -2.02, true], [-0.88, -1.9], [-0.76, -2.08, true], [-0.62, -1.92], [-0.5, -2.0, true],
       [-0.38, -1.5], [-0.32, -0.7], [-0.3, -0.1], [0.1, 0.6]
     ];
+    // „mittel“ (eigener Charakter): nur bis zum Kinn – die Punkte unter y = 0 werden gestaucht
+    if (kurzer) P = P.map(function (p) { return p[1] < 0 ? [p[0] * (p[1] < -0.3 ? 1.02 : 1), p[1] * 0.42 - 0.05, p[2]] : p; });
     P = verschiebe(P, function (p) {
       var t = Math.max(0, Math.min(1, (0.2 - p[1]) / 2.2));              // unten weht es am stärksten
       return [-w * t + welle * t, u * t * t];
@@ -502,9 +546,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var brauen = brille ? [[0.2, 0.39, 0.46, 0.4], [0.68, 0.4, 0.88, 0.38]] : [[0.27, 0.32, 0.52, 0.33], [0.66, 0.33, 0.85, 0.31]];
 
     if (A.frisur === "lang") haareLangHinten(ctx, A, wind, zeit, lw);
+    if (A.frisur === "mittel") haareLangHinten(ctx, A, wind, zeit, lw, true);
     if (A.frisur === "dutt") haareDutt(ctx, A, wind, lw, detail, "hinten");
     zeichneGesicht(ctx, A, lw);
-    if (A.frisur === "pony") {
+    if (A.frisur === "pony" || A.frisur === "mittel") {
       zeichneOhr(ctx, A, -0.14, -0.12, lw);
       haarePony(ctx, A, A.kappe ? wind * 0.4 : wind, zeit, lw, detail);
       if (A.kappe) zeichneKappe(ctx, A.kappe, lw, detail);
@@ -550,6 +595,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     VARIANTEN: VARIANTEN,
     aussehenVon: aussehenVon,
     zeichneKopf: zeichneKopf,
-    zeichneKopfbild: zeichneKopfbild
+    zeichneKopfbild: zeichneKopfbild,
+    EIGEN_FARBEN: EIGEN_FARBEN, setzeEigenes: setzeEigenes
   };
 })();

@@ -34,7 +34,9 @@
     for (var i = 0; i < C.kinder.length; i++) if (C.kinder[i].id === id) return C.kinder[i];
     return C.kinder[0];
   }
-  function anderesKind(id) { return C.kinder[0].id === id ? C.kinder[1].id : C.kinder[0].id; }
+  // Zu zweit (Geisterrennen) fahren Fiete und Jonte; der eigene Charakter fährt allein
+  var PAAR = C.kinder.filter(function (k) { return !k.eigen; });
+  function anderesKind(id) { return PAAR[0].id === id ? PAAR[1].id : PAAR[0].id; }
   function genitiv(name) { return /[sxzß]$/i.test(name) ? name + "’" : name + "s"; }
 
   /* =========================================================================
@@ -55,6 +57,15 @@
   }
 
   var S = lade();
+  /* Eigener Charakter: Name und Aussehen aus dem Spielstand übernehmen */
+  function eigenAnwenden() {
+    var k = kindDef("eigen");
+    if (k.eigen) k.name = S.eigen.name || "Ich";
+    FF.Kinder.setzeEigenes(S.eigen);
+    if (typeof kindLookCache !== "undefined") { kindLookCache = {}; bildCache = {}; }
+    if (S.aktiv === "eigen" && !S.eigen.aktiv) S.aktiv = C.kinder[0].id;
+  }
+  eigenAnwenden();
   var P = S.spieler[S.aktiv];                // Profil des Kindes, das gerade dran ist
   function setzeAktiv(id) { S.aktiv = id; P = S.spieler[id]; }
 
@@ -1329,7 +1340,7 @@
     duell = null;
     zeigeBildschirm("wahl");
     var html = "";
-    C.kinder.forEach(function (k) {
+    PAAR.forEach(function (k) {
       var prof = S.spieler[k.id];
       html += '<button type="button" class="wahl-karte" data-kind="' + k.id + '">' +
               '<img class="wahl-bild" src="' + kindBild(k.id, 130, 140, "freude") + '" alt="">' +
@@ -1337,15 +1348,32 @@
               '<span class="wahl-info">🪙 ' + zahl(prof.muenzen) + " · ⭐ " + sterneSumme(prof) + "</span></button>";
     });
     html += '<button type="button" class="wahl-karte zu-zweit" data-zuzweit="1">' +
-            '<span class="wahl-paar">' + C.kinder.map(function (k) {
+            '<span class="wahl-paar">' + PAAR.map(function (k) {
               return '<img src="' + kindBild(k.id, 70, 70, "freude", true) + '" alt="">';
             }).join("") + "</span>" +
             '<span class="wahl-name">Zu zweit</span><span class="wahl-info">👻 Geisterrennen</span></button>';
+    // Eigener Charakter: Kärtchen mit Zahnrad (Name und Aussehen einstellen)
+    if (S.eigen.aktiv) {
+      var pe = S.spieler.eigen;
+      html += '<div role="button" tabindex="0" class="wahl-karte eigen" data-kind="eigen">' +
+              '<img class="wahl-bild" src="' + kindBild("eigen", 130, 140, "freude") + '" alt="">' +
+              '<span class="wahl-name">' + kindDef("eigen").name + "</span>" +
+              '<span class="wahl-info">🪙 ' + zahl(pe.muenzen) + " · ⭐ " + sterneSumme(pe) + "</span>" +
+              '<button type="button" class="wahl-zahnrad" data-eigen-einstellen="1" aria-label="Eigenen Charakter einstellen">⚙️</button></div>';
+    } else {
+      html += '<button type="button" class="wahl-karte eigen neu" data-eigen-einstellen="1">' +
+              '<span class="wahl-plus">＋</span><span class="wahl-name">Eigener</span><span class="wahl-info">⚙️ Charakter bauen</span></button>';
+    }
     var el = $("spielerwahl-karten");
     el.innerHTML = html;
+    el.classList.toggle("vier", true);
+    el.querySelectorAll(".wahl-zahnrad").forEach(function (z) {
+      z.addEventListener("click", function (ev) { ev.stopPropagation(); FF.Klang.init(); FF.Klang.spiele("klick"); oeffneEigen(); });
+    });
     el.querySelectorAll(".wahl-karte").forEach(function (b) {
       b.addEventListener("click", function () {
         FF.Klang.init(); FF.Klang.spiele("klick");
+        if (b.dataset.eigenEinstellen) { oeffneEigen(); return; }
         if (b.dataset.zuzweit) {
           spielModus = "duell";
           FF.Klang.sprich("Geisterrennen zu zweit!");
@@ -1359,6 +1387,83 @@
       });
     });
   }
+
+  /* Dialog „Eigener Charakter“: Name, Junge/Mädchen, Haare (kurz/mittel/lang),
+     Haarfarbe, Augenfarbe, Hautfarbe – mit Live-Vorschau */
+  var eigenEntwurf = null;
+  var EIGEN_ZEILEN = [
+    { k: "geschlecht", titel: "Ich bin", werte: { m: "👦 Junge", w: "👧 Mädchen" } },
+    { k: "haare", titel: "Haare", werte: { kurz: "✂️ Kurz", mittel: "💇 Mittel", lang: "🦁 Lang" } },
+    { k: "haarfarbe", titel: "Haarfarbe", farben: "haar" },
+    { k: "augen", titel: "Augenfarbe", farben: "augen" },
+    { k: "haut", titel: "Hautfarbe", farben: "haut" }
+  ];
+  function eigenVorschau() {
+    FF.Kinder.setzeEigenes(eigenEntwurf);
+    var c = document.createElement("canvas"); c.width = 260; c.height = 280;
+    var g = c.getContext("2d"); g.scale(2, 2);
+    var kind = { id: "eigen", name: eigenEntwurf.name || "Ich", groesse: 0.04, breite: 0.93, eigen: true };
+    FF.Grafik.zeichnePortrait(g, 130, 140, { outfit: outfitWert(S.spieler.eigen.outfit), kind: kind }, "freude", 0.4, false);
+    $("eigen-vorschau").src = c.toDataURL();
+  }
+  function baueEigenWahl() {
+    var EF = FF.Kinder.EIGEN_FARBEN, html = "";
+    EIGEN_ZEILEN.forEach(function (z) {
+      html += '<div class="eigen-zeile"><span class="eigen-zeile-titel">' + z.titel + '</span><div class="eigen-knoepfe">';
+      if (z.werte) Object.keys(z.werte).forEach(function (w) {
+        html += '<button type="button" class="eigen-knopf' + (eigenEntwurf[z.k] === w ? " aktiv" : "") + '" data-k="' + z.k + '" data-w="' + w + '">' + z.werte[w] + "</button>";
+      });
+      else Object.keys(EF[z.farben]).forEach(function (w) {
+        var f = EF[z.farben][w], farbe = Array.isArray(f.farbe) ? f.farbe[0] : f.farbe;
+        html += '<button type="button" class="eigen-farbe' + (eigenEntwurf[z.k] === w ? " aktiv" : "") + '" data-k="' + z.k + '" data-w="' + w +
+                '" style="background:' + farbe + '" aria-label="' + f.name + '" title="' + f.name + '"></button>';
+      });
+      html += "</div></div>";
+    });
+    $("eigen-wahl").innerHTML = html;
+    $("eigen-wahl").querySelectorAll("[data-k]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick");
+        eigenEntwurf[b.dataset.k] = b.dataset.w;
+        baueEigenWahl(); eigenVorschau();
+      });
+    });
+  }
+  function oeffneEigen() {
+    eigenEntwurf = JSON.parse(JSON.stringify(S.eigen));
+    $("eigen-name").value = eigenEntwurf.name || "";
+    $("eigen-ausblenden").hidden = !S.eigen.aktiv;
+    baueEigenWahl(); eigenVorschau();
+    oeffneModal("eigen-dialog");
+  }
+  function schliesseEigen() {
+    schliesseModal("eigen-dialog");
+    FF.Kinder.setzeEigenes(S.eigen);              // Entwurf verwerfen
+    eigenEntwurf = null;
+  }
+  $("eigen-name").addEventListener("input", function () {
+    if (eigenEntwurf) eigenEntwurf.name = this.value.replace(/[<>&"]/g, "").slice(0, 14);
+  });
+  $("eigen-zu").addEventListener("click", function () { FF.Klang.spiele("klick"); schliesseEigen(); });
+  $("eigen-fertig").addEventListener("click", function () {
+    var neu = !S.eigen.aktiv;
+    eigenEntwurf.name = ($("eigen-name").value || "").replace(/[<>&"]/g, "").trim().slice(0, 14);
+    eigenEntwurf.aktiv = true;
+    S.eigen = eigenEntwurf; eigenEntwurf = null;
+    eigenAnwenden(); speichere();
+    schliesseModal("eigen-dialog");
+    FF.Klang.spiele("kauf");
+    FF.Klang.sprich(neu ? "Hallo " + kindDef("eigen").name + "!" : "Gespeichert!");
+    if (modus === "wahl") zeigeSpielerwahl();
+  });
+  $("eigen-ausblenden").addEventListener("click", function () {
+    FF.Klang.spiele("klick");
+    S.eigen.aktiv = false;                       // Profil (Münzen, Garage, Level) bleibt erhalten
+    eigenAnwenden(); P = S.spieler[S.aktiv]; speichere();
+    schliesseModal("eigen-dialog"); eigenEntwurf = null;
+    popover("🙈 Ausgeblendet – mit ＋ kommt dein Charakter mit allen Münzen zurück", 2600);
+    if (modus === "wahl") zeigeSpielerwahl();
+  });
 
   var aktiverTab = "fahren";
   function zeigeMenue(tab) {
@@ -1527,27 +1632,27 @@
      Geist → Siegerehrung → Revanche (andere Reihenfolge).
      ========================================================================= */
   function stueckOffen(wi, li, endlos) {
-    return C.kinder.some(function (k) {
+    return PAAR.some(function (k) {
       var p = S.spieler[k.id];
       return endlos ? endlosOffen(wi, p) : levelOffen(wi, li, p);
     });
   }
 
   function siegStand() {
-    var a = C.kinder[0], b = C.kinder[1];
+    var a = PAAR[0], b = PAAR[1];
     return "🏆 " + a.name + " " + (S.duell.siege[a.id] || 0) + " : " + (S.duell.siege[b.id] || 0) + " " + b.name;
   }
 
   function baueLobby() {
     var D = S.duell;
     if (!stueckOffen(D.welt, D.stufe, D.endlos)) { D.welt = 0; D.stufe = 0; D.endlos = false; }
-    $("duell-spielerwahl").innerHTML = C.kinder.map(function (k) {
+    $("duell-spielerwahl").innerHTML = PAAR.map(function (k) {
       return '<img src="' + kindBild(k.id, 40, 40, "normal", true) + '" alt="">';
     }).join("");
     $("duell-stand").textContent = siegStand();
 
     // Die beiden Kinder mit ihren Autos
-    $("duell-spieler").innerHTML = C.kinder.map(function (k) {
+    $("duell-spieler").innerHTML = PAAR.map(function (k) {
       var prof = S.spieler[k.id];
       var autos = C.fahrzeuge.filter(function (f) { return prof.fahrzeuge[f.id].gekauft; }).map(function (f) {
         return '<button type="button" class="fz-chip' + (prof.fahrzeug === f.id ? " aktiv" : "") + '" data-kind="' + k.id + '" data-fz="' + f.id + '">' +
@@ -1612,7 +1717,7 @@
     });
 
     // Wer fährt zuerst? Selbst wählen oder würfeln
-    $("duell-start").innerHTML = C.kinder.map(function (k) {
+    $("duell-start").innerHTML = PAAR.map(function (k) {
       return '<button type="button" class="start-knopf" data-erster="' + k.id + '">' +
              '<img src="' + kindBild(k.id, 52, 52, "freude", true) + '" alt=""><span>' + k.name + "</span></button>";
     }).join("") + '<button type="button" class="start-knopf wuerfel-knopf" data-wuerfeln="1"><span class="wuerfel-icon">🎲</span><span>Würfeln</span></button>';
@@ -1629,7 +1734,7 @@
   /* Garage im Duell: zwischen den Kindern umschalten */
   function baueGarageKinder() {
     var el = $("garage-kinder");
-    el.innerHTML = '<span class="garage-kinder-titel">Wessen Garage?</span>' + C.kinder.map(function (k) {
+    el.innerHTML = '<span class="garage-kinder-titel">Wessen Garage?</span>' + PAAR.map(function (k) {
       return '<button type="button" class="garage-kind' + (S.aktiv === k.id ? " aktiv" : "") + '" data-kind="' + k.id + '">' +
              '<img src="' + kindBild(k.id, 40, 40, "normal", true) + '" alt="">' + k.name + "</button>";
     }).join("") + '<button type="button" class="garage-kind zurueck" data-zurueck="1">👫 Zum Rennen</button>';
@@ -1655,7 +1760,7 @@
   function wuerfeln() {
     if (wuerfelLaeuft) return;
     wuerfelLaeuft = true;
-    $("wuerfel-reihe").innerHTML = C.kinder.map(function (k) {
+    $("wuerfel-reihe").innerHTML = PAAR.map(function (k) {
       return '<div class="wuerfel-spalte"><img src="' + kindBild(k.id, 60, 60, "normal", true) + '" alt="">' +
              '<span class="wuerfel-name">' + k.name + '</span><div class="wuerfel rollt" id="wuerfel-' + k.id + '">' + wuerfelHtml(1) + "</div></div>";
     }).join("");
@@ -1665,7 +1770,7 @@
     var runde = function () {
       var t0 = performance.now(), werte = {};
       var tick = setInterval(function () {
-        C.kinder.forEach(function (k) {
+        PAAR.forEach(function (k) {
           werte[k.id] = 1 + Math.floor(Math.random() * 6);
           var w = $("wuerfel-" + k.id);
           w.innerHTML = wuerfelHtml(werte[k.id]);
@@ -1674,9 +1779,9 @@
         FF.Klang.spiele("zaehlen");
         if (performance.now() - t0 > 1300) {
           clearInterval(tick);
-          C.kinder.forEach(function (k) { $("wuerfel-" + k.id).classList.remove("rollt"); });
+          PAAR.forEach(function (k) { $("wuerfel-" + k.id).classList.remove("rollt"); });
           FF.Klang.spiele("stern", 1);
-          var a = C.kinder[0], b = C.kinder[1];
+          var a = PAAR[0], b = PAAR[1];
           if (werte[a.id] === werte[b.id]) {
             $("wuerfel-text").textContent = "Beide " + werte[a.id] + " – nochmal! 🎲";
             setTimeout(runde, 1100);
@@ -2115,7 +2220,7 @@
     $("code-fehler").textContent = "";
     var info = C.kinder.map(function (k) { return k.name + " " + zahl(r.stand.spieler[k.id].muenzen) + " 🪙"; }).join(", ");
     elternFrage("Spielstand aus dem Code laden (" + info + ")? Der jetzige wird ersetzt.", function () {
-      S = r.stand; P = S.spieler[S.aktiv]; speichere();
+      S = r.stand; eigenAnwenden(); P = S.spieler[S.aktiv]; speichere();
       bildCache = {};
       $("code-feld").value = "";
       schliesseModal("einstellungen");
@@ -2292,7 +2397,7 @@
     C.kinder.forEach(function (k) { S.spieler[k.id].muenzen += 10000; });
     speichere(); kontoAktualisieren();
     FF.Klang.spiele("kauf");
-    popover("🪙 +10.000 für " + C.kinder.map(function (k) { return k.name; }).join(" und "), 1600);
+    popover("🪙 +10.000 für alle (" + C.kinder.map(function (k) { return k.name; }).join(", ") + ")", 1600);
   });
   $("dev-alle-offen").addEventListener("click", function () {
     S.entwickler.alleOffen = !S.entwickler.alleOffen;
