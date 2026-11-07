@@ -367,18 +367,21 @@ Nach dem Titel fragt das Spiel **„Wer fährt?“**: Fiete, Jonte,
 eigener Garage (Fahrzeuge, Tuning, Farben), eigenem Outfit und eigenem
 Level-Fortschritt. Gewechselt wird jederzeit über den Kopf links oben.
 
-**🧒 Eigener Charakter** (Version 38): Wer weder Fiete noch Jonte ist, baut sich
-rechts in der Spielerwahl einen eigenen Charakter (Kärtchen „＋ Eigener“, danach
-⚙️ am Kärtchen): Name (bis 14 Zeichen), Junge/Mädchen (Augenbrauen, Wimpern,
+**🧒 Eigene Charaktere** (Version 38, seit Version 40 bis zu fünf): Wer weder Fiete
+noch Jonte ist, baut sich rechts in der Spielerwahl einen eigenen Charakter
+(Kärtchen „＋ Neu“, danach ⚙️ am Kärtchen; solange ein Platz frei ist, bleibt
+das ＋ stehen): Name (bis 14 Zeichen), Junge/Mädchen (Augenbrauen, Wimpern,
 Bäckchen, Kinn), Haare kurz (Pony wie Fiete), mittel (bis zum Kinn) oder lang
 (offen wie Jonte), acht Haarfarben, fünf Augen- und vier Hautfarben, mit
-Live-Vorschau. Der Charakter ist ein drittes Profil (`CONFIG.kinder`, id
-`eigen`) mit eigenen Münzen, eigener Garage und eigenem Fortschritt; das
-Aussehen steht in `spielstand.eigen` und wird in `kinder.js` (`setzeEigenes`)
-zum Steckbrief. „🙈 Ausblenden“ versteckt das Kärtchen, das Profil bleibt. Fiete
-und Jonte stehen immer vorne. Zu zweit fahren weiterhin Fiete und Jonte. Der
-Spielstand-Code (Version 4) enthält den Charakter, ältere Codes lassen den
-Charakter auf dem Gerät unverändert.
+Live-Vorschau. Jeder Charakter ist ein eigenes Profil (`CONFIG.kinder`, ids
+`eigen`, `eigen2` … `eigen5`) mit eigenen Münzen, eigener Garage und eigenem
+Fortschritt; das Aussehen steht in `spielstand.eigene[id]` und wird in
+`kinder.js` (`setzeEigenes`) zum Steckbrief. „🙈 Ausblenden“ versteckt das Kärtchen, das Profil bleibt. Fiete
+und Jonte stehen immer vorne. **Zu zweit** wählt man in der Lobby unter „Wer
+gegen wen?“ zwei beliebige Fahrer (`spielstand.duell.paar`, Standard Fiete gegen
+Jonte; wer neu angetippt wird, ersetzt den zuerst gewählten). Der Spielstand-Code
+(Version 5) enthält nur benutzte Plätze (sichtbar oder mit Münzen/Fahrten) samt
+Aussehen; ältere Codes lassen die eigenen Charaktere auf dem Gerät unverändert.
 
 **Zu zweit: Geisterrennen auf einem Gerät**
 

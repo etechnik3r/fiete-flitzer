@@ -646,9 +646,14 @@ FF.CONFIG = {
   kinder: [
     { id: "fiete", name: "Fiete", groesse: 0, breite: 1 },
     { id: "jonte", name: "Jonte", groesse: 0.09, breite: 0.86 },
-    // Version 38: eigener Charakter – Name und Aussehen stellt man im Spiel ein
-    // (Spielerwahl → ⚙️ am Kärtchen, gespeichert in spielstand.eigen, Aussehen: kinder.js setzeEigenes)
-    { id: "eigen", name: "Ich", groesse: 0.04, breite: 0.93, eigen: true }
+    // Eigene Charaktere (Version 38, ab Version 40 bis zu fünf) – Name und Aussehen stellt man
+    // im Spiel ein (Spielerwahl → ＋ bzw. ⚙️ am Kärtchen, gespeichert in spielstand.eigene[id],
+    // Aussehen: kinder.js setzeEigenes). Die erste id bleibt "eigen" (ältere Spielstände).
+    { id: "eigen",  name: "Ich", groesse: 0.04, breite: 0.93, eigen: true },
+    { id: "eigen2", name: "Ich", groesse: 0.04, breite: 0.93, eigen: true },
+    { id: "eigen3", name: "Ich", groesse: 0.04, breite: 0.93, eigen: true },
+    { id: "eigen4", name: "Ich", groesse: 0.04, breite: 0.93, eigen: true },
+    { id: "eigen5", name: "Ich", groesse: 0.04, breite: 0.93, eigen: true }
   ],
 
   /* -------------------------------------------------------------------------
@@ -1407,6 +1412,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "40", titel: "Die ganze Familie fährt mit", punkte: [
+      "👨‍👩‍👧‍👦 Bis zu fünf eigene Charaktere: Nach jedem neuen gibt es wieder ein ＋",
+      "🥊 Zu zweit: Bei „Wer gegen wen?“ suchst du aus, wer gegeneinander fährt" ] },
     { version: "39", titel: "Seifenkiste und E-Scooter", punkte: [
       "📦 Seifenkiste aus Karton und Klebeband: du läufst mit den Füßen, bergab rollt sie frei – ohne Gas kommt die Puste zurück",
       "🛴 E-Scooter: zieht sofort los, super wendig – und bei hohen Sprüngen machst du Stunts!",
