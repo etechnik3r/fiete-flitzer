@@ -28,6 +28,13 @@ var FF = globalThis.FF = globalThis.FF || {};
      gewöhnliches <audio>-Element (derselbe Weg wie bei Videos) und der Kontext wird mit
      latencyHint "playback" angelegt (größerer Puffer, anderer Ausgabeweg). */
   var handyTon = false, audioEl = null, streamZiel = null;
+  /* Version 42: Der MediaStream-Weg hat auf dem Moto G6 nicht geholfen. Darum spielt der
+     Handy-Ton jetzt GANZ OHNE WebAudio-Ausgabe: Jeder Klang wird vorab in einem
+     OfflineAudioContext berechnet (braucht keinen Lautsprecher), als WAV-Datei verpackt und
+     über gewöhnliche <audio>-Elemente abgespielt – genau wie ein Video oder ein Klingelton.
+     Der Motor ist dann eine kurze, nahtlose WAV-Schleife, deren Tonhöhe (playbackRate) und
+     Lautstärke der Drehzahl und dem Gas folgen. */
+  var wavModus = false, wavCache = {}, wavPool = [], wavMotor = null, wavFehler = "";
 
   function init() {
     if (!ctx) {
@@ -89,20 +96,22 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   function setzeHandyTon(wert) {
     wert = !!wert;
+    wavModus = wert;                 // Handy-Ton = Klänge als WAV über <audio> (siehe oben)
     if (wert === handyTon) return;
-    handyTon = wert;
-    verbindeAusgang();               // latencyHint gilt erst beim nächsten Start der App
-    wecke();
+    handyTon = false;                // der alte MediaStream-Weg bleibt aus
+    var m = motor; if (m) { motor.stopp(); motor = null; }
+    wavMotorStopp();
   }
 
   /* Für den Knopf „🔈 Ton testen“: Zustand in Worten (hilft bei der Fehlersuche) */
   function tonZustand() {
+    if (wavModus && !ctx) return "Handy-Ton (WAV) " + (wavFehler ? "Fehler: " + wavFehler : "bereit");
     if (!(window.AudioContext || window.webkitAudioContext)) return "Dieser Browser kann keinen WebAudio-Ton.";
     if (!ctx) return "Ton noch nicht gestartet.";
     var t = "WebAudio: " + ({ running: "läuft", suspended: "angehalten", interrupted: "unterbrochen", closed: "geschlossen" }[ctx.state] || ctx.state) +
             " · " + ctx.sampleRate + " Hz";
     if (ctx.baseLatency) t += " · " + Math.round(ctx.baseLatency * 1000) + " ms";
-    t += handyTon ? " · Handy-Ton " + (audioEl && !audioEl.paused ? "läuft" : "wartet") : " · direkt";
+    t += wavModus ? " · Handy-Ton (WAV) " + (wavFehler ? "Fehler: " + wavFehler : "bereit") : " · direkt";
     return t;
   }
 
@@ -228,6 +237,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.zz = 99991;
     if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine();
     else if (P.art === "propeller") this.bauePropeller();
+    else if (P.art === "wasser") this.baueWasser();
     else if (P.art === "dampf") this.baueDampf(); else this.baueVerbrenner();
     this.baueFahrgeraeusch();
   }
@@ -394,6 +404,34 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.gM.gain.setTargetAtTime(L * an * (0.012 + 0.02 * rel), t, 0.1);
   };
 
+ /* Badewanne: Rauschen des Wasserstrahls (Bandpass, wird mit dem Strahl lauter und heller)
+     und ein Gluckern im Abfluss (Rauschen mit langsam wechselnder Resonanz, moduliert). */
+  Motor.prototype.baueWasser = function () {
+    var ac = this.ac, q = rauschQuelle(ac);
+    var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1500; bp.Q.value = 0.6;
+    var gS = ac.createGain(); gS.gain.value = 0;
+    q.connect(bp); bp.connect(gS); gS.connect(this.bus);
+    var res = ac.createBiquadFilter(); res.type = "bandpass"; res.frequency.value = 420; res.Q.value = 9;
+    var gG = ac.createGain(); gG.gain.value = 0;
+    var lfo = ac.createOscillator(); lfo.frequency.value = 7; var lfoG = ac.createGain(); lfoG.gain.value = 0;
+    lfo.connect(lfoG); lfoG.connect(gG.gain);
+    var lfo2 = ac.createOscillator(); lfo2.frequency.value = 2.3; var lfo2G = ac.createGain(); lfo2G.gain.value = 160;
+    lfo2.connect(lfo2G); lfo2G.connect(res.frequency);
+    q.connect(res); res.connect(gG); gG.connect(this.bus);
+    [q, lfo, lfo2].forEach(this.starte, this);
+    this.v = { bp: bp, gS: gS, gG: gG, lfoG: lfoG, lfo: lfo };
+  };
+  Motor.prototype.setzeWasser = function (z, gt, t) {
+    var P = this.P, V = this.v, L = P.lautstaerke || 1;
+    var s = z.probe ? Math.min(1, z.drehzahl || 0) * (z.gas ? 1 : 0.2) : (gt.rf || 0);
+    var an = z.laeuft ? 1 : 0;
+    V.bp.frequency.setTargetAtTime(900 + 1600 * s, t, 0.1);
+    V.gS.gain.setTargetAtTime(L * an * 0.22 * s, t, 0.08);
+    V.lfo.frequency.setTargetAtTime(5 + 6 * s, t, 0.2);
+    V.gG.gain.setTargetAtTime(L * an * (0.05 + 0.25 * s), t, 0.1);
+    V.lfoG.gain.setTargetAtTime(L * an * (0.05 + 0.25 * s), t, 0.1);
+  };
+
   /* Dampf-Lok: „Tschu-tschu" – jeder Kolbenhub stößt Dampf aus dem Schornstein. Bei
      zwei doppelt wirkenden Zylindern sind das 4 Stöße je Radumdrehung, also
      f = 4 · v / (2π · r). Jeder Stoß ist ein kurzer Rauschimpuls (Bandpass, dazu ein
@@ -503,6 +541,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (P.art === "elektro") return this.setzeElektro(z, gt, tempo, gas, t, dt);
     if (P.art === "turbine") return this.setzeTurbine(z, gt, t);
     if (P.art === "propeller") return this.setzePropeller(z, gt, t);
+    if (P.art === "wasser") return this.setzeWasser(z, gt, t);
     if (P.art === "dampf") return this.setzeDampf(z, tempo, gas, t, dt);
 
     var abgeregelt = gt.begrenzer && Math.sin(t * 2 * Math.PI * 12) < 0;   // Begrenzer unterbricht die Zündung
@@ -620,17 +659,19 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* --- Live-Schnittstelle für das Spiel --- */
   var probe = null;                    // Garage: "Motor anhören"
-  function motorStart(profil) {
+  function motorStart(profil, vmax) {
+    if (wavModus) { if (motor) { motor.stopp(); motor = null; } wavMotorStart(profil, vmax); return; }
     if (!ctx) return;
     if (motor) motor.stopp();
     if (probe) { clearInterval(probe.timer); probe.m.stopp(); probe = null; }
     motor = new Motor(ctx, master, profil || FF.CONFIG.fahrzeuge[0].klang);
   }
   function motorSetze(z) {
+    if (wavModus) { wavMotorSetze(z); return; }
     if (motor) motor.setze(z);
     if (umgebung) umgebung.g.gain.setTargetAtTime(z.stumm ? 0 : umgebung.laut * umgebung.staerke, ctx.currentTime, 0.2);
   }
-  function motorStopp() { if (motor) { motor.stopp(); motor = null; } setzeUmgebung(null); }
+  function motorStopp() { wavMotorStopp(); if (motor) { motor.stopp(); motor = null; } setzeUmgebung(null); }
 
   /* Umgebungsgeräusch einer Welt (Rauschen, gefiltert, als Schleife):
      regen = Prasseln, wind = Sturm (Stärke folgt dem Wind), meer = tiefes Rauschen.
@@ -638,7 +679,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   var umgebung = null;
   var UMGEBUNG = { regen: ["bandpass", 2600, 0.5, 0.05], wind: ["lowpass", 520, 0.8, 0.06], meer: ["lowpass", 260, 0.7, 0.07] };
   function setzeUmgebung(art) {
-    if (!ctx) return;
+    if (!ctx || wavModus) return;
     if (umgebung) { var alt = umgebung; alt.g.gain.setTargetAtTime(0, ctx.currentTime, 0.1); setTimeout(function () { try { alt.q.stop(); } catch (e) { /* schon aus */ } }, 600); umgebung = null; }
     dumpf.frequency.setTargetAtTime(art === "meer" ? 750 : 20000, ctx.currentTime, 0.1);
     var U = UMGEBUNG[art];
@@ -658,6 +699,9 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Garage: Motor kurz anhören – im Leerlauf (kein Gang): anlassen, zweimal
      Gas geben, ausdrehen lassen */
   function motorProbe(profil, vmax) {
+    if (wavModus) { if (!an) return; wavMotorStart(profil, vmax); var z0 = performance.now();
+      var tm = setInterval(function () { var s = (performance.now() - z0) / 1000, gas = (s > 1.0 && s < 1.6) || (s > 2.1 && s < 2.9) ? 1 : 0;
+        wavMotorSetze({ drehzahl: gas ? 0.8 : 0.1, gas: gas, laeuft: true }); if (s > 3.8) { clearInterval(tm); wavMotorStopp(); } }, 50); return; }
     if (!ctx || !an) return;
     if (probe) { clearInterval(probe.timer); probe.m.stopp(); }
     var m = new Motor(ctx, master, profil || FF.CONFIG.fahrzeuge[0].klang), t0 = performance.now(), letzte = t0;
@@ -672,7 +716,94 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* ---------- Effekte ---------- */
+  /* ---------- Handy-Ton: WAV statt WebAudio-Ausgabe ---------- */
+  function alsWav(buf) {
+    var d = buf.getChannelData(0), n = d.length, sr = buf.sampleRate, b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
+    function txt(o, t) { for (var i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); }
+    txt(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); txt(8, "WAVEfmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    txt(36, "data"); v.setUint32(40, n * 2, true);
+    for (var i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 32767, true);
+    return URL.createObjectURL(new Blob([b], { type: "audio/wav" }));
+  }
+  function offlineKontext(sek) {
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    return OAC ? new OAC(1, Math.ceil(22050 * sek), 22050) : null;
+  }
+  /* Ein Effekt offline berechnen: ctx/master kurz auf den Offline-Kontext umbiegen */
+  function wavEffekt(typ, wert) {
+    var key = typ + "|" + Math.round((wert || 0) * 4);
+    if (wavCache[key]) { wavAbspielen(wavCache[key]); return; }
+    if (wavCache[key] === null) return;                     // wird gerade berechnet
+    var off = offlineKontext(1.8); if (!off) return;
+    wavCache[key] = null;
+    var altC = ctx, altM = master, altR = rauschPuffer;
+    ctx = off; master = off.createGain(); master.gain.value = 0.8; master.connect(off.destination); rauschPuffer = null;
+    try { spieleIntern(typ, wert); } catch (e) { wavFehler = String(e); }
+    ctx = altC; master = altM; rauschPuffer = altR;
+    off.startRendering().then(function (buf) {
+      // hinten die Stille abschneiden (kürzere Dateien)
+      var d = buf.getChannelData(0), ende = d.length;
+      while (ende > 2205 && Math.abs(d[ende - 1]) < 0.0005) ende--;
+      var kurz = off.createBuffer ? off.createBuffer(1, Math.max(2205, ende + 1100), buf.sampleRate) : buf;
+      if (kurz !== buf) kurz.getChannelData(0).set(d.subarray(0, Math.min(d.length, kurz.length)));
+      wavCache[key] = alsWav(kurz);
+      wavAbspielen(wavCache[key]);
+    }).catch(function (e) { wavFehler = String(e); delete wavCache[key]; });
+  }
+  function wavAbspielen(url) {
+    if (!an) return;
+    var a = null;
+    for (var i = 0; i < wavPool.length; i++) if (wavPool[i].ended || wavPool[i].paused) { a = wavPool[i]; break; }
+    if (!a) { if (wavPool.length >= 8) a = wavPool[0]; else { a = new Audio(); wavPool.push(a); } }
+    try { a.src = url; a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function (e) { wavFehler = String(e && e.name || e); }); } catch (e) { wavFehler = String(e); }
+  }
+  /* Motor als Schleife: 2,4 s offline bei mittlerer Drehzahl, die mittlere Sekunde mit
+     weicher Überblendung (60 ms) als nahtlose Schleife */
+  function wavMotorStart(profil, vmax) {
+    wavMotorStopp();
+    var off = offlineKontext(2.4); if (!off) return;
+    var P = profil || FF.CONFIG.fahrzeuge[0].klang, m = new Motor(off, off.destination, P), M = { a: null, P: P };
+    wavMotor = M;
+    var G = new FF.Getriebe(P);
+    for (var k = 1; k < 2.4 * 30; k++) (function (t) {
+      off.suspend(t).then(function () {
+        G.schritt(0.45, 0.45, 0.6, true, true, 1 / 30);
+        if (G.turbine) { G.rpm = (G.leerlauf || 0) + ((G.max || 1) - (G.leerlauf || 0)) * 0.45; G.rf = 0.45; }
+        m.setze({ drehzahl: 0.45, gas: 0.6, laeuft: true, tempo: 0.45 * (vmax || 15), vmax: vmax || 15, boden: true, luft: true, getriebe: G, dt: 1 / 30 });
+        off.resume();
+      });
+    })(k / 30);
+    off.startRendering().then(function (buf) {
+      if (wavMotor !== M) return;
+      var sr = buf.sampleRate, d = buf.getChannelData(0), n = sr, x = Math.round(0.06 * sr), a0 = Math.round(1.0 * sr);
+      var aus = off.createBuffer(1, n, sr), o = aus.getChannelData(0);
+      for (var i = 0; i < n; i++) {
+        var w = i < x ? i / x : 1;                                  // Anfang weich einblenden …
+        o[i] = d[a0 + i] * w + (i < x ? d[a0 + n + i] * (1 - w) : 0);   // … mit dem Ende der Schleife überblendet
+      }
+      var a = new Audio(alsWav(aus)); a.loop = true; a.volume = 0;
+      a.preservesPitch = false; a.mozPreservesPitch = false; a.webkitPreservesPitch = false;
+      M.a = a;
+      var p = a.play(); if (p && p.catch) p.catch(function (e) { wavFehler = String(e && e.name || e); });
+    }).catch(function (e) { wavFehler = String(e); });
+  }
+  function wavMotorSetze(z) {
+    var M = wavMotor; if (!M || !M.a) return;
+    var r = Math.max(0, Math.min(1.2, z.getriebe && z.getriebe.rf !== undefined ? z.getriebe.rf : z.drehzahl || 0));
+    var gas = z.laeuft ? (z.gas || 0) : 0;
+    try {
+      M.a.playbackRate = Math.max(0.5, Math.min(2.2, 0.55 + 1.15 * r));
+      M.a.volume = z.stumm || !an || !z.laeuft ? 0 : Math.min(1, 0.25 + 0.5 * gas + 0.2 * r) * (M.P.lautstaerke || 1) * 0.8;
+    } catch (e) { /* egal */ }
+  }
+  function wavMotorStopp() { if (wavMotor && wavMotor.a) { try { wavMotor.a.pause(); } catch (e) { /* egal */ } } wavMotor = null; }
+
   function spiele(typ, wert) {
+    if (wavModus) { if (an) wavEffekt(typ, wert); return; }
+    spieleIntern(typ, wert);
+  }
+  function spieleIntern(typ, wert) {
     if (!ctx || !an) return;
     switch (typ) {
       case "muenze":
@@ -888,6 +1019,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     motorStart: motorStart, motorSetze: motorSetze, motorStopp: motorStopp, motorProbe: motorProbe,
     setzeUmgebung: setzeUmgebung, umgebungStaerke: umgebungStaerke,
     Motor: Motor,                       // für Tests (OfflineAudioContext)
+    wavInfo: function () {              // für Tests: Zustand des Handy-Tons (WAV über <audio>)
+      return { cache: Object.keys(wavCache).filter(function (k) { return wavCache[k]; }).length, pool: wavPool.length,
+               motor: !!(wavMotor && wavMotor.a && !wavMotor.a.paused), rate: wavMotor && wavMotor.a ? wavMotor.a.playbackRate : 0,
+               lautst: wavMotor && wavMotor.a ? wavMotor.a.volume : 0, fehler: wavFehler };
+    },
     spiele: spiele,
     sprich: sprich
   };

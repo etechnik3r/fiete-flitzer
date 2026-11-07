@@ -546,17 +546,43 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.07, weg: 0.07, frequenz: 3.2, daempfung: 0.75 },
       motor: { drehmoment: 1, vmax: 15 }, bremse: 0, grip: 1,
-      tankSekunden: 32, leerlauf: 0.08, luftsteuerung: 5.5, bruchExtra: 5, cwA: 0.5, abtrieb: 0,
+      tankSekunden: 32, leerlauf: 0.08, luftsteuerung: 3.4, bruchExtra: 5, cwA: 0.5, abtrieb: 0,
       schneeTank: true,          // Anzeige ❄️, Schnee-Kanister statt Benzin
-      kufen: { muSchnee: 0.035, muKratz: 0.6, bremsMu: 0.5 },
-      propeller: { schub: 6.2, anlauf: 0.35, vmax: 15, rueck: 0.35 },
-      kanone: { vorlauf: 0.45, verbrauch: 0.35, reichweite: 1.4, flug: 0.3 },
+      kufen: { muSchnee: 0.025, muKratz: 0.6, bremsMu: 0.5 },
+      propeller: { schub: 5.0, anlauf: 0.5, vmax: 11, rueck: 0.35 },
+      kanone: { vorlauf: 0.45, verbrauch: 0.35, reichweite: 0.9, flug: 0.7 },   // flug: Flugzeit der Flocken [s] (schöner Bogen)
       huelle: [[-1.15, -0.30], [1.05, -0.30], [1.30, 0.05], [0.95, 0.12], [-1.15, 0.12]],
       dach: [[-0.85, 1.12], [-0.2, 1.0]],
       kopf: { x: 0.05, y: 0.66, r: 0.28 },
       farbe: "rot", form: "schlitten",
       klang: { art: "propeller", blaetter: 2, max: 1800, leerlauf: 400, lautstaerke: 1.0, abrollen: 0.4 },
       upgrades: ["motor", "tank", "kreisel", "bremse", "leichtbau"]
+    },
+    {
+      /* Badewanne (Version 42): eine alte Wanne mit Löwenfüßen auf vier kleinen Rollen. Der
+         Abfluss hinten spritzt einen Wasserstrahl nach hinten – der Rückstoß schiebt (wanne.schub
+         [m/s²], gemütlich, bis wanne.vmax). Der „Tank“ ist das Badewasser: Der Strahl braucht es,
+         und bei Sprüngen, Bremsen, Loopings und Überschlägen schwappt es über den Rand
+         (wanneSchritt in fahrt.js). Das Wasser bleibt als Pfütze liegen. Ein Spaßmobil, kein Renner. */
+      id: "badewanne", name: "Badewanne", emoji: "🛁", preis: 4000, preisBasis: 140,
+      text: "Eine Badewanne auf Rollen! Der Abfluss spritzt Wasser nach hinten und schiebt dich an. Vorsicht – bei Sprüngen schwappt das Badewasser raus!",
+      masse: 170, groesse: { laenge: 2.4, hoehe: 1.1 },
+      raeder: [
+        { x: -0.85, y: -0.42, r: 0.2, masse: 4, antrieb: true },
+        { x:  0.85, y: -0.42, r: 0.2, masse: 4, antrieb: true }
+      ],
+      federung: { ruhe: 0.12, weg: 0.12, frequenz: 2.2, daempfung: 0.45 },
+      motor: { drehmoment: 1, vmax: 10 }, bremse: 700, grip: 0.9,
+      tankSekunden: 46, leerlauf: 0, luftsteuerung: 3.6, bruchExtra: 8, cwA: 0.7, abtrieb: 0, freilauf: true,
+      schneeTank: false, wannenTank: true,
+      wanne: { schub: 4.0, anlauf: 0.6, vmax: 10, schwapp: 5.5, randWinkel: 0.5, auslauf: 0.15, auslaufMax: 0.35,
+               loopSchwapp: 26, hinten: -1.12, vorne: 1.12, randHoehe: 0.42 },
+      huelle: [[-1.2, -0.3], [1.2, -0.3], [1.3, 0.42], [-1.3, 0.42]],
+      dach: [[-0.6, 1.1], [0.1, 1.05]],
+      kopf: { x: -0.05, y: 0.62, r: 0.28 },
+      farbe: "weiss", form: "badewanne",
+      klang: { art: "wasser", lautstaerke: 1.0, abrollen: 0.8 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
     }
   ],
 
@@ -1425,6 +1451,59 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 240, muenzAbstand: 22,
       level: [ { laenge: 800, seed: 3201 }, { laenge: 1060, seed: 3202 }, { laenge: 1320, seed: 3203 }, { laenge: 1580, seed: 3204 } ]
+    },
+    {
+      /* Wolkeninseln (Version 42): Man fährt über den Wolken von Wolke zu Wolke. Zwischen den
+         Wolken sind Lücken – mit Schwung hinüberspringen! Manche Wolken enden in einer Schanze.
+         Jede Wolke SINKT, solange man auf ihr fährt, und zwar immer schneller: Wer trödelt, liegt
+         bald tiefer als die nächste Wolke. Leere Wolken steigen wieder auf.
+         wolken: vRef = angenommene Absprunggeschwindigkeit [m/s] für die Sprungweiten,
+                 anteil[Level] = Anteil der möglichen Weite, schanzen[Level] = Anteil der Wolken
+                 mit Schanze, fall = so viel tiefer liegt die nächste Wolke ohne Schanze [m],
+                 laenge = Länge einer Wolke [m], sinkStart/sinkMax [m/s], sinkBeschl [m/s²],
+                 heben = so schnell steigt eine leere Wolke wieder [m/s] */
+      id: "wolken", name: "Wolkeninseln", emoji: "☁️", hinweis: "Über den Wolken! Spring von Wolke zu Wolke – sie sinken, wenn du trödelst!",
+      schwerkraft: 9.81, grip: 0.95, rollwiderstand: 0.025, abprall: 0.05, luftdichte: 1.2,
+      farben: {
+        himmel: ["#2f7fe0", "#a9d4ff"], berge: ["#8dbcef", "#5f97dc"],
+        boden: ["#ffffff", "#dfe9f7"], oberflaeche: "#ffffff", kante: "#f2f7ff", punkte: "#dbe6f5",
+        wolken: "rgba(255,255,255,0.9)"
+      },
+      sonne: "sonne", sonnenDeko: "brille", wolkenStil: "wenige",
+      wolken: { vRef: 9, autoLaenge: 3, festHilfe: 3, anteil: [0.75, 0.85, 0.95, 1.05], schanzen: [0.2, 0.3, 0.38, 0.45], fall: [1.2, 3.0],
+                laenge: [18, 34], sinkStart: 0.15, sinkMax: [0.4, 0.6, 0.8, 1.0], sinkBeschl: [0.12, 0.2, 0.28, 0.36], heben: 0.6 },
+      tipp: ["☁️ Wolken sinken, wenn du drauf bist – immer weiter! Mit Schwung über die Lücken springen.", "Schnell weiter, die Wolke sinkt!"],
+      deko: ["🎈:0.9:2.6", "🕊️:0.7:3.2", "⭐:0.5:3.6", "🎈:0.8:3.4", "🌈:2.2:0.0", "🦋:0.5:1.6"],
+      kulisse: ["wolkenberg", "wolkenberg"],
+      gelaende: { amp: 1, welle: 40, holperAmp: 0, holperWelle: 6, trend: 0, maxAuf: 25, maxAb: 30, schanzen: 0, buckel: 0, steil: 0, taeler: 0,
+                  berg: 0, sprung: 0, wellen: 0, klippe: 0, wildBasis: 0, abstandElemente: 40 },
+      tankAbstand: 180, muenzAbstand: 20,
+      level: [ { laenge: 560, seed: 3301 }, { laenge: 740, seed: 3302 }, { laenge: 920, seed: 3303 }, { laenge: 1100, seed: 3304 } ]
+    },
+    {
+      /* Zirkus (Version 42): In der Manege gibt es zwei neue Dinge:
+           • Hochseil-Brücken (gelaende.seil): Die Brücke hängt unter dem Auto durch – je
+             schwerer, desto tiefer – und schwingt nach. Am Ende geht es aus der Mulde wieder
+             hinauf: Gas geben, aber nicht zu wild, sonst schaukelt man sich auf.
+           • Wippen (gelaende.wippe): Man fährt auf das untere Ende hinauf; über der Mitte kippt
+             das Brett. Langsam: sanftes Kippen. Zu schnell: man fliegt vom hohen Ende.
+         Dazu Trampoline (Hüpfpilze im Zirkus-Stil). */
+      id: "zirkus", name: "Zirkus", emoji: "🎪", hinweis: "Manege frei! Seilbrücken hängen durch, Wippen kippen – vorsichtig!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.03, abprall: 0.08, luftdichte: 1.2,
+      farben: {
+        himmel: ["#3b1f5c", "#f2a65a"], berge: ["#7a3d6e", "#5a2a55"],
+        boden: ["#d8a25e", "#9c6a38"], oberflaeche: "#e9c27e", kante: "#f6dca6", punkte: "#b07a42"
+      },
+      sonne: "sonne", sonnenDeko: "krone", wolkenStil: "wenige",
+      tipp: ["🎪 Manege frei! Auf der Seilbrücke sinkst du ein – auf der Wippe langsam über die Mitte fahren!", "Vorsicht, die Wippe kippt!"],
+      deko: ["🎪:3.6", "🐘:2.2", "🎈:0.9:2.4", "🦁:1.3", "🤹:1.3", "🎠:2.6", "🍿:0.6", "🎩:0.6", "🦭:1.0", "🎈:0.8:3.0"],
+      kulisse: ["zelte", "zelte"],
+      gelaende: { amp: 2.5, welle: 50, holperAmp: 0.08, holperWelle: 6, trend: 0.004,
+                  maxAuf: 22, maxAb: 28, schanzen: 0.6, buckel: 0.6, steil: 0.2, taeler: 0.3, berg: 0.1, sprung: 0.4, wellen: 0.4, klippe: 0.1, kuppe: 0.2,
+                  trampolin: 0.5, seil: 1.4, wippe: 1.4, wildBasis: 0.2,
+                  abstandElemente: 22 },
+      tankAbstand: 230, muenzAbstand: 20,
+      level: [ { laenge: 600, seed: 3401 }, { laenge: 800, seed: 3402 }, { laenge: 1000, seed: 3403 }, { laenge: 1200, seed: 3404 } ]
     }
   ],
 
@@ -1447,6 +1526,12 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "42", titel: "Wolken, Zirkus und eine Badewanne", punkte: [
+      "☁️ Neue Welt Wolkeninseln: Spring von Wolke zu Wolke – jede Wolke sinkt, solange du drauf bist. Also immer weiter!",
+      "🎪 Neue Welt Zirkus: Seilbrücken hängen unter dir durch und schwingen, Wippen kippen – langsam über die Mitte fahren!",
+      "🛁 Neues Fahrzeug Badewanne: Der Abfluss spritzt dich vorwärts, bei Sprüngen schwappt das Badewasser raus",
+      "🛷 Der Schnee-Schlitten ist gemütlicher, und der Schnee landet jetzt kurz vor den Kufen",
+      "📱 Handy-Ton neu: Die Klänge kommen jetzt wie bei einem Video – für ältere Handys ohne Ton" ] },
     { version: "41", titel: "Der Schnee-Schlitten", punkte: [
       "🛷 Neues Fahrzeug: ein alter Holzschlitten mit Schneekanone – sie schießt Schnee vor die Kufen, nur darauf rutscht er!",
       "🌀 Ein Holzpropeller schiebt den Schlitten, sammle blaue Schnee-Kanister ❄️",

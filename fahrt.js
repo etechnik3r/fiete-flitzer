@@ -62,6 +62,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.spoiler = sp;                                                         // für die Grafik
     w.kreisel = kr;
     if (upg.allrad) w.raeder.forEach(function (r) { r.antrieb = true; });
+    if (w.wanne) w.wanne.schub *= 1 + 0.6 * U.motorDrehmoment * m;          // Badewanne: Motor-Upgrade = kräftigerer Strahl
     if (w.propeller) {                                                      // Schlitten: Motor-Upgrade = stärkerer Propeller
       w.propeller.schub *= 1 + 0.6 * U.motorDrehmoment * m;
       w.propeller.vmax *= 1 + U.motorTempo * m;
@@ -80,7 +81,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function Getriebe(klang) {
     this.P = klang || {};
     this.elektro = this.P.art === "elektro";
-    this.turbine = this.P.art === "turbine" || this.P.art === "propeller";   // Drehzahl folgt dem Hochlaufen, nicht den Rädern
+    this.turbine = this.P.art === "turbine" || this.P.art === "propeller" || this.P.art === "wasser";   // Drehzahl folgt dem Hochlaufen, nicht den Rädern
     this.propeller = this.P.art === "propeller";
     this.dampf = this.P.art === "dampf";                // Dampfmaschine: kein Getriebe, Drehzahl = Raddrehzahl
     this.gaenge = this.elektro || this.dampf ? 1 : (this.P.gaenge || 4);
@@ -170,7 +171,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
     this.miniZeit = 0;             // Obstplantage: Mini-Turbo nach dem Einsammeln von Obst [s]
     this.umhangZeit = 0;           // Superheldenwelt: Heldenumhang nach der Telefonzelle [s]
+    this.fz.masseGesamt = this.werte.masse + this.werte.raeder.reduce(function (s, r) { return s + r.masse; }, 0);
     if (this.werte.kufen) this.schneeAnlegen();
+    if (this.werte.wanne) this.wanneAnlegen();
   }
 
   /* -------------------------------------------------------------------------
@@ -179,28 +182,103 @@ var FF = globalThis.FF = globalThis.FF || {};
      x-Position adressiert. gel.schneeBei(x) fragt physik.js für die Kufen-Reibung ab.
      ------------------------------------------------------------------------- */
   var SCHNEE_ZELLE = 0.25, SCHNEE_VERSATZ = 400;          // 400 Zellen = 100 m Platz hinter dem Start
+  /* Spur-Raster (Schnee des Schlittens, Wasser der Badewanne): 25-cm-Zellen über die absolute
+     x-Position, 1 = belegt. bei(x) fragt ab, legen(xa, xb) belegt (wächst im Endlos-Modus mit). */
+  function SpurRaster() {
+    this.daten = new Uint8Array(8192); this.zelle = SCHNEE_ZELLE; this.versatz = SCHNEE_VERSATZ;
+  }
+  SpurRaster.prototype.bei = function (x) {
+    var i = Math.floor(x / SCHNEE_ZELLE) + SCHNEE_VERSATZ;
+    return i >= 0 && i < this.daten.length && this.daten[i] === 1;
+  };
+  SpurRaster.prototype.legen = function (xa, xb) {
+    var i0 = Math.max(0, Math.floor(xa / SCHNEE_ZELLE) + SCHNEE_VERSATZ), i1 = Math.floor(xb / SCHNEE_ZELLE) + SCHNEE_VERSATZ;
+    if (i1 >= this.daten.length) {
+      var neu = new Uint8Array(Math.max(this.daten.length * 2, i1 + 1024));
+      neu.set(this.daten); this.daten = neu;
+    }
+    for (var i = i0; i <= i1; i++) this.daten[i] = 1;
+  };
+  FF.SpurRaster = SpurRaster;
+
   Fahrt.prototype.schneeAnlegen = function () {
-    var gel = this.gelaende, D = { daten: new Uint8Array(8192), zelle: SCHNEE_ZELLE, versatz: SCHNEE_VERSATZ, neu: [] };
+    var gel = this.gelaende, D = new SpurRaster();
     gel.schneeDecke = D;
-    gel.schneeBei = function (x) {
-      var i = Math.floor(x / SCHNEE_ZELLE) + SCHNEE_VERSATZ;
-      return i >= 0 && i < D.daten.length && D.daten[i] === 1;
-    };
+    gel.schneeBei = function (x) { return D.bei(x); };
     this.kanoneAn = false; this.propLauf = 0; this.turbinenLauf = 0;
     this.schneeLegen(this.fz.chassis.x - 1.6, this.fz.chassis.x + 1.6);   // am Start steht er schon auf Schnee
   };
-  Fahrt.prototype.schneeLegen = function (xa, xb) {
-    var D = this.gelaende.schneeDecke;
-    var i0 = Math.max(0, Math.floor(xa / SCHNEE_ZELLE) + SCHNEE_VERSATZ), i1 = Math.floor(xb / SCHNEE_ZELLE) + SCHNEE_VERSATZ;
-    if (i1 >= D.daten.length) {                           // Endlos: Raster wächst mit
-      var neu = new Uint8Array(Math.max(D.daten.length * 2, i1 + 1024));
-      neu.set(D.daten); D.daten = neu;
-    }
-    for (var i = i0; i <= i1; i++) {
-      if (D.daten[i] !== 1) { D.daten[i] = 1; D.neu.push(i); }    // neu: für die Grafik (Schnee „landet“)
-    }
-    if (D.neu.length > 400) D.neu.splice(0, D.neu.length - 400);
+  Fahrt.prototype.schneeLegen = function (xa, xb) { this.gelaende.schneeDecke.legen(xa, xb); };
+
+  /* -------------------------------------------------------------------------
+     Badewanne: Aus dem Abfluss hinten spritzt ein Wasserstrahl nach hinten und schiebt die
+     Wanne (Rückstoß, wanne.schub [m/s²] entlang der Wanne, auch in der Luft). Der „Tank“ ist
+     das Badewasser: Der Strahl verbraucht es, und beim Schwappen läuft es über den Rand.
+     Schwappen: Die Wasseroberfläche ist ein gedämpftes Pendel (Winkel phi im Wannen-
+     Koordinatensystem), das der scheinbaren Schwerkraft g_s = g − a folgt. Steht sie
+     schiefer als der Rand erlaubt (randWinkel, je voller desto kleiner), läuft Wasser aus.
+     Im freien Flug ist g_s ≈ 0: Das Wasser schwebt, und beim Aufsetzen schwappt es heftig.
+     Kopfüber (Looping, Überschlag) läuft es schnell aus. Wasser, das herauskommt, bleibt
+     als Pfütze auf dem Boden liegen (gel.wasserDecke). */
+  Fahrt.prototype.wanneAnlegen = function () {
+    var gel = this.gelaende, D = new SpurRaster();
+    gel.wasserDecke = D;
+    this.wanne = { phi: 0, om: 0, vx: this.fz.chassis.vx, vy: this.fz.chassis.vy, lauf: 0, verlust: 0, rand: 0 };
+    this.turbinenLauf = 0;
   };
+  Fahrt.prototype.wanneSchritt = function (h) {
+    var W = this.werte.wanne, B = this.wanne, fz = this.fz, C = fz.chassis, st = fz.status;
+    var laeuft = this.zustand === "fahrt" && this.tank > 0;
+    // Strahl: dreht mit Gas auf (Wasserhahn), rückwärts gibt es nicht – Bremse bremst nur
+    var ziel = laeuft ? this.gas : 0;
+    B.lauf += Math.max(-h / W.anlauf, Math.min(h / W.anlauf, ziel - B.lauf));
+    this.turbinenLauf = B.lauf; fz.strahl = B.lauf;
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var schub = W.schub * B.lauf * (0.4 + 0.6 * gRel);
+    if (schub > 0.01 && st.vorwaerts < W.vmax) {
+      var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
+      C.vx += ax * h; C.vy += ay * h;
+      fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+    }
+    // scheinbare Schwerkraft im Wannen-System (x = vorn, y = oben)
+    // Beschleunigung gefiltert (Tiefpass ≈ 0,1 s): einzelne Kontakt-Stöße der Federung zählen nicht
+    var f = Math.min(1, h / 0.1);
+    B.ax = (B.ax || 0) + f * ((C.vx - B.vx) / h - (B.ax || 0)); B.ay = (B.ay || 0) + f * ((C.vy - B.vy) / h - (B.ay || 0));
+    B.vx = C.vx; B.vy = C.vy;
+    var g = this.welt.schwerkraft, gx = -B.ax, gy = -g - B.ay;
+    var ca = Math.cos(C.a), sa = Math.sin(C.a);
+    var gxl = gx * ca + gy * sa, gyl = -gx * sa + gy * ca;          // in Wannen-Koordinaten
+    var gs = Math.hypot(gxl, gyl);
+    // Gleichgewicht: Oberfläche senkrecht zu g_s; phi > 0 = Wasser schwappt nach hinten hoch
+    var phiZiel = gs > 1.5 ? Math.atan2(-gxl, -gyl) : B.phi;
+    var k = W.schwapp * W.schwapp * Math.min(1, gs / 9.81 + 0.15), d = 2 * 0.18 * W.schwapp;
+    B.om += (-k * normWinkel(B.phi - phiZiel) - d * B.om) * h;
+    B.om = Math.max(-12, Math.min(12, B.om));
+    B.phi = normWinkel(B.phi + B.om * h);
+    fz.wasserWinkel = B.phi; fz.wasserStand = this.tank;
+    // Im Looping hält die Fliehkraft das Wasser zwar in der Wanne, aber es schwappt wild hin und her
+    if (this.imLooping) B.om += Math.sin(this.zeit * 11) * W.loopSchwapp * h;
+    // Auslaufen: je voller, desto früher. Kopfüber (|phi| > 90°) läuft es in Strömen
+    var rand = W.randWinkel * (0.75 + 1.2 * (1 - this.tank));             // voll: ≈ 21°, halb: ≈ 38°, fast leer: kaum noch
+    B.rand = rand;
+    var ueber = Math.abs(B.phi) - rand;
+    if (this.zustand === "fahrt" && this.tank > 0 && ueber > 0) {
+      var rate = Math.min(W.auslaufMax, W.auslauf * ueber * ueber * 4 + (Math.abs(B.phi) > 1.6 ? W.auslaufMax : 0));
+      var weg = Math.min(this.tank, rate * h);
+      this.tank -= weg; B.verlust += weg;
+      // die Seite, über die es läuft: phi > 0 → hinten, phi < 0 → vorne
+      var xr = B.phi > 0 ? W.hinten : W.vorne, yr = W.randHoehe;
+      fz.schwapp = { x: C.x + ca * xr - sa * yr, y: C.y + sa * xr + ca * yr, seite: B.phi > 0 ? -1 : 1, zeit: this.zeit };
+      if (B.verlust > 0.02) { this.melde("schwapp", { x: fz.schwapp.x, y: fz.schwapp.y, menge: B.verlust }); B.verlust = 0; }
+    }
+    // Wasser landet auf dem Boden und bleibt liegen: der Strahl hinter der Wanne, Schwapp-Wasser unter dem Rand
+    if (B.lauf > 0.15 && laeuft) {
+      var xs = C.x + ca * W.hinten - B.lauf * (1.2 + 0.08 * Math.max(0, st.vorwaerts));
+      this.gelaende.wasserDecke.legen(xs - 0.5, xs + 0.4);
+    }
+    if (fz.schwapp && this.zeit - fz.schwapp.zeit < 0.05) this.gelaende.wasserDecke.legen(fz.schwapp.x - 0.4, fz.schwapp.x + 0.4);
+  };
+
   Fahrt.prototype.schlittenSchritt = function (h) {
     var w = this.werte, P = w.propeller, KA = w.kanone, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
     var laeuft = this.zustand === "fahrt" && this.tank > 0;
@@ -221,7 +299,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     // Schneekanone: an, wenn die Kufen auf dem Boden sind oder der Schlitten gleich landet.
     // Aus: in der Luft, kopfüber, im Looping, in Schneewelten, ohne Tank.
-    var an = false, xa = 0, xb = 0;
+    var an = false, xa = 0, xb = 0, za = 0, zb = 0;
     if (laeuft && !this.welt.schneeBoden) {
       var ca = Math.cos(C.a), sa = Math.sin(C.a);
       var schief = Math.abs(normWinkel(C.a - Math.atan(gel.steigungBei(C.x))));
@@ -230,18 +308,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       var aufLoop = false;
       fz.raeder.forEach(function (R) { if (R.kontakt.aktiv && R.kontakt.ny < 0.35) aufLoop = true; });
       if (schief < 0.9 && !aufLoop && ca > 0.3) {
-        var tempo = Math.max(0, st.vorwaerts);
-        if (hoehe < 0.45 || st.radKontakte > 0) {        // Kufen am Boden (oder knapp darüber)
-          an = true; xa = xv + 0.1; xb = xv + KA.reichweite + KA.flug * tempo;   // die Flocken fliegen flug Sekunden, der Schlitten fährt so lange weiter
+        if (hoehe < 0.45 || st.radKontakte > 0) {        // Kufen am Boden (oder knapp darüber):
+          // Schnee nur unmittelbar vor die Kufen. Die Flocken (Grafik) fliegen im Bogen und landen
+          // dort, wo die Kufenspitze nach „flug“ Sekunden ist – also immer kurz vor dem Schlitten.
+          an = true; xa = xv - 0.1; xb = xv + KA.reichweite;
+          var xs = xv + C.vx * KA.flug; za = xs + 0.1; zb = xs + KA.reichweite;
         } else if (C.vy < -0.5 && hoehe / -C.vy < KA.vorlauf) {   // gleich landen: Schnee auf den Landeplatz
           var tl = hoehe / -C.vy, xl = xv + C.vx * tl;
-          an = true; xa = xl - 1.6; xb = xl + KA.reichweite + KA.flug * tempo;
+          an = true; xa = xl - 1.6; xb = xl + KA.reichweite; za = xl - 0.8; zb = xl + KA.reichweite;
         }
       }
     }
     if (an) this.schneeLegen(xa, xb);
     if (an !== this.kanoneAn) this.melde(an ? "kanoneAn" : "kanoneAus");
-    this.kanoneAn = an; fz.kanone = an; fz.kanoneZiel = an ? [Math.max(xa, xb - KA.reichweite), xb] : null;   // Grafik: dort landen die Flocken
+    this.kanoneAn = an; fz.kanone = an; fz.kanoneZiel = an ? [za, zb] : null;   // Grafik: dort landen die Flocken
   };
 
   /* Zusatz-Knopf gedrückt: "boost" oder "feder". Gibt true zurück, wenn es losging. */
@@ -375,7 +455,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (w.auftrieb) this.fliegen(h);
     if (w.turbine) this.turbinenSchub(h);
     if (w.kufen) this.schlittenSchritt(h);
+    if (w.wanne) this.wanneSchritt(h);
+    if (this.gelaende.dyn.length) { var self = this; this.gelaende.dynSchritt(h, fz, function (t, d) { self.melde(t, d); }); }
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
+    if (this.welt.wolken) this.wolkenPruefen(h);
     if (C.x < S.rueckGrenzeWand && C.vx < 0) {               // unsichtbare Wand am Weltanfang (auch im Flug)
       C.vx = 0;
       fz.raeder.forEach(function (R) { if (R.k.vx < 0) R.k.vx = 0; });
@@ -416,6 +499,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var L = w.leerlauf !== undefined ? w.leerlauf : Rg.leerlaufAnteil;
       var last = w.turbine ? 0.25 + 0.75 * (this.turbinenLauf || 0) : 0.55 * Math.min(1, gasWirk) + 0.45 * pAnteil;   // Turbine: Verbrauch nach Drehzahl
       if (w.kufen) last = 0.7 * Math.abs(this.propLauf) + (this.kanoneAn ? w.kanone.verbrauch : 0);          // Schlitten: Propeller + Schneekanone
+      if (w.wanne) last = this.wanne.lauf;                                                                   // Badewanne: nur der Strahl (Schwappen rechnet wanneSchritt)
       this.tank -= (L + (1 - L) * last) / w.tankSekunden * h;
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
@@ -563,6 +647,26 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.zusatzAlpha = alpha; M = 0;
     }
     fz.zusatzMoment = M;
+  };
+
+  /* Wolkeninseln: Die Wolke unter dem Auto sinkt (gelaende.wolkenSchritt). Wer in eine Lücke
+     fällt, den trägt der Ballon auf die nächste Wolke (kostet Benzin wie ein Überschlag). */
+  Fahrt.prototype.wolkenPruefen = function (h) {
+    var gel = this.gelaende, fz = this.fz, C = fz.chassis, last = null;
+    if (this.zustand === "fahrt") {
+      for (var i = 0; i < fz.raeder.length && !last; i++) {
+        var R = fz.raeder[i];
+        if (R.kontakt.aktiv && R.kontakt.pen > -0.05) last = gel.wolkeBei(R.k.x);
+      }
+      if (!last && (fz.status.huellKontakt || fz.status.kopfKontakt)) last = gel.wolkeBei(C.x);
+    }
+    var vorher = this.wolkeLast;
+    gel.wolkenSchritt(h, last);
+    if (last && last !== vorher && last !== gel.wolken[0]) this.melde("wolke", { x: C.x, y: C.y });
+    this.wolkeLast = last;
+    if (this.zustand !== "fahrt") return;
+    var L = gel.wolkenLuecke(C.x);
+    if (L && C.y < L.unten) { this.melde("wolkeFall", { x: C.x, y: C.y }); this.starteHilfe(L.ende); }
   };
 
   /* Höhle: Wer bis an die Decke fliegt, prallt sanft nach unten ab. Geprüft
@@ -959,7 +1063,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.letzterTipp = this.zeit; this.klemmZeit = 0;
       this.melde("tipp", { text: "Nimm Anlauf! Fahr ein Stück zurück 🔙" });
     }
-    if (this.festZeit > (this.werte.stabilisator ? F.hilfeLeicht : F.hilfe)) { this.starteHilfe(this.weitesterX); }
+    if (this.festZeit > Math.min(this.welt.wolken ? this.welt.wolken.festHilfe : 99, this.werte.stabilisator ? F.hilfeLeicht : F.hilfe)) { this.starteHilfe(this.weitesterX); }   // Wolken: hängt man an der nächsten Wolke fest, hilft der Ballon schnell
   };
 
   /* Wo setzt der Ballon ab? Nicht mitten in einen Steilhang (von dort kommt

@@ -300,7 +300,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (i = 0; i < T.length; i++) {
       var t = T[i];
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
-      (akku === "schnee" ? zeichneSchneeKanister : akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
+      (akku === "wanne" ? zeichneEimer : akku === "schnee" ? zeichneSchneeKanister : akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
     var RK = gel.raketen || [];
     for (i = 0; i < RK.length; i++) {
@@ -419,6 +419,23 @@ var FF = globalThis.FF = globalThis.FF || {};
       var a = k * Math.PI / 3 + Math.PI / 2, r = 0.22 * s, cx = Math.cos(a) * r, cy = Math.sin(a) * r;
       ctx.beginPath(); ctx.moveTo(-cx, 0.05 * s - cy); ctx.lineTo(cx, 0.05 * s + cy); ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  /* 🪣 Wassereimer (Badewanne): blauer Eimer mit Henkel, oben schwappt Wasser */
+  function zeichneEimer(ctx, X, Y, s, zeit) {
+    var w = 0.66 * s, h = 0.66 * s;
+    ctx.save(); ctx.translate(X, Y);
+    var gl = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.1);
+    gl.addColorStop(0, "rgba(150,215,255," + (0.5 + 0.2 * Math.sin(zeit * 5)) + ")"); gl.addColorStop(1, "rgba(150,215,255,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, s * 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#8f9ab3"; ctx.lineWidth = Math.max(1.5, 0.05 * s);                      // Henkel
+    ctx.beginPath(); ctx.arc(0, -h * 0.35, w * 0.5, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-w / 2, -h * 0.35); ctx.lineTo(w / 2, -h * 0.35); ctx.lineTo(w * 0.36, h / 2); ctx.lineTo(-w * 0.36, h / 2); ctx.closePath();
+    var g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0); g.addColorStop(0, "#2f7fe0"); g.addColorStop(0.4, "#6fb8ff"); g.addColorStop(1, "#1f5fb8");
+    ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = "#163f80"; ctx.lineWidth = Math.max(1, 0.05 * s); ctx.stroke();
+    ctx.fillStyle = "#bfe6ff"; ctx.beginPath(); ctx.ellipse(0, -h * 0.35, w * 0.48, h * 0.1, 0, 0, Math.PI * 2); ctx.fill();   // Wasser
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(w * 0.15, -h * 0.38 + 0.03 * s * Math.sin(zeit * 6), 0.06 * s, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
@@ -1255,6 +1272,78 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.beginPath(); ctx.moveTo(0.5, 0.42); ctx.quadraticCurveTo(0.9, 0.42, 1.15, yK + 0.45); ctx.stroke();
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.22, 0.08, 0.46, 0.4], arme: [0.02, 0.4, 0.5, 0.42], ohneFedern: true, ohneRaeder: true };
+    },
+
+    /* Badewanne: Wanne mit Löwenfüßen auf Rollen. Oben sieht man durch den ovalen Rand ins
+       Badewasser (Höhe = Tank, Neigung = fz.wasserWinkel), Schaum und eine Quietscheente.
+       Hinten der Abfluss mit dem Wasserstrahl (fz.strahl 0…1). */
+    badewanne: function (ctx, a, z, fz) {
+      var c = basisFarbe(a), o = outfitVon(a);
+      var stand = fz && fz.wasserStand !== undefined ? fz.wasserStand : 0.8, phi = fz ? fz.wasserWinkel || 0 : 0, strahl = fz ? fz.strahl || 0 : 0;
+      var oeffnung = function () { ctx.beginPath(); ctx.ellipse(0, 0.36, 1.12, 0.16, 0, 0, Math.PI * 2); };
+      var hinten = function () {
+        // Wasserstrahl aus dem Abfluss (hinten unten), fällt im Bogen nach hinten
+        if (strahl > 0.05) {
+          var L = 0.6 + 1.6 * strahl, wob = Math.sin(z * 30) * 0.03;
+          ctx.lineCap = "round";
+          [["rgba(70,160,235,0.55)", 0.16], ["rgba(150,215,255,0.85)", 0.09], ["rgba(255,255,255,0.8)", 0.03]].forEach(function (f) {
+            ctx.strokeStyle = f[0]; ctx.lineWidth = f[1] * (0.6 + 0.4 * strahl);
+            ctx.beginPath(); ctx.moveTo(-1.22, -0.12); ctx.quadraticCurveTo(-1.22 - L * 0.6, -0.08 + wob, -1.22 - L, -0.5 - 0.2 * (1 - strahl)); ctx.stroke();
+          });
+        }
+        // Innenseite der Wanne (Email) und Badewasser, durch die Öffnung gesehen
+        ctx.save(); oeffnung(); ctx.clip();
+        ctx.fillStyle = "#e6eef7"; ctx.fillRect(-1.2, 0.18, 2.4, 0.4);
+        var yw = 0.2 + 0.24 * stand, t = Math.tan(Math.max(-1.2, Math.min(1.2, phi))) * 0.35;
+        if (stand > 0.02) {
+          ctx.fillStyle = "rgba(95,175,235,0.85)";
+          ctx.beginPath(); ctx.moveTo(-1.2, yw + 1.2 * t); ctx.lineTo(1.2, yw - 1.2 * t); ctx.lineTo(1.2, 0.1); ctx.lineTo(-1.2, 0.1); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.92)";                                   // Schaum auf der Oberfläche
+          for (var k = 0; k < 9; k++) {
+            var xb = -1.0 + k * 0.25, yb = yw - xb * t + 0.015 * Math.sin(z * 4 + k * 1.7);
+            ctx.beginPath(); ctx.arc(xb, yb, 0.045 + 0.02 * ((k * 7) % 3), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        ctx.restore();
+        // Quietscheente schaukelt vorn auf dem Wasser (oder sitzt am Boden)
+        var xe = 0.62, ye = (stand > 0.02 ? 0.2 + 0.24 * stand - xe * Math.tan(Math.max(-1.2, Math.min(1.2, phi))) * 0.35 : 0.22) + 0.02 * Math.sin(z * 3);
+        ctx.save(); ctx.translate(xe, ye); ctx.rotate(-0.15 * Math.sin(z * 2.5) - phi * 0.3);
+        ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.ellipse(0, 0.04, 0.11, 0.06, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0.07, 0.12, 0.055, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#ff8a1f"; ctx.beginPath(); ctx.moveTo(0.12, 0.12); ctx.lineTo(0.18, 0.105); ctx.lineTo(0.12, 0.095); ctx.fill();
+        ctx.fillStyle = "#2b2f3a"; ctx.beginPath(); ctx.arc(0.085, 0.135, 0.012, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      };
+      var wand = function () {
+        // Außenwand: vorne der untere Teil des ovalen Randes, darunter der Wannenkörper
+        ctx.beginPath(); ctx.moveTo(-1.12, 0.36);
+        ctx.ellipse(0, 0.36, 1.12, 0.16, 0, Math.PI, Math.PI * 2, false);   // untere (vordere) Hälfte des Randes
+        ctx.lineTo(1.12, 0.36); ctx.bezierCurveTo(1.18, 0.0, 1.0, -0.3, 0.6, -0.32);
+        ctx.lineTo(-0.6, -0.32); ctx.bezierCurveTo(-1.0, -0.3, -1.18, 0.0, -1.12, 0.36); ctx.closePath();
+      };
+      var vorne = function () {
+        // Löwenfüße (Messing) zu den Rollen
+        fz.raeder.forEach(function (R) {
+          ctx.strokeStyle = "#c99a2e"; ctx.lineWidth = 0.1; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(R.ankerX * 0.85, -0.22); ctx.quadraticCurveTo(R.lokalX + 0.08, (R.lokalY - 0.22) / 2, R.lokalX, R.lokalY + 0.05); ctx.stroke();
+          ctx.fillStyle = "#e3b84a"; ctx.beginPath(); ctx.ellipse(R.lokalX + 0.06, R.lokalY + 0.13, 0.11, 0.06, 0, 0, Math.PI * 2); ctx.fill();   // Tatze
+          ctx.fillStyle = "#a87d1e"; [-0.03, 0.04, 0.11].forEach(function (dx) { ctx.beginPath(); ctx.arc(R.lokalX + 0.06 + dx, R.lokalY + 0.09, 0.022, 0, Math.PI * 2); ctx.fill(); });
+        });
+        karosserie(ctx, a, z, wand, -1.18, 1.18, -0.32, 0.4);
+        ctx.strokeStyle = dunkel(c, 0.3); ctx.lineWidth = 0.025; wand(); ctx.stroke();
+        // weißer Rollrand oben (vordere Hälfte)
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 0.08; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.ellipse(0, 0.36, 1.12, 0.16, 0, Math.PI * 0.02, Math.PI * 0.98, true); ctx.stroke();
+        ctx.strokeStyle = "rgba(0,0,0,0.12)"; ctx.lineWidth = 0.02; ctx.beginPath(); ctx.ellipse(0, 0.36, 1.12, 0.16, 0, 0, Math.PI * 2); ctx.stroke();
+        glanz(ctx, -0.8, 0.12, 0.7, 0.1, 0.04);
+        // Abfluss hinten (Messingring) und Wasserhahn vorn
+        ctx.fillStyle = "#c99a2e"; ctx.beginPath(); ctx.ellipse(-1.17, -0.12, 0.04, 0.08, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.ellipse(-1.18, -0.12, 0.02, 0.05, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.06;
+        ctx.beginPath(); ctx.moveTo(0.98, 0.4); ctx.lineTo(0.98, 0.62); ctx.quadraticCurveTo(0.98, 0.72, 0.86, 0.72); ctx.lineTo(0.8, 0.68); ctx.stroke();
+        ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(0.98, 0.56, 0.05, 0, Math.PI * 2); ctx.fill();
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.26, 0.12, 0.46, 0.4], arme: [0.0, 0.42, 0.55, 0.42], ohneFedern: true };
     },
 
     sofa: function (ctx, a, z, fz) {
@@ -2463,7 +2552,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
     zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "", String(kmh), 0, skalaSchritte(vmaxKmh), "km/h");
     var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
-    var titel = fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    var titel = fahrt.werte.wanne ? "💧 Strahl" : fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
     if (G.dampf) umin = Math.round(G.rpm / 10) * 10;
     zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
                       G.elektro || G.turbine || G.dampf ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
@@ -2494,6 +2583,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
     W.zeichneGelaende(ctx, K, gel, welt, z);
     if (gel.schneeDecke) W.zeichneSchneeDecke(ctx, K, gel);
+    if (gel.wasserDecke) W.zeichneSchneeDecke(ctx, K, gel, gel.wasserDecke, true);
+    if (gel.dyn.length) W.zeichneZirkus(ctx, K, gel, z);
     if (gel.pfuetzen.length) W.zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
@@ -2509,7 +2600,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.schneeTank ? "schnee" : f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.schneeTank ? "schnee" : f.werte.wannenTank ? "wanne" : f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     if (f.roehre && f.roehre.z) {

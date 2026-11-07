@@ -287,6 +287,11 @@
       kamera.s *= quer ? 0.94 : 0.84;
       zielX = ch.x + klemme(ch.vx * Kc.vorausschau, -3, 3) - 1.0;
     }
+    if (fahrt.welt.wolken) {
+      // Wolkeninseln: Auto etwas höher im Bild und etwas weiter weg, damit man die nächste
+      // (meist tiefere) Wolke und die Lücke davor gut sieht
+      kamera.ankerY -= 0.1; kamera.s *= 0.92;
+    }
     if (fahrt.welt.decke) {
       // Höhle: etwas weiter weg und so hoch, dass die Decke oben im Bild bleibt –
       // aber das Auto rutscht nie tiefer als 80 % der Bildhöhe
@@ -422,6 +427,7 @@
       });
     }
     if (fahrt.werte.kufen) schneeKanone(dt);
+    if (fahrt.werte.wanne) wannenWasser(dt);
     if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
     if (fahrt.welt.schleimtropfen || fahrt.fz.flecken) schleimTropfen(dt);
@@ -446,7 +452,7 @@
                        t: 0, dauer: 0.9 + 0.6 * gl, r0: 0.12, r1: 0.45 + 0.6 * gl, farbe: gl > 0.3 ? "rgba(35,35,40,0.95)" : "rgba(90,90,100,0.8)",
                        alpha: gl > 0.3 ? 0.75 : 0.35, reibung: 1.3 });
       });
-    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.werte.kufen && !fahrt.getriebe.elektro && !fahrt.werte.turbine && !fahrt.getriebe.dampf) {   // Elektro: kein Auspuff
+    } else if (fahrt.gas > 0.4 && fahrt.tank > 0 && auspuffTakt <= 0 && !fahrt.werte.kufen && !fahrt.werte.wanne && !fahrt.getriebe.elektro && !fahrt.werte.turbine && !fahrt.getriebe.dampf) {   // Elektro: kein Auspuff
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
@@ -476,17 +482,44 @@
     kanonenTakt = 0.025;
     var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -0.42, ly = 1.3;
     var x0 = ch.x + ca * lx - sa * ly, y0 = ch.y + sa * lx + ca * ly, g = fahrt.welt.schwerkraft;
-    for (var k = 0; k < 3; k++) {
-      var xt = Z[0] + Math.random() * (Z[1] - Z[0]), yt = gel.hoeheBei(xt) + 0.1;
+    for (var k = 0; k < 2; k++) {
+      // Jede Flocke landet dort, wo die Kufenspitze nach IHRER Flugzeit ist (Ziel gilt für kanone.flug)
       var flug = fahrt.werte.kanone.flug * (0.85 + Math.random() * 0.3);
+      var xt = Z[0] + (flug - fahrt.werte.kanone.flug) * ch.vx + Math.random() * (Z[1] - Z[0]), yt = gel.hoeheBei(xt) + 0.1;
       partikel.neu({ art: "tropfen", x: x0, y: y0, t: 0, dauer: flug, schwer: 1, reibung: 0,
                      vx: (xt - x0) / flug, vy: (yt - y0 + 0.5 * g * flug * flug) / flug,
-                     r0: 0.06 + Math.random() * 0.07, farbe: k ? "rgba(255,255,255,0.95)" : "rgba(225,240,255,0.95)" });
+                     r0: 0.06 + Math.random() * 0.07, alpha: 1.8, farbe: k ? "rgba(255,255,255,0.95)" : "rgba(225,240,255,0.95)" });   // alpha > 1: verblasst erst kurz vor der Landung
     }
     if (Math.random() < 0.35) {                                 // Pulver staubt beim Auftreffen
       var xp = Z[0] + Math.random() * (Z[1] - Z[0]);
       partikel.neu({ art: "staub", x: xp, y: gel.hoeheBei(xp) + 0.15, vx: ch.vx * 0.3 + (Math.random() - 0.5), vy: 0.4 + Math.random() * 0.5,
                      t: 0, dauer: 0.5, r0: 0.08, r1: 0.3, farbe: "#ffffff", alpha: 0.7, reibung: 2 });
+    }
+  }
+  /* Badewanne: Wasserstrahl aus dem Abfluss (Tropfen fliegen nach hinten und fallen) und
+     Wasser, das beim Schwappen über den Rand läuft */
+  var wannenTakt = 0;
+  function wannenWasser(dt) {
+    var fz = fahrt.fz, ch = fz.chassis, ca = Math.cos(ch.a), sa = Math.sin(ch.a);
+    wannenTakt -= dt;
+    if (wannenTakt > 0) return;
+    wannenTakt = 0.03;
+    var s = fz.strahl || 0;
+    if (s > 0.08) {
+      var x0 = ch.x + ca * -1.22 - sa * -0.12, y0 = ch.y + sa * -1.22 + ca * -0.12;
+      for (var k = 0; k < 2; k++) {
+        var v = 2.5 + 3.5 * s + Math.random();
+        partikel.neu({ art: "tropfen", x: x0, y: y0, t: 0, dauer: 0.5 + Math.random() * 0.3, schwer: 1, reibung: 0.3,
+                       vx: ch.vx - ca * v + (Math.random() - 0.5) * 0.6, vy: ch.vy - sa * v + 0.4 + Math.random() * 0.6,
+                       r0: 0.05 + Math.random() * 0.05, alpha: 1.4, farbe: k ? "rgba(120,195,255,0.95)" : "rgba(220,240,255,0.95)" });
+      }
+    }
+    if (fz.schwapp && fahrt.zeit - fz.schwapp.zeit < 0.06) {
+      for (var j = 0; j < 4; j++) {
+        partikel.neu({ art: "tropfen", x: fz.schwapp.x, y: fz.schwapp.y, t: 0, dauer: 0.6 + Math.random() * 0.3, schwer: 1, reibung: 0.4,
+                       vx: ch.vx * 0.6 + fz.schwapp.seite * (0.5 + Math.random() * 1.5), vy: ch.vy * 0.4 + 0.5 + Math.random() * 1.5,
+                       r0: 0.06 + Math.random() * 0.07, alpha: 1.3, farbe: "rgba(110,190,250,0.95)" });
+      }
     }
   }
   /* Kufen: auf Schnee stiebt etwas Pulver, auf blankem Boden kratzen sie (Staub in Bodenfarbe) */
@@ -682,6 +715,9 @@
     if (def.puste) return { icon: "💨", name: "Puste", voll: "🍎 Mampf – neue Puste!", knapp: "💨 Die Puste wird knapp – rollen lassen oder einen Apfel sammeln!",
       knappSag: "Die Puste wird knapp!", leer: "Keine Puste mehr! 💨", ergebnis: "Keine Puste mehr – gut gelaufen!", garage: "die Puste 💨",
       info: "💨 Deine Puste<small>Laufen kostet Puste. Rollst du ohne Gas, kommt sie langsam zurück – und Äpfel 🍎 geben neue!</small>" };
+    if (def.wannenTank) return { icon: "🛁", name: "Badewasser", voll: "🪣 Wasser nachgefüllt!", knapp: "🛁 Das Badewasser wird knapp – sammle einen blauen Eimer!",
+      knappSag: "Das Badewasser wird knapp!", leer: "Wanne leer! 🛁", ergebnis: "Wanne leer – gut geplanscht!", garage: "das Badewasser 🛁",
+      info: "🛁 Dein Badewasser<small>Der Abfluss spritzt Wasser nach hinten und schiebt dich an. Bei Sprüngen schwappt es raus – sammle blaue Eimer 🪣!</small>" };
     if (def.schneeTank) return { icon: "❄️", name: "Schnee-Tank", voll: "❄️ Schnee nachgefüllt!", knapp: "❄️ Der Schnee wird knapp – sammle einen blauen Schnee-Kanister!",
       knappSag: "Der Schnee wird knapp!", leer: "Kein Schnee mehr! ❄️", ergebnis: "Schnee alle – gut gerodelt!", garage: "den Schnee-Tank ❄️",
       info: "❄️ Dein Schnee-Tank<small>Die Kanone schießt Schnee vor die Kufen, der Propeller schiebt. Sammle die blauen Schnee-Kanister!</small>" };
@@ -794,6 +830,15 @@
             partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 1.5, y: e.y + 0.3, vx: (Math.random() - 0.5) * 3, vy: -1 - Math.random() * 2,
                            t: 0, dauer: 0.8, r0: 0.08, r1: 0.3, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 1 });
           }
+          break;
+        case "wippe":                    // Zirkus: die Wippe schlägt auf
+          FF.Klang.spiele("landung", 0.3 + 0.5 * e.staerke);
+          break;
+        case "wolkeFall":                // Wolkeninseln: in die Lücke gefallen
+          schwebeText(ch.x, ch.y + 2, "Huiii! ☁️", "#ffffff", true);
+          break;
+        case "schwapp":                  // Badewanne: Wasser läuft über den Rand
+          if (e.menge > 0.03) FF.Klang.spiele("platsch", Math.min(1, e.menge * 8));
           break;
         case "platsch":                  // in eine Pfütze gefahren (Bauernhof: Matsch)
           var matsch = fahrt.welt.wasser && fahrt.welt.wasser.schlamm, schleim = matsch && fahrt.welt.wasser.schleim;
@@ -1106,13 +1151,14 @@
     $("hud-tank").classList.toggle("akku", !!fahrt.def.akku);
     $("hud-tank").classList.toggle("wasserstoff", !!fahrt.def.wasserstoff);
     $("hud-tank").classList.toggle("schnee", !!fahrt.def.schneeTank);
+    $("hud-tank").classList.toggle("wasserstoff", !!fahrt.def.wasserstoff || !!fahrt.def.wannenTank);
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
     $("hud-geist-strecke").hidden = !(endlos && geist);
     $("hud-fortschritt-auto").src = kindBild(S.aktiv, 40, 40, "normal", true);
     $("hud-fortschritt-geist").hidden = !geist || !!endlos;
     if (geist) $("hud-fortschritt-geist").src = kindBild(geist.kind, 40, 40, "normal", true);
-    FF.Klang.motorStart(fahrt.def.klang);
+    FF.Klang.motorStart(fahrt.def.klang, fahrt.werte.motor.vmax);
     var w = fahrt.welt;
     // Kaum Schwerkraft: schon wenig Gas hebt die Nase (besonders beim Trecker) – gleich sagen
     var mondHinweis = w.schwerkraft < 3 ? " Auf dem Mond nur sanft Gas geben!" : "";
@@ -2059,6 +2105,14 @@
     var nA = 0, rA = 0;
     w.raeder.forEach(function (r) { if (r.antrieb) { nA++; rA += r.r; } });
     rA /= nA;
+    if (w.wanne) return [                                     // Badewanne: der Wasserstrahl schiebt
+      ["🏎️ Tempo", w.wanne.vmax / 34],
+      ["💪 Kraft", w.wanne.schub / 9.81 / 1.1],
+      ["🛞 Grip", w.grip / 1.9],
+      ["🌀 Federung", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
+      ["🛁 Badewasser", w.tankSekunden / 70],
+      ["🤸 Saltos", w.luftsteuerung / 9]
+    ];
     if (w.kufen) return [                                     // Schnee-Schlitten: keine angetriebenen Räder
       ["🏎️ Tempo", w.propeller.vmax / 34],
       ["💪 Kraft", w.propeller.schub / 9.81 / 1.1],
@@ -2106,6 +2160,8 @@
       if (key === "tank" && def.puste) U = { name: "Puste", icon: "💨", text: "Mehr Puste – weiter laufen", stufen: U.stufen };
       if (key === "motor" && def.propeller) U = { name: "Propeller", icon: "🌀", text: "Größerer Propeller – schiebt kräftiger", stufen: U.stufen };
       if (key === "motor" && def.fussAntrieb) U = { name: "Turnschuhe", icon: "👟", text: "Schnellere Füße – mehr Kraft beim Laufen", stufen: U.stufen };
+      if (key === "tank" && def.wannenTank) U = { name: "Badewasser", icon: "🛁", text: "Größere Wanne – mehr Wasser", stufen: U.stufen };
+      if (key === "motor" && def.wanne) U = { name: "Abfluss", icon: "🚿", text: "Weiterer Abfluss – kräftigerer Strahl", stufen: U.stufen };
       if (key === "tank" && def.schneeTank) U = { name: "Schnee-Tank", icon: "❄️", text: "Mehr Schnee im Tank – weiter rodeln", stufen: U.stufen };
       if (key === "tank" && def.wasserstoff) U = { name: "H₂-Tank", icon: "💧", text: "Größere Wasserstoff-Tanks – weiter fahren", stufen: U.stufen };
       var preis = voll ? 0 : upgradePreis(def, key, stufe);

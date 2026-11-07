@@ -407,6 +407,13 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.lineTo(-u * 0.22, 2); ctx.lineTo(-u * 0.34, 2); ctx.lineTo(-u * 0.38, -u * 0.34); ctx.closePath(); ctx.fill();
       ctx.restore();
     } },
+    zelte: { abst: 40, male: function (ctx, x, y, s, R) {       // Zirkuszelte: Spitzdach mit Fähnchen
+      var b = s * (0.5 + 0.35 * R()), hD = s * (0.3 + 0.2 * R()), hW = s * 0.22;
+      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x - b, y - hW); ctx.quadraticCurveTo(x - b * 0.4, y - hW - hD * 0.5, x, y - hW - hD);
+      ctx.quadraticCurveTo(x + b * 0.4, y - hW - hD * 0.5, x + b, y - hW); ctx.lineTo(x + b, y + 2); ctx.closePath(); ctx.fill();
+      ctx.fillRect(x - s * 0.008, y - hW - hD - s * 0.12, s * 0.016, s * 0.12);
+      ctx.beginPath(); ctx.moveTo(x, y - hW - hD - s * 0.12); ctx.lineTo(x + s * 0.08, y - hW - hD - s * 0.09); ctx.lineTo(x, y - hW - hD - s * 0.06); ctx.fill();
+    } },
     riesenrad: { abst: 46, male: function (ctx, x, y, s, R) {
       var r = s * (0.45 + 0.2 * R()), cy = y - r - s * 0.12, alt = ctx.strokeStyle;
       ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.max(1.5, s * 0.02);
@@ -707,6 +714,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var xm = k * RASTER, s = 0, w = 0;
       for (var d = -120; d <= 120; d += 3) {
         var xx = Math.max(gel.x0, Math.min(xEnde, xm + d)), g = 1 - Math.abs(d) / 124;
+        if (gel.wolken.length && !gel.wolkeBei(xx)) continue;     // Wolkeninseln: die Lücken zählen nicht
         s += g * gel.hoeheBei(xx); w += g;
       }
       if (xm + 120 <= xEnde) M[k] = s / w;
@@ -746,7 +754,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var bodenTiefst = K.h;
     if (gel) {                                       // vorderste Ebene: nur bis zum tiefsten Bodenpunkt im Bild
       var b = sichtbereich(K, gel); bodenTiefst = -Infinity;
-      for (var j = b[0]; j <= b[1]; j += 4) bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[j]));
+      for (var j = b[0]; j <= b[1]; j += 4) if (!gel.wolken.length || gel.wolkeBei(gel.x0 + j * gel.dx)) bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[j]));
       bodenTiefst = Math.max(bodenTiefst, sy(K, gel.h[b[1]]));
     }
     var lagen = ebenen.map(function (E) {
@@ -891,9 +899,121 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* =========================================================================
      2) BODEN, PFÜTZEN, HÜPFPILZE
      ========================================================================= */
+  /* Wolkeninseln: jede Wolke als bauschiger Körper unter ihrer Fahrfläche (Oberkante = das
+     Höhenprofil, sinkt also mit). Je tiefer sie gesunken ist, desto grauer wird sie, und unter
+     einer belasteten Wolke nieselt es – so sieht man: weiter, weiter! */
+  function zeichneWolkenInseln(ctx, K, gel, welt, zeit) {
+    var b = sichtbereich(K, gel), L = gel.wolken, h = gel.h, dx = gel.dx, x0g = gel.x0;
+    var w, oben = function (x) { return gel.hoeheBei(Math.max(w.x0 + 0.6, Math.min(w.x1 - 0.6, x))); };   // nie in die Lücke hinein abtasten
+    for (var n = 0; n < L.length; n++) {
+      w = L[n];
+      if (w.i0 === undefined || w.x1 < b[2] - 4 || w.x0 > b[3] + 4) continue;
+      var xa = Math.max(w.x0, b[2] - 4), xe = Math.min(w.x1, b[3] + 4);
+      var ia = Math.max(w.i0, Math.ceil((xa - x0g) / dx)), ie = Math.min(w.i1, Math.floor((xe - x0g) / dx));
+      var T = 1.9, grau = Math.min(1, w.sink / 2.5);
+      ctx.beginPath();
+      var yL = oben(x0g + ia * dx), yR = oben(x0g + ie * dx);
+      if (w.x0 >= xa) {                                             // linke Rundung
+        ctx.moveTo(sx(K, w.x0 - 0.2), sy(K, yL - T * 0.85));
+        ctx.quadraticCurveTo(sx(K, w.x0 - 1.0), sy(K, yL - 0.35), sx(K, x0g + ia * dx), sy(K, yL));
+      } else ctx.moveTo(sx(K, xa), sy(K, oben(xa) - T));
+      for (var i = ia; i <= ie; i += K.s < 14 ? 2 : 1) ctx.lineTo(sx(K, x0g + i * dx), sy(K, h[i]));
+      ctx.lineTo(sx(K, x0g + ie * dx), sy(K, yR));
+      if (w.x1 <= xe) ctx.quadraticCurveTo(sx(K, w.x1 + 1.0), sy(K, yR - 0.35), sx(K, w.x1 + 0.2), sy(K, yR - T * 0.85));
+      else ctx.lineTo(sx(K, xe), sy(K, oben(xe) - T));
+      // Unterseite: Bäusche von rechts nach links
+      var xr = Math.min(w.x1, xe), xl = Math.max(w.x0, xa), schritt = 2.4;
+      for (var x = xr; x > xl; x -= schritt) {
+        var xn = Math.max(xl, x - schritt), xm = (x + xn) / 2, k = FF.rauschen(xm * 0.37, w.form);
+        ctx.quadraticCurveTo(sx(K, xm), sy(K, oben(xm) - T - 0.7 - 0.35 * k), sx(K, xn), sy(K, oben(xn) - T));
+      }
+      ctx.closePath();
+      var yo = sy(K, Math.max(yL, yR) + 0.3), yu = sy(K, Math.min(yL, yR) - T - 1.2);
+      var gr = ctx.createLinearGradient(0, yo, 0, yu);
+      gr.addColorStop(0, mische("#ffffff", "#c3cad8", grau * 0.8));
+      gr.addColorStop(1, mische("#d6e4f7", "#8f9bb3", grau));
+      ctx.fillStyle = gr; ctx.fill();
+      ctx.strokeStyle = "rgba(95,135,195,0.85)"; ctx.lineWidth = Math.max(1.5, 0.07 * K.s); ctx.stroke();
+      // heller Rand oben (Fahrfläche gut erkennbar)
+      ctx.beginPath();
+      for (i = ia; i <= ie; i += K.s < 14 ? 2 : 1) { var X = sx(K, x0g + i * dx), Y = sy(K, h[i]) + 0.06 * K.s; if (i === ia) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); }
+      ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 0.14 * K.s; ctx.lineCap = "round"; ctx.stroke();
+      // Niesel unter einer belasteten, sinkenden Wolke
+      if (w.last && w.sink > 0.15) {
+        ctx.strokeStyle = "rgba(120,160,215,0.6)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
+        for (var j = 0; j < 14; j++) {
+          var xt = xl + (xr - xl) * ((j * 0.137 + 0.07) % 1), ph = (zeit * 1.6 + j * 0.31) % 1;
+          var yt = oben(xt) - T - 0.4 - ph * 2.2;
+          ctx.beginPath(); ctx.moveTo(sx(K, xt), sy(K, yt)); ctx.lineTo(sx(K, xt - 0.05), sy(K, yt - 0.35)); ctx.stroke();
+        }
+      }
+    }
+  }
+
+  /* Zirkus: Hochseil-Brücken (Masten, Bretter, Halteseile, Netz in der Grube) und Wippen
+     (Bock mit Stern, gestreiftes Brett). Die Fahrfläche kommt aus gel.seilY / gel.wippeY. */
+  function zeichneZirkus(ctx, K, gel, zeit) {
+    var b = sichtbereich(K, gel);
+    for (var n = 0; n < gel.dyn.length; n++) {
+      var D = gel.dyn[n];
+      if (D.i0 < 0 || D.b < b[2] - 2 || D.a > b[3] + 2) continue;
+      if (D.typ === "seil") {
+        var xa = D.a + 0.6, xb = D.b - 0.6, mH = 2.6, x, i, N = 24;
+        // Netz unten in der Grube
+        var yN = Math.min(gel.hoeheBildBei((xa + xb) / 2) + 0.9, gel.hoeheBildBei(xa) - 2.2);
+        ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1, 0.03 * K.s);
+        ctx.beginPath();
+        for (x = xa + 0.6; x < xb - 0.6; x += 0.7) { ctx.moveTo(sx(K, x), sy(K, yN)); ctx.lineTo(sx(K, x + 0.35), sy(K, yN - 0.35)); ctx.lineTo(sx(K, x + 0.7), sy(K, yN)); }
+        ctx.moveTo(sx(K, xa + 0.6), sy(K, yN)); ctx.lineTo(sx(K, xb - 0.6), sy(K, yN)); ctx.stroke();
+        // Masten (rot-weiß gestreift) mit Stern oben
+        [xa, xb].forEach(function (xm, k) {
+          var y0 = gel.hoeheBildBei(xm), X = sx(K, xm), w = 0.22 * K.s;
+          for (var j = 0; j < 6; j++) {
+            ctx.fillStyle = j % 2 ? "#ffffff" : "#e8453c";
+            ctx.fillRect(X - w / 2, sy(K, y0 + mH * (j + 1) / 6), w, mH / 6 * K.s + 1);
+          }
+          ctx.fillStyle = "#ffd23f"; ctx.beginPath();
+          for (var z = 0; z < 10; z++) { var wz = -Math.PI / 2 + z * Math.PI / 5, rz = (z % 2 ? 0.13 : 0.3) * K.s; ctx.lineTo(X + Math.cos(wz) * rz, sy(K, y0 + mH + 0.25) + Math.sin(wz) * rz); }
+          ctx.fill();
+        });
+        // Bretter auf dem Tragseil
+        ctx.lineCap = "butt";
+        for (i = 0; i < N; i++) {
+          var u0 = xa + (xb - xa) * i / N + 0.04, u1 = xa + (xb - xa) * (i + 1) / N - 0.04;
+          ctx.strokeStyle = i % 2 ? "#b77a3c" : "#c98d4f"; ctx.lineWidth = 0.16 * K.s;
+          ctx.beginPath(); ctx.moveTo(sx(K, u0), sy(K, gel.seilY(D, u0) - 0.08)); ctx.lineTo(sx(K, u1), sy(K, gel.seilY(D, u1) - 0.08)); ctx.stroke();
+        }
+        // Halteseil oben (hängt mit) und senkrechte Hänger
+        ctx.strokeStyle = "#f3e6c4"; ctx.lineWidth = Math.max(1.5, 0.05 * K.s);
+        ctx.beginPath();
+        for (i = 0; i <= N; i++) { x = xa + (xb - xa) * i / N; var yt = gel.seilY(D, x) + 1.0 + 0.8 * Math.pow(Math.abs(2 * i / N - 1), 2); if (i) ctx.lineTo(sx(K, x), sy(K, yt)); else ctx.moveTo(sx(K, x), sy(K, gel.hoeheBildBei(xa) + mH)); }
+        ctx.lineTo(sx(K, xb), sy(K, gel.hoeheBildBei(xb) + mH)); ctx.stroke();
+        ctx.lineWidth = Math.max(1, 0.025 * K.s); ctx.beginPath();
+        for (i = 2; i < N; i += 2) { x = xa + (xb - xa) * i / N; var ys = gel.seilY(D, x); ctx.moveTo(sx(K, x), sy(K, ys)); ctx.lineTo(sx(K, x), sy(K, ys + 1.0 + 0.8 * Math.pow(Math.abs(2 * i / N - 1), 2))); }
+        ctx.stroke();
+      } else {
+        // Wippe: Bock (Trapez) und Brett
+        var yB = gel.hoeheBildBei(D.xp), Xp = sx(K, D.xp), c = D.Lw / 2 * Math.cos(D.th), sn = D.Lw / 2 * Math.sin(D.th);
+        ctx.fillStyle = "#2f6fd6"; ctx.beginPath();
+        ctx.moveTo(Xp - 0.7 * K.s, sy(K, yB)); ctx.lineTo(Xp + 0.7 * K.s, sy(K, yB)); ctx.lineTo(Xp + 0.22 * K.s, sy(K, D.yP - 0.05)); ctx.lineTo(Xp - 0.22 * K.s, sy(K, D.yP - 0.05)); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#ffd23f"; ctx.beginPath();
+        var yS = sy(K, yB + (D.yP - yB) * 0.42);
+        for (var z2 = 0; z2 < 10; z2++) { var w2 = -Math.PI / 2 + z2 * Math.PI / 5, r2 = (z2 % 2 ? 0.1 : 0.24) * K.s; ctx.lineTo(Xp + Math.cos(w2) * r2, yS + Math.sin(w2) * r2); }
+        ctx.fill();
+        ctx.save(); ctx.translate(Xp, sy(K, D.yP)); ctx.rotate(-D.th);
+        var L = D.Lw * K.s, dB = 0.22 * K.s;
+        for (var k2 = 0; k2 < 8; k2++) { ctx.fillStyle = k2 % 2 ? "#ffd23f" : "#e8453c"; ctx.fillRect(-L / 2 + k2 * L / 8, 0, L / 8 + 1, dB); }   // Oberkante = Fahrfläche
+        ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = Math.max(1, 0.03 * K.s); ctx.strokeRect(-L / 2, 0, L, dB);
+        ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.arc(0, 0, 0.12 * K.s, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+
   function zeichneGelaende(ctx, K, gel, welt, zeit) {
+    if (welt.wolken) { zeichneWolkenInseln(ctx, K, gel, welt, zeit); return; }
     var b = sichtbereich(K, gel), i0 = b[0], i1 = b[1];
-    var f = welt.farben, h = gel.h, dx = gel.dx, x0 = gel.x0;
+    var f = welt.farben, h = gel.hBild || gel.h, dx = gel.dx, x0 = gel.x0;   // hBild: Boden ohne Brücken/Wippen
     var schritt = K.s < 14 ? 2 : 1;
 
     // Boden-Fläche
@@ -1936,11 +2056,12 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Schnee-Schlitten: die von der Schneekanone gelegte Schneedecke (25-cm-Raster, siehe
      fahrt.js schneeAnlegen) als weißes, leicht welliges Band auf dem Boden. Pro Bild nur die
      sichtbaren Zellen; zusammenhängende Stücke werden ein einziger Pfad. */
-  function zeichneSchneeDecke(ctx, K, gel) {
-    var D = gel.schneeDecke; if (!D) return;
+  function zeichneSchneeDecke(ctx, K, gel, raster, wasser) {
+    var D = raster || gel.schneeDecke; if (!D) return;
     var b = sichtbereich(K, gel), Z = D.zelle, V = D.versatz, dat = D.daten;
     var j0 = Math.max(0, Math.floor(b[2] / Z) + V), j1 = Math.min(dat.length - 1, Math.floor(b[3] / Z) + V);
-    var dick = function (j) { return 0.1 + 0.05 * (FF.rauschen(j * 0.9, 31) * 0.5 + 0.5); };
+    var dick = wasser ? function (j) { return 0.04 + 0.02 * (FF.rauschen(j * 0.9, 31) * 0.5 + 0.5); }
+                      : function (j) { return 0.1 + 0.05 * (FF.rauschen(j * 0.9, 31) * 0.5 + 0.5); };
     ctx.lineJoin = "round";
     for (var j = j0; j <= j1; j++) {
       if (dat[j] !== 1) continue;
@@ -1950,13 +2071,13 @@ var FF = globalThis.FF = globalThis.FF || {};
       for (k = s0; k <= s1; k++) { x = (k - V) * Z; ctx.lineTo(sx(K, x), sy(K, gel.hoeheBei(x) + (k === s0 || k === s1 ? 0.02 : dick(k)))); }
       for (k = s1; k >= s0; k--) { x = (k - V) * Z; ctx.lineTo(sx(K, x), sy(K, gel.hoeheBei(x) - 0.06)); }
       ctx.closePath();
-      ctx.fillStyle = "#fbfdff"; ctx.fill();
-      ctx.strokeStyle = "rgba(150,190,230,0.75)"; ctx.lineWidth = Math.max(1, 0.03 * K.s); ctx.stroke();
+      ctx.fillStyle = wasser ? "rgba(90,170,235,0.7)" : "#fbfdff"; ctx.fill();          // Wasser: halb durchsichtige Pfütze
+      ctx.strokeStyle = wasser ? "rgba(225,245,255,0.9)" : "rgba(150,190,230,0.75)"; ctx.lineWidth = Math.max(1, 0.03 * K.s); ctx.stroke();
     }
   }
 
   FF.GrafikWelt = {
-    zeichneSchneeDecke: zeichneSchneeDecke,
+    zeichneSchneeDecke: zeichneSchneeDecke, zeichneZirkus: zeichneZirkus,
     zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
