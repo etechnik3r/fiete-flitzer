@@ -728,6 +728,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "band":                     // Förderband: Rattern, auf- oder absteigend
         for (var bi = 0; bi < 5; bi++) ton(wert ? 300 + bi * 60 : 540 - bi * 60, bi * 0.06, 0.05, "square", 0.04);
         break;
+      case "daten":                    // Datenstrom: schnelles Computer-Piepen (Bits), aufsteigend
+        [880, 1320, 990, 1760, 1175, 1568, 2093].forEach(function (f, i) { ton(f, i * 0.045, 0.04, "square", 0.035); });
+        rauschen(0, 0.35, 0.05, 3000);
+        break;
+      case "enter":                    // Enter-Knopf: Klick + Boing nach oben
+        ton(1800, 0, 0.03, "square", 0.07); ton(900, 0.03, 0.03, "square", 0.05);
+        ton(200, 0.05, 0.45, "square", 0.08, 900); ton(400, 0.08, 0.35, "triangle", 0.1, 1600);
+        break;
       case "schwebe":                  // schwerelos: sanft aufsteigender Klang
         ton(330, 0, 0.9, "sine", 0.12, 990); ton(495, 0.08, 0.8, "triangle", 0.05, 1480); ton(1320, 0.3, 0.5, "sine", 0.04);
         break;

@@ -991,30 +991,11 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     /* Seifenkiste: Umzugskarton auf vier Rädern (vorne und hinten je eins sichtbar),
        Klebeband kreuz und quer, mit Filzstift bemalt, vorne ein Seil zum Lenken.
-       Unten laufen die Füße des Kindes (fz.laeuft, Schrittphase fz.lauf); ohne Gas
-       liegen die Füße vorne auf der Kante (Füße hoch!). */
+       Das Kind läuft unten im Karton (fz.laeuft), die Füße sieht man aber nicht
+       (Version 41: Beine und Schuhe entfernt). */
     seifenkiste: function (ctx, a, z, fz) {
-      var o = outfitVon(a), pappe = "#c9965a", pappeDunkel = "#9c6f3c", laeuft = fz && fz.laeuft, ph = fz ? fz.lauf || 0 : 0;
-      var schuh = function (x, y, w) {
-        ctx.save(); ctx.translate(x, y); ctx.rotate(w || 0);
-        ctx.fillStyle = "#e8453c"; rundRechteck(ctx, -0.07, -0.05, 0.2, 0.09, 0.04); ctx.fill();
-        ctx.fillStyle = "#ffffff"; ctx.fillRect(-0.07, -0.05, 0.2, 0.025);
-        ctx.restore();
-      };
-      var bein = function (fx, fy, hinten) {
-        var hx = -0.05, hy = 0.1, kx = (hx + fx) / 2 + 0.12, ky = (hy + fy) / 2;
-        ctx.strokeStyle = hinten ? dunkel(o.seiten || o.anzug, 0.25) : (o.seiten || o.anzug); ctx.lineWidth = 0.12; ctx.lineCap = "round"; ctx.lineJoin = "round";
-        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
-        schuh(fx, fy);
-      };
-      var hinten = function () {
-        if (!laeuft) return;
-        // Laufschritt: Fuß vorne-unten → hinten → anheben → nach vorn (zwei Beine gegenläufig)
-        [ph + Math.PI, ph].forEach(function (p, n) {
-          var fx = 0.08 + 0.34 * Math.cos(p), fy = -0.47 + Math.max(0, Math.sin(p)) * 0.2;
-          bein(fx, fy, n === 0);
-        });
-      };
+      var pappe = "#c9965a", pappeDunkel = "#9c6f3c";
+      var hinten = function () {};
       var kiste = function () { ctx.beginPath(); ctx.moveTo(-0.98, -0.12); ctx.lineTo(0.98, -0.12); ctx.lineTo(1.0, 0.36); ctx.lineTo(-0.98, 0.4); ctx.closePath(); };
       var vorne = function () {
         // Achsen (Besenstiel) unter dem Karton
@@ -1049,13 +1030,11 @@ var FF = globalThis.FF = globalThis.FF || {};
         // Lenk-Seil vom Kind zur Vorderachse, Kartonrolle als Hupe
         ctx.strokeStyle = "#f3e6c4"; ctx.lineWidth = 0.025;
         ctx.beginPath(); ctx.moveTo(0.22, 0.5); ctx.quadraticCurveTo(0.6, 0.35, 0.72, -0.1); ctx.stroke();
-        // Füße hoch, wenn das Kind nicht läuft: Schuhe schauen vorne über die Kante
-        if (!laeuft) { schuh(0.98, 0.42, -0.5); schuh(0.92, 0.47, -0.6); }
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.36, 0.22, 0.42, 0.34], arme: [-0.05, 0.48, 0.22, 0.5] };
     },
 
-    /* E-Scooter: Trittbrett mit Griffband, hinten Schutzblech, vorne die Lenkstange
+    /* E-Scooter: Trittbrett mit Griffband, vorne die Lenkstange
        mit Lenker und Licht. Das Kind steht drauf; in der Luft zeigt es Stunts
        (fz.stunt = { art, u }: u 0 = steht, 1 = Trick ganz ausgeführt). */
     scooter: function (ctx, a, z, fz) {
@@ -1081,9 +1060,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       };
       var deck = function () { rundRechteck(ctx, -0.62, -0.38, 1.22, 0.08, 0.04); };
       var vorne = function () {
-        // Schutzblech hinten, Trittbrett, Akku darunter
-        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.05;
-        ctx.beginPath(); ctx.arc(-0.5, -0.42, 0.22, Math.PI * 1.05, Math.PI * 1.75, false); ctx.stroke();
+        // Trittbrett, Akku darunter (Version 41: ohne Schutzblech-Bogen am Hinterrad)
         karosserie(ctx, a, z, deck, -0.62, 0.6, -0.38, -0.3);
         ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, -0.55, -0.31, 1.05, 0.025, 0.01); ctx.fill();          // Griffband
         ctx.fillStyle = "#3a4152"; rundRechteck(ctx, -0.3, -0.47, 0.6, 0.09, 0.03); ctx.fill();

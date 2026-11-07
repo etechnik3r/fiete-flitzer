@@ -816,8 +816,16 @@
           FF.Klang.spiele("roehreAus");
           break;
         case "boing":                    // Hüpfpilz
-          FF.Klang.spiele("boing");
           var tStil = fahrt.welt.trampolinStil;
+          if (tStil === "taste") {                        // Datenwelt: Enter-Knopf
+            FF.Klang.spiele("enter");
+            schwebeText(e.x, e.y + 2.2, "Enter! ⏎", "#9ff6ff", true);
+            funkeln(e.x, e.y + 0.8, "#9ff6ff", 8);
+            setzeAusdruck("freude", 2.5);
+            if (ersteMale("tipp-enter", 2)) { tipp("⏎ Enter gedrückt! In der Luft mit Gas und Bremse die Nase gerade halten", 4500, "Enter!"); spruchBis = zeit + 3; }
+            break;
+          }
+          FF.Klang.spiele("boing");
           schwebeText(e.x, e.y + 2.2, tStil === "schleim" ? "Wabbel! 🟢" : tStil === "matte" ? "Boing! 🤸" : "Boing! 🍄", tStil === "schleim" ? "#c6ff7a" : "#ffd23f", true);
           funkeln(e.x, e.y + 0.8, "#ffffff", 8);
           setzeAusdruck("freude", 2.5);
@@ -899,6 +907,12 @@
             FF.Klang.spiele("schlurp", 0.8);
             schwebeText(ch.x, ch.y + 2, "Schleimbach! 🟢", "#c6ff7a", true);
             if (ersteMale("tipp-schleimbach", 2)) { tipp("🟢 Der Schleimbach fließt dir entgegen und klebt – gib kräftig Gas!", 4000, "Schleimbach! Gib Gas!"); spruchBis = zeit + 3; }
+            break;
+          }
+          if (fahrt.welt.datenstrom) {                    // Datenwelt: Datenstrom statt Förderband
+            FF.Klang.spiele("daten");
+            schwebeText(ch.x, ch.y + 2, "Datenstrom! 💾", "#9ff6ff", true);
+            if (ersteMale("tipp-datenstrom", 2)) { tipp("💾 Der Datenstrom nimmt dich mit – mit Gas bist du superschnell!", 4000, "Datenstrom! Ab geht's!"); spruchBis = zeit + 3; }
             break;
           }
           FF.Klang.spiele("band", e.v > 0);
@@ -2334,10 +2348,11 @@
     if (w.comic) m.push("💥 Comic-Blasen");
     if (w.schleimbach) m.push("🟢 Schleimbäche");
     if (w.schleimtropfen) m.push("💚 Schleimtropfen");
+    if (w.datenstrom) m.push("💾 Datenströme");
     if (g.looping) m.push("🎢 Loopings");
     if (g.luecke) m.push("🕳️ Abgründe");
-    if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : w.trampolinStil === "schleim" ? "🟩 Wackelschleim" : "🍄 Hüpfpilze");
-    if (g.band && !w.schleimbach) m.push("⏩ Förderbänder");
+    if (g.trampolin) m.push(w.trampolinStil === "matte" ? "🤸 Trampoline" : w.trampolinStil === "schleim" ? "🟩 Wackelschleim" : w.trampolinStil === "taste" ? "⏎ Enter-Knöpfe" : "🍄 Hüpfpilze");
+    if (g.band && !w.schleimbach && !w.datenstrom) m.push("⏩ Förderbänder");
     if (g.schwebe) m.push("✨ Schwebe-Säulen");
     if (g.katapult) m.push("🎯 Katapulte");
     if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : "🧱 Bausteine fliegen");

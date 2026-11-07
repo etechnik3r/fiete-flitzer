@@ -1390,6 +1390,36 @@ FF.CONFIG = {
                   abstandElemente: 26 },
       tankAbstand: 240, muenzAbstand: 22,
       level: [ { laenge: 800, seed: 3201 }, { laenge: 1060, seed: 3202 }, { laenge: 1320, seed: 3203 }, { laenge: 1580, seed: 3204 } ]
+    },
+    {
+      /* Datenwelt (Version 41): mitten im Computer. Der Boden ist eine Platine mit
+         leuchtenden Leiterbahnen, auf denen Lichtpunkte flitzen, Einsen und Nullen
+         rieseln vom Himmel, hinten stehen Server-Schränke, Netzwerk-Knoten und Chips.
+           • Datenströme (Bau-Element "band" mit welt.datenstrom): leuchtende Datenleitungen,
+             die immer IN Fahrtrichtung fließen (7,5–10,5 m/s) – sie schieben dich an
+           • Enter-Knöpfe (Trampoline im Stil "taste"): große leuchtende Knöpfe mit ⏎,
+             draufdrücken schießt dich hoch
+           • Pixel-Sonne mit Ladekreis, Pixel-Wolken; freundliche Roboter, Chips,
+             Server und Bildschirme als Deko */
+      id: "daten", name: "Datenwelt", emoji: "💾", hinweis: "Im Computer: Datenströme schieben dich, Enter-Knöpfe schießen dich hoch!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.016, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#060a26", "#14467c"], berge: ["#2a5a94", "#1a3d6e"],
+        boden: ["#0f3d4a", "#061a26"], oberflaeche: "#14707a", kante: "#46f0ff", punkte: "#0b2c38",
+        wolken: "rgba(120,220,255,0.35)", fenster: "#46f0ff"
+      },
+      sonne: "sonne", sonnenArt: "pixel", wetter: "binaer", wolkenStil: "pixel",
+      datenstrom: true, trampolinStil: "taste",
+      tipp: ["💾 Datenströme schieben dich schneller voran – und drück mit dem Auto auf die Enter-Knöpfe, dann fliegst du hoch!", "Datenstrom! Ab ins Internet!"],
+      deko: ["@chip:1.0", "@roboter:1.3", "@server:2.2", "💾:0.7", "@monitor:1.3", "@chip:1.4", "@roboter:1.0", "🖱️:0.6", "@server:1.8",
+             "📡:1.2", "@chip:0.8", "@monitor:1.0", "@roboter:1.6", "🛰️:1.1:4.2"],
+      beiwerk: ["@chip:0.35", "@chip:0.45"], kulisse: ["netz", "server", "platine"],
+      gelaende: { amp: 6.5, welle: 42, holperAmp: 0.1, holperWelle: 7, trend: 0.016,
+                  maxAuf: 29, maxAb: 40, schanzen: 1.2, buckel: 0.8, steil: 0.8, taeler: 0.8, berg: 0.8, sprung: 1.1, wellen: 0.8, klippe: 0.8, rampe: 1.0, kuppe: 0.8, stufe: 1.2,
+                  band: 1.8, trampolin: 0.8, wildBasis: 0.4,
+                  abstandElemente: 25 },
+      tankAbstand: 280, muenzAbstand: 22,
+      level: [ { laenge: 820, seed: 3301 }, { laenge: 1080, seed: 3302 }, { laenge: 1340, seed: 3303 }, { laenge: 1600, seed: 3304 } ]
     }
   ],
 
@@ -1412,6 +1442,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "41", titel: "Die Datenwelt", punkte: [
+      "💾 Neue Welt Datenwelt: mitten im Computer – Einsen und Nullen rieseln vom Himmel, Roboter und Chips schauen zu",
+      "⏩ Datenströme nehmen dich mit und machen dich superschnell",
+      "⏎ Große Enter-Knöpfe: draufdrücken und hoch in die Luft!",
+      "📦 Seifenkiste ohne sichtbare Füße, 🛴 E-Scooter ohne schwarzen Bogen am Hinterrad" ] },
     { version: "40", titel: "Die ganze Familie fährt mit", punkte: [
       "👨‍👩‍👧‍👦 Bis zu fünf eigene Charaktere: Nach jedem neuen gibt es wieder ein ＋",
       "🥊 Zu zweit: Bei „Wer gegen wen?“ suchst du aus, wer gegeneinander fährt" ] },
