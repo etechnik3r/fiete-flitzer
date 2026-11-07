@@ -341,6 +341,18 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
     }
+    // Puste (Seifenkiste): Wer ohne Gas rollt, verschnauft – die Puste kommt langsam zurück
+    if (w.puste && this.zustand === "fahrt" && this.tank > 0 && this.gas < 0.05 && st.vorwaerts > 2) {
+      var vorP = this.tank;
+      this.tank = Math.min(1, this.tank + w.puste.erholung / w.tankSekunden * h);
+      this.geladen += this.tank - vorP;
+      if (this.geladen >= 0.04) { this.melde("geladen", { anteil: this.geladen }); this.geladen = 0; }
+    }
+    // Füße der Seifenkiste (nur Grafik): Laufschritt nach zurückgelegtem Weg
+    if (w.fussAntrieb) {
+      fz.lauf = (fz.lauf || 0) + Math.abs(st.vorwaerts) * h * 2.2;
+      fz.laeuft = this.gas > 0.1 && st.radKontakte > 0 && this.tank > 0;
+    }
     // Rekuperation (Elektroauto): Bremsleistung P = M·ω fließt zum Teil zurück in den Akku –
     // beim Bremsen und beim Rollen ohne Pedal (dann bremst der Motor als Generator)
     if (w.rekuperation && this.zustand === "fahrt" && this.tank > 0 && (this.bremse > 0.05 || this.gas < 0.01) &&
@@ -410,9 +422,10 @@ var FF = globalThis.FF = globalThis.FF || {};
         R.motorZiel = R.wMax * S.rueckwaertsTempo;
         R.motorMax = R.antrieb ? Tkurve * S.rueckwaertsKraft * (w.rueckMal || 1) * this.bremse / nA : 0;
       } else {
-        // ohne Pedal: Motorbremse – beim Elektroauto stärker (Generator lädt den Akku)
+        // ohne Pedal: Motorbremse – beim Elektroauto stärker (Generator lädt den Akku).
+        // Seifenkiste (freilauf): rollt ganz frei
         R.motorZiel = 0;
-        R.motorMax = R.antrieb && motorAn ? Tmax * (w.rekuperation ? S.motorBremseElektro : S.motorBremse) / nA : 0;
+        R.motorMax = R.antrieb && motorAn && !w.freilauf ? Tmax * (w.rekuperation ? S.motorBremseElektro : S.motorBremse) / nA : 0;
       }
     }
     // Anhänger (Dampf-Lok): rollen frei, beim Bremsen bremsen sie mit

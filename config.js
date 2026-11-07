@@ -442,7 +442,7 @@ FF.CONFIG = {
     {
       /* Donner-Truck (Version 37): amerikanische Zugmaschine – lange Motorhaube, Chromgrill,
          Schlafkabine, zwei hohe Auspuffrohre mit schwarzem Rauch. Kräftig, aber träge:
-           • niedrige Höchstgeschwindigkeit (gut 48 km/h), aber riesiges Drehmoment, das bis
+           • niedrige Höchstgeschwindigkeit (gut 41 km/h, Version 39: −15 %), aber riesiges Drehmoment, das bis
              fast zum Höchsttempo anliegt (eck 0,9) – bergauf verliert er kaum Tempo
            • matschFest: Pfützen, Matsch und Schleim bremsen ihn nur zu 30 %
            • schwer und lang, in der Luft dreht er sich nur langsam (luftsteuerung 1,7; Bus 2,5); dafür darf er wie die Lok 10° schiefer landen (bruchExtra), der lange Radstand fängt das ab
@@ -456,7 +456,7 @@ FF.CONFIG = {
         { x:  1.75, y: -0.10, r: 0.55, masse: 50, antrieb: false }
       ],
       federung: { ruhe: 0.28, weg: 0.22, frequenz: 1.5, daempfung: 0.55 },
-      motor: { drehmoment: 9000, vmax: 13.5, eck: 0.9 }, bremse: 7000, grip: 1.15,
+      motor: { drehmoment: 9000, vmax: 11.5, eck: 0.9 }, bremse: 7000, grip: 1.15,
       tankSekunden: 24, luftsteuerung: 1.7, bruchExtra: 10, cwA: 2.4, abtrieb: 0, matschFest: 0.3,
       huelle: [[-2.55, -0.08], [-1.4, -0.12], [1.2, -0.12], [2.72, -0.20], [2.72, 0.15], [2.52, 1.05], [0.95, 1.12], [0.88, 1.82], [-1.30, 2.02], [-1.38, 0.25], [-2.55, 0.25]],
       dach: [[-1.20, 2.02], [-0.10, 1.95], [0.80, 1.84]],
@@ -465,6 +465,63 @@ FF.CONFIG = {
       klang: { art: "verbrenner", zylinder: 6, takte: 4, leerlauf: 520, max: 2000, gaenge: 6, abkling: 6, ungleich: 0.12,
                rohr: 0.016, rueck: 0.55, koerper: 95, hell: 0.5, diesel: 0.9, unruhe: 6, traegheit: 8, lautstaerke: 1.2, abrollen: 1.5 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse"]
+    },
+    {
+      /* Seifenkiste (Version 39): aus einem Umzugskarton gebastelt, mit Klebeband und
+         Filzstift. Kein Motor – das Kind läuft mit den Füßen unten durch den offenen Boden
+         (fussAntrieb). Eigenarten:
+           • freilauf: ohne Pedal rollt sie ganz frei (keine Motorbremse) – bergab wird sie
+             schneller als ihr Lauftempo (vmax gilt nur fürs Laufen)
+           • puste: Statt Benzin hat das Kind Puste. Beim Rollen ohne Gas (ab 2 m/s) kommt
+             sie langsam zurück (erholung: Anteil des Verbrauchs bei Vollgas). Gesammelt
+             werden Äpfel 🍎 statt Kanister.
+           • Pappe federt: weiche Federung, darf 15° schiefer landen (bruchExtra)
+           • leicht und klein: bergauf mühsam, in der Luft gut zu drehen */
+      id: "seifenkiste", name: "Seifenkiste", emoji: "📦", preis: 3000, preisBasis: 120,
+      text: "Selbst gebastelt aus einem Karton! Du läufst mit den Füßen – und bergab rollt sie frei und wird richtig schnell. Ohne Gas kommt die Puste zurück.",
+      masse: 55, groesse: { laenge: 2.0, hoehe: 1.1 },
+      raeder: [
+        { x: -0.72, y: -0.12, r: 0.25, masse: 3, antrieb: true },
+        { x:  0.72, y: -0.12, r: 0.25, masse: 3, antrieb: true }
+      ],
+      federung: { ruhe: 0.14, weg: 0.13, frequenz: 2.3, daempfung: 0.4 },
+      motor: { drehmoment: 90, vmax: 9.5, eck: 0.5 }, bremse: 420, grip: 1.0,
+      tankSekunden: 34, luftsteuerung: 6.0, bruchExtra: 15, cwA: 0.45, abtrieb: 0,
+      leerlauf: 0, fussAntrieb: true, freilauf: true, puste: { erholung: 0.45 },
+      huelle: [[-0.98, -0.12], [0.98, -0.12], [1.02, 0.36], [-0.98, 0.40]],
+      dach: [[-0.3, 0.98], [0.05, 0.94]],
+      kopf: { x: -0.12, y: 0.62, r: 0.28 },
+      farbe: "orange", form: "seifenkiste",
+      klang: { art: "elektro", surren: 600, avasTon: 220, max: 4000, lautstaerke: 0.15, abrollen: 1.5 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
+    },
+    {
+      /* E-Scooter (Version 39): Tretroller mit Elektromotor im Hinterrad. Das Kind steht
+         drauf und hält den Lenker. Eigenarten:
+           • sehr wendig: dreht in der Luft am schnellsten von allen (luftsteuerung 8,5)
+           • zieht sofort los (volles Drehmoment fast bis zum Höchsttempo, eck 0,8),
+             aber das Höchsttempo ist niedrig (10 m/s = 36 km/h)
+           • Stunts: Bei hohen Sprüngen zeigt das Kind Tricks – Flieger (am Lenker
+             ausgestreckt), Hände hoch, Bein nach hinten – und steht vor der Landung
+             wieder sicher auf dem Brett (nur Grafik, spiel.js stuntAktualisieren)
+           • balanciert am Boden selbst (wie das Skateboard), lädt beim Bremsen */
+      id: "scooter", name: "E-Scooter", emoji: "🛴", preis: 5000, preisBasis: 160,
+      text: "Ein E-Scooter: zieht sofort los und ist super wendig – bei hohen Sprüngen machst du Stunts! Aber er fährt nicht besonders schnell.",
+      masse: 68, groesse: { laenge: 1.3, hoehe: 1.7 },
+      raeder: [
+        { x: -0.5, y: -0.42, r: 0.17, masse: 2, antrieb: true },
+        { x:  0.54, y: -0.42, r: 0.17, masse: 2, antrieb: false }
+      ],
+      federung: { ruhe: 0.09, weg: 0.08, frequenz: 2.5, daempfung: 0.7 },
+      motor: { drehmoment: 46, vmax: 10, eck: 0.8 }, bremse: 170, grip: 1.1,
+      tankSekunden: 30, luftsteuerung: 8.5, cwA: 0.45, abtrieb: 0,
+      balance: 1.0, leerlauf: 0, rekuperation: 0.3, akku: true,
+      huelle: [[-0.66, -0.42], [0.66, -0.42], [0.68, -0.32], [-0.66, -0.32]],
+      dach: [[0.0, 0.62], [-0.05, 0.3]],
+      kopf: { x: 0.0, y: 0.88, r: 0.28 },
+      farbe: "blau", form: "scooter",
+      klang: { art: "elektro", surren: 3800, avasTon: 494, max: 26000, lautstaerke: 0.75, abrollen: 0.9 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
     }
   ],
 
@@ -1350,6 +1407,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "39", titel: "Seifenkiste und E-Scooter", punkte: [
+      "📦 Seifenkiste aus Karton und Klebeband: du läufst mit den Füßen, bergab rollt sie frei – ohne Gas kommt die Puste zurück",
+      "🛴 E-Scooter: zieht sofort los, super wendig – und bei hohen Sprüngen machst du Stunts!",
+      "🚛 Der Donner-Truck fährt jetzt gemütlicher" ] },
     { version: "38", titel: "Dein eigener Charakter", punkte: [
       "🧒 Bei „Wer fährt?“ gibt es jetzt ein eigenes Kärtchen: Name, Junge oder Mädchen, Haare kurz, mittel oder lang, Haar-, Augen- und Hautfarbe",
       "⚙️ Mit dem Zahnrad am Kärtchen kannst du deinen Charakter jederzeit ändern – er hat eigene Münzen, eigene Garage und eigene Level" ] },

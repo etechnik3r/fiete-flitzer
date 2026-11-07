@@ -300,7 +300,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (i = 0; i < T.length; i++) {
       var t = T[i];
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
-      (akku === "h2" ? zeichneH2Flasche : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
+      (akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
     var RK = gel.raketen || [];
     for (i = 0; i < RK.length; i++) {
@@ -364,6 +364,15 @@ var FF = globalThis.FF = globalThis.FF || {};
     blitzForm(ctx, 0, 0, 0.5);
     ctx.fillStyle = "#ffe066"; ctx.fill();
     ctx.restore();
+  }
+
+  /* Apfel (Seifenkiste: gibt Puste) mit Leuchten */
+  function zeichneApfel(ctx, X, Y, s, zeit) {
+    var gl = ctx.createRadialGradient(X, Y, 0, X, Y, s * 1.0);
+    gl.addColorStop(0, "rgba(255,230,140," + (0.45 + 0.2 * Math.sin(zeit * 5)) + ")"); gl.addColorStop(1, "rgba(255,230,140,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(X, Y, s, 0, Math.PI * 2); ctx.fill();
+    var e = emojiSprite("🍎", Math.max(16, Math.round(0.8 * s)), 1);
+    ctx.drawImage(e, X - 0.42 * s, Y - 0.46 * s, 0.84 * s, 0.84 * s);
   }
 
   /* Blaue Wasserstoff-Flasche (H₂-Blubber): Druckflasche mit Ventil und „H₂“ */
@@ -978,6 +987,121 @@ var FF = globalThis.FF = globalThis.FF || {};
         ruecklicht(ctx, -0.9, 0.16, 0.07, 0.12);
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.35, 0.42, 0.42, 0.42], arme: [0.06, 0.66, 0.58, 0.84] };
+    },
+
+    /* Seifenkiste: Umzugskarton auf vier Rädern (vorne und hinten je eins sichtbar),
+       Klebeband kreuz und quer, mit Filzstift bemalt, vorne ein Seil zum Lenken.
+       Unten laufen die Füße des Kindes (fz.laeuft, Schrittphase fz.lauf); ohne Gas
+       liegen die Füße vorne auf der Kante (Füße hoch!). */
+    seifenkiste: function (ctx, a, z, fz) {
+      var o = outfitVon(a), pappe = "#c9965a", pappeDunkel = "#9c6f3c", laeuft = fz && fz.laeuft, ph = fz ? fz.lauf || 0 : 0;
+      var schuh = function (x, y, w) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(w || 0);
+        ctx.fillStyle = "#e8453c"; rundRechteck(ctx, -0.07, -0.05, 0.2, 0.09, 0.04); ctx.fill();
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(-0.07, -0.05, 0.2, 0.025);
+        ctx.restore();
+      };
+      var bein = function (fx, fy, hinten) {
+        var hx = -0.05, hy = 0.1, kx = (hx + fx) / 2 + 0.12, ky = (hy + fy) / 2;
+        ctx.strokeStyle = hinten ? dunkel(o.seiten || o.anzug, 0.25) : (o.seiten || o.anzug); ctx.lineWidth = 0.12; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
+        schuh(fx, fy);
+      };
+      var hinten = function () {
+        if (!laeuft) return;
+        // Laufschritt: Fuß vorne-unten → hinten → anheben → nach vorn (zwei Beine gegenläufig)
+        [ph + Math.PI, ph].forEach(function (p, n) {
+          var fx = 0.08 + 0.34 * Math.cos(p), fy = -0.47 + Math.max(0, Math.sin(p)) * 0.2;
+          bein(fx, fy, n === 0);
+        });
+      };
+      var kiste = function () { ctx.beginPath(); ctx.moveTo(-0.98, -0.12); ctx.lineTo(0.98, -0.12); ctx.lineTo(1.0, 0.36); ctx.lineTo(-0.98, 0.4); ctx.closePath(); };
+      var vorne = function () {
+        // Achsen (Besenstiel) unter dem Karton
+        ctx.fillStyle = "#b07a45"; ctx.fillRect(-0.9, -0.16, 1.8, 0.06);
+        // der Karton (etwas schief), Pappe mit Wellen-Kante
+        ctx.save(); ctx.fillStyle = pappe; kiste(); ctx.fill();
+        ctx.strokeStyle = pappeDunkel; ctx.lineWidth = 0.03; ctx.stroke();
+        ctx.strokeStyle = "rgba(120,80,40,0.35)"; ctx.lineWidth = 0.012;          // Wellpappe-Linien
+        for (var k = 0; k < 6; k++) { ctx.beginPath(); ctx.moveTo(-0.95, -0.06 + k * 0.075); ctx.lineTo(0.97, -0.06 + k * 0.075 - 0.005 * k); ctx.stroke(); }
+        // Deckel-Laschen hochgeklappt (vorne und hinten)
+        ctx.fillStyle = hell(pappe, 0.08);
+        ctx.beginPath(); ctx.moveTo(-0.98, 0.4); ctx.lineTo(-1.12, 0.62); ctx.lineTo(-0.72, 0.6); ctx.lineTo(-0.62, 0.39); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = pappeDunkel; ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(1.0, 0.36); ctx.lineTo(1.18, 0.55); ctx.lineTo(0.8, 0.6); ctx.lineTo(0.62, 0.37); ctx.closePath(); ctx.fill(); ctx.stroke();
+        // Klebeband kreuz und quer (halb durchsichtig, gezackte Enden)
+        var band = function (x0, y0, x1, y1) {
+          ctx.strokeStyle = "rgba(235,220,170,0.85)"; ctx.lineWidth = 0.1; ctx.lineCap = "butt";
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+          ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 0.02;
+          ctx.beginPath(); ctx.moveTo(x0, y0 + 0.03); ctx.lineTo(x1, y1 + 0.03); ctx.stroke();
+        };
+        band(-0.85, 0.42, -0.62, -0.14); band(0.55, 0.4, 0.85, -0.14); band(-0.3, 0.3, 0.4, 0.33); band(0.7, 0.05, 0.98, 0.1);
+        // Filzstift: Name, Blitz, Smiley, Startnummer
+        textLokal(ctx, kindVon(a).name.toUpperCase(), 0.05, 0.12, 0.17, "#2f6fd6", true);
+        ctx.strokeStyle = "#e8453c"; ctx.lineWidth = 0.035; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(-0.55, 0.28); ctx.lineTo(-0.66, 0.1); ctx.lineTo(-0.56, 0.12); ctx.lineTo(-0.66, -0.06); ctx.stroke();
+        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.02;
+        ctx.beginPath(); ctx.arc(0.75, 0.2, 0.09, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0.75, 0.18, 0.05, Math.PI * 1.15, Math.PI * 1.85, false); ctx.stroke();
+        ctx.fillStyle = "#2b2f3a"; ctx.fillRect(0.715, 0.22, 0.02, 0.02); ctx.fillRect(0.765, 0.22, 0.02, 0.02);
+        ctx.restore();
+        // Lenk-Seil vom Kind zur Vorderachse, Kartonrolle als Hupe
+        ctx.strokeStyle = "#f3e6c4"; ctx.lineWidth = 0.025;
+        ctx.beginPath(); ctx.moveTo(0.22, 0.5); ctx.quadraticCurveTo(0.6, 0.35, 0.72, -0.1); ctx.stroke();
+        // Füße hoch, wenn das Kind nicht läuft: Schuhe schauen vorne über die Kante
+        if (!laeuft) { schuh(0.98, 0.42, -0.5); schuh(0.92, 0.47, -0.6); }
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.36, 0.22, 0.42, 0.34], arme: [-0.05, 0.48, 0.22, 0.5] };
+    },
+
+    /* E-Scooter: Trittbrett mit Griffband, hinten Schutzblech, vorne die Lenkstange
+       mit Lenker und Licht. Das Kind steht drauf; in der Luft zeigt es Stunts
+       (fz.stunt = { art, u }: u 0 = steht, 1 = Trick ganz ausgeführt). */
+    scooter: function (ctx, a, z, fz) {
+      var o = outfitVon(a), c = basisFarbe(a), st = fz && fz.stunt, u = st ? st.u || 0 : 0, art = st ? st.art : null;
+      var griff = { x: 0.42, y: 0.76 };
+      var beinStrich = function (x0, y0, x1, y1, x2, y2, farbe) {
+        ctx.strokeStyle = farbe; ctx.lineWidth = 0.13; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, x2 - 0.1, y2 - 0.04, 0.22, 0.08, 0.03); ctx.fill();
+      };
+      var beine = function () {
+        var anz = o.seiten || o.anzug, hinten = dunkel(anz, 0.2);
+        // hinteres Bein: beim Trick „Bein nach hinten“ weit nach hinten gestreckt
+        var bk = art === "bein" ? u : 0;
+        beinStrich(-0.04, 0.2, -0.06 - 0.3 * bk, -0.02 + 0.12 * bk, -0.1 - 0.62 * bk, -0.28 + 0.4 * bk, hinten);
+        beinStrich(0.08, 0.2, 0.14, -0.05, 0.14, -0.28, anz);
+        if (art === "haende" && u > 0.05) {                    // zweiter Arm hoch (hinter dem Körper)
+          ctx.strokeStyle = dunkel(o.aermel, 0.2); ctx.lineWidth = 0.09; ctx.lineCap = "round";
+          var hx = 0.0 - 0.08 * u, hy = 0.5 + 0.55 * u;
+          ctx.beginPath(); ctx.moveTo(0.0, 0.52); ctx.lineTo(hx, hy); ctx.stroke();
+          ctx.fillStyle = o.haende || "#ffdcc6"; ctx.beginPath(); ctx.arc(hx, hy, 0.055, 0, Math.PI * 2); ctx.fill();
+        }
+      };
+      var deck = function () { rundRechteck(ctx, -0.62, -0.38, 1.22, 0.08, 0.04); };
+      var vorne = function () {
+        // Schutzblech hinten, Trittbrett, Akku darunter
+        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.05;
+        ctx.beginPath(); ctx.arc(-0.5, -0.42, 0.22, Math.PI * 1.05, Math.PI * 1.75, false); ctx.stroke();
+        karosserie(ctx, a, z, deck, -0.62, 0.6, -0.38, -0.3);
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, -0.55, -0.31, 1.05, 0.025, 0.01); ctx.fill();          // Griffband
+        ctx.fillStyle = "#3a4152"; rundRechteck(ctx, -0.3, -0.47, 0.6, 0.09, 0.03); ctx.fill();
+        ctx.fillStyle = "#7dffb8"; ctx.fillRect(-0.22, -0.44, 0.05, 0.03); ctx.fillRect(-0.14, -0.44, 0.05, 0.03); ctx.fillRect(-0.06, -0.44, 0.05, 0.03);
+        // Lenkstange: von der Vorderachse schräg nach oben zum Lenker
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.07; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(0.56, -0.42); ctx.lineTo(0.58, -0.3); ctx.lineTo(griff.x + 0.02, griff.y); ctx.stroke();
+        ctx.strokeStyle = c; ctx.lineWidth = 0.08;
+        ctx.beginPath(); ctx.moveTo(0.585, -0.2); ctx.lineTo(0.5, 0.3); ctx.stroke();
+        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.075;                                              // Lenker mit Griff
+        ctx.beginPath(); ctx.moveTo(griff.x - 0.12, griff.y + 0.02); ctx.lineTo(griff.x + 0.12, griff.y - 0.02); ctx.stroke();
+        scheinwerfer(ctx, 0.56, 0.22, 0.05);
+        ruecklicht(ctx, -0.66, -0.36, 0.04, 0.05);
+      };
+      // Pose: Flieger dreht das ganze Kind um den Lenkergriff nach hinten
+      var pose = art === "flieger" && u > 0.01 ? { x: griff.x, y: griff.y, w: -1.35 * u } : null;
+      var arm = art === "haende" ? [0.05, 0.5, 0.05 + 0.12 * u + 0.37 * (1 - u), 0.5 + 0.55 * u + 0.26 * (1 - u)] : [0.05, 0.5, griff.x, griff.y];
+      return { hinten: function () {}, beine: beine, vorne: vorne, pose: pose, fahrerKoerper: [-0.17, 0.18, 0.34, 0.42], arme: arm };
     },
 
     skateboard: function (ctx, a, z, fz) {
@@ -1825,9 +1949,16 @@ var FF = globalThis.FF = globalThis.FF || {};
       zeichneAnzug(ctx, o, tk, kopf, KOPF_R);
       zeichneKind(ctx, kopf.x, kopf.y, KOPF_R, ausdruck, teile.raumhelm || taucherHelm, kind, Math.min(1, tempo / 12), zeit);
     };
+    // Pose (E-Scooter-Stunts): das ganze Kind dreht sich um einen Punkt (z. B. den Lenkergriff)
+    var mitPose = function (f) {
+      if (!teile.pose) { f(); return; }
+      var Ps = teile.pose; ctx.save(); ctx.translate(Ps.x, Ps.y); ctx.rotate(Ps.w); ctx.translate(-Ps.x, -Ps.y); f(); ctx.restore();
+    };
+    if (teile.pose) { var fahrerOhne = fahrer; fahrer = function () { mitPose(fahrerOhne); }; }
     if (fz.umhang > 0) zeichneHeldenumhang(ctx, kopf, fz.umhang, zeit, tempo);
     teile.hinten();
-    zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo);   // immer hinter der Karosserie
+    if (teile.beine) mitPose(teile.beine);
+    mitPose(function () { zeichneRuecken(ctx, o, tk, kopf, KOPF_R, zeit, tempo); });   // immer hinter der Karosserie
     if (teile.fahrerZuerst || teile.fahrerVorDach) fahrer();
     teile.vorne();
     if (fz.flecken && fz.flecken.length) {                 // Schleimwelt: grüne Flecken auf dem Auto
@@ -1841,7 +1972,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       });
       ctx.globalAlpha = 1;
     }
-    if (aussehen.spoiler && form !== "skateboard" && form !== "dampflok" && form !== "renner") zeichneSpoiler(ctx, def, aussehen.spoiler);
+    if (aussehen.spoiler && form !== "skateboard" && form !== "scooter" && form !== "seifenkiste" && form !== "dampflok" && form !== "renner") zeichneSpoiler(ctx, def, aussehen.spoiler);
     if (!teile.fahrerZuerst && !teile.fahrerVorDach && !teile.fahrerNachVorne) fahrer();
     if (teile.fahrerNachVorne) {
       // Fiete sitzt hinter einer Scheibe: nur durch das Fenster sichtbar
@@ -1855,7 +1986,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     // Beifahrer: ein Tier sitzt hinter dem Kind (beim Skateboard vorne auf dem Brett)
     if (aussehen.beifahrer) {
-      var bx = form === "skateboard" ? 0.45 : kp.x - 0.52, by = form === "skateboard" ? -0.05 : kp.y - 0.08 + kind.groesse * 0.5;
+      var brett = form === "skateboard" || form === "scooter", bx = brett ? (form === "scooter" ? 0.3 : 0.45) : kp.x - 0.52, by = brett ? -0.05 : kp.y - 0.08 + kind.groesse * 0.5;
       var bfe = aussehen.beifahrer, spr = emojiSprite(bfe, 64, 1), hopp = Math.abs(Math.sin(zeit * 6)) * 0.03;
       ctx.save(); ctx.translate(bx, by + hopp); ctx.scale(-1, -1);   // schaut nach vorn
       // kleine Eigenarten der Tiere (Version 30)
@@ -2249,7 +2380,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : "", sz.dpr || 1);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     if (f.roehre && f.roehre.z) {
