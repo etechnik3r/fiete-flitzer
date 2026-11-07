@@ -262,8 +262,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var rand = W.randWinkel * (0.75 + 1.2 * (1 - this.tank));             // voll: ≈ 21°, halb: ≈ 38°, fast leer: kaum noch
     B.rand = rand;
     var ueber = Math.abs(B.phi) - rand;
-    if (this.zustand === "fahrt" && this.tank > 0 && ueber > 0) {
+    // Im freien Flug (g_s fast 0) schwebt das Wasser mit der Wanne – es läuft erst beim Aufsetzen über
+    if (this.zustand === "fahrt" && this.tank > 0 && ueber > 0 && gs > 3) {
       var rate = Math.min(W.auslaufMax, W.auslauf * ueber * ueber * 4 + (Math.abs(B.phi) > 1.6 ? W.auslaufMax : 0));
+      if (this.imLooping) rate = Math.min(rate, W.loopAuslauf);          // Looping: es schwappt, aber nur ein paar Prozent je Runde
       var weg = Math.min(this.tank, rate * h);
       this.tank -= weg; B.verlust += weg;
       // die Seite, über die es läuft: phi > 0 → hinten, phi < 0 → vorne

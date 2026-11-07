@@ -2574,16 +2574,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (sz.himmelPerCss) ctx.clearRect(0, 0, K.b, K.h);
       ctx.save(); ctx.translate(0, K.h / 2); ctx.scale(1, kf); ctx.translate(0, -K.h / 2);
     }
-    W.zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
-    W.zeichneWolken(ctx, K, welt, z);
-    sz.wetter.zeichne(ctx, K, sz.dt, z, true);
-    W.zeichneBerge(ctx, K, welt, z, gel);
+    if (welt.zelt) W.zeichneZelt(ctx, K, welt, z, gel, sz.himmelPerCss);          // Zirkus: im Zelt statt unter freiem Himmel
+    else {
+      W.zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
+      W.zeichneWolken(ctx, K, welt, z);
+      sz.wetter.zeichne(ctx, K, sz.dt, z, true);
+      W.zeichneBerge(ctx, K, welt, z, gel);
+    }
     W.zeichneDecke(ctx, K, gel, welt, z);
     var b = sichtbereich(K, gel);
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
     W.zeichneGelaende(ctx, K, gel, welt, z);
     if (gel.schneeDecke) W.zeichneSchneeDecke(ctx, K, gel);
     if (gel.wasserDecke) W.zeichneSchneeDecke(ctx, K, gel, gel.wasserDecke, true);
+    if (gel.reifen.length) W.zeichneReifen(ctx, K, gel, z);
     if (gel.dyn.length) W.zeichneZirkus(ctx, K, gel, z);
     if (gel.pfuetzen.length) W.zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);

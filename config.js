@@ -573,10 +573,10 @@ FF.CONFIG = {
       ],
       federung: { ruhe: 0.12, weg: 0.12, frequenz: 2.2, daempfung: 0.45 },
       motor: { drehmoment: 1, vmax: 10 }, bremse: 700, grip: 0.9,
-      tankSekunden: 46, leerlauf: 0, luftsteuerung: 3.6, bruchExtra: 8, cwA: 0.7, abtrieb: 0, freilauf: true,
+      tankSekunden: 75, leerlauf: 0, luftsteuerung: 3.6, bruchExtra: 8, cwA: 0.7, abtrieb: 0, freilauf: true,
       schneeTank: false, wannenTank: true,
-      wanne: { schub: 4.0, anlauf: 0.6, vmax: 10, schwapp: 5.5, randWinkel: 0.5, auslauf: 0.15, auslaufMax: 0.35,
-               loopSchwapp: 26, hinten: -1.12, vorne: 1.12, randHoehe: 0.42 },
+      wanne: { schub: 4.0, anlauf: 0.6, vmax: 10, schwapp: 5.5, randWinkel: 0.6, auslauf: 0.06, auslaufMax: 0.15,
+               loopSchwapp: 8, loopAuslauf: 0.03, hinten: -1.12, vorne: 1.12, randHoehe: 0.42 },
       huelle: [[-1.2, -0.3], [1.2, -0.3], [1.3, 0.42], [-1.3, 0.42]],
       dach: [[-0.6, 1.1], [0.1, 1.05]],
       kopf: { x: -0.05, y: 0.62, r: 0.28 },
@@ -1481,28 +1481,33 @@ FF.CONFIG = {
       level: [ { laenge: 560, seed: 3301 }, { laenge: 740, seed: 3302 }, { laenge: 920, seed: 3303 }, { laenge: 1100, seed: 3304 } ]
     },
     {
-      /* Zirkus (Version 42): In der Manege gibt es zwei neue Dinge:
-           • Hochseil-Brücken (gelaende.seil): Die Brücke hängt unter dem Auto durch – je
-             schwerer, desto tiefer – und schwingt nach. Am Ende geht es aus der Mulde wieder
-             hinauf: Gas geben, aber nicht zu wild, sonst schaukelt man sich auf.
-           • Wippen (gelaende.wippe): Man fährt auf das untere Ende hinauf; über der Mitte kippt
-             das Brett. Langsam: sanftes Kippen. Zu schnell: man fliegt vom hohen Ende.
-         Dazu Trampoline (Hüpfpilze im Zirkus-Stil). */
-      id: "zirkus", name: "Zirkus", emoji: "🎪", hinweis: "Manege frei! Seilbrücken hängen durch, Wippen kippen – vorsichtig!",
+      /* Zirkus (Version 42, Version 43 neu gebaut): Man fährt IM Zirkuszelt durch die Manege –
+         hinten Zeltwand, Masten, Lichterketten, Scheinwerfer und Zuschauer (zelt: true), unten
+         Sägespäne auf rotem Manegen-Rand. Ständig kommt das nächste Kunststück:
+           • Wippen (gelaende.wippe): über der Mitte kippt das Brett. Langsam: sanft;
+             zu schnell: man fliegt vom hohen Ende.
+           • Hochseil (gelaende.hochseil): Holzrampe hinauf auf einen Turm (3,2–4,8 m), oben
+             über das durchhängende Seil, am zweiten Turm Sprung hinunter durch den Feuerreifen.
+           • Klapprampe (gelaende.klapprampe): Brett mit Feder; unter dem Auto klappt es herunter.
+             Langsam: flach drüber; schnell: hoher Absprung.
+           • Trampoline und kleine Schanzen dazwischen.
+         Alles dicht hintereinander (abstandElemente klein, ebene Manege). */
+      id: "zirkus", name: "Zirkus", emoji: "🎪", hinweis: "Manege frei! Wippen, Hochseil, Klapprampen – ein Kunststück nach dem anderen!",
       schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.03, abprall: 0.08, luftdichte: 1.2,
+      zelt: true,
       farben: {
-        himmel: ["#3b1f5c", "#f2a65a"], berge: ["#7a3d6e", "#5a2a55"],
-        boden: ["#d8a25e", "#9c6a38"], oberflaeche: "#e9c27e", kante: "#f6dca6", punkte: "#b07a42"
+        himmel: ["#2a0f2e", "#5a1a3a"], berge: ["#5a1a3a", "#3a0f28"],
+        boden: ["#b3122e", "#5e0818"], oberflaeche: "#f2d08e", kante: "#ffd23f", punkte: "#e2b76a"
       },
-      sonne: "sonne", sonnenDeko: "krone", wolkenStil: "wenige",
-      tipp: ["🎪 Manege frei! Auf der Seilbrücke sinkst du ein – auf der Wippe langsam über die Mitte fahren!", "Vorsicht, die Wippe kippt!"],
-      deko: ["🎪:3.6", "🐘:2.2", "🎈:0.9:2.4", "🦁:1.3", "🤹:1.3", "🎠:2.6", "🍿:0.6", "🎩:0.6", "🦭:1.0", "🎈:0.8:3.0"],
-      kulisse: ["zelte", "zelte"],
-      gelaende: { amp: 2.5, welle: 50, holperAmp: 0.08, holperWelle: 6, trend: 0.004,
-                  maxAuf: 22, maxAb: 28, schanzen: 0.6, buckel: 0.6, steil: 0.2, taeler: 0.3, berg: 0.1, sprung: 0.4, wellen: 0.4, klippe: 0.1, kuppe: 0.2,
-                  trampolin: 0.5, seil: 1.4, wippe: 1.4, wildBasis: 0.2,
-                  abstandElemente: 22 },
-      tankAbstand: 230, muenzAbstand: 20,
+      sonne: "keine", wolkenStil: "keine",
+      tipp: ["🎪 Manege frei! Auf der Wippe langsam über die Mitte, aufs Hochseil mit Schwung!", "Vorsicht, die Wippe kippt!"],
+      deko: ["🎈:0.9:2.4", "🐘:2.0", "🦁:1.2", "🤹:1.2", "🍿:0.5", "🎩:0.5", "🦭:0.9", "🎈:0.8:3.0", "⭐:0.5:3.2"],
+      kulisse: [],
+      gelaende: { amp: 0.4, welle: 60, holperAmp: 0.03, holperWelle: 6, trend: 0,
+                  maxAuf: 22, maxAb: 28, schanzen: 0.5, buckel: 0.2, steil: 0, taeler: 0, berg: 0, sprung: 0.3, wellen: 0.2, klippe: 0, kuppe: 0,
+                  trampolin: 0.8, seil: 0, wippe: 1.4, hochseil: 1.2, klapprampe: 1.1, wildBasis: 0.2, dicht: 0.4,
+                  abstandElemente: 5 },
+      tankAbstand: 170, muenzAbstand: 20,
       level: [ { laenge: 600, seed: 3401 }, { laenge: 800, seed: 3402 }, { laenge: 1000, seed: 3403 }, { laenge: 1200, seed: 3404 } ]
     }
   ],
@@ -1526,6 +1531,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "43", titel: "Manege frei!", punkte: [
+      "🎪 Der Zirkus ist jetzt ein echtes Zirkuszelt – mit Zuschauern, Lichterketten und Scheinwerfern",
+      "🤸 Ein Kunststück nach dem anderen: Wippen, Klapprampen und das Hochseil hoch oben – mit Sprung durch den Feuerreifen",
+      "🛁 Die Badewanne hält ihr Wasser viel länger – im Flug schwappt nichts mehr raus" ] },
     { version: "42", titel: "Wolken, Zirkus und eine Badewanne", punkte: [
       "☁️ Neue Welt Wolkeninseln: Spring von Wolke zu Wolke – jede Wolke sinkt, solange du drauf bist. Also immer weiter!",
       "🎪 Neue Welt Zirkus: Seilbrücken hängen unter dir durch und schwingen, Wippen kippen – langsam über die Mitte fahren!",
