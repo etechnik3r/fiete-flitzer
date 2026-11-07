@@ -1231,6 +1231,86 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.95, 0.3, 0.48, 0.42], fahrerVorDach: true };
     },
 
+    /* Donner-Truck: amerikanische Zugmaschine (Haubenschlepper) – lange Haube mit
+       Chromgrill, Kabine, hohe Schlafkabine mit Dachspoiler, zwei Auspuffrohre,
+       Chrom-Tank, Sattelkupplung und Schmutzfänger hinten */
+    lkw: function (ctx, a, z) {
+      var c = basisFarbe(a);
+      var scheibe = [[0.12, 1.02], [0.82, 1.02], [0.86, 1.66], [0.12, 1.7]];
+      var chrom = function (y0, y1) {
+        var g = ctx.createLinearGradient(0, y0, 0, y1);
+        g.addColorStop(0, "#6b7387"); g.addColorStop(0.5, "#f4f6fb"); g.addColorStop(1, "#7d8597"); return g;
+      };
+      var rohr = function (x, hinten) {         // senkrechtes Auspuffrohr, oben schräg abgeschnitten
+        var g = ctx.createLinearGradient(x - 0.07, 0, x + 0.07, 0);
+        g.addColorStop(0, hinten ? "#5b6274" : "#7d8597"); g.addColorStop(0.45, hinten ? "#c9ced9" : "#ffffff"); g.addColorStop(1, hinten ? "#4d5466" : "#6b7387");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(x - 0.07, 0.3); ctx.lineTo(x - 0.07, 2.62); ctx.lineTo(x + 0.07, 2.74); ctx.lineTo(x + 0.07, 0.3); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.fillStyle = "#2a2f45"; ctx.beginPath(); ctx.ellipse(x, 2.68, 0.075, 0.03, 0.7, 0, Math.PI * 2); ctx.fill();
+        if (!hinten) { ctx.fillStyle = chrom(1.1, 1.6); rundRechteck(ctx, x - 0.1, 1.0, 0.2, 0.55, 0.04); ctx.fill(); }   // Hitzeschutz-Gitter
+      };
+      var koerper = function () {                // Haube + Kabine + Schlafkabine
+        ctx.beginPath();
+        ctx.moveTo(-1.36, 0.08); ctx.lineTo(2.48, 0.08);
+        ctx.quadraticCurveTo(2.66, 0.1, 2.62, 0.5);
+        ctx.lineTo(2.52, 0.98);
+        ctx.quadraticCurveTo(2.48, 1.08, 2.3, 1.08);
+        ctx.lineTo(0.98, 1.12);
+        ctx.lineTo(0.9, 1.74);
+        ctx.quadraticCurveTo(0.86, 1.82, 0.7, 1.82);
+        ctx.lineTo(-0.2, 1.84);
+        ctx.quadraticCurveTo(-0.6, 2.06, -1.22, 2.02);
+        ctx.quadraticCurveTo(-1.38, 2.0, -1.38, 1.8);
+        ctx.closePath();
+      };
+      var hinten = function () {
+        rohr(-0.5, true);
+        // Rahmen und Sattelkupplung
+        ctx.fillStyle = "#2c3550"; ctx.fillRect(-2.55, -0.12, 5.1, 0.22);
+        ctx.fillStyle = "#3b4566"; rundRechteck(ctx, -2.35, 0.1, 0.9, 0.12, 0.04); ctx.fill();
+        ctx.fillStyle = "#1e2440"; ctx.fillRect(-1.95, 0.08, 0.2, 0.06);
+      };
+      var vorne = function () {
+        karosserie(ctx, a, z, koerper, -1.38, 2.66, 0.08, 2.06);
+        glas(ctx, scheibe);
+        // Schlafkabinen-Fenster, Türe mit Fugen, Trittstufen
+        ctx.fillStyle = "rgba(200,232,255,0.85)"; rundRechteck(ctx, -1.05, 1.22, 0.42, 0.3, 0.08); ctx.fill();
+        ctx.strokeStyle = "#2c3550"; ctx.lineWidth = 0.035; rundRechteck(ctx, -1.05, 1.22, 0.42, 0.3, 0.08); ctx.stroke();
+        fuge(ctx, [[0.02, 0.1], [0.02, 1.78], [0.9, 1.76], [0.96, 0.1]], dunkel(c, 0.35));
+        fuge(ctx, [[1.05, 1.06], [1.05, 0.1]], dunkel(c, 0.3));            // Haubenfuge
+        ctx.fillStyle = chrom(0.2, 0.3); rundRechteck(ctx, 0.1, 0.18, 0.7, 0.08, 0.03); ctx.fill();
+        // Zierstreifen
+        ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillRect(-1.36, 0.62, 3.95, 0.06);
+        ctx.fillStyle = "#ffd23f"; ctx.fillRect(-1.36, 0.55, 3.95, 0.05);
+        // Lüftungsschlitze an der Haube
+        ctx.strokeStyle = dunkel(c, 0.4); ctx.lineWidth = 0.035;
+        for (var k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(1.55 + k * 0.16, 0.75); ctx.lineTo(1.55 + k * 0.16, 0.98); ctx.stroke(); }
+        // Chrom-Kühlergrill vorne
+        ctx.fillStyle = chrom(0.15, 1.0); rundRechteck(ctx, 2.5, 0.16, 0.16, 0.86, 0.04); ctx.fill();
+        ctx.strokeStyle = "#5b6274"; ctx.lineWidth = 0.02;
+        for (k = 0; k < 7; k++) { ctx.beginPath(); ctx.moveTo(2.52, 0.24 + k * 0.11); ctx.lineTo(2.64, 0.24 + k * 0.11); ctx.stroke(); }
+        // Dachspoiler über der Schlafkabine, Sonnenblende, Hupe
+        ctx.fillStyle = dunkel(c, 0.15);
+        ctx.beginPath(); ctx.moveTo(-1.2, 2.0); ctx.quadraticCurveTo(-0.5, 2.36, 0.2, 2.02); ctx.lineTo(-0.2, 1.86); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#2c3550"; rundRechteck(ctx, 0.1, 1.74, 0.85, 0.08, 0.03); ctx.fill();
+        ctx.fillStyle = chrom(1.86, 1.94); rundRechteck(ctx, 0.3, 1.86, 0.36, 0.07, 0.03); ctx.fill();
+        for (k = 0; k < 3; k++) { ctx.fillStyle = "#ffb13b"; ctx.beginPath(); ctx.arc(0.25 + k * 0.25, 1.84, 0.035, 0, Math.PI * 2); ctx.fill(); }   // Positionslichter
+        // Chrom-Tank unter der Tür
+        ctx.fillStyle = chrom(-0.28, 0.1); rundRechteck(ctx, -0.1, -0.28, 0.95, 0.36, 0.17); ctx.fill();
+        ctx.strokeStyle = "#5b6274"; ctx.lineWidth = 0.02; [0.1, 0.65].forEach(function (x) { ctx.beginPath(); ctx.moveTo(x, -0.28); ctx.lineTo(x, 0.08); ctx.stroke(); });
+        // Kotflügel vorne, Schmutzfänger hinten
+        ctx.fillStyle = "#2c3550"; ctx.beginPath(); ctx.arc(1.75, -0.05, 0.66, Math.PI * 1.02, Math.PI * 1.98, false); ctx.lineTo(2.4, 0.1); ctx.lineTo(1.1, 0.1); ctx.fill();
+        ctx.fillStyle = dunkel(c, 0.15); ctx.beginPath(); ctx.arc(1.75, 0.0, 0.7, Math.PI * 1.05, Math.PI * 1.95); ctx.lineWidth = 0.12; ctx.strokeStyle = dunkel(c, 0.1); ctx.stroke();
+        ctx.fillStyle = "#1e2440"; ctx.fillRect(-2.6, -0.55, 0.08, 0.55);
+        ctx.fillStyle = chrom(-0.5, -0.3); rundRechteck(ctx, 2.55, -0.32, 0.22, 0.4, 0.06); ctx.fill();   // Stoßstange
+        scheinwerfer(ctx, 2.6, 0.3, 0.1);
+        ruecklicht(ctx, -2.58, 0.05, 0.08, 0.16);
+        rohr(-0.32, false);
+        glanz(ctx, 1.2, 1.0, 2.35, 0.98, 0.04);
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
+    },
     bus: function (ctx, a, z) {
       var c = basisFarbe(a);
       var scheibe = [[1.84, 0.62], [2.72, 0.62], [2.52, 1.42], [1.84, 1.42]];

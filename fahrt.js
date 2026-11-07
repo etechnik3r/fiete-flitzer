@@ -661,6 +661,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     tief /= fz.raeder.length;
     var a = W.bremse * tief * v_quadrat(C.vx);
     if (W.kleben) a += W.kleben * Math.min(1, tief / 0.3);   // Schleim klebt: bremst auch langsame Autos
+    if (this.werte.matschFest) a *= this.werte.matschFest;     // Donner-Truck: pflügt hindurch
     var v = C.vx, dv = Math.min(Math.abs(v), a * h) * (v > 0 ? -1 : 1);
     C.vx += dv;
     fz.raeder.forEach(function (R) { R.k.vx += dv; });
