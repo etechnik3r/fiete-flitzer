@@ -522,6 +522,41 @@ FF.CONFIG = {
       farbe: "blau", form: "scooter",
       klang: { art: "elektro", surren: 3800, avasTon: 494, max: 26000, lautstaerke: 0.75, abrollen: 0.9 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"]
+    },
+    {
+      /* Schnee-Schlitten (PROTOTYP): alter Holzschlitten auf Kufen. Hinten ein Tank und eine
+         Schneekanone, die Schnee nach vorn schießt – er fällt direkt vor die Kufen. Nur auf
+         Schnee gleiten die Kufen (kufen.muSchnee), auf blankem Boden kratzen sie (muKratz).
+         Die „Räder“ sind hier drei kleine Kontaktpunkte je Kufe, fest mit dem Schlitten
+         verbunden (sie drehen sich nicht → Gleitreibung µ·F_N).
+           • Antrieb: Propeller hinten (wie die alten Propellerschlitten), Schub [m/s²]
+             entlang des Schlittens, auch in der Luft (wie das Turbinen-Sofa)
+           • Schneekanone (automatisch): an, solange die Kufen auf dem Boden sind oder der
+             Schlitten gleich landet (Fallzeit < kanone.vorlauf); in der Luft, im Looping
+             und kopfüber aus. Kostet Tank (kanone.verbrauch).
+           • Bremse am Boden: Bremskralle gräbt sich ein (+bremsMu)
+           • In Welten mit Schnee (welt.schneeBoden) liegt schon Schnee: Kanone bleibt aus */
+      id: "schlitten", name: "Schnee-Schlitten", emoji: "🛷", preis: 9000, preisBasis: 220,
+      text: "Ein alter Holzschlitten mit Schneekanone! Sie schießt Schnee vor die Kufen – nur darauf rutscht er. Der Propeller hinten schiebt.",
+      masse: 95, groesse: { laenge: 2.3, hoehe: 1.0 },
+      raeder: [
+        { x: -0.85, y: -0.30, r: 0.08, masse: 2, antrieb: false },
+        { x:  0.05, y: -0.30, r: 0.08, masse: 2, antrieb: false },
+        { x:  0.85, y: -0.30, r: 0.08, masse: 2, antrieb: false }
+      ],
+      federung: { ruhe: 0.07, weg: 0.07, frequenz: 3.2, daempfung: 0.75 },
+      motor: { drehmoment: 1, vmax: 15 }, bremse: 0, grip: 1,
+      tankSekunden: 32, leerlauf: 0.08, luftsteuerung: 5.5, bruchExtra: 5, cwA: 0.5, abtrieb: 0,
+      schneeTank: true,          // Anzeige ❄️, Schnee-Kanister statt Benzin
+      kufen: { muSchnee: 0.035, muKratz: 0.6, bremsMu: 0.5 },
+      propeller: { schub: 6.2, anlauf: 0.35, vmax: 15, rueck: 0.35 },
+      kanone: { vorlauf: 0.45, verbrauch: 0.35, reichweite: 1.4, flug: 0.3 },
+      huelle: [[-1.15, -0.30], [1.05, -0.30], [1.30, 0.05], [0.95, 0.12], [-1.15, 0.12]],
+      dach: [[-0.85, 1.12], [-0.2, 1.0]],
+      kopf: { x: 0.05, y: 0.66, r: 0.28 },
+      farbe: "rot", form: "schlitten",
+      klang: { art: "propeller", blaetter: 2, max: 1800, leerlauf: 400, lautstaerke: 1.0, abrollen: 0.4 },
+      upgrades: ["motor", "tank", "kreisel", "bremse", "leichtbau"]
     }
   ],
 
@@ -749,7 +784,7 @@ FF.CONFIG = {
       level: [ { laenge: 450, seed: 901 }, { laenge: 620, seed: 902 }, { laenge: 800, seed: 903 }, { laenge: 980, seed: 904 } ]
     },
     {
-      id: "schnee", name: "Schneeberge", emoji: "❄️", hinweis: "Rutschig! Wenig Grip auf Schnee",
+      id: "schnee", name: "Schneeberge", emoji: "❄️", hinweis: "Rutschig! Wenig Grip auf Schnee", schneeBoden: true,
       schwerkraft: 9.81, grip: 0.58, rollwiderstand: 0.02, abprall: 0.05, luftdichte: 1.25,
       farben: {
         himmel: ["#8fb8ef", "#eef6ff"], berge: ["#8fa6cc", "#b9cce8"], schnee: "#f4f8ff",
@@ -1412,6 +1447,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "41", titel: "Der Schnee-Schlitten", punkte: [
+      "🛷 Neues Fahrzeug: ein alter Holzschlitten mit Schneekanone – sie schießt Schnee vor die Kufen, nur darauf rutscht er!",
+      "🌀 Ein Holzpropeller schiebt den Schlitten, sammle blaue Schnee-Kanister ❄️",
+      "🛴 Beim E-Scooter sitzt das Schutzblech jetzt richtig über dem Hinterrad" ] },
     { version: "40", titel: "Die ganze Familie fährt mit", punkte: [
       "👨‍👩‍👧‍👦 Bis zu fünf eigene Charaktere: Nach jedem neuen gibt es wieder ein ＋",
       "🥊 Zu zweit: Bei „Wer gegen wen?“ suchst du aus, wer gegeneinander fährt" ] },

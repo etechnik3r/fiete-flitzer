@@ -227,6 +227,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.rpm = 0; this.t0 = ac.currentTime;
     this.zz = 99991;
     if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine();
+    else if (P.art === "propeller") this.bauePropeller();
     else if (P.art === "dampf") this.baueDampf(); else this.baueVerbrenner();
     this.baueFahrgeraeusch();
   }
@@ -353,6 +354,46 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.gG.gain.setTargetAtTime(L * an * 0.12 * rel, t, 0.1);
   };
 
+  /* Alter Holzpropeller (Schnee-Schlitten): Jedes Blatt, das vorbeiwischt, drückt einen
+     Luftstoß – das typische „Wop-wop-wop“. Rauschen (Tiefpass) wird mit der Blattfrequenz
+     f_B = Blätter · Drehzahl/60 moduliert, dazu ein weicher Brummton bei f_B und ein kleiner
+     knatternder Einzylinder (Sägezahn mit Tiefpass, Zündfrequenz = Drehzahl/60).
+     Holz klingt weicher als Metall: Rauschen nur bis ≈ 700 Hz. Drehzahl aus fahrt.turbinenLauf. */
+  Motor.prototype.bauePropeller = function () {
+    var ac = this.ac;
+    var q = rauschQuelle(ac);
+    var tp = ac.createBiquadFilter(); tp.type = "lowpass"; tp.frequency.value = 350; tp.Q.value = 0.8;
+    var am = ac.createGain(); am.gain.value = 0;                     // wird von der Blatt-Schwingung moduliert
+    var lfo = ac.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 10;
+    var lfoG = ac.createGain(); lfoG.gain.value = 0;
+    lfo.connect(lfoG); lfoG.connect(am.gain);
+    var gW = ac.createGain(); gW.gain.value = 1;
+    q.connect(tp); tp.connect(am); am.connect(gW); gW.connect(this.bus);
+    var br = ac.createOscillator(); br.type = "triangle"; br.frequency.value = 20;   // Brummen bei f_B
+    var gB = ac.createGain(); gB.gain.value = 0; br.connect(gB); gB.connect(this.bus);
+    var mo = ac.createOscillator(); mo.type = "sawtooth"; mo.frequency.value = 15;  // kleiner Motor
+    var mtp = ac.createBiquadFilter(); mtp.type = "lowpass"; mtp.frequency.value = 600; mtp.Q.value = 1.5;
+    var gM = ac.createGain(); gM.gain.value = 0; mo.connect(mtp); mtp.connect(gM); gM.connect(this.bus);
+    [q, lfo, br, mo].forEach(this.starte, this);
+    this.v = { tp: tp, am: am, lfo: lfo, lfoG: lfoG, br: br, gB: gB, mo: mo, mtp: mtp, gM: gM };
+  };
+  Motor.prototype.setzePropeller = function (z, gt, t) {
+    var P = this.P, V = this.v, L = P.lautstaerke || 1, n = P.blaetter || 2;
+    var rpm = Math.max(0, gt.rpm), rel = z.laeuft ? Math.max(0, Math.min(1, (rpm - P.leerlauf) / (P.max - P.leerlauf))) : 0;
+    var an = z.laeuft ? 1 : Math.max(0, rpm / P.max);
+    var fB = Math.max(4, n * rpm / 60);                               // Blattfrequenz [Hz]
+    V.lfo.frequency.setTargetAtTime(fB, t, 0.06);
+    V.br.frequency.setTargetAtTime(fB, t, 0.06);
+    V.mo.frequency.setTargetAtTime(Math.max(8, rpm / 60) * 2, t, 0.05);
+    V.tp.frequency.setTargetAtTime(260 + 450 * rel, t, 0.1);
+    var wop = L * an * (0.05 + 0.3 * rel);                            // Stärke der Luftstöße
+    V.am.gain.setTargetAtTime(wop * 0.55, t, 0.08);                   // Grundpegel …
+    V.lfoG.gain.setTargetAtTime(wop * 0.5, t, 0.08);                  // … plus Wop-Modulation
+    V.gB.gain.setTargetAtTime(L * an * (0.02 + 0.05 * rel), t, 0.1);
+    V.mtp.frequency.setTargetAtTime(400 + 700 * rel, t, 0.1);
+    V.gM.gain.setTargetAtTime(L * an * (0.012 + 0.02 * rel), t, 0.1);
+  };
+
   /* Dampf-Lok: „Tschu-tschu" – jeder Kolbenhub stößt Dampf aus dem Schornstein. Bei
      zwei doppelt wirkenden Zylindern sind das 4 Stöße je Radumdrehung, also
      f = 4 · v / (2π · r). Jeder Stoß ist ein kurzer Rauschimpuls (Bandpass, dazu ein
@@ -461,6 +502,7 @@ var FF = globalThis.FF = globalThis.FF || {};
            : z.getriebe || (this.getriebe = this.getriebe || new FF.Getriebe(P)).schritt(r, v, gas, z.boden, z.laeuft, dt);
     if (P.art === "elektro") return this.setzeElektro(z, gt, tempo, gas, t, dt);
     if (P.art === "turbine") return this.setzeTurbine(z, gt, t);
+    if (P.art === "propeller") return this.setzePropeller(z, gt, t);
     if (P.art === "dampf") return this.setzeDampf(z, tempo, gas, t, dt);
 
     var abgeregelt = gt.begrenzer && Math.sin(t * 2 * Math.PI * 12) < 0;   // Begrenzer unterbricht die Zündung

@@ -300,7 +300,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (i = 0; i < T.length; i++) {
       var t = T[i];
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
-      (akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
+      (akku === "schnee" ? zeichneSchneeKanister : akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
     var RK = gel.raketen || [];
     for (i = 0; i < RK.length; i++) {
@@ -394,6 +394,31 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.font = "800 " + Math.round(0.34 * s) + "px 'Baloo 2', sans-serif";
     ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#ffffff";
     ctx.fillText("H₂", 0, 0.04 * s);
+    ctx.restore();
+  }
+
+  /* ❄️ Schnee-Kanister (Schnee-Schlitten): hellblaue Dose mit Schneeflocke, kalt leuchtend */
+  function zeichneSchneeKanister(ctx, X, Y, s, zeit) {
+    var w = 0.62 * s, h = 0.78 * s;
+    ctx.save();
+    ctx.translate(X, Y);
+    var gl = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.1);
+    gl.addColorStop(0, "rgba(200,235,255," + (0.5 + 0.2 * Math.sin(zeit * 5)) + ")");
+    gl.addColorStop(1, "rgba(200,235,255,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, s * 1.1, 0, Math.PI * 2); ctx.fill();
+    rundRechteck(ctx, -w / 2, -h / 2, w, h, 0.12 * s);
+    var g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, "#5ec8f2"); g.addColorStop(0.4, "#c8eeff"); g.addColorStop(1, "#3a9fd6");
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = "#1f6fa8"; ctx.lineWidth = Math.max(1, 0.06 * s); ctx.stroke();
+    ctx.strokeStyle = "#1f6fa8"; ctx.lineWidth = Math.max(1.5, 0.08 * s);              // Griff
+    ctx.beginPath(); ctx.moveTo(-w * 0.3, -h / 2); ctx.lineTo(-w * 0.3, -h * 0.68); ctx.lineTo(w * 0.05, -h * 0.68); ctx.lineTo(w * 0.05, -h / 2); ctx.stroke();
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(w * 0.18, -h * 0.66, w * 0.2, h * 0.18);     // Schneehaube auf dem Ausguss
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(1.5, 0.07 * s); ctx.lineCap = "round";   // Schneeflocke
+    for (var k = 0; k < 3; k++) {
+      var a = k * Math.PI / 3 + Math.PI / 2, r = 0.22 * s, cx = Math.cos(a) * r, cy = Math.sin(a) * r;
+      ctx.beginPath(); ctx.moveTo(-cx, 0.05 * s - cy); ctx.lineTo(cx, 0.05 * s + cy); ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -1082,8 +1107,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       var deck = function () { rundRechteck(ctx, -0.62, -0.38, 1.22, 0.08, 0.04); };
       var vorne = function () {
         // Schutzblech hinten, Trittbrett, Akku darunter
-        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.05;
-        ctx.beginPath(); ctx.arc(-0.5, -0.42, 0.22, Math.PI * 1.05, Math.PI * 1.75, false); ctx.stroke();
+        // Schutzblech ÜBER dem Hinterrad (lokal y nach oben: Winkel 0…π = obere Hälfte, π = hinten),
+        // folgt dem gefederten Rad
+        var hr = fz && fz.raeder && fz.raeder[0] && fz.raeder[0].lokalY !== undefined ? fz.raeder[0] : null;
+        var hx = hr ? hr.lokalX : -0.5, hy = hr ? hr.lokalY : -0.42;
+        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.05; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.arc(hx, hy, 0.23, Math.PI * 0.38, Math.PI * 0.98, false); ctx.stroke();
         karosserie(ctx, a, z, deck, -0.62, 0.6, -0.38, -0.3);
         ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, -0.55, -0.31, 1.05, 0.025, 0.01); ctx.fill();          // Griffband
         ctx.fillStyle = "#3a4152"; rundRechteck(ctx, -0.3, -0.47, 0.6, 0.09, 0.03); ctx.fill();
@@ -1127,6 +1156,105 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "#c9cfdb"; [-0.52, 0.52].forEach(function (x) { ctx.fillRect(x - 0.06, -0.42, 0.12, 0.05); });   // Achsen
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, 0.18, 0.34, 0.42], arme: [0.05, 0.5, 0.36, 0.36] };
+    },
+
+    /* Schnee-Schlitten (Prototyp): alter Holzschlitten mit zwei geschwungenen Kufen und
+       Latten-Sitz. Hinten ein Tank (Lackfarbe) mit Schneekanone obendrauf – das Rohr zeigt
+       schräg nach vorn über den Kopf des Kindes –, ganz hinten der Propeller im Schutzring.
+       fz.propeller −1…1 (Drehzahl), fz.kanone true = schießt gerade Schnee. */
+    schlitten: function (ctx, a, z, fz) {
+      var c = basisFarbe(a), o = outfitVon(a), holz = "#c98d4f", holzD = "#8d5a2a", holzH = "#e2b07a";
+      var prop = fz ? fz.propeller || 0 : 0, schiesst = fz && fz.kanone;
+      // Unterkante der Kufen folgt den (gefederten) Kontaktpunkten
+      var yK = -0.45;
+      if (fz && fz.raeder && fz.raeder.length && fz.raeder[0].lokalY !== undefined) {
+        var sum = 0; fz.raeder.forEach(function (R) { sum += R.lokalY - R.r; }); yK = sum / fz.raeder.length;
+      }
+      var kufe = function (dx, dy, farbe, dicke) {
+        ctx.save(); ctx.translate(dx, dy);
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.strokeStyle = farbe; ctx.lineWidth = dicke;
+        ctx.beginPath(); ctx.moveTo(-1.12, yK + 0.05); ctx.lineTo(0.92, yK + 0.05);
+        ctx.bezierCurveTo(1.22, yK + 0.05, 1.32, yK + 0.32, 1.18, yK + 0.5);       // vorn hochgebogen
+        ctx.bezierCurveTo(1.08, yK + 0.62, 0.96, yK + 0.5, 1.04, yK + 0.42);       // kleine Schnecke
+        ctx.stroke();
+        ctx.strokeStyle = "#aab3c2"; ctx.lineWidth = 0.035;                          // Eisenbeschlag unten
+        ctx.beginPath(); ctx.moveTo(-1.1, yK + 0.015); ctx.lineTo(0.92, yK + 0.015);
+        ctx.quadraticCurveTo(1.2, yK + 0.02, 1.27, yK + 0.25); ctx.stroke();
+        ctx.restore();
+      };
+      var hinten = function () {
+        kufe(0.06, 0.05, holzD, 0.09);                                               // hintere Kufe (weiter weg)
+        // Propeller ganz hinten: Motorgehäuse, Schutzring, Blätter (von der Seite gesehen)
+        var px = -1.42, py = 0.5;
+        ctx.fillStyle = "#4b5263"; rundRechteck(ctx, -1.36, 0.36, 0.22, 0.28, 0.06); ctx.fill();
+        ctx.strokeStyle = "#6f7686"; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(-1.25, 0.36); ctx.lineTo(-1.15, 0.12); ctx.stroke();
+        var dreh = Math.abs(prop);
+        if (dreh > 0.25) {                                                           // schnell: nur noch ein Schleier
+          ctx.fillStyle = "rgba(220,226,240," + (0.25 + 0.35 * dreh) + ")";
+          ctx.beginPath(); ctx.ellipse(px, py, 0.05, 0.4, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        var phase = (fz.propPhase = (fz.propPhase || 0) + prop * 0.9 + 0.02);
+        ctx.strokeStyle = dreh > 0.25 ? "rgba(90,70,50,0.45)" : "#7a5232"; ctx.lineWidth = 0.07; ctx.lineCap = "round";
+        for (var k = 0; k < 2; k++) {
+          var L = 0.38 * Math.cos(phase + k * Math.PI / 2);
+          ctx.beginPath(); ctx.moveTo(px, py - L); ctx.lineTo(px, py + L); ctx.stroke();
+        }
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.03;
+        ctx.beginPath(); ctx.ellipse(px, py, 0.08, 0.43, 0, 0, Math.PI * 2); ctx.stroke();   // Schutzring
+        ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(px, py, 0.05, 0, Math.PI * 2); ctx.fill();
+        // Tank (Lackfarbe) auf der Ladefläche hinten
+        var tank = function () { rundRechteck(ctx, -1.12, 0.05, 0.5, 0.52, 0.16); };
+        karosserie(ctx, a, z, tank, -1.12, -0.62, 0.05, 0.57);
+        ctx.strokeStyle = dunkel(c, 0.35); ctx.lineWidth = 0.025; tank(); ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.35)"; rundRechteck(ctx, -1.06, 0.12, 0.07, 0.36, 0.035); ctx.fill();
+        ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(-0.87, 0.3, 0.1, 0, Math.PI * 2); ctx.fill();   // Schneeflocken-Schild
+        ctx.strokeStyle = "#5ec8f2"; ctx.lineWidth = 0.02;
+        for (k = 0; k < 3; k++) { var wf = k * Math.PI / 3; ctx.beginPath(); ctx.moveTo(-0.87 - Math.cos(wf) * 0.075, 0.3 - Math.sin(wf) * 0.075); ctx.lineTo(-0.87 + Math.cos(wf) * 0.075, 0.3 + Math.sin(wf) * 0.075); ctx.stroke(); }
+        // Schneekanone: Mast und Rohr mit Gitter vorne, schräg nach oben über den Kopf
+        ctx.strokeStyle = "#6f7686"; ctx.lineWidth = 0.06; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(-0.82, 0.57); ctx.lineTo(-0.8, 1.08); ctx.stroke();
+        ctx.save(); ctx.translate(-0.78, 1.16); ctx.rotate(0.38);
+        var rg = ctx.createLinearGradient(0, 0.16, 0, -0.16); rg.addColorStop(0, "#f2f5fa"); rg.addColorStop(0.5, "#b9c2d3"); rg.addColorStop(1, "#7d8698");
+        ctx.fillStyle = rg; rundRechteck(ctx, -0.26, -0.15, 0.56, 0.3, 0.08); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.fillStyle = c; ctx.fillRect(-0.12, -0.155, 0.08, 0.31);                    // Farbring
+        ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.ellipse(0.31, 0, 0.045, 0.16, 0, 0, Math.PI * 2); ctx.fill();   // Düsenring
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.015;
+        for (k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(0.31, k * 0.06 - 0.02); ctx.lineTo(0.31, k * 0.06 + 0.02); ctx.stroke(); }
+        if (schiesst) {                                                              // Schneewolke an der Düse
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          for (k = 0; k < 4; k++) {
+            var wz = z * 23 + k * 1.7, rr = 0.07 + 0.04 * Math.sin(wz);
+            ctx.beginPath(); ctx.arc(0.42 + k * 0.09, Math.sin(wz * 1.3) * 0.05, rr, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        ctx.restore();
+      };
+      var vorne = function () {
+        // Holme zwischen Kufe und Sitz
+        ctx.fillStyle = holzD;
+        [-0.95, -0.35, 0.3, 0.85].forEach(function (x) { ctx.fillRect(x - 0.04, yK + 0.05, 0.08, 0.02 - yK); });
+        // Sitz aus Latten
+        ctx.fillStyle = holz; rundRechteck(ctx, -1.18, -0.02, 2.12, 0.1, 0.04); ctx.fill();
+        ctx.strokeStyle = holzD; ctx.lineWidth = 0.02; ctx.stroke();
+        ctx.strokeStyle = "rgba(110,65,25,0.55)"; ctx.lineWidth = 0.012;
+        for (var k = -1.0; k < 0.95; k += 0.26) { ctx.beginPath(); ctx.moveTo(k, -0.02); ctx.lineTo(k, 0.08); ctx.stroke(); }
+        ctx.fillStyle = holzH; ctx.fillRect(-1.1, 0.055, 1.95, 0.015);                // Glanzkante
+        kufe(0, 0, holz, 0.1);                                                       // vordere Kufe
+        // Beine nach vorn, Füße vorn auf der Querstrebe
+        var anz = o.seiten || o.anzug;
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        [[dunkel(anz, 0.2), 0.04], [anz, 0]].forEach(function (b) {
+          ctx.strokeStyle = b[0]; ctx.lineWidth = 0.14;
+          ctx.beginPath(); ctx.moveTo(-0.02 + b[1], 0.2); ctx.lineTo(0.5 + b[1], 0.3); ctx.lineTo(0.82 + b[1], 0.12); ctx.stroke();
+          ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, 0.76 + b[1], 0.06, 0.24, 0.1, 0.04); ctx.fill();
+        });
+        // Lenkseil von den Händen zur Kufenspitze
+        ctx.strokeStyle = "#f3e6c4"; ctx.lineWidth = 0.025;
+        ctx.beginPath(); ctx.moveTo(0.5, 0.42); ctx.quadraticCurveTo(0.9, 0.42, 1.15, yK + 0.45); ctx.stroke();
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.22, 0.08, 0.46, 0.4], arme: [0.02, 0.4, 0.5, 0.42], ohneFedern: true, ohneRaeder: true };
     },
 
     sofa: function (ctx, a, z, fz) {
@@ -2008,7 +2136,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     // Räder zuletzt (vorn)
     felgeJetzt = aussehen.felge || "standard";
-    fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
+    if (!teile.ohneRaeder) fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
     felgeJetzt = "standard";
     if (teile.nachRaedern) teile.nachRaedern();
   }
@@ -2335,7 +2463,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
     zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "", String(kmh), 0, skalaSchritte(vmaxKmh), "km/h");
     var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
-    var titel = G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    var titel = fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
     if (G.dampf) umin = Math.round(G.rpm / 10) * 10;
     zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
                       G.elektro || G.turbine || G.dampf ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
@@ -2365,6 +2493,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var b = sichtbereich(K, gel);
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
     W.zeichneGelaende(ctx, K, gel, welt, z);
+    if (gel.schneeDecke) W.zeichneSchneeDecke(ctx, K, gel);
     if (gel.pfuetzen.length) W.zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
@@ -2380,7 +2509,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.schneeTank ? "schnee" : f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     if (f.roehre && f.roehre.z) {
