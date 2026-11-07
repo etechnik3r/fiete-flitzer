@@ -1381,3 +1381,14 @@ button { font: inherit; color: inherit; }
   .eigen-name { width: 120px; padding: 7px 8px; }
   .eigen-wahl { gap: 6px; }
 }
+
+/* Version 40: viele eigene Charaktere, Paarung im Geisterrennen */
+.spielerwahl-karten.viele { max-width: 1100px; }
+.spielerwahl-karten.viele .wahl-karte { width: clamp(118px, 17vw, 170px); padding: 6px 6px 10px; }
+.spielerwahl-karten.viele .wahl-bild, .spielerwahl-karten.viele .wahl-paar, .spielerwahl-karten.viele .wahl-plus { width: 84px; height: 90px; }
+.spielerwahl-karten.viele .wahl-paar img { width: 54px; }
+.spielerwahl-karten.viele .wahl-name { font-size: 1.15rem; }
+.spielerwahl-karten.viele .wahl-info { font-size: 0.78rem; }
+.spielerwahl-karten.viele .wahl-zahnrad { width: 40px; height: 40px; top: 4px; right: 4px; font-size: 1.1rem; }
+.duell-paarung { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 2px; }
+.duell-paarung-titel { font-family: var(--font-display); font-weight: 800; margin-right: 4px; }

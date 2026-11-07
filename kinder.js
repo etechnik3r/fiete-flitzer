@@ -117,12 +117,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       oliv:   { name: "Oliv",   farbe: ["#d9a578", "#a87148"] }, dunkel: { name: "Dunkel", farbe: ["#9c6a45", "#6d4529"] }
     }
   };
-  function setzeEigenes(e) {
+  function setzeEigenes(id, e) {
+    if (typeof id === "object") { e = id; id = "eigen"; }
+    e = e || {};
     var H = (EIGEN_FARBEN.haar[e.haarfarbe] || EIGEN_FARBEN.haar.braun).farbe;
     var Au = (EIGEN_FARBEN.augen[e.augen] || EIGEN_FARBEN.augen.braun).farbe;
     var Ht = (EIGEN_FARBEN.haut[e.haut] || EIGEN_FARBEN.haut.hell).farbe;
     var maedchen = e.geschlecht === "w";
-    AUSSEHEN.eigen = {
+    AUSSEHEN[id] = {
       haut: Ht[0], hautRand: Ht[1], wangen: maedchen ? "rgba(255,112,110,0.36)" : "rgba(255,120,110,0.16)",
       haar: H[0], haarHell: H[1], haarDunkel: H[2],
       brauen: H[2], augen: Au,
@@ -142,7 +144,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   // Steckbrief + gewählte Variante (zwischengespeichert, denn das läuft in jedem Bild)
   var mitVariante = {};
-  setzeEigenes({});                         // Grundform des eigenen Charakters
+  ["eigen", "eigen2", "eigen3", "eigen4", "eigen5"].forEach(function (id) { setzeEigenes(id, {}); });   // Grundform der eigenen Charaktere
   function aussehenVon(kind) {
     var A = grundAussehen(kind), v = kind && kind.variante ? varianteVon(kind.id, kind.variante) : null;
     if (!v || v === (VARIANTEN[kind.id] || [])[0]) return A;
