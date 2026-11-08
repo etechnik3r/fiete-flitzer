@@ -154,6 +154,7 @@ button { font: inherit; color: inherit; }
 .tank-chip.akku .tank-fuellung { background: linear-gradient(90deg, #2fcf7d, #6ff3ff); }
 .tank-chip.wasserstoff .tank-fuellung { background: linear-gradient(90deg, #2f7fe0, #9fdcff); }
 .tank-chip.schnee .tank-fuellung { background: linear-gradient(90deg, #7fd0ff, #f4fbff); }
+.tank-chip.zauber .tank-fuellung { background: linear-gradient(90deg, #8e5bd8, #ff9fe0, #ffe98a); }
 .tank-chip.knapp .tank-fuellung { background: linear-gradient(90deg, #e8453c, #ff9e2c); }
 .tank-chip.knapp { animation: blinken 0.6s ease-in-out infinite; }
 @keyframes blinken { 0%, 100% { box-shadow: var(--sh-chip); } 50% { box-shadow: 0 0 0 5px rgba(232, 69, 60, 0.45), var(--sh-chip); } }
@@ -734,6 +735,21 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-display); font-size: 0.7rem; white-space: nowrap;
 }
 .farb-knopf.gesperrt { filter: saturate(0.6); }
+.farb-knopf.eigen-knopf { display: grid; place-items: center; font-size: 1.2rem; }
+/* Eigene Farbe und Farbverlauf: Farbwähler unter den Farben */
+.farb-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 14px; padding: 10px 12px;
+  border-radius: 16px; background: #f7f9fe; box-shadow: var(--sh-chip); font-family: var(--font-display); font-weight: 800; }
+.farb-editor[hidden] { display: none; }
+.farb-feld { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.farb-feld input[type="color"] { width: 52px; height: 40px; padding: 0; border: 3px solid #fff; border-radius: 12px;
+  box-shadow: var(--sh-chip); background: none; cursor: pointer; }
+.farb-feld input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.farb-feld input[type="color"]::-webkit-color-swatch { border: none; border-radius: 9px; }
+.farb-feld input[type="color"]::-moz-color-swatch { border: none; border-radius: 9px; }
+.farb-richtung { display: flex; gap: 6px; }
+.farb-richtung button { padding: 6px 10px; border: 3px solid transparent; border-radius: 12px; background: #fff;
+  box-shadow: var(--sh-chip); font-family: var(--font-display); font-weight: 800; font-size: 0.85rem; cursor: pointer; }
+.farb-richtung button.aktiv { border-color: var(--accent); background: #fff5e6; }
 .outfit-liste { display: flex; flex-wrap: wrap; gap: 10px; }
 .outfit-knopf {
   position: relative;
@@ -764,6 +780,7 @@ button { font: inherit; color: inherit; }
 .kachel.aktiv { border-color: var(--accent); background: #fff5e6; }
 .kachel.zu .kachel-icon { opacity: 0.55; }
 .kachel-icon { font-size: 1.35rem; line-height: 1.1; }
+.kachel-icon .icon-svg { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.12em; }
 .kachel-name { font-size: 0.78rem; font-weight: 800; line-height: 1.1; text-align: center; }
 .kachel-preis { font-size: 0.7rem; color: var(--muted); font-weight: 700; }
 .muster-knopf {

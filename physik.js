@@ -388,7 +388,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     // gepustet (Moped stark, Rennwagen schwach); Bezug ist der Flitzer.
     var aWind = gel.windBei ? gel.windBei(C.x) : 0;
     if (aWind) {
-      aWind *= Math.max(0.6, Math.min(1.5, w.cwA / w.masse / WIND_BEZUG));
+      aWind *= Math.max(0.6, Math.min(w.windMax || 1.5, w.cwA / w.masse / WIND_BEZUG));
       C.vx += aWind * h;
       for (i = 0; i < nR; i++) RR[i].k.vx += aWind * h;
     }
@@ -433,7 +433,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         ko.rx = -R.r * ko.nx; ko.ry = -R.r * ko.ny;
         ko.rollMax = crr * R.r;
         ko.vBand = band ? gel.bandBei(k.x) : 0;
-        vorbereiteKontakt(k, ko, h, abprall, T.werte.kufen ? kufenMu(T, gel, welt, k, R, ko) : grip, P);
+        vorbereiteKontakt(k, ko, h, abprall, T.werte.kufen ? kufenMu(T, gel, welt, k, R, ko)
+          : T.werte.schweben ? T.werte.schweben.mu + (T.kufenBremse || 0) * T.werte.schweben.bremsMu : grip, P);
       } else { ko.jn = ko.jt = ko.jr = 0; }
     }
     var muH = P.huellReibung * welt.grip;

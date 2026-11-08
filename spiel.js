@@ -99,6 +99,7 @@
   function sterneSumme(prof) {
     return Object.keys(prof.level).reduce(function (s, k) { return s + (prof.level[k].sterne || 0); }, 0);
   }
+  function hexOk(t) { return typeof t === "string" && /^#[0-9a-f]{6}$/i.test(t); }
   function farbWert(id) {
     for (var i = 0; i < C.farben.length; i++) if (C.farben[i].id === id) return C.farben[i];
     return C.farben[0];
@@ -133,9 +134,15 @@
     var prof = S.spieler[kindId];
     fzId = fzId || prof.fahrzeug;
     var fs = prof.fahrzeuge[fzId] || {};
-    var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe);
+    var f = farbWert(fs.farbe || FF.fahrzeugDef(fzId).farbe), lackWert = f.wert, verlauf = null;
+    if (f.wert === "eigene") lackWert = hexOk(fs.eigeneFarbe) ? fs.eigeneFarbe : farbWert(FF.fahrzeugDef(fzId).farbe).wert;
+    if (f.wert === "verlauf") {
+      var V = fs.verlauf || {};
+      verlauf = { a: hexOk(V.a) ? V.a : "#2f6fd6", b: hexOk(V.b) ? V.b : "#ffd23f", r: V.r === "ou" ? "ou" : "vh" };
+      lackWert = FF.Grafik.mische(verlauf.a, verlauf.b, 0.5);
+    }
     var bf = C.beifahrer.filter(function (b) { return b.id === prof.beifahrer; })[0];
-    return { farbe: f.wert, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindMitLook(kindId),
+    return { farbe: lackWert, verlauf: verlauf, glanz: !!f.glanz, muster: fs.muster || "keins", outfit: outfitWert(prof.outfit), kind: kindMitLook(kindId),
              felge: prof.felge || "standard", beifahrer: bf ? bf.emoji : "", spoiler: (fs.upgrades && fs.upgrades.spoiler) || 0 };
   }
 
@@ -415,6 +422,7 @@
         var ko = R.kontakt;
         if (!ko.aktiv || ko.pen < -0.02) return;
         if (fahrt.werte.kufen) { kufenStaub(R, ko); return; }
+        if (fahrt.werte.schweben) return;                      // Teppich: berührt den Boden nicht
         var tx = ko.ny, ty = -ko.nx;
         var vBoden = R.k.vx * tx + R.k.vy * ty;
         var schlupf = Math.abs(-R.k.w * R.r - vBoden);
@@ -428,6 +436,7 @@
     }
     if (fahrt.werte.kufen) schneeKanone(dt);
     if (fahrt.werte.wanne) wannenWasser(dt);
+    if (fahrt.werte.zauber) teppichGlitzer(dt);
     if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
     if (fahrt.welt.schleimtropfen || fahrt.fz.flecken) schleimTropfen(dt);
@@ -521,6 +530,19 @@
                        r0: 0.06 + Math.random() * 0.07, alpha: 1.3, farbe: "rgba(110,190,250,0.95)" });
       }
     }
+  }
+  /* Fliegender Teppich: Zauberstaub rieselt unter dem Teppich heraus (mehr beim Gasgeben) und
+     ein Lufthauch kräuselt den Boden darunter */
+  var glitzerTakt = 0, GLITZER = ["#fff3a8", "#ffd23f", "#ffffff", "#c9a6ff", "#9fe0ff"];
+  function teppichGlitzer(dt) {
+    var fz = fahrt.fz, ch = fz.chassis, ca = Math.cos(ch.a), sa = Math.sin(ch.a), z = Math.abs(fahrt.zauberLauf || 0);
+    glitzerTakt -= dt * (0.35 + 1.6 * z);
+    if (glitzerTakt > 0 || fahrt.zustand !== "fahrt") return;
+    glitzerTakt = 0.05;
+    var lx = -1.25 + Math.random() * 2.3, ly = -0.22;
+    partikel.neu({ art: "funkel", x: ch.x + ca * lx - sa * ly, y: ch.y + sa * lx + ca * ly, t: 0, dauer: 0.5 + Math.random() * 0.4,
+                   vx: ch.vx * 0.3 - ca * (0.5 + 2 * z) + (Math.random() - 0.5), vy: ch.vy * 0.3 - 0.4 - Math.random() * 0.6,
+                   r0: 0.05 + Math.random() * 0.06, farbe: GLITZER[(Math.random() * 5) | 0], schwer: 0.15, reibung: 1.5 });
   }
   /* Kufen: auf Schnee stiebt etwas Pulver, auf blankem Boden kratzen sie (Staub in Bodenfarbe) */
   function kufenStaub(R, ko) {
@@ -654,7 +676,9 @@
     spurTakt -= dt;
     if (spurTakt > 0) return;
     spurTakt = art === "regenbogen" ? 0.025 : 0.06;
-    var L = fahrt.werte.groesse.laenge, ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.48, ly = 0.15;
+    var L = fahrt.werte.groesse.laenge, lx = -L * 0.48, ly = 0.15, AN = fahrt.fz.anhaenger;
+    if (AN && AN.length) { ch = AN[AN.length - 1].chassis; lx = -1.35; ly = 0.2; }   // Zug: hinter dem letzten Wagen, nicht zwischen Lok und Tender
+    var ca = Math.cos(ch.a), sa = Math.sin(ch.a);
     var x = ch.x + ca * lx - sa * ly, y = ch.y + sa * lx + ca * ly, zf = Math.random;
     if (art === "regenbogen") {
       for (var i = 0; i < 6; i++) partikel.neu({ art: "staub", x: x - sa * (0.3 - i * 0.12), y: y + ca * (0.3 - i * 0.12), vx: 0, vy: 0,
@@ -715,6 +739,9 @@
     if (def.puste) return { icon: "💨", name: "Puste", voll: "🍎 Mampf – neue Puste!", knapp: "💨 Die Puste wird knapp – rollen lassen oder einen Apfel sammeln!",
       knappSag: "Die Puste wird knapp!", leer: "Keine Puste mehr! 💨", ergebnis: "Keine Puste mehr – gut gelaufen!", garage: "die Puste 💨",
       info: "💨 Deine Puste<small>Laufen kostet Puste. Rollst du ohne Gas, kommt sie langsam zurück – und Äpfel 🍎 geben neue!</small>" };
+    if (def.zauberTank) return { icon: "✨", name: "Zauberstaub", voll: "🧪 Zauberstaub nachgefüllt!", knapp: "✨ Der Zauberstaub wird knapp – sammle ein lila Fläschchen!",
+      knappSag: "Der Zauberstaub wird knapp!", leer: "Zauberstaub alle! ✨", ergebnis: "Zauberstaub alle – schön geflogen!", garage: "den Zauberstaub ✨",
+      info: "✨ Dein Zauberstaub<small>Der Zauberwind schiebt den Teppich. Sammle die lila Zauberfläschchen 🧪!</small>" };
     if (def.wannenTank) return { icon: "🛁", name: "Badewasser", voll: "🪣 Wasser nachgefüllt!", knapp: "🛁 Das Badewasser wird knapp – sammle einen blauen Eimer!",
       knappSag: "Das Badewasser wird knapp!", leer: "Wanne leer! 🛁", ergebnis: "Wanne leer – gut geplanscht!", garage: "das Badewasser 🛁",
       info: "🛁 Dein Badewasser<small>Der Abfluss spritzt Wasser nach hinten und schiebt dich an. Bei Sprüngen schwappt es raus – sammle blaue Eimer 🪣!</small>" };
@@ -833,6 +860,9 @@
           break;
         case "wippe":                    // Zirkus: die Wippe schlägt auf
           FF.Klang.spiele("landung", 0.3 + 0.5 * e.staerke);
+          break;
+        case "netz":                     // Zirkus: vom Hochseil ins Netz gefallen
+          schwebeText(ch.x, ch.y + 2, "Ins Netz! 🎪", "#ffd23f", true);
           break;
         case "wolkeFall":                // Wolkeninseln: in die Lücke gefallen
           schwebeText(ch.x, ch.y + 2, "Huiii! ☁️", "#ffffff", true);
@@ -1152,6 +1182,7 @@
     $("hud-tank").classList.toggle("wasserstoff", !!fahrt.def.wasserstoff);
     $("hud-tank").classList.toggle("schnee", !!fahrt.def.schneeTank);
     $("hud-tank").classList.toggle("wasserstoff", !!fahrt.def.wasserstoff || !!fahrt.def.wannenTank);
+    $("hud-tank").classList.toggle("zauber", !!fahrt.def.zauberTank);
     $("hud-fortschritt").hidden = !!endlos;
     $("hud-strecke").hidden = !endlos;
     $("hud-geist-strecke").hidden = !(endlos && geist);
@@ -2113,6 +2144,14 @@
       ["🛁 Badewasser", w.tankSekunden / 70],
       ["🤸 Saltos", w.luftsteuerung / 9]
     ];
+    if (w.zauber) return [                                    // Fliegender Teppich: Zauberwind statt Motor
+      ["🏎️ Tempo", w.zauber.vmax / 34],
+      ["💪 Kraft", w.zauber.schub / 9.81 / 1.1],
+      ["🧶 Halt", 0.25 + w.schweben.mu * 2],
+      ["☁️ Schweben", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
+      ["✨ Zauberstaub", w.tankSekunden / 70],
+      ["🤸 Saltos", w.luftsteuerung / 9]
+    ];
     if (w.kufen) return [                                     // Schnee-Schlitten: keine angetriebenen Räder
       ["🏎️ Tempo", w.propeller.vmax / 34],
       ["💪 Kraft", w.propeller.schub / 9.81 / 1.1],
@@ -2164,6 +2203,7 @@
       if (key === "motor" && def.wanne) U = { name: "Abfluss", icon: "🚿", text: "Weiterer Abfluss – kräftigerer Strahl", stufen: U.stufen };
       if (key === "tank" && def.schneeTank) U = { name: "Schnee-Tank", icon: "❄️", text: "Mehr Schnee im Tank – weiter rodeln", stufen: U.stufen };
       if (key === "tank" && def.wasserstoff) U = { name: "H₂-Tank", icon: "💧", text: "Größere Wasserstoff-Tanks – weiter fahren", stufen: U.stufen };
+      if (def.upgradeNamen && def.upgradeNamen[key]) { var UN = def.upgradeNamen[key]; U = { name: UN.name, icon: UN.icon, text: UN.text, stufen: U.stufen }; }
       var preis = voll ? 0 : upgradePreis(def, key, stufe);
       var punkte = "";
       for (var i = 0; i < U.stufen; i++) punkte += '<span class="' + (i < stufe ? "an" : "") + '"></span>';
@@ -2184,15 +2224,24 @@
       });
     });
 
-    // Farben
-    var fl = $("farb-liste");
+    // Farben (dazu: eigene Farbe mit Farbwähler, Farbverlauf aus zwei Farben)
+    var fl = $("farb-liste"), ae = aussehenVon(S.aktiv, def.id);
     fl.innerHTML = C.farben.map(function (f) {
-      var hat = P.farben.indexOf(f.id) >= 0;
+      var hat = P.farben.indexOf(f.id) >= 0, inhalt = "";
       var bg = f.wert === "regenbogen" ? "conic-gradient(#ff5b5b,#ffd23f,#3cc35a,#2f6fd6,#8e5bd8,#ff5b5b)"
              : f.glanz ? "linear-gradient(135deg,#c9962a,#fff6c8,#d9a83a)" : f.wert;
-      return '<button type="button" class="farb-knopf' + (fs.farbe === f.id ? " aktiv" : "") + (hat ? "" : " gesperrt") +
-             '" data-farbe="' + f.id + '" data-preis="🪙' + zahl(f.preis) + '" style="background:' + bg + '" aria-label="' + f.name + '"></button>';
+      if (f.wert === "eigene") {
+        bg = fs.farbe === "eigene" ? ae.farbe : "radial-gradient(circle,#fff 0 22%,transparent 23%),conic-gradient(#ff5b5b,#ffd23f,#3cc35a,#1fc7c1,#2f6fd6,#8e5bd8,#ff5b5b)";
+        inhalt = fs.farbe === "eigene" ? "" : "🎨";
+      }
+      if (f.wert === "verlauf") {
+        var V = fs.farbe === "verlauf" ? ae.verlauf : { a: "#2f6fd6", b: "#ffd23f", r: "vh" };
+        bg = "linear-gradient(" + (V.r === "ou" ? "180deg" : "270deg") + "," + V.a + "," + V.b + ")";
+      }
+      return '<button type="button" class="farb-knopf' + (inhalt ? " eigen-knopf" : "") + (fs.farbe === f.id ? " aktiv" : "") + (hat ? "" : " gesperrt") +
+             '" data-farbe="' + f.id + '" data-preis="🪙' + zahl(f.preis) + '" style="background:' + bg + '" aria-label="' + f.name + '">' + inhalt + '</button>';
     }).join("");
+    farbEditor(def, fs, ae);
     fl.querySelectorAll(".farb-knopf").forEach(function (b) {
       b.addEventListener("click", function () {
         var f = farbWert(b.dataset.farbe);
@@ -2253,6 +2302,43 @@
     kachelAuswahl("spur-liste", C.spuren, P.spuren, function () { return P.spur; }, function (id) { P.spur = id; });
     kachelAuswahl("felgen-liste", C.felgen, P.felgen, function () { return P.felge; }, function (id) { P.felge = id; });
     kachelAuswahl("beifahrer-liste", C.beifahrer, P.beifahrerListe, function () { return P.beifahrer; }, function (id) { P.beifahrer = id; });
+  }
+
+  /* Farbwähler für „Eigene Farbe“ und „Farbverlauf“ (nur sichtbar, wenn gewählt). Beim Ziehen
+     im Farbwähler ('input') ändert sich nur das Profil – die Vorschau malt jedes Bild neu;
+     erst beim Loslassen ('change') wird gespeichert und die Garage neu aufgebaut. */
+  function farbEditor(def, fs, ae) {
+    var ed = $("farb-editor"), art = fs.farbe;
+    if (art !== "eigene" && art !== "verlauf") { ed.hidden = true; ed.innerHTML = ""; return; }
+    ed.hidden = false;
+    var feld = function (id, titel, wert) {
+      return '<label class="farb-feld">' + titel + ' <input type="color" id="' + id + '" value="' + wert + '"></label>';
+    };
+    if (art === "eigene") {
+      ed.innerHTML = feld("farbe-eigen", "🎨 Deine Farbe", ae.farbe);
+      var e1 = $("farbe-eigen");
+      e1.addEventListener("input", function () { fs.eigeneFarbe = e1.value.toLowerCase(); });
+      e1.addEventListener("change", function () { fs.eigeneFarbe = e1.value.toLowerCase(); speichere(); baueGarage(); });
+      return;
+    }
+    var V = ae.verlauf, ou = V.r === "ou";
+    ed.innerHTML = feld("verlauf-a", ou ? "⬆️ Oben" : "➡️ Vorne", V.a) + feld("verlauf-b", ou ? "⬇️ Unten" : "⬅️ Hinten", V.b) +
+      '<div class="farb-richtung"><button type="button" data-r="vh" class="' + (ou ? "" : "aktiv") + '">↔️ Vorne – Hinten</button>' +
+      '<button type="button" data-r="ou" class="' + (ou ? "aktiv" : "") + '">↕️ Oben – Unten</button>' +
+      '<button type="button" data-r="tausch" aria-label="Farben tauschen">🔄</button></div>';
+    var setze = function () { fs.verlauf = { a: $("verlauf-a").value.toLowerCase(), b: $("verlauf-b").value.toLowerCase(), r: (fs.verlauf && fs.verlauf.r) || V.r }; };
+    ["verlauf-a", "verlauf-b"].forEach(function (id) {
+      $(id).addEventListener("input", setze);
+      $(id).addEventListener("change", function () { setze(); speichere(); baueGarage(); });
+    });
+    ed.querySelectorAll(".farb-richtung button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        FF.Klang.spiele("klick"); setze();
+        if (b.dataset.r === "tausch") { var t = fs.verlauf.a; fs.verlauf.a = fs.verlauf.b; fs.verlauf.b = t; }
+        else fs.verlauf.r = b.dataset.r;
+        speichere(); baueGarage();
+      });
+    });
   }
 
   /* Gleichmäßiges Kachelraster: Symbol, Name, Preis (oder ✓ gekauft) */

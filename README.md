@@ -431,6 +431,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 📦 Seifenkiste | 3.000 | Aus einem Umzugskarton gebastelt: Klebeband kreuz und quer, Name, Blitz und Smiley mit Filzstift, hochgeklappte Laschen, Seil zum Lenken. Kein Motor: Das Kind läuft unten durch den offenen Boden (Füße mit Laufschritt, Tapp-Geräusch; ohne Gas liegen die Füße vorne auf der Kante). Rollt ohne Pedal ganz frei (`freilauf`, keine Motorbremse) – bergab schneller als ihr Lauftempo (9,5 m/s). Statt Benzin **Puste**: Rollen ohne Gas ab 2 m/s bringt sie langsam zurück (`puste.erholung`), Äpfel 🍎 statt Kanister. Pappe federt weich, darf 15° schiefer landen. Upgrades heißen „Turnschuhe“ und „Puste“ |
 | 🛴 E-Scooter | 5.000 | Tretroller mit Motor im Hinterrad, Kind steht drauf. Zieht sofort los (`eck` 0,8), aber nur 10 m/s; wendigstes Fahrzeug in der Luft (`luftsteuerung` 8,5), balanciert am Boden selbst, lädt beim Bremsen. **Stunts** (nur Grafik, `stuntAktualisieren` in spiel.js): ab 1,6 m Höhe abwechselnd Abflug (am Lenker ausgestreckt), Freihändig, Ein Bein – vor der Landung (Höhe + 0,4 s Fallweg unter 1,3 m) steht das Kind wieder auf dem Brett |
 | 🛷 Schnee-Schlitten | 9.000 | Alter Holzschlitten auf Kufen (Version 41). Hinten ein **Schnee-Tank ❄️** mit **Schneekanone**: Sie schießt Schnee im Bogen über das Kind, er landet direkt vor den Kufen – **nur auf Schnee gleiten sie** (µ 0,025), auf blankem Boden kratzen sie (µ 0,6) und der Schlitten bleibt stehen. Die Kanone schaltet sich selbst: an, solange die Kufen am Boden sind oder der Schlitten in weniger als 0,45 s landet (dann beschneit sie den Landeplatz); hoch in der Luft, im Looping und kopfüber aus, in den Schneebergen gar nicht (dort liegt schon Schnee). Die Flocken fliegen 0,7 s im Bogen über das Kind und landen immer kurz vor den Kufen (Ziel = Kufenspitze nach der Flugzeit); der Schnee liegt nur unmittelbar davor (0,9 m). Der Schnee bleibt liegen. Antrieb: **Holzpropeller** hinten (5 m/s² Schub, auch in der Luft, bis 40 km/h – gemütlich, aber er gleitet lange (µ 0,025); in der Luft träge (`luftsteuerung` 3,4); rückwärts mit der Bremse im Stand), Bremse am Boden = Bremskralle. Sammelt blaue Schnee-Kanister. Upgrades „Propeller“ und „Schnee-Tank“ |
+| 🧞 Fliegender Teppich | 7.000 | Version 44. Schwebt eine Handbreit über dem Boden: statt Rädern drei unsichtbare **Schwebekissen** (gesperrte Kontaktpunkte wie die Kufen des Schlittens, µ 0,07, gefedert 1,9 Hz). Ein **Zauberwind** schiebt (4,6 m/s² entlang des Teppichs, auch in der Luft, bis 41 km/h). **Pfützen, Matsch und Schleim bremsen ihn nicht** (er berührt sie nicht, über Wasser trägt das Kissen), dafür: leicht und viel Fläche, der Wind pustet ihn bis 2,2-mal so stark wie den Flitzer (`windMax`), in der Luft **flattert** er (kleines unruhiges Drehmoment und eine Brise, `schweben.flattern`), bremsen geht nur über Reibung (`schweben.bremsMu`), steile Berge schafft er kaum. Tank = **Zauberstaub ✨** (lila Zauberfläschchen 🧪). Upgrades mit eigenen Namen (`upgradeNamen`): 🪄 Zauberkraft, 🧶 Stoffqualität (+0,012 µ und −12 % Flattern je Stufe), ☁️ Schwebekissen, ✨ Zauberstaub, 🎏 Fransen-Ruder, ⚓ Teppich-Anker. Grafik: Perserteppich schräg von oben (Bordüre, Medaillons, Quasten), wellt sich mit Tempo und im Flug, Kind im Schneidersitz, Glitzerstaub darunter. Klang: zwei verstimmte Dreiecksschwingungen im Quintabstand mit Tremolo und Luftrauschen. Profi-Roboter: Blumenwiese und Pfützenland 4/4 (Flitzer im Pfützenland 1/4), Herbststurm 2/4, Gebirge 0/4 |
 | 🛁 Badewanne | 4.000 | Spaßmobil (Version 42): Wanne mit Löwenfüßen auf Rollen, Kind im Schaumbad, Quietscheente. Antrieb: Der **Abfluss spritzt einen Wasserstrahl nach hinten** (Rückstoß 4 m/s², bis 36 km/h). Der Tank ist das **Badewasser** (75 s Strahl): Der Strahl verbraucht es, und es **schwappt**: Die Wasseroberfläche ist ein gedämpftes Pendel, das der scheinbaren Schwerkraft g − a folgt; steht sie schiefer als der Rand erlaubt (voll ≈ 26°, halb ≈ 47°), läuft Wasser über – beim Aufsetzen nach Sprüngen (im Flug schwebt das Wasser mit), beim Bremsen und kopfüber; ein Looping kostet nur ≈ 5–7 %. Profi-Roboter: in Blumenwiese, Wüste, Baustelle, Bonbon-Land, Achterbahn-Park, Pfützenland und Raumstation Level 1–2 im Ziel. Ausgelaufenes Wasser und der Strahl bleiben als Pfützen liegen. Sammelt blaue Eimer 🪣. Klang: Rauschen des Strahls und Gluckern |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
@@ -456,9 +457,15 @@ Ergebnis und auf dem App-Icon. Fiete und Jonte werden an allen Stellen mit
 denselben Zeichenfunktionen gemalt, damit man immer dieselbe Person sieht.
 Auf der Tür des Flitzers steht der Anfangsbuchstabe des Fahrers.
 
-**Optik**: 14 Lackfarben (darunter Gold und Regenbogen) und 6 Muster (Streifen,
+**Optik**: 15 Lackfarben (darunter Gold und Regenbogen) und 6 Muster (Streifen,
 Punkte, Sterne, Flammen, Blitze, Karo). Farben und Muster kauft man einmal und
-kann sie dann für alle Fahrzeuge nutzen.
+kann sie dann für alle Fahrzeuge nutzen. Seit Version 44 dazu **🎨 Eigene Farbe**
+(800, Farbwähler `input type="color"`, je Fahrzeug `eigeneFarbe`) und
+**Farbverlauf** (2.000, zwei Farben und eine Richtung „vorne – hinten“ oder „oben –
+unten“, je Fahrzeug `verlauf = { a, b, r }`). Der Verlauf läuft über das ganze
+Fahrzeug, nicht über jedes Teil einzeln: `basisFarbe()` liefert dann ein Zeichen,
+aus dem `hell()`, `dunkel()` und `farbeVon()` in `grafik.js` passende Verläufe für
+Kotflügel, Fugen und Dach machen.
 **💫 Spur** (jedes Kind hat seine eigene, für alle Fahrzeuge): Sternenstaub,
 Seifenblasen, Herzen, Funken, Konfetti, Regenbogen, grüne Pupswolken (mit leisem
 „Pfff“), Gummienten, Bananen, Popcorn, Tatzenabdrücke auf dem Boden oder Socken
@@ -469,7 +476,15 @@ Neon, Regenbogen (1.500–6.000, `felgen`). **🐶 Beifahrer** (jedes Kind):
 Hund, Katze, Hase, Papagei, Dino, Einhorn, Wolf (heult nach jedem Salto
 „Auuu!“), Pinguin (watschelt), Panda (mampft Bambus), Fuchs (wackelt im
 Fahrtwind), Eule (dreht den Kopf) und Schildkröte (mit Sturzhelm) fahren mit
-(3.000–12.000, `beifahrer`). Muster, Felgen, Beifahrer und Spuren stehen als gleichmäßiges
+(3.000–12.000, `beifahrer`). Seit Version 44: Axolotl (selbst gemalt, weil es kein
+Emoji gibt; wedelt mit den Kiemen), Krake (wabbelt), Frosch (hüpft), Hamster
+(pustet die Backen auf), Koala (schläfrig, „Zzz“), Drache (kleine Flamme nach oben),
+Igel (rollt sich im Flug ein), Giraffe (groß, Hals schwankt) und Waschbär (schaut
+sich um). Nur Emojis bis Emoji 11 (2018), damit sie auch auf Android 9 erscheinen.
+Wo der Platz hinter dem Kind nicht passt, sitzt der Beifahrer woanders (`teile.beifahrer`
+in `KAROSSERIE`): im Schlafkabinen-Fenster des Donner-Trucks, im Führerhausfenster der
+Lok, vorn auf dem Schlitten, hinten auf dem Teppich. Der Spielstand-Code Version 6
+hat dafür ein 6-Bit-Feld (bis 63 Beifahrer) und speichert eigene Farbe und Verlauf. Muster, Felgen, Beifahrer und Spuren stehen als gleichmäßiges
 Kachel-Raster (`.kachel-liste`) in der Garage.
 
 **Themen-Himmel**: Jede Welt kann in `config.js` Sonne und Wolken an ihr Thema
@@ -903,7 +918,19 @@ wird jeden Schritt neu eingetragen (`dynSchritt`). Sie kommen dicht hintereinand
 - **Klapprampe**: Brett mit Scharnier unten und Feder (J·θ'' = −m·g·r·cos θ +
   k·(θ0 − θ)). Die Feder hält das leere Brett, das Auto drückt es herunter: langsam
   klappt es flach (≈ 2°), schnell springt man hoch ab (bis 3,8 m).
-- dazu Trampoline und kleine Schanzen.
+- **Wippen-Kette** (Version 44): 2–4 Wippen hintereinander, die nächste beginnt kurz
+  hinter dem hohen Ende der vorigen.
+- **Hochseil 2.0** (Version 44): Rampe, erstes Seil, ein Zwischenpodest, dann eine
+  Lücke (2,5–3,9 m) zum zweiten Seil – mit Schwung springen, sonst fällt man ins
+  Netz („Ins Netz! 🎪“, der Ballon hilft). Am Ende Sprung durch den Feuerreifen.
+- **Hocker-Springen** (Version 44): Rampe auf den ersten Elefanten-Hocker, dann 3–6
+  Hocker, jeder 0,3–0,6 m tiefer, Lücken 1,0–2,5 m (Level 1 klein, Level 4 groß).
+  Die vorderen Kanten sind abgeschrägt, damit ein knapp zu tiefes Rad hinaufrollt.
+  Zu schnell (Vollgas) überschlägt man sich, zu langsam hängt man in der Lücke.
+- **Trampolin-Reihe** (Version 44, ab Level 2): 2–3 Trampoline im Abstand eines
+  Sprungs.
+Messung (Version 44, Flitzer): Profi 4/4 im Ziel (Tempo an den Hockern ≤ 10 m/s),
+mit Vollgas 0/4, Loslassen 3/4.
 
 An fast senkrechten Kanten (Turmende, Rampenende, Wolkenlücken) zählt bei den
 Karosserie-Punkten der senkrechte Abstand (`punktKontakt`), sonst würde das Auto an

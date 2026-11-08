@@ -238,6 +238,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine();
     else if (P.art === "propeller") this.bauePropeller();
     else if (P.art === "wasser") this.baueWasser();
+    else if (P.art === "zauber") this.baueZauber();
     else if (P.art === "dampf") this.baueDampf(); else this.baueVerbrenner();
     this.baueFahrgeraeusch();
   }
@@ -432,6 +433,44 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.lfoG.gain.setTargetAtTime(L * an * (0.05 + 0.25 * s), t, 0.1);
   };
 
+  /* Fliegender Teppich: ein warmer, schwebender Zauberklang – zwei leicht verstimmte
+     Dreiecksschwingungen im Quintabstand (Schwebung ≈ 1,5 Hz), die mit dem Zauberwind
+     höher und lauter werden, dazu ein luftiges Rauschen (Hochpass) und ein langsames Tremolo
+     wie ein flatterndes Tuch. */
+  Motor.prototype.baueZauber = function () {
+    var ac = this.ac;
+    var o1 = ac.createOscillator(); o1.type = "triangle"; o1.frequency.value = 220;
+    var o2 = ac.createOscillator(); o2.type = "triangle"; o2.frequency.value = 331.5;
+    var o3 = ac.createOscillator(); o3.type = "sine"; o3.frequency.value = 440;
+    var gT = ac.createGain(); gT.gain.value = 0;
+    var trem = ac.createOscillator(); trem.frequency.value = 3.2; var tremG = ac.createGain(); tremG.gain.value = 0;
+    trem.connect(tremG); tremG.connect(gT.gain);
+    [o1, o2, o3].forEach(function (o) { o.connect(gT); });
+    var tp = ac.createBiquadFilter(); tp.type = "lowpass"; tp.frequency.value = 1200;
+    gT.connect(tp); tp.connect(this.bus);
+    var q = rauschQuelle(ac);
+    var hp = ac.createBiquadFilter(); hp.type = "bandpass"; hp.frequency.value = 2500; hp.Q.value = 0.5;
+    var gR = ac.createGain(); gR.gain.value = 0;
+    q.connect(hp); hp.connect(gR); gR.connect(this.bus);
+    [o1, o2, o3, trem, q].forEach(this.starte, this);
+    this.v = { o1: o1, o2: o2, o3: o3, gT: gT, tremG: tremG, trem: trem, tp: tp, hp: hp, gR: gR };
+  };
+  Motor.prototype.setzeZauber = function (z, gt, t) {
+    var P = this.P, V = this.v, L = P.lautstaerke || 1;
+    var s = z.probe ? Math.min(1, z.drehzahl || 0) * (z.gas ? 1 : 0.25) : Math.max(0, Math.min(1, gt.rf || 0));
+    var an = z.laeuft ? 1 : 0, f = 220 * (1 + 0.5 * s);
+    V.o1.frequency.setTargetAtTime(f, t, 0.15);
+    V.o2.frequency.setTargetAtTime(f * 1.5 + 1.5, t, 0.15);
+    V.o3.frequency.setTargetAtTime(f * 2 - 0.8, t, 0.15);
+    V.tp.frequency.setTargetAtTime(700 + 1500 * s, t, 0.15);
+    var pegel = L * an * (0.025 + 0.05 * s);
+    V.gT.gain.setTargetAtTime(pegel, t, 0.12);
+    V.tremG.gain.setTargetAtTime(pegel * 0.45, t, 0.12);
+    V.trem.frequency.setTargetAtTime(2.5 + 4 * s, t, 0.2);
+    V.hp.frequency.setTargetAtTime(1800 + 2400 * s, t, 0.15);
+    V.gR.gain.setTargetAtTime(L * an * (0.01 + 0.07 * s), t, 0.1);
+  };
+
   /* Dampf-Lok: „Tschu-tschu" – jeder Kolbenhub stößt Dampf aus dem Schornstein. Bei
      zwei doppelt wirkenden Zylindern sind das 4 Stöße je Radumdrehung, also
      f = 4 · v / (2π · r). Jeder Stoß ist ein kurzer Rauschimpuls (Bandpass, dazu ein
@@ -542,6 +581,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (P.art === "turbine") return this.setzeTurbine(z, gt, t);
     if (P.art === "propeller") return this.setzePropeller(z, gt, t);
     if (P.art === "wasser") return this.setzeWasser(z, gt, t);
+    if (P.art === "zauber") return this.setzeZauber(z, gt, t);
     if (P.art === "dampf") return this.setzeDampf(z, tempo, gas, t, dt);
 
     var abgeregelt = gt.begrenzer && Math.sin(t * 2 * Math.PI * 12) < 0;   // Begrenzer unterbricht die Zündung

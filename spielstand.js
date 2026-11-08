@@ -173,7 +173,12 @@ var FF = globalThis.FF = globalThis.FF || {};
      Spielstand-Code
      ------------------------------------------------------------------------- */
   var ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  var CODE_VERSION = 5;               // 2: Felgen/Beifahrer, 3: vier Upgrades, 4: eigener Charakter, 5: bis zu fünf eigene (ältere Codes werden weiter gelesen)
+  var CODE_VERSION = 6;               // 2: Felgen/Beifahrer, 3: vier Upgrades, 4: eigener Charakter, 5: bis zu fünf eigene,
+                                      // 6: bis 63 Beifahrer, eigene Farbe und Farbverlauf (ältere Codes werden weiter gelesen)
+  /* Eigene Farben (Version 44): "#rrggbb" ↔ 24 Bit */
+  function hexOk(t) { return typeof t === "string" && /^#[0-9a-f]{6}$/i.test(t); }
+  function hexZahl(t) { return hexOk(t) ? parseInt(t.slice(1), 16) : 0; }
+  function zahlHex(n) { var t = n.toString(16); while (t.length < 6) t = "0" + t; return "#" + t; }
   var UPG = ["motor", "reifen", "federung", "tank", "kreisel", "spoiler", "bremse", "leichtbau"];
   var UPG_ALT = UPG.slice(0, 4);       // Codes bis Version 2
 
@@ -236,7 +241,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.feld(CODE_VERSION, 4);
     w.feld(C.kinder.length, 3); w.feld(W.length, 7); w.feld(F.length, 5);
     w.feld(C.farben.length, 5); w.feld(C.muster.length, 4); w.feld(C.outfits.length, 4); w.feld(C.spuren.length, 4);
-    w.feld(C.felgen.length, 4); w.feld(C.beifahrer.length, 4);
+    w.feld(C.felgen.length, 4); w.feld(C.beifahrer.length, 6);
     w.feld(index(C.kinder, S.aktiv), 3);
     C.kinder.forEach(function (kind) {
       var p = S.spieler[kind.id];
@@ -253,13 +258,15 @@ var FF = globalThis.FF = globalThis.FF || {};
         UPG.forEach(function (u) { w.feld(Math.min(7, fs.upgrades[u] || 0), 3); });
         w.bit(fs.upgrades.allrad);
         w.feld(index(C.farben, fs.farbe), 5); w.feld(index(C.muster, fs.muster), 4);
+        if (fs.farbe === "eigene") w.feld(hexZahl(fs.eigeneFarbe), 24);
+        if (fs.farbe === "verlauf") { var V = fs.verlauf || {}; w.feld(hexZahl(V.a), 24); w.feld(hexZahl(V.b), 24); w.bit(V.r === "ou"); }
       });
       w.maske(C.farben, p.farben); w.maske(C.muster, p.muster);
       w.maske(C.outfits, p.outfits); w.feld(index(C.outfits, p.outfit), 4);
       w.text(p.look || "");
       w.maske(C.spuren, p.spuren || ["keine"]); w.feld(index(C.spuren, p.spur), 4);
       w.maske(C.felgen, p.felgen || ["standard"]); w.feld(index(C.felgen, p.felge), 4);
-      w.maske(C.beifahrer, p.beifahrerListe || ["keiner"]); w.feld(index(C.beifahrer, p.beifahrer), 4);
+      w.maske(C.beifahrer, p.beifahrerListe || ["keiner"]); w.feld(index(C.beifahrer, p.beifahrer), 6);
       W.forEach(function (welt) {
         for (var li = 0; li < 4; li++) {
           var l = p.level[welt.id + "-" + (li + 1)] || {};
@@ -313,7 +320,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var version = r.feld(4);
       if (version < 1 || version > CODE_VERSION) return { ok: false, fehler: "Dieser Code ist von einer neueren Version des Spiels. Bitte erst die App aktualisieren." };
       var nK = r.feld(version >= 5 ? 3 : 2), nW = r.feld(7), nF = r.feld(5), nFarben = r.feld(5), nMuster = r.feld(4), nOutfits = r.feld(4), nSpuren = r.feld(4);
-      var nFelgen = version >= 2 ? r.feld(4) : 0, nBeif = version >= 2 ? r.feld(4) : 0;
+      var nFelgen = version >= 2 ? r.feld(4) : 0, nBeif = version >= 2 ? r.feld(version >= 6 ? 6 : 4) : 0;
       var aktiv = r.feld(version >= 5 ? 3 : 2), dabeiListe = [];
       var S = neuerSpielstand();
       if (alterStand) {                                   // Einstellungen des Geräts behalten
@@ -336,6 +343,8 @@ var FF = globalThis.FF = globalThis.FF || {};
             var fa = C.farben[r.feld(5)], mu = C.muster[r.feld(4)];
             if (fa) fs.farbe = fa.id;
             if (mu) fs.muster = mu.id;
+            if (version >= 6 && fa && fa.id === "eigene") fs.eigeneFarbe = zahlHex(r.feld(24));
+            if (version >= 6 && fa && fa.id === "verlauf") fs.verlauf = { a: zahlHex(r.feld(24)), b: zahlHex(r.feld(24)), r: r.bit() ? "ou" : "vh" };
           } else if (f && f.preis === 0) fs.gekauft = true;
           if (f) p.fahrzeuge[f.id] = fs;
         }
@@ -347,7 +356,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         var sI = r.feld(4); if (C.spuren[sI]) p.spur = C.spuren[sI].id;
         if (version >= 2) {
           p.felgen = r.maske(nFelgen, C.felgen); var feI = r.feld(4); if (C.felgen[feI]) p.felge = C.felgen[feI].id;
-          p.beifahrerListe = r.maske(nBeif, C.beifahrer); var bI = r.feld(4); if (C.beifahrer[bI]) p.beifahrer = C.beifahrer[bI].id;
+          p.beifahrerListe = r.maske(nBeif, C.beifahrer); var bI = r.feld(version >= 6 ? 6 : 4); if (C.beifahrer[bI]) p.beifahrer = C.beifahrer[bI].id;
         }
         for (var wi = 0; wi < nW; wi++) {
           var welt = C.welten[wi];
