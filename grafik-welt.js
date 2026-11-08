@@ -210,6 +210,27 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.fillStyle = "#7a4a1a"; ctx.beginPath(); ctx.arc(x, y, r * 0.85, 0, Math.PI * 2); ctx.fill();
       sonnenGesicht(ctx, x, y, r * 0.85, "#ffd27a");
     },
+    pixel: function (ctx, x, y, r, zeit) {             // Datenwelt: Sonne aus Pixeln mit Ladekreis drumherum
+      var halo = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 2.1);
+      halo.addColorStop(0, "rgba(255,226,120,0.35)"); halo.addColorStop(1, "rgba(70,240,255,0)");
+      ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, r * 2.1, 0, Math.PI * 2); ctx.fill();
+      var n = 11, c = r * 2.1 / n, x0 = x - n * c / 2, y0 = y - n * c / 2;
+      for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) {
+        var dx = (i + 0.5 - n / 2), dy = (j + 0.5 - n / 2), d = Math.sqrt(dx * dx + dy * dy);
+        if (d > n / 2) continue;
+        ctx.fillStyle = d > n / 2 - 1 ? "#ffb300" : (dx + dy < -3 ? "#fff1a8" : "#ffd23f");
+        ctx.fillRect(Math.floor(x0 + i * c), Math.floor(y0 + j * c), Math.ceil(c) + 0.5, Math.ceil(c) + 0.5);
+      }
+      ctx.fillStyle = "#8a5a00";                                     // Pixel-Gesicht
+      [[3, 4], [7, 4], [3, 7], [4, 8], [5, 8], [6, 8], [7, 7]].forEach(function (q) { ctx.fillRect(x0 + q[0] * c, y0 + q[1] * c, c, c); });
+      var akt = Math.floor(zeit * 8) % 12;                           // Ladekreis: ein Punkt leuchtet, die davor verblassen
+      for (var k = 0; k < 12; k++) {
+        var w = k / 12 * Math.PI * 2 - Math.PI / 2, a = 1 - ((akt - k + 12) % 12) / 12;
+        ctx.fillStyle = "rgba(70,240,255," + (0.15 + 0.8 * a * a) + ")";
+        var q2 = c * 0.9;
+        ctx.fillRect(x + Math.cos(w) * r * 1.55 - q2 / 2, y + Math.sin(w) * r * 1.55 - q2 / 2, q2, q2);
+      }
+    },
     glas: function (ctx, x, y, r, zeit) {              // Sonne aus Glas mit Facetten
       ctx.fillStyle = "rgba(255,240,170,0.45)";
       for (var i = 0; i < 8; i++) { var w = i * Math.PI / 4 + zeit * 0.1; ctx.beginPath(); ctx.moveTo(x + Math.cos(w - 0.15) * r * 1.1, y + Math.sin(w - 0.15) * r * 1.1); ctx.lineTo(x + Math.cos(w) * r * 1.8, y + Math.sin(w) * r * 1.8); ctx.lineTo(x + Math.cos(w + 0.15) * r * 1.1, y + Math.sin(w + 0.15) * r * 1.1); ctx.fill(); }
@@ -320,6 +341,12 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.beginPath(); ctx.ellipse(x, y, w * 0.5, w * 0.22, 0, 0, Math.PI * 2); ctx.stroke();
       } else if (welt.wolkenStil === "dampf") {         // bunte Dampfwolken der Fabrik
         ctx.fillStyle = ["rgba(255,190,220,0.8)", "rgba(190,225,255,0.8)", "rgba(255,235,170,0.8)"][i % 3]; wolkeMalen(ctx, x, y, w);
+      } else if (welt.wolkenStil === "pixel") {         // Datenwelt: Wolke aus Pixel-Quadraten (wie in alten Computerspielen)
+        var pq = Math.round(w * 0.11), px0 = Math.round(x - pq * 4), py0 = Math.round(y);
+        ["..XXX...", ".XXXXXX.", "XXXXXXXX"].forEach(function (zeile, zr) {
+          for (var zc = 0; zc < zeile.length; zc++) if (zeile[zc] === "X") ctx.fillRect(px0 + zc * pq, py0 + (zr - 2) * pq, pq, pq);
+        });
+        ctx.fillStyle = "rgba(200,250,255,0.35)"; ctx.fillRect(px0 + 2 * pq, py0 - 2 * pq, pq * 3, Math.max(1, pq * 0.25));
       } else if (welt.wolkenStil === "zuckerwatte") {   // Zuckerwatte: rosa, flauschig
         ctx.fillStyle = i % 2 ? "rgba(255,190,225,0.9)" : "rgba(230,200,255,0.9)";
         for (var z = 0; z < 6; z++) { ctx.beginPath(); ctx.arc(x + (z - 2.5) * w * 0.17, y - Math.sin(z * 1.3) * w * 0.08, w * (0.14 + 0.04 * (z % 2)), 0, Math.PI * 2); ctx.fill(); }
@@ -686,6 +713,66 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
       ctx.stroke();
       ctx.strokeStyle = alt;
+    } },
+    server: { abst: 20, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Datenwelt: Server-Schränke mit Lüftungsschlitzen und blinkenden Lämpchen
+      var alt = ctx.fillStyle, n = 1 + Math.floor(R() * 3), lampen = [];
+      for (var i = 0; i < n; i++) {
+        var b = s * (0.16 + 0.06 * R()), h = s * (0.45 + 0.45 * R()), xx = x + (i - (n - 1) / 2) * s * 0.24;
+        ctx.fillStyle = alt; ctx.fillRect(xx - b / 2, y - h, b, h + 2);
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        for (var e = 1; e * s * 0.07 < h - s * 0.04; e++) ctx.fillRect(xx - b * 0.4, y - h + e * s * 0.07, b * 0.8, Math.max(1, s * 0.008));
+        for (e = 0; e < 3; e++) if (R() < 0.8) lampen.push([xx + b * 0.32, y - h + (e + 0.6) * s * 0.07 + s * 0.02, R()]);
+      }
+      ctx.fillStyle = f.fenster || "#46f0ff";
+      lampen.forEach(function (l, j) {
+        ctx.globalAlpha = 0.35 + 0.65 * (Math.sin(zeit * (2 + 3 * l[2]) + j * 1.7 + k) > -0.2 ? 1 : 0);
+        ctx.fillRect(l[0] - s * 0.012, l[1] - s * 0.012, s * 0.024, s * 0.024);
+      });
+      ctx.globalAlpha = 1; ctx.fillStyle = alt;
+    } },
+    platine: { abst: 24, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Datenwelt: riesiger Mikrochip auf Beinchen, Leiterbahnen führen nach oben zu Lötpunkten
+      var alt = ctx.fillStyle, b = s * (0.28 + 0.12 * R()), h = b * (0.7 + 0.3 * R()), yb = y - s * 0.08;
+      ctx.fillRect(x - b / 2, yb - h, b, h);
+      for (var i = 0; i < 6; i++) {                                   // Beinchen links, rechts und unten
+        var py = yb - h + (i + 0.5) * h / 6;
+        ctx.fillRect(x - b / 2 - s * 0.04, py - s * 0.008, s * 0.04, s * 0.016); ctx.fillRect(x + b / 2, py - s * 0.008, s * 0.04, s * 0.016);
+        ctx.fillRect(x - b / 2 + (i + 0.5) * b / 6 - s * 0.008, yb, s * 0.016, s * 0.1);
+      }
+      ctx.strokeStyle = alt; ctx.lineWidth = Math.max(1, s * 0.016); ctx.lineCap = "round";
+      var bahnen = 2 + Math.floor(R() * 2), knoten = [];
+      for (i = 0; i < bahnen; i++) {
+        var bx = x - b / 3 + i * b / 3, hy = yb - h - s * (0.15 + 0.3 * R()), kx = bx + (R() - 0.5) * s * 0.3;
+        ctx.beginPath(); ctx.moveTo(bx, yb - h); ctx.lineTo(bx, hy + s * 0.08); ctx.lineTo(kx, hy); ctx.stroke();
+        ctx.beginPath(); ctx.arc(kx, hy, s * 0.025, 0, Math.PI * 2); ctx.fill();
+        knoten.push([kx, hy]);
+      }
+      ctx.fillStyle = f.fenster || "#46f0ff";                          // der Chip „denkt“: Licht in der Mitte pulsiert
+      ctx.globalAlpha = 0.45 + 0.35 * Math.sin(zeit * 2.5 + k);
+      ctx.fillRect(x - b * 0.15, yb - h / 2 - b * 0.15, b * 0.3, b * 0.3);
+      knoten.forEach(function (q, j) { ctx.globalAlpha = 0.3 + 0.5 * Math.max(0, Math.sin(zeit * 3 + j * 2 + k)); ctx.beginPath(); ctx.arc(q[0], q[1], s * 0.014, 0, Math.PI * 2); ctx.fill(); });
+      ctx.globalAlpha = 1; ctx.fillStyle = alt; ctx.strokeStyle = alt;
+    } },
+    netz: { abst: 30, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Datenwelt: Netzwerk-Knoten auf Masten, verbunden durch Leitungen, auf denen Datenpakete wandern
+      var alt = ctx.fillStyle, n = 3 + Math.floor(R() * 2), P = [];
+      for (var i = 0; i < n; i++) P.push([x + (i - (n - 1) / 2) * s * (0.28 + 0.1 * R()), y - s * (0.35 + 0.5 * R())]);
+      ctx.strokeStyle = alt; ctx.lineWidth = Math.max(1, s * 0.014);
+      ctx.beginPath();
+      P.forEach(function (p, j) { ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], y + 2); if (j) { ctx.moveTo(P[j - 1][0], P[j - 1][1]); ctx.lineTo(p[0], p[1]); } });
+      if (n > 3) { ctx.moveTo(P[0][0], P[0][1]); ctx.lineTo(P[2][0], P[2][1]); }
+      ctx.stroke();
+      P.forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], s * 0.045, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = f.fenster || "#46f0ff";
+      for (i = 1; i < n; i++) {                                       // Datenpaket wandert von Knoten zu Knoten
+        var u = (zeit * 0.5 + i * 0.37 + k * 0.21) % 1, a = P[i - 1], b2 = P[i];
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(a[0] + (b2[0] - a[0]) * u - s * 0.014, a[1] + (b2[1] - a[1]) * u - s * 0.014, s * 0.028, s * 0.028);
+      }
+      ctx.globalAlpha = 0.6;
+      P.forEach(function (p) { ctx.beginPath(); ctx.arc(p[0], p[1], s * 0.018, 0, Math.PI * 2); ctx.fill(); });
+      ctx.globalAlpha = 1; ctx.fillStyle = alt; ctx.strokeStyle = alt;
     } },
     stalagmiten: { abst: 9, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 3; i++) {
@@ -1377,6 +1464,33 @@ var FF = globalThis.FF = globalThis.FF || {};
         X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 0.35);
         ctx.beginPath(); ctx.arc(X, Y + 0.25 * K.s, 0.3 * K.s, 1.25 * Math.PI, 1.75 * Math.PI); ctx.stroke();
       }
+    } else if (stil === "daten") {
+      // Platine: Leiterbahnen parallel zur Oberfläche, Abzweige nach unten mit Lötpunkten,
+      // dazu Lichtpunkte, die über die leuchtende Kante flitzen (alles fest an Weltpositionen)
+      ctx.strokeStyle = "rgba(70,240,255,0.3)"; ctx.lineWidth = Math.max(1, 0.06 * K.s); ctx.lineJoin = "miter";
+      [0.75, 1.55].forEach(function (tiefe, n) {
+        ctx.beginPath();
+        for (var ii = i0; ii <= i1; ii += 2) { var XX = sx(K, x0 + ii * dx), YY = sy(K, h[ii] - tiefe); if (ii === i0) ctx.moveTo(XX, YY); else ctx.lineTo(XX, YY); }
+        for (ii = i0 - (i0 % 14) + n * 7; ii <= i1; ii += 14) {
+          var tz = 0.5 + (FF.rauschen(ii * 0.61, 12 + n) * 0.5 + 0.5) * 1.3;
+          XX = sx(K, x0 + ii * dx); YY = sy(K, h[ii] - tiefe);
+          ctx.moveTo(XX, YY); ctx.lineTo(XX, YY + tz * 0.5 * K.s); ctx.lineTo(XX + tz * 0.5 * K.s, YY + tz * K.s);
+        }
+        ctx.stroke();
+      });
+      ctx.fillStyle = "rgba(70,240,255,0.45)";
+      for (i = i0 - (i0 % 14); i <= i1; i += 7) {                    // Lötpunkte am Ende der Abzweige
+        var n2 = (i / 7) % 2, tz2 = 0.5 + (FF.rauschen(i * 0.61, 12 + n2) * 0.5 + 0.5) * 1.3;
+        X = sx(K, x0 + i * dx) + tz2 * 0.5 * K.s; Y = sy(K, h[i] - (n2 ? 1.55 : 0.75)) + tz2 * K.s;
+        ctx.beginPath(); ctx.arc(X, Y, 0.1 * K.s, 0, Math.PI * 2); ctx.fill();
+      }
+      var abstL = 6, xa = x0 + i0 * dx, xe = x0 + i1 * dx, versL = (zeit * 9) % abstL;
+      for (var xl = Math.floor((xa - versL) / abstL) * abstL + versL; xl <= xe; xl += abstL) {
+        if (xl < xa) continue;
+        var Xl = sx(K, xl), Yl = sy(K, gel.hoeheBei(xl)) + 0.03 * K.s;
+        ctx.fillStyle = "rgba(70,240,255,0.35)"; ctx.fillRect(Xl - 0.5 * K.s, Yl - 0.08 * K.s, 0.5 * K.s, 0.16 * K.s);
+        ctx.fillStyle = "#e8fdff"; ctx.fillRect(Xl - 0.14 * K.s, Yl - 0.06 * K.s, 0.18 * K.s, 0.12 * K.s);
+      }
     } else if (stil === "mond") {
       for (i = i0 - (i0 % 11); i <= i1; i += 11) {
         var g2 = FF.rauschen(i * 0.37, 9) * 0.5 + 0.5;
@@ -1483,6 +1597,32 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.beginPath(); ctx.arc(sx(K, t.x0 + (t.x1 - t.x0) * 0.35), sy(K, basis + t.H * 0.55), (t.x1 - t.x0) * 0.22 * K.s, 1.15 * Math.PI, 1.45 * Math.PI); ctx.stroke();
         continue;
       }
+      if (gel.welt.trampolinStil === "taste") {                     // Datenwelt: großer leuchtender Enter-Knopf
+        var Xa = sx(K, t.x0 - 0.45), Xb = sx(K, t.x1 + 0.45), Yg = sy(K, basis), plat = 0.22 * K.s;
+        var leucht = dt >= 0 && dt < 0.6 ? 1 - dt / 0.6 : 0;
+        ctx.fillStyle = "#1b2433";                                   // Sockel
+        ctx.beginPath(); ctx.moveTo(Xa, Yg + 0.1 * K.s); ctx.lineTo(Xa + plat * 0.5, Yg - plat); ctx.lineTo(Xb - plat * 0.5, Yg - plat); ctx.lineTo(Xb, Yg + 0.1 * K.s); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(70,240,255," + (0.35 + 0.6 * leucht) + ")";
+        ctx.fillRect(Xa + plat * 0.5, Yg - plat, Xb - Xa - plat, Math.max(2, 0.05 * K.s));
+        ctx.beginPath(); ctx.moveTo(X0, sy(K, basis + 0.05));
+        for (var xt = t.x0 - 0.35; xt <= t.x1 + 0.35; xt += 0.25) ctx.lineTo(sx(K, xt), sy(K, top(xt)));
+        ctx.lineTo(X1, sy(K, basis + 0.05)); ctx.closePath();
+        var gt = ctx.createLinearGradient(0, sy(K, basis + t.H + 0.2), 0, sy(K, basis));
+        gt.addColorStop(0, leucht ? "#c8fbff" : "#7ff4ff"); gt.addColorStop(1, "#1c5fd6");
+        ctx.fillStyle = gt; ctx.fill();
+        ctx.strokeStyle = "#103a8a"; ctx.lineWidth = Math.max(1, 0.06 * K.s); ctx.stroke();
+        ctx.beginPath();                                             // leuchtender Rand oben
+        for (xt = t.x0 - 0.2; xt <= t.x1 + 0.2; xt += 0.25) { var Yt = sy(K, top(xt) - 0.06); if (xt === t.x0 - 0.2) ctx.moveTo(sx(K, xt), Yt); else ctx.lineTo(sx(K, xt), Yt); }
+        ctx.strokeStyle = "rgba(200,252,255," + (0.6 + 0.4 * leucht) + ")"; ctx.lineWidth = Math.max(1.5, 0.07 * K.s); ctx.stroke();
+        var xc = (t.x0 + t.x1) / 2, yc = basis + (top(xc) - basis) * 0.45, q = Math.min(t.H * 0.4, (t.x1 - t.x0) * 0.12) * K.s;
+        var Xc = sx(K, xc), Yc = sy(K, yc);
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(2, q * 0.28); ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(Xc + q, Yc - q * 0.9); ctx.lineTo(Xc + q, Yc + q * 0.3); ctx.lineTo(Xc - q, Yc + q * 0.3); ctx.stroke();   // ⏎
+        ctx.beginPath(); ctx.moveTo(Xc - q * 0.45, Yc - q * 0.25); ctx.lineTo(Xc - q, Yc + q * 0.3); ctx.lineTo(Xc - q * 0.45, Yc + q * 0.85); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1, 0.08 * K.s);
+        ctx.beginPath(); ctx.arc(sx(K, t.x0 + (t.x1 - t.x0) * 0.35), sy(K, basis + t.H * 0.55), (t.x1 - t.x0) * 0.22 * K.s, 1.15 * Math.PI, 1.45 * Math.PI); ctx.stroke();
+        continue;
+      }
       if (gel.welt.trampolinStil === "matte") {                     // echtes Trampolin: Beine, Rahmen, blaue Matte
         ctx.strokeStyle = "#3a4152"; ctx.lineWidth = Math.max(2, 0.12 * K.s); ctx.lineCap = "round";
         ctx.beginPath();
@@ -1521,7 +1661,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.art = art; this.teile = []; this.bursts = []; this.naechster = 0.6; this.letztesX = null; this.letztesY = null;
     if (!art) return;
     // Wenige Teilchen: Sie liegen vor dem Auto und sollen nicht ablenken
-    var n = { sterne: 70, feuerwerk: 40, schnee: 20, schleim: 12, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26, adler: 3, fledermaeuse: 7 }[art] || 14;
+    var n = { sterne: 70, feuerwerk: 40, schnee: 20, schleim: 12, binaer: 26, glitzer: 18, regen: 46, laub: 22, blasen: 18, gluehwuermchen: 16, marsstaub: 26, adler: 3, fledermaeuse: 7 }[art] || 14;
     for (var i = 0; i < n; i++) {
       this.teile.push({ x: Math.random() * (K.b || 800), y: (art === "gluehwuermchen" ? 0.4 + 0.35 * Math.random() : Math.random()) * (K.h || 400), p: Math.random() * 6.28, g: 0.5 + Math.random() });
     }
@@ -1555,6 +1695,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (art === "glitzer") { t.y += Math.sin(zeit * 0.5 + t.p) * 5 * dt - 3 * dt; t.x += Math.cos(zeit * 0.4 + t.p) * 4 * dt - dx * 0.7; }
       else if (art === "regen") { t.y += (620 + 260 * t.g) * dt; t.x += -90 * dt - dx * 0.9; }
       else if (art === "schleim") { t.y += (70 + 70 * t.g) * dt; t.x += -dx * 0.6; }
+      else if (art === "binaer") { t.y += (35 + 45 * t.g) * dt; t.x += -dx * 0.6; }
       else if (art === "pollen") { t.y += Math.sin(zeit * 0.6 + t.p) * 8 * dt - 4 * dt; t.x += (10 + 6 * t.g) * dt - dx * 0.7; }
       else if (art === "laub") {                                  // fliegt mit dem Wind (windJetzt: −1 … 1)
         t.y += (18 + 14 * t.g) * dt + Math.sin(zeit * 1.7 + t.p) * 20 * dt;
@@ -1605,6 +1746,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (art === "staub") {
         ctx.fillStyle = "rgba(196,150,92," + (0.22 + 0.18 * t.g) + ")";
         ctx.beginPath(); ctx.arc(t.x, t.y, 1.5 + 2.2 * t.g, 0, Math.PI * 2); ctx.fill();
+      } else if (art === "binaer") {                         // Datenwelt: Einsen und Nullen rieseln herab und wechseln ab und zu
+        var ziffer = (i + Math.floor(zeit * 0.9 + t.p * 3)) % 2 ? "1" : "0";
+        ctx.font = "bold " + Math.round(10 + 7 * t.g) + "px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = i % 3 ? "rgba(70,240,255," + (0.25 + 0.3 * t.g) + ")" : "rgba(126,255,170," + (0.25 + 0.3 * t.g) + ")";
+        ctx.fillText(ziffer, t.x, t.y);
       } else if (art === "schleim") {                        // giftgrüner Tropfen (oben spitz)
         var sr = 2.2 + 2.2 * t.g;
         ctx.fillStyle = "rgba(120,235,60,0.85)";
@@ -1841,12 +1987,40 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.restore();
   }
 
+  /* Datenwelt: Datenstrom = leuchtende Datenleitung, in der Einsen und Nullen in
+     Fahrtrichtung fließen. Die Ziffern hängen an Weltpositionen im Strom (fließen mit). */
+  function zeichneDatenstrom(ctx, K, gel, b, zeit) {
+    var s = K.s, X0 = sx(K, b.x0), X1 = sx(K, b.x1), y = gel.hoeheBei((b.x0 + b.x1) / 2), Yo = sy(K, y + 0.04), Yu = sy(K, y - 0.42), hh = Yu - Yo;
+    ctx.fillStyle = "rgba(70,240,255,0.22)";                         // Leuchten um die Leitung
+    ctx.fillRect(X0 - 0.15 * s, Yo - 0.18 * s, X1 - X0 + 0.3 * s, hh + 0.3 * s);
+    ctx.fillStyle = "#0a1a33"; ctx.fillRect(X0, Yo, X1 - X0, hh);
+    var g = ctx.createLinearGradient(0, Yo, 0, Yu);
+    g.addColorStop(0, "rgba(70,240,255,0.95)"); g.addColorStop(0.5, "rgba(40,140,255,0.75)"); g.addColorStop(1, "rgba(70,240,255,0.95)");
+    ctx.fillStyle = g; ctx.fillRect(X0, Yo + hh * 0.12, X1 - X0, hh * 0.76);
+    ctx.save(); ctx.beginPath(); ctx.rect(X0, Yo, X1 - X0, hh); ctx.clip();
+    var abst = 0.62, vers = ((zeit * b.v) % abst + abst) % abst;
+    ctx.font = "bold " + Math.max(8, Math.round(hh * 0.62)) + "px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (var xs = b.x0 - abst + vers; xs < b.x1 + abst; xs += abst) {
+      var nr = Math.round((xs - vers) / abst), z = FF.rauschen(nr * 0.77, 21) > 0 ? "1" : "0";
+      ctx.fillStyle = nr % 5 === 0 ? "#ffe27a" : "#ffffff";
+      ctx.fillText(z, sx(K, xs), (Yo + Yu) / 2);
+    }
+    ctx.restore();
+    ctx.fillStyle = "#e8fdff"; ctx.fillRect(X0, Yo, X1 - X0, Math.max(1.5, 0.04 * s));
+    [X0, X1].forEach(function (Xr, n) {                              // Stecker an beiden Enden mit Lämpchen
+      ctx.fillStyle = "#3a4152"; ctx.fillRect(Xr - 0.2 * s, Yo - 0.08 * s, 0.4 * s, hh + 0.16 * s);
+      ctx.fillStyle = (Math.floor(zeit * 4) + n) % 2 ? "#7dffb8" : "#46f0ff";
+      ctx.fillRect(Xr - 0.07 * s, Yo + hh * 0.35, 0.14 * s, 0.14 * s);
+    });
+  }
+
   function zeichneBaender(ctx, K, gel, zeit) {
     var B = gel.baender, s = K.s;
     for (var i = 0; i < B.length; i++) {
       var b = B[i], X0 = sx(K, b.x0), X1 = sx(K, b.x1);
       if (X1 < -20 || X0 > K.b + 20) continue;
       if (gel.welt.schleimbach) { zeichneSchleimbach(ctx, K, gel, b, zeit); continue; }
+      if (gel.welt.datenstrom) { zeichneDatenstrom(ctx, K, gel, b, zeit); continue; }
       var y = gel.hoeheBei((b.x0 + b.x1) / 2), Yo = sy(K, y), Yu = sy(K, y - 0.45), r = (Yu - Yo) / 2;
       ctx.fillStyle = "#3a3f4b";
       ctx.beginPath(); ctx.moveTo(X0, Yo); ctx.lineTo(X1, Yo); ctx.arc(X1, Yo + r, r, -Math.PI / 2, Math.PI / 2); ctx.lineTo(X0, Yu); ctx.arc(X0, Yo + r, r, Math.PI / 2, Math.PI * 1.5); ctx.fill();

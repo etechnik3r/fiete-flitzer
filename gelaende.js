@@ -644,6 +644,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var vor = r() < 0.62;
       el.v = vor ? 7 + 3.5 * r() : -Math.min(6.5, 3.6 + 1.8 * r() + 1.2 * p.wild);   // v29: etwas schneller (vorher 5–8 bzw. 3–5,5)
       if (this.welt.schleimbach) el.v = -(2.5 + 2 * Math.abs(el.v % 1));               // Schleimbach: fließt immer entgegen, langsamer
+      if (this.welt.datenstrom) el.v = 7.5 + 3 * Math.abs(el.v % 1);                     // Datenstrom: fließt immer mit (ohne weiteren Zufall: Strecke bleibt gleich)
       el.Lflach = el.La + el.Lb + 6;
       el.Lo = 18;
       el.xe = xs + el.Lflach + el.Lo;

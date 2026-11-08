@@ -70,7 +70,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **34 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **35 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
@@ -78,7 +78,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
   🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
-  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt · ☁️ Wolkeninseln · 🎪 Zirkus.
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt · ☁️ Wolkeninseln · 🎪 Zirkus · 💾 Datenwelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -248,6 +248,23 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     Blasen, wabbelt nach dem Sprung), und der Boden federt (`abprall` 0,26).
   - Deko: **Glibbermonster** (`@glibber`, ein oder zwei Glubschaugen) und
     **Schleimfässer** (`@schleimfass`), im Hintergrund Rohre.
+- **💾 Datenwelt** (Version 48): mitten im Computer. Der Boden ist eine Platine mit
+  leuchtenden Leiterbahnen und Lötpunkten, über die Kante flitzen Lichtpunkte. Einsen
+  und Nullen rieseln als Wetter (`wetter: "binaer"`), am Himmel stehen eine
+  Pixel-Sonne mit Ladekreis (`sonnenArt: "pixel"`) und Pixel-Wolken (`wolkenStil:
+  "pixel"`). Kulisse: Netzwerk-Knoten mit wandernden Datenpaketen (`netz`),
+  Server-Schränke mit blinkenden Lämpchen (`server`), Riesen-Chips mit Leiterbahnen
+  (`platine`). Deko: **Mikrochips** (`@chip`, manche lächeln), **Roboter** (`@roboter`,
+  winken), **Server** (`@server`) und **Bildschirme** (`@monitor`: Smiley, 0/1 oder
+  Balken).
+  - **Datenströme** (`welt.datenstrom`, Bau-Element `band`): leuchtende Datenleitungen,
+    in denen Einsen und Nullen fließen – immer **in** Fahrtrichtung (7,5–10,5 m/s), sie
+    schieben also an. Die Geschwindigkeit wird ohne zusätzlichen Zufall aus dem Band
+    abgeleitet, die Strecke bleibt dadurch gleich.
+  - **Enter-Knöpfe**: Trampoline im Stil `taste` (großer blauer Knopf mit ⏎ auf einem
+    Sockel, leuchtet beim Drücken auf, „Enter! ⏎“).
+  - Robotertest (Flitzer, Upgrades „auto“, Normal): Profi 4/4 im Ziel (niedrigster
+    Tankstand 43–74 %), Loslassen 3/4, „Kind“ im Modus Leicht 4/4.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring
@@ -428,7 +445,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🚂 Dampf-Lok | 26.000 | schwarze Dampflok mit Kohlewagen und kleinem Anhänger – drei eigene Starrkörper, verbunden über Drehgelenke (Deichsel an Kupplung). Die Kupplung federt (Kohlewagen 6 Hz, Anhänger 3,2 Hz mit wenig Dämpfung), darum ruckelt der Zug beim Anfahren und der einachsige Anhänger wackelt lustig; der Knickwinkel ist begrenzt (±26° bzw. ±34°). **Kuppelstangen**: alle drei Lok-Räder rollen gleich schnell, keins dreht allein durch. Volle Kraft schon beim Anfahren, gemütliche 58 km/h. Zu lang für Saltos und Loopings (Looping-Bahnen rollt er unten durch), aber in der Luft lässt sich der ganze Zug um seinen Schwerpunkt drehen (bis 1,1 rad/s) – genug, um die Nase zur Landung zu stellen. Der Ballon setzt den ganzen Zug auf flachen Boden. Klang: Tschu-tschu (4 Dampfstöße je Radumdrehung, betont im Takt), Zischen, Pfiff beim Start; Dampfwolken aus dem Schornstein im selben Takt |
 | 💧 H₂-Blubber | 12.000 | Wasserstoffauto: rundes Kapselauto mit Glaskuppel, hinten zwei stehende H₂-Tanks, zwei blaue Schläuche zur Brennstoffzelle unter der Haube. Fährt elektrisch (volles Drehmoment aus dem Stand), aus dem Auspuff tropft nur Wasser (mit Gas auch Dampfwölkchen). Sammelt blaue H₂-Flaschen statt Kanister, keine Rekuperation in den Tank. Klang: Elektromotor plus Luft-Kompressor, der mit der Last hochheult, und „Pssst“ des Ablassventils beim Gaswegnehmen |
 | 🚛 Donner-Truck | 14.000 | Amerikanische Zugmaschine: lange Haube mit Chromgrill, Schlafkabine mit Dachspoiler, Chrom-Tank, zwei hohe Auspuffrohre mit schwarzem Rauch (beim Gasgeben ein dicker Schwall). Kräftig, aber träge: Höchsttempo gut 41 km/h, aber 9.000 Nm bis fast zum Höchsttempo (`eck` 0,9) auf beiden Hinterachsen – bergauf kaum Tempoverlust. Pfützen, Matsch und Schleim bremsen ihn nur zu 30 % (`matschFest`). In der Luft sehr träge (`luftsteuerung` 1,7), dafür darf er wie die Lok 10° schiefer landen. Kein Leichtbau, kein Allrad |
-| 📦 Seifenkiste | 3.000 | Aus einem Umzugskarton gebastelt: Klebeband kreuz und quer, Name, Blitz und Smiley mit Filzstift, hochgeklappte Laschen, Seil zum Lenken. Kein Motor: Das Kind läuft unten durch den offenen Boden (Füße mit Laufschritt, Tapp-Geräusch; ohne Gas liegen die Füße vorne auf der Kante). Rollt ohne Pedal ganz frei (`freilauf`, keine Motorbremse) – bergab schneller als ihr Lauftempo (9,5 m/s). Statt Benzin **Puste**: Rollen ohne Gas ab 2 m/s bringt sie langsam zurück (`puste.erholung`), Äpfel 🍎 statt Kanister. Pappe federt weich, darf 15° schiefer landen. Upgrades heißen „Turnschuhe“ und „Puste“ |
+| 📦 Seifenkiste | 3.000 | Aus einem Umzugskarton gebastelt: Klebeband kreuz und quer, Name, Blitz und Smiley mit Filzstift, hochgeklappte Laschen, Seil zum Lenken. Kein Motor: Das Kind läuft unten durch den offenen Boden (Tapp-Geräusch; die Füße sieht man seit Version 48 nicht mehr). Rollt ohne Pedal ganz frei (`freilauf`, keine Motorbremse) – bergab schneller als ihr Lauftempo (9,5 m/s). Statt Benzin **Puste**: Rollen ohne Gas ab 2 m/s bringt sie langsam zurück (`puste.erholung`), Äpfel 🍎 statt Kanister. Pappe federt weich, darf 15° schiefer landen. Upgrades heißen „Turnschuhe“ und „Puste“ |
 | 🛴 E-Scooter | 5.000 | Tretroller mit Motor im Hinterrad, Kind steht drauf. Zieht sofort los (`eck` 0,8), aber nur 10 m/s; wendigstes Fahrzeug in der Luft (`luftsteuerung` 8,5), balanciert am Boden selbst, lädt beim Bremsen. **Stunts** (nur Grafik, `stuntAktualisieren` in spiel.js): ab 1,6 m Höhe abwechselnd Abflug (am Lenker ausgestreckt), Freihändig, Ein Bein – vor der Landung (Höhe + 0,4 s Fallweg unter 1,3 m) steht das Kind wieder auf dem Brett |
 | 🛷 Schnee-Schlitten | 9.000 | Alter Holzschlitten auf Kufen (Version 41). Hinten ein **Schnee-Tank ❄️** mit **Schneekanone**: Sie schießt Schnee im Bogen über das Kind, er landet direkt vor den Kufen – **nur auf Schnee gleiten sie** (µ 0,025), auf blankem Boden kratzen sie (µ 0,6) und der Schlitten bleibt stehen. Die Kanone schaltet sich selbst: an, solange die Kufen am Boden sind oder der Schlitten in weniger als 0,45 s landet (dann beschneit sie den Landeplatz); hoch in der Luft, im Looping und kopfüber aus, in den Schneebergen gar nicht (dort liegt schon Schnee). Die Flocken fliegen 0,7 s im Bogen über das Kind und landen immer kurz vor den Kufen (Ziel = Kufenspitze nach der Flugzeit); der Schnee liegt nur unmittelbar davor (0,9 m). Der Schnee bleibt liegen. Antrieb: **Holzpropeller** hinten (5 m/s² Schub, auch in der Luft, bis 40 km/h – gemütlich, aber er gleitet lange (µ 0,025); in der Luft träge (`luftsteuerung` 3,4); rückwärts mit der Bremse im Stand), Bremse am Boden = Bremskralle. Sammelt blaue Schnee-Kanister. Upgrades „Propeller“ und „Schnee-Tank“ |
 | 🧞 Fliegender Teppich | 7.000 | Version 44. Schwebt eine Handbreit über dem Boden: statt Rädern drei unsichtbare **Schwebekissen** (gesperrte Kontaktpunkte wie die Kufen des Schlittens, µ 0,07, gefedert 1,9 Hz). Ein **Zauberwind** schiebt (4,6 m/s² entlang des Teppichs, auch in der Luft, bis 41 km/h). **Pfützen, Matsch und Schleim bremsen ihn nicht** (er berührt sie nicht, über Wasser trägt das Kissen), dafür: leicht und viel Fläche, der Wind pustet ihn bis 2,2-mal so stark wie den Flitzer (`windMax`), in der Luft **flattert** er (kleines unruhiges Drehmoment und eine Brise, `schweben.flattern`), bremsen geht nur über Reibung (`schweben.bremsMu`), steile Berge schafft er kaum. Tank = **Zauberstaub ✨** (lila Zauberfläschchen 🧪). Upgrades mit eigenen Namen (`upgradeNamen`): 🪄 Zauberkraft, 🧶 Stoffqualität (+0,012 µ und −12 % Flattern je Stufe), ☁️ Schwebekissen, ✨ Zauberstaub, 🎏 Fransen-Ruder, ⚓ Teppich-Anker. Grafik: Perserteppich schräg von oben (Bordüre, Medaillons, Quasten), wellt sich mit Tempo und im Flug, Kind im Schneidersitz, Glitzerstaub darunter. Klang: zwei verstimmte Dreiecksschwingungen im Quintabstand mit Tremolo und Luftrauschen. Profi-Roboter: Blumenwiese und Pfützenland 4/4 (Flitzer im Pfützenland 1/4), Herbststurm 2/4, Gebirge 0/4 |

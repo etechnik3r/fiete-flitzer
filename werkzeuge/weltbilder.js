@@ -51,6 +51,7 @@ server.listen(0, "127.0.0.1", async function () {
       function gel_schleim(g) { return g.welt.schleimbach && g.trampoline.length; }
       if (g.roehren.length) kandidaten.push(g.roehren[0].x - 8);
       if (gel_schleim(g)) kandidaten.push(g.trampoline[0].x0 - 9);
+      if (g.welt.datenstrom && g.baender.length) kandidaten.push(g.baender[0].x0 - 3);
       if (g.zellen.length) kandidaten.push(g.zellen[1] ? g.zellen[1].x - 9 : g.zellen[0].x - 9);
       if (g.scheunen.length) kandidaten.push(g.scheunen[0].x0 - 21);
       if (g.obst.length) kandidaten.push((g.obst[1] || g.obst[0]).x - 17);
