@@ -119,6 +119,8 @@ function profiFahrer() {
     var gef = Math.min(gel.steigungBei(vorX), gel.steigungBei(vorX + 4));
     var vMax = gef < -0.9 ? 8 : (gef < -0.6 ? 11 : 99);
     if (gel.wolken.length && gel.wolkenLuecke(vorX) || gel.wolken.length && gel.wolkenLuecke(vorX + 4)) vMax = 99;   // Wolken: vor der Lücke nicht bremsen, sondern springen
+    if (gel.dyn && gel.dyn.some(function (d) { return d.typ === "hochseil" && C.x > d.x0 - 6 && C.x < d.x1; })) vMax = 99;   // Zirkus: Hochseil mit Schwung
+    if (gel.dyn && gel.dyn.some(function (d) { return d.typ === "podest" && C.x > d.x0 - 6 && C.x < d.x1; })) vMax = 10;     // Hocker: mit Gefühl
     if (v > vMax) { statistik.bremse += dt; return { gas: false, bremse: true }; }
     return { gas: true, bremse: false };
   }
@@ -509,14 +511,16 @@ function spielstandTests() {
     p.muenzen = Math.floor(z() * 200000);
     C.fahrzeuge.forEach(function (f, fi) {
       var fs = p.fahrzeuge[f.id]; fs.gekauft = fs.gekauft || z() < 0.6;
-      if (fs.gekauft) { fs.upgrades = { motor: 1 + fi % 5, reifen: fi % 6, kreisel: 1 + fi % 4, leichtbau: 1 + fi % 3 }; if (z() < 0.5) fs.upgrades.allrad = 1; fs.farbe = C.farben[fi % C.farben.length].id; fs.muster = C.muster[fi % C.muster.length].id; }
+      if (fs.gekauft) { fs.upgrades = { motor: 1 + fi % 5, reifen: fi % 6, kreisel: 1 + fi % 4, leichtbau: 1 + fi % 3 }; if (z() < 0.5) fs.upgrades.allrad = 1; fs.farbe = C.farben[fi % C.farben.length].id; fs.muster = C.muster[fi % C.muster.length].id;
+        if (fs.farbe === "eigene") fs.eigeneFarbe = "#12ab34";
+        if (fs.farbe === "verlauf") fs.verlauf = { a: "#ff0080", b: "#00c0ff", r: fi % 2 ? "ou" : "vh" }; }
       if (fs.gekauft && !fs.upgrades.reifen) delete fs.upgrades.reifen;
     });
     p.fahrzeug = "moped"; p.fahrzeuge.moped.gekauft = true;
     p.farben = C.farben.map(function (f) { return f.id; });
     p.muster.push("sterne"); p.outfits.push("schild"); p.outfit = "schild"; p.look = ki ? "lang" : "cap";
     p.spuren.push("regenbogen"); p.spur = "regenbogen";
-    p.felgen.push("gold", "neon"); p.felge = "neon"; p.beifahrerListe.push("dino"); p.beifahrer = "dino";
+    p.felgen.push("gold", "neon"); p.felge = "neon"; p.beifahrerListe.push("dino", "axolotl", "waschbaer"); p.beifahrer = ki % 2 ? "waschbaer" : "axolotl";   // Index > 15: 6-Bit-Feld (Code-Version 6)
     C.welten.forEach(function (w, wi) {
       for (var l = 1; l <= 4; l++) if (z() < 0.8) p.level[w.id + "-" + l] = { geschafft: true, sterne: 1 + Math.floor(z() * 3) };
       if (z() < 0.5) p.endlos[w.id] = Math.floor(z() * 9000) + 1;

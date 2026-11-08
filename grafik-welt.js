@@ -1086,9 +1086,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     var b = sichtbereich(K, gel);
     for (var n = 0; n < gel.dyn.length; n++) {
       var D = gel.dyn[n];
-      if (D.i0 < 0 || D.b < b[2] - 2 || D.a > b[3] + 2) continue;
+      if (D.i0 < 0 || (D.x1 !== undefined ? D.x1 : D.b) < b[2] - 2 || (D.x0 !== undefined ? D.x0 : D.a) > b[3] + 2) continue;
       if (D.typ === "hochseil") { zeichneHochseil(ctx, K, gel, D); continue; }
       if (D.typ === "klapp") { zeichneKlapp(ctx, K, gel, D, zeit); continue; }
+      if (D.typ === "podest") { zeichnePodeste(ctx, K, gel, D); continue; }
       if (D.typ === "seil") {
         var xa = D.a + 0.6, xb = D.b - 0.6, mH = 2.6, x, i, N = 24;
         // Netz unten in der Grube
@@ -1148,17 +1149,19 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
   function zeichneHochseil(ctx, K, gel, D) {
     var xr = D.rampe, xT1 = D.rampe + D.Lr, i, x, N = 28;
-    // Holzrampe: Unterbau (Stützen) und Belag
-    ctx.fillStyle = "#6b4423";
-    for (x = xr + 1.5; x < xT1; x += 1.8) { var yo = gel.hochseilY(D, x); ctx.fillRect(sx(K, x) - 0.07 * K.s, sy(K, yo), 0.14 * K.s, (yo - D.yG) * K.s); }
-    ctx.strokeStyle = "#c98d4f"; ctx.lineWidth = 0.2 * K.s; ctx.lineCap = "butt"; ctx.beginPath();
-    for (x = xr; x <= xT1 + 0.01; x += 0.5) { var yr = gel.hochseilY(D, x) - 0.1; if (x === xr) ctx.moveTo(sx(K, x), sy(K, yr)); else ctx.lineTo(sx(K, x), sy(K, yr)); }
-    ctx.stroke();
-    // Türme: Plattform auf gestreiftem Mast
-    [[xT1, D.a], [D.b, D.ende]].forEach(function (T) {
-      streifenMast(ctx, K, (T[0] + T[1]) / 2, D.yG, D.yA - 0.2, 0.35);
-      ctx.fillStyle = "#2f6fd6"; ctx.fillRect(sx(K, T[0]), sy(K, D.yA), (T[1] - T[0]) * K.s, 0.25 * K.s);
-      ctx.fillStyle = "#ffd23f"; ctx.fillRect(sx(K, T[0]), sy(K, D.yA) + 0.18 * K.s, (T[1] - T[0]) * K.s, 0.07 * K.s);
+    if (D.Lr > 0) {
+      // Holzrampe: Unterbau (Stützen) und Belag
+      ctx.fillStyle = "#6b4423";
+      for (x = xr + 1.5; x < xT1; x += 1.8) { var yo = gel.hochseilY(D, x); ctx.fillRect(sx(K, x) - 0.07 * K.s, sy(K, yo), 0.14 * K.s, (yo - D.yG) * K.s); }
+      ctx.strokeStyle = "#c98d4f"; ctx.lineWidth = 0.2 * K.s; ctx.lineCap = "butt"; ctx.beginPath();
+      for (x = xr; x <= xT1 + 0.01; x += 0.5) { var yr = gel.hochseilY(D, x) - 0.1; if (x === xr) ctx.moveTo(sx(K, x), sy(K, yr)); else ctx.lineTo(sx(K, x), sy(K, yr)); }
+      ctx.stroke();
+    }
+    // Türme: Plattform auf gestreiftem Mast (Anfang auf Höhe yA, Ende auf yB)
+    [[xT1, D.a, D.yA], [D.b, D.ende, D.yB]].forEach(function (T) {
+      streifenMast(ctx, K, (T[0] + T[1]) / 2, D.yG, T[2] - 0.2, 0.35);
+      ctx.fillStyle = "#2f6fd6"; ctx.fillRect(sx(K, T[0]), sy(K, T[2]), (T[1] - T[0]) * K.s, 0.25 * K.s);
+      ctx.fillStyle = "#ffd23f"; ctx.fillRect(sx(K, T[0]), sy(K, T[2]) + 0.18 * K.s, (T[1] - T[0]) * K.s, 0.07 * K.s);
     });
     // Sicherheitsnetz unter dem Seil
     var yN = D.yG + 0.8;
@@ -1171,7 +1174,28 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.stroke();
     ctx.strokeStyle = "rgba(150,110,60,0.6)"; ctx.lineWidth = 0.04 * K.s; ctx.setLineDash([0.12 * K.s, 0.12 * K.s]); ctx.stroke(); ctx.setLineDash([]);
     ctx.strokeStyle = "rgba(230,220,190,0.6)"; ctx.lineWidth = Math.max(1, 0.03 * K.s);
-    ctx.beginPath(); ctx.moveTo(sx(K, D.ende), sy(K, D.yA)); ctx.lineTo(sx(K, D.ende + 2.5), sy(K, D.yG)); ctx.stroke();
+    if (D.letztes !== false) { ctx.beginPath(); ctx.moveTo(sx(K, D.ende), sy(K, D.yB)); ctx.lineTo(sx(K, D.ende + (D.letztes ? 2.5 : 0.6)), sy(K, D.yG)); ctx.stroke(); }
+  }
+  /* Hocker-Springen: Holzrampe auf den ersten Hocker, dann Elefanten-Hocker (Trommeln) */
+  function zeichnePodeste(ctx, K, gel, D) {
+    var R = D.rampe, x;
+    ctx.fillStyle = "#6b4423";
+    for (x = R.x0 + 1.2; x < R.x1; x += 1.5) { var yo = D.yG + R.y * (x - R.x0) / (R.x1 - R.x0); ctx.fillRect(sx(K, x) - 0.06 * K.s, sy(K, yo), 0.12 * K.s, (yo - D.yG) * K.s); }
+    ctx.strokeStyle = "#c98d4f"; ctx.lineWidth = 0.18 * K.s; ctx.lineCap = "butt";
+    ctx.beginPath(); ctx.moveTo(sx(K, R.x0), sy(K, D.yG - 0.09)); ctx.lineTo(sx(K, R.x1), sy(K, D.yG + R.y - 0.09)); ctx.stroke();
+    var FARBE = ["#e8453c", "#2f6fd6", "#9b6bff", "#2fb36b"];
+    D.hocker.forEach(function (P, k) {
+      var X0 = sx(K, P.x0), X1 = sx(K, P.x1), Yt = sy(K, D.yG + P.H), Yb = sy(K, D.yG), ry = 0.18 * K.s, b = X1 - X0;
+      ctx.fillStyle = FARBE[k % FARBE.length]; ctx.fillRect(X0, Yt, b, Yb - Yt);                              // Trommel
+      ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.fillRect(X0 + b * 0.12, Yt, b * 0.12, Yb - Yt);           // Glanz
+      ctx.fillStyle = "rgba(0,0,0,0.18)"; ctx.fillRect(X1 - b * 0.18, Yt, b * 0.18, Yb - Yt);                  // Schatten
+      ctx.fillStyle = "#ffd23f"; ctx.fillRect(X0, Yt + 0.12 * K.s, b, 0.12 * K.s); ctx.fillRect(X0, Yb - 0.22 * K.s, b, 0.12 * K.s);
+      ctx.beginPath();                                                                                         // Stern vorn
+      var Xm = (X0 + X1) / 2, Ym = (Yt + Yb) / 2 + 0.05 * K.s, rs = Math.min(b, Yb - Yt) * 0.22;
+      for (var z = 0; z < 10; z++) { var w = -Math.PI / 2 + z * Math.PI / 5, rr = z % 2 ? rs * 0.42 : rs; ctx.lineTo(Xm + Math.cos(w) * rr, Ym + Math.sin(w) * rr); }
+      ctx.fill();
+      ctx.fillStyle = "#f6e7c4"; ctx.beginPath(); ctx.ellipse(Xm, Yt, b / 2, ry, 0, Math.PI, 0); ctx.fill();   // Deckel (nur hinten sichtbar)
+    });
   }
   function zeichneKlapp(ctx, K, gel, D, zeit) {
     var X0 = sx(K, D.xh), Y0 = sy(K, D.yH), c = D.Lk * Math.cos(D.th), sn = D.Lk * Math.sin(D.th);

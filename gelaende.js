@@ -218,7 +218,8 @@ var FF = globalThis.FF = globalThis.FF || {};
                   trampolin: (g.trampolin || 0) * (0.6 + wild), band: (g.band || 0) * (0.6 + wild),
                   schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild),
                   scheune: 0, seil: (g.seil || 0) * (0.7 + wild), wippe: (g.wippe || 0) * (0.7 + wild),
-                  hochseil: (g.hochseil || 0) * (0.7 + wild), klapprampe: (g.klapprampe || 0) * (0.7 + wild) },
+                  hochseil: (g.hochseil || 0) * (0.7 + wild), klapprampe: (g.klapprampe || 0) * (0.7 + wild),
+                  wippenkette: (g.wippenkette || 0) * (0.7 + wild), podeste: (g.podeste || 0) * (0.7 + wild) },
       // Bauernhof: Scheunen gleichmäßig über das Level verteilt (nicht zufällig)
       scheuneAbstand: g.scheunen ? (this.endlos ? 150 : (optionen.laenge - 150) / g.scheunen) : 0,
       scheunenAnzahl: g.scheunen || 0,
@@ -323,7 +324,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe", "hochseil", "klapprampe"];
+               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe", "hochseil", "klapprampe", "wippenkette", "podeste"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -470,16 +471,22 @@ var FF = globalThis.FF = globalThis.FF || {};
       // Hüpfpilz: flacher Anlauf, ein rot-weißer Pilzhut als Kuppel (Trampolin), dann
       // eine lange, flache Landewiese – wer drauffährt, fliegt hoch (fahrt.js pruefeTrampolin)
       el.flach = true;
-      el.La = 12 + 4 * r();                         // Anlauf
+      el.La = (12 + 4 * r()) * dicht;               // Anlauf
       el.Lt = 5.5;                                  // Breite des Pilzhuts
       el.Ht = 0.75;                                 // Höhe der Kuppel
-      el.Lf = 28;                                   // flache Landewiese
-      el.Lflach = el.La + el.Lt + el.Lf;
-      el.Lo = 22;
+      // Zirkus: Trampolin-Kette – 2 oder 3 Trampoline im Abstand eines Sprungs. Wer das richtige
+      // Tempo hat (≈ 6–8 m/s), landet auf dem nächsten und hüpft weiter.
+      var nT = dicht < 1 && p.wild > 0.5 ? 2 + (r() < 0.3 * p.wild ? 1 : 0) : 1, abT = 13 + 2 * r();
+      el.Lf = dicht < 1 ? 16 : 28;                  // flache Landewiese
+      el.Lflach = el.La + el.Lt + (nT - 1) * abT + el.Lf;
+      el.Lo = 22 * dicht;
       el.xe = xs + el.Lflach + el.Lo;
-      var xt = xs + el.La;
-      this.trampoline.push({ x0: xt, x1: xt + el.Lt, H: el.Ht, v: 9.5 + 1.5 * p.wild, benutzt: false, platziert: false, boing: -9 });
-      this.sperrzonen.push([xt - 1, xt + el.Lt + 1]);
+      for (var kT = 0; kT < nT; kT++) {
+        var xt = xs + el.La + kT * abT;
+        this.trampoline.push({ x0: xt, x1: xt + el.Lt, H: el.Ht, v: 9.5 + 1.5 * p.wild, benutzt: false, platziert: false, boing: -9 });
+        this.sperrzonen.push([xt - 1, xt + el.Lt + 1]);
+      }
+      el.trampKette = { n: nT, ab: abT };
     } else if (typ === "katapult") {
       // Katapult vor einem Burggraben: Schale (Lc), Graben (G, steile Wände), Landewiese (Lf)
       el.flach = true;
@@ -561,17 +568,63 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.dyn.push({ typ: "wippe", xp: xp, Hp: Hp, Lw: Lw, thMax: th, th: th, w: 0, a: xp - Lw / 2 - 0.5, b: xp + Lw / 2 + 0.5, i0: -1 });
       this.sperrzonen.push([xp - Lw / 2 - 1, xp + Lw / 2 + 2]);
     } else if (typ === "hochseil") {
-      // Hochseil: Holzrampe hinauf auf einen Turm (Höhe H), oben über das Seil, am zweiten Turm
-      // endet alles – man springt hinunter in die Manege (dort hängt ein Feuerreifen).
+      // Hochseil (Version 44): Holzrampe hinauf auf einen Turm (Höhe H), über das erste Seil
+      // hinauf zu einem etwas höheren Mittelturm, dann eine LÜCKE (2,5–3,5 m) – mit Schwung
+      // hinüber aufs zweite Seil. Die Seile federn stark nach (wer wild fährt, schaukelt sich
+      // hoch und fliegt herunter). Am letzten Turm Sprung durch den Feuerreifen. Wer
+      // herunterfällt, landet im Netz unten in der Manege und fährt unten weiter (ohne die
+      // Münzen und Sterne oben).
       el.flach = true;
-      var H = 3.2 + 1.0 * r() + 0.6 * p.wild, Lr = 10 + 2 * r(), G2 = 14 + 6 * r() + 4 * p.wild;
-      el.La = 6 * dicht; el.Lflach = el.La + Lr + 2.5 + G2 + 2 + 14 + 4 * dicht; el.Lo = 14 * dicht;
+      var H = 3.2 + 0.8 * r() + 0.6 * p.wild, Lr = 10 + 2 * r();
+      var G1 = 10 + 4 * r() + 2 * p.wild, G2 = 10 + 4 * r() + 3 * p.wild, luecke = 2.5 + 0.6 * r() + 0.5 * p.wild, dH = 0.35 + 0.2 * r();
+      el.La = 6 * dicht;
+      var xr = xs + el.La, s1a = xr + Lr + 2.5, s1b = s1a + G1, m1 = s1b + 2.2, s2a = m1 + luecke + 1.6, s2b = s2a + G2;
+      el.Lflach = s2b + 2 - xs + 16; el.Lo = 14 * dicht;
       el.xe = xs + el.Lflach + el.Lo;
-      var xr = xs + el.La, sa = xr + Lr + 2.5, sb = sa + G2;
-      this.dyn.push({ typ: "hochseil", x0: xr - 0.3, x1: sb + 2.6, rampe: xr, Lr: Lr, H: H, a: sa, b: sb, ende: sb + 2,
-                      ruhe: 0.12, tief: 0.55 + 0.25 * r(), d: 0, v: 0, xl: (sa + sb) / 2, i0: -1 });
-      this.reifen.push({ x: sb + 2 + 3.2 + 0.4 * H, hoch: H * 0.55, r: 1.5 });
-      this.sperrzonen.push([xr - 1, sb + 4]);
+      var federn = { ruhe: 0.12, tief: 0.9 + 0.4 * r() + 0.3 * p.wild, zeta: 0.07 };
+      this.dyn.push({ typ: "hochseil", x0: xr - 0.3, x1: m1 + 0.05, rampe: xr, Lr: Lr, H: H, dH: dH, a: s1a, b: s1b, ende: m1,
+                      ruhe: federn.ruhe, tief: federn.tief, zeta: federn.zeta, d: 0, v: 0, xl: (s1a + s1b) / 2, i0: -1 });
+      this.dyn.push({ typ: "hochseil", x0: s2a - 1.6, x1: s2b + 2.05, rampe: s2a - 1.6, Lr: 0, H: H, dH: -0.05, a: s2a, b: s2b, ende: s2b + 2,
+                      ruhe: federn.ruhe, tief: federn.tief * 1.1, zeta: federn.zeta, d: 0, v: 0, xl: (s2a + s2b) / 2, i0: -1, letztes: true });
+      this.reifen.push({ x: s2b + 2 + 3.2 + 0.4 * H, hoch: H * 0.55, r: 1.5 });
+      this.sperrzonen.push([xr - 1, s2b + 4]);
+    } else if (typ === "wippenkette") {
+      // Wippen-Kette: 2–4 Wippen direkt hintereinander. Das hohe Ende der einen liegt kurz vor
+      // dem unteren Ende der nächsten – wer das Tempo nicht dosiert, fliegt über die nächste
+      // hinweg oder knallt auf ihr hohes Ende.
+      el.flach = true;
+      var nW = 2 + Math.floor(r() * (1.6 + 1.4 * p.wild)), xw = xs + 6 * dicht;
+      for (var kW = 0; kW < nW; kW++) {
+        var LwK = 9 + 2 * r(), HpK = 1.3 + 0.5 * r() + 0.3 * p.wild, thK = Math.asin(HpK / (LwK / 2));
+        var xpK = xw + LwK / 2 * Math.cos(thK);
+        this.dyn.push({ typ: "wippe", xp: xpK, Hp: HpK, Lw: LwK, thMax: thK, th: thK, w: 0, a: xpK - LwK / 2 - 0.5, b: xpK + LwK / 2 + 0.5, i0: -1 });
+        xw = xpK + LwK / 2 * Math.cos(thK) + 1.2 + 1.3 * r();
+      }
+      this.sperrzonen.push([xs + 6 * dicht - 1, xw + 1]);
+      el.Lflach = xw - xs + 12; el.Lo = 12 * dicht;
+      el.xe = xs + el.Lflach + el.Lo;
+    } else if (typ === "podeste") {
+      // Hocker-Springen: eine kurze Rampe auf den ersten Elefanten-Hocker, dann 4–6 Hocker
+      // (1–2,8 m hoch) mit Lücken dazwischen. Zu langsam: man fällt in die Lücke und hängt
+      // zwischen den Hockern (der Ballon hilft). Am Ende Sprung hinunter in die Manege.
+      el.flach = true;
+      // Jeder Hocker liegt 0,35–0,55 m tiefer als der vorige (gleich hohe Hocker: das Vorderrad
+      // schlägt an der Kante an) – darum geht es oben los und stufenweise hinunter
+      // Level 1: kleine Lücken und Stufen, Level 4: bis 2,5 m Lücke und 0,6 m Stufe
+      var nP = 3 + Math.floor(r() * (1.5 + 1.2 * p.wild)), xP = xs + 6 * dicht, hP = 0.9 + nP * 0.45 + 0.3 * r(), hoc = [];
+      var rampeP = { x0: xP, x1: xP + 5 + hP * 2.2, y: hP };
+      xP = rampeP.x1;
+      for (var kP = 0; kP < nP; kP++) {
+        var bP = 3.0 + 1.2 * r();
+        hoc.push({ x0: xP, x1: xP + bP, H: hP });
+        xP += bP + 0.8 + 0.5 * r() + 0.75 * p.wild;                      // Lücke 1,0–2,5 m
+        hP -= 0.3 + 0.15 * r() + 0.1 * p.wild;                            // nächster Hocker tiefer
+      }
+      var xEndeP = hoc[hoc.length - 1].x1;
+      this.dyn.push({ typ: "podest", rampe: rampeP, hocker: hoc, x0: rampeP.x0 - 0.3, x1: xEndeP + 0.3, a: rampeP.x0, b: xEndeP, i0: -1, statisch: true });
+      this.sperrzonen.push([rampeP.x0 - 1, xEndeP + 2]);
+      el.Lflach = xEndeP - xs + 16; el.Lo = 12 * dicht;
+      el.xe = xs + el.Lflach + el.Lo;
     } else if (typ === "klapprampe") {
       // Klapprampe: Brett mit Scharnier unten, eine Feder hält es schräg hoch. Fährt man hinauf,
       // klappt es unter dem Gewicht herunter – langsam: flach drüber; schnell: hoher Absprung.
@@ -684,6 +737,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "wippe":
       case "hochseil":
       case "klapprampe":
+      case "wippenkette":
+      case "podeste":
         return 0;                                   // ebener Boden – Wippe, Hochseil, Klapprampe stehen in dyn
       case "seil":
         var ss = s - el.La;                         // Grube unter der Brücke (Manege mit Netz)
@@ -709,7 +764,9 @@ var FF = globalThis.FF = globalThis.FF || {};
         sz -= el.Lz;
         return -el.D * (1 - glatt(0, el.Lu, sz));
       case "trampolin":
-        var st = (s - el.La) / el.Lt;
+        var sk = s - el.La;
+        if (el.trampKette) { var nk = Math.floor(sk / el.trampKette.ab); if (nk > 0 && nk < el.trampKette.n) sk -= nk * el.trampKette.ab; }
+        var st = sk / el.Lt;
         return st > 0 && st < 1 ? el.Ht * Math.sin(Math.PI * st) : 0;
       default: // klippe
         if (s < el.Lu) return el.D * glatt(0, el.Lu, s);
@@ -789,7 +846,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       D.i0 = Math.max(0, Math.floor((xa - this.x0) / this.dx)); D.i1 = Math.ceil((xb - this.x0) / this.dx);
       D.yA = this.hBild[D.i0]; D.yB = this.hBild[D.i1];
       if (D.typ === "wippe") D.yP = this.hoeheBildBei(D.xp) + D.Hp;
-      if (D.typ === "hochseil") { D.yG = this.hoeheBildBei(D.rampe); D.yA = D.yB = D.yG + D.H; }
+      if (D.typ === "hochseil") { D.yG = this.hoeheBildBei(D.rampe); D.yA = D.yG + D.H; D.yB = D.yA + (D.dH || 0); }
+      if (D.typ === "podest") D.yG = this.hoeheBildBei(D.a);
       if (D.typ === "klapp") D.yH = this.hoeheBildBei(D.xh);
       this.dynEintragen(D);
     }
@@ -812,9 +870,21 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Hochseil: Rampe (weich ansteigend), Turm, Seil, Turm – danach geht es senkrecht hinunter */
   Gelaende.prototype.hochseilY = function (D, x) {
     if (x < D.rampe) return null;
-    if (x < D.rampe + D.Lr) { var u = (x - D.rampe) / D.Lr; return D.yG + D.H * u * u * (3 - 2 * u); }
-    if (x < D.a || x > D.b) return x <= D.ende ? D.yA : null;
+    if (D.Lr > 0 && x < D.rampe + D.Lr) { var u = (x - D.rampe) / D.Lr; return D.yG + D.H * u * u * (3 - 2 * u); }
+    if (x < D.a) return D.yA;
+    if (x > D.b) return x <= D.ende ? D.yB : null;
     return this.seilY(D, x);
+  };
+  /* Hocker-Springen: Rampe hinauf, dann die Hocker (dazwischen der Boden) */
+  Gelaende.prototype.podestY = function (D, x) {
+    var R = D.rampe;
+    if (x >= R.x0 && x <= R.x1) return D.yG + R.y * (x - R.x0) / (R.x1 - R.x0);
+    for (var k = 0; k < D.hocker.length; k++) {
+      var P = D.hocker[k];
+      // vordere Kante abgeschrägt (0,45 m, 0,35 m tief): ein knapp zu tief ankommendes Rad rollt hinauf
+      if (x >= P.x0 && x <= P.x1) return D.yG + P.H - (k > 0 ? 0.35 * Math.max(0, 1 - (x - P.x0) / 0.45) : 0);
+    }
+    return null;
   };
   Gelaende.prototype.klappY = function (D, x) {
     var c = D.Lk * Math.cos(D.th);
@@ -826,6 +896,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (D.typ === "seil") this.h[i] = x > D.a + 0.6 && x < D.b - 0.6 ? this.seilY(D, x) : boden;
       else if (D.typ === "hochseil") { var yh = this.hochseilY(D, x); this.h[i] = yh === null ? boden : Math.max(boden, yh); }
       else if (D.typ === "klapp") { var yk = this.klappY(D, x); this.h[i] = yk === null ? boden : Math.max(boden, yk); }
+      else if (D.typ === "podest") { var yp = this.podestY(D, x); this.h[i] = yp === null ? boden : Math.max(boden, yp); }
       else {
         var c = D.Lw / 2 * Math.cos(D.th);
         this.h[i] = Math.abs(x - D.xp) <= c ? Math.max(boden, this.wippeY(D, x)) : boden;
@@ -838,7 +909,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var g = this.welt.schwerkraft;
     for (var n = 0; n < this.dyn.length; n++) {
       var D = this.dyn[n];
-      if (D.i0 < 0) continue;
+      if (D.i0 < 0 || D.statisch) continue;
       var sx = 0, k = 0;
       for (var j = 0; j < fz.raeder.length; j++) {
         var R = fz.raeder[j];
@@ -863,12 +934,17 @@ var FF = globalThis.FF = globalThis.FF || {};
         var L = D.b - D.a;
         if (last) D.xl = xl;
         var u = (D.xl - D.a) / L, ziel = last ? D.tief * 4 * u * (1 - u) * Math.min(1.4, Math.pow(m / 250, 0.35)) : 0;
-        var om = 2 * Math.PI * 1.1;
-        D.v += (om * om * (ziel - D.d) - 2 * 0.18 * om * D.v) * h;
+        var om = 2 * Math.PI * 1.1, ze = D.zeta || 0.18;          // Hochseil federt stärker nach (ζ 0,07)
+        D.v += (om * om * (ziel - D.d) - 2 * ze * om * D.v) * h;
         D.d += D.v * h;
         if (D.d < -0.3) { D.d = -0.3; D.v = 0; }
         if (Math.abs(D.v) > 0.6 && last && !D.knarz) { D.knarz = true; melde("seil", { x: xl, staerke: Math.min(1, Math.abs(D.v) / 3) }); }
         if (Math.abs(D.v) < 0.2) D.knarz = false;
+        if (D.typ === "hochseil") {                                   // vom Hochseil gefallen → „Ins Netz!“
+          var C = fz.chassis;
+          if (last) D.oben = true;
+          else if (D.oben && C.x > D.a && C.x < D.b && C.y < D.yA - 2.2) { D.oben = false; melde("netz", { x: C.x, y: C.y }); }
+        }
       } else {
         // Wippe: J·θ'' = −m·g·(x − xp)·cos θ − Dämpfung; Brett 60 kg
         var r = last ? xl - D.xp : 0, J = 60 * D.Lw * D.Lw / 12 + (last ? m * r * r : 0);

@@ -45,8 +45,21 @@ var FF = globalThis.FF = globalThis.FF || {};
     var a = hexZuRgb(hex), b = hexZuRgb(ziel);
     return rgbZuHex(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f);
   }
-  function hell(hex, f) { return mische(hex, "#ffffff", f); }
-  function dunkel(hex, f) { return mische(hex, "#000000", f); }
+  function hell(hex, f) { return hex === VERLAUF ? verlaufTon("#ffffff", f) : mische(hex, "#ffffff", f); }
+  function dunkel(hex, f) { return hex === VERLAUF ? verlaufTon("#000000", f) : mische(hex, "#000000", f); }
+
+  /* Farbverlauf (Version 44): basisFarbe() gibt dann statt einer Farbe das Zeichen VERLAUF
+     zurück. hell()/dunkel()/farbeVon() machen daraus einen Verlauf über das ganze Fahrzeug
+     (LACK: Umriss in lokalen Metern, gesetzt in zeichneFahrzeugLokal) – so passen Kotflügel,
+     Fugen, Dach und Karosserie zusammen, statt alle in einer grauen Mischfarbe. */
+  var VERLAUF = "§verlauf", LACK = { ctx: null, v: null, x0: -1.5, x1: 1.5, y0: -0.5, y1: 1.5 };
+  function verlaufTon(ziel, f) {
+    var V = LACK.v, g = V.r === "ou" ? LACK.ctx.createLinearGradient(0, LACK.y1, 0, LACK.y0) : LACK.ctx.createLinearGradient(LACK.x1, 0, LACK.x0, 0);
+    var a = f ? mische(V.a, ziel, f) : V.a, b = f ? mische(V.b, ziel, f) : V.b;
+    g.addColorStop(0, a); g.addColorStop(0.15, a); g.addColorStop(0.85, b); g.addColorStop(1, b);
+    return g;
+  }
+  function farbeVon(c) { return c === VERLAUF ? verlaufTon("#000000", 0) : c; }
 
   // Emojis einmal in ein kleines Canvas rendern, danach nur kopieren (schnell!).
   // q = Gerätepixel je CSS-Pixel (Retina: 2) → scharfe Emojis.
@@ -300,7 +313,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (i = 0; i < T.length; i++) {
       var t = T[i];
       if (t.weg || t.x < x0 - 2 || t.x > x1 + 2) continue;
-      (akku === "wanne" ? zeichneEimer : akku === "schnee" ? zeichneSchneeKanister : akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
+      (akku === "zauber" ? zeichneZaubertrank : akku === "wanne" ? zeichneEimer : akku === "schnee" ? zeichneSchneeKanister : akku === "h2" ? zeichneH2Flasche : akku === "puste" ? zeichneApfel : akku ? zeichneBatterie : zeichneKanister)(ctx, sx(K, t.x), sy(K, t.y + 0.5 + Math.sin(zeit * 3 + t.x) * 0.08), K.s, zeit);
     }
     var RK = gel.raketen || [];
     for (i = 0; i < RK.length; i++) {
@@ -422,6 +435,29 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.restore();
   }
 
+  /* 🧪 Zauberfläschchen (Fliegender Teppich): bauchige Flasche mit lila Zaubertrank,
+     Korken, goldenem Halsband und aufsteigenden Glitzerpunkten */
+  function zeichneZaubertrank(ctx, X, Y, s, zeit) {
+    ctx.save(); ctx.translate(X, Y);
+    var gl = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.1);
+    gl.addColorStop(0, "rgba(220,170,255," + (0.5 + 0.2 * Math.sin(zeit * 5)) + ")"); gl.addColorStop(1, "rgba(220,170,255,0)");
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, s * 1.1, 0, Math.PI * 2); ctx.fill();
+    var r = 0.3 * s;
+    ctx.beginPath(); ctx.arc(0, r * 0.35, r, -Math.PI * 0.32, Math.PI * 1.32, false);
+    ctx.lineTo(-r * 0.32, -r * 0.95); ctx.lineTo(r * 0.32, -r * 0.95); ctx.closePath();
+    var g = ctx.createLinearGradient(-r, 0, r, 0); g.addColorStop(0, "#6a2fc0"); g.addColorStop(0.45, "#c07bff"); g.addColorStop(1, "#5a24a8");
+    ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = "#3a1670"; ctx.lineWidth = Math.max(1, 0.045 * s); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.ellipse(-r * 0.4, r * 0.15, r * 0.14, r * 0.32, 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#f3c44a"; ctx.fillRect(-r * 0.36, -r * 0.82, r * 0.72, r * 0.16);                      // Halsband
+    ctx.fillStyle = "#b07a45"; rundRechteck(ctx, -r * 0.26, -r * 1.3, r * 0.52, r * 0.38, r * 0.08); ctx.fill();   // Korken
+    ctx.fillStyle = "#fff6c8";
+    for (var k = 0; k < 3; k++) {
+      var t = (zeit * 0.8 + k / 3) % 1;
+      stern(ctx, (k - 1) * r * 0.45, r * 0.6 - t * r * 1.2, r * 0.13 * (1 - t), 4, 0.4); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   /* 🪣 Wassereimer (Badewanne): blauer Eimer mit Henkel, oben schwappt Wasser */
   function zeichneEimer(ctx, X, Y, s, zeit) {
     var w = 0.66 * s, h = 0.66 * s;
@@ -469,8 +505,13 @@ var FF = globalThis.FF = globalThis.FF || {};
      5) FAHRZEUGE (lokale Koordinaten: Meter, y nach oben, Ursprung = Schwerpunkt)
      ========================================================================= */
 
-  /* Lackfarbe als Füllung (Regenbogen = Verlauf, Gold = Glanz) */
-  function lack(ctx, aussehen, x0, x1, zeit) {
+  /* Lackfarbe als Füllung (Regenbogen = Verlauf, Gold = Glanz, eigener Farbverlauf
+     vorne→hinten über x0…x1 oder oben→unten über y0…y1; lokal: +x vorn, +y oben) */
+  function lack(ctx, aussehen, x0, x1, zeit, y0, y1) {
+    if (aussehen.verlauf) {                     // über das ganze Fahrzeug (LACK), nicht nur über dieses Teil
+      LACK.ctx = ctx; LACK.v = aussehen.verlauf;
+      return verlaufTon("#000000", 0);
+    }
     if (aussehen.farbe === "regenbogen") {
       var g = ctx.createLinearGradient(x0, 0, x1, 0);
       var farben = ["#ff5b5b", "#ff9e2c", "#ffd23f", "#3cc35a", "#2f6fd6", "#8e5bd8"];
@@ -486,6 +527,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     return aussehen.farbe;
   }
   function basisFarbe(aussehen) {
+    if (aussehen.verlauf) { LACK.v = aussehen.verlauf; return VERLAUF; }
     return aussehen.farbe === "regenbogen" ? "#ff9e2c" : aussehen.farbe;
   }
 
@@ -856,7 +898,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Lackierte Fläche: Lack, Aufkleber (nur auf dem Lack), Licht von oben und
      Schatten unten (wirkt gewölbt), dann die Kontur. pfad() setzt den Umriss. */
   function karosserie(ctx, a, z, pfad, x0, x1, y0, y1, ohneMuster) {
-    pfad(); ctx.fillStyle = lack(ctx, a, x0, x1, z); ctx.fill();
+    pfad(); ctx.fillStyle = lack(ctx, a, x0, x1, z, y0, y1); ctx.fill();
     if (!ohneMuster) musterZeichnen(ctx, a.muster, x0, x1, y0, y1, z, pfad);
     ctx.save(); pfad(); ctx.clip();
     var g = ctx.createLinearGradient(0, y1, 0, y0);
@@ -1137,7 +1179,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         // Lenkstange: von der Vorderachse schräg nach oben zum Lenker
         ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.07; ctx.lineCap = "round";
         ctx.beginPath(); ctx.moveTo(0.56, -0.42); ctx.lineTo(0.58, -0.3); ctx.lineTo(griff.x + 0.02, griff.y); ctx.stroke();
-        ctx.strokeStyle = c; ctx.lineWidth = 0.08;
+        ctx.strokeStyle = farbeVon(c); ctx.lineWidth = 0.08;
         ctx.beginPath(); ctx.moveTo(0.585, -0.2); ctx.lineTo(0.5, 0.3); ctx.stroke();
         ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.075;                                              // Lenker mit Griff
         ctx.beginPath(); ctx.moveTo(griff.x - 0.12, griff.y + 0.02); ctx.lineTo(griff.x + 0.12, griff.y - 0.02); ctx.stroke();
@@ -1179,6 +1221,117 @@ var FF = globalThis.FF = globalThis.FF || {};
        Latten-Sitz. Hinten ein Tank (Lackfarbe) mit Schneekanone obendrauf – das Rohr zeigt
        schräg nach vorn über den Kopf des Kindes –, ganz hinten der Propeller im Schutzring.
        fz.propeller −1…1 (Drehzahl), fz.kanone true = schießt gerade Schnee. */
+    /* Fliegender Teppich: schräg von oben gesehen, damit man das Muster sieht (Bordüre,
+       Medaillons, Quasten). Er wellt sich – mehr bei Tempo und in der Luft (fz.flattern),
+       in der Mitte, wo das Kind sitzt, kaum. Unter ihm schimmern die Luftkissen und
+       ein Schatten auf dem Boden (nur, wenn die Kissen den Boden spüren). */
+    teppich: function (ctx, a, z, fz) {
+      var c = basisFarbe(a), o = outfitVon(a), gold = "#f3c44a", goldD = "#b8862a";
+      var C = fz && fz.chassis, v = C ? Math.min(1, Math.hypot(C.vx, C.vy) / 12) : 0, fl = fz ? fz.flattern || 0 : 0;
+      var amp = 0.02 + 0.045 * v + 0.07 * fl, om = 5 + 7 * v, L = 1.25, T = 0.18, dx = 0.12, y0 = -0.1;
+      var welle = function (x, phase) {
+        var r = Math.min(1, Math.abs(x) / L);
+        return amp * Math.pow(r, 1.3) * Math.sin(x * 4.2 - z * om + (phase || 0)) - 0.03 * fl * r * r;
+      };
+      // Punkt auf der Oberseite: u 0…1 von hinten nach vorn, w 0 (vordere Kante) … 1 (hintere Kante)
+      var pt = function (u, w) {
+        var x = -L + 2 * L * u, yv = y0 + welle(x), yh = y0 + T + welle(x + dx, 0.5);
+        return [x + dx * w, yv + (yh - yv) * w];
+      };
+      var linie = function (u0, u1, w0, w1, n) {
+        for (var k = 0; k <= n; k++) { var t = k / n, p = pt(u0 + (u1 - u0) * t, w0 + (w1 - w0) * t); if (k) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }
+      };
+      var flaeche = function () {
+        ctx.beginPath(); linie(0, 1, 0, 0, 16);
+        var p = pt(1, 1); ctx.lineTo(p[0], p[1]);
+        for (var k = 16; k >= 0; k--) { var q = pt(k / 16, 1); ctx.lineTo(q[0], q[1]); }
+        ctx.closePath();
+      };
+      var quasten = function (u, seite) {
+        // Fransen am Ende (seite −1 hinten, +1 vorn), wehen nach hinten
+        ctx.strokeStyle = gold; ctx.lineWidth = 0.025; ctx.lineCap = "round";
+        for (var k = 0; k <= 5; k++) {
+          var p = pt(u, k / 5), len = 0.16 + 0.04 * (k % 2), wind = -0.12 - 0.22 * v, wob = 0.05 * Math.sin(z * 9 + k * 1.3) * (0.4 + v + fl);
+          ctx.beginPath(); ctx.moveTo(p[0], p[1]);
+          ctx.quadraticCurveTo(p[0] + seite * len * 0.5 + wind * 0.4, p[1] - 0.02 + wob, p[0] + seite * len * (seite > 0 ? 0.6 : 1) + wind, p[1] - 0.05 + wob);
+          ctx.stroke();
+        }
+      };
+      var hinten = function () {
+        // Schatten auf dem Boden unter den Kissen, die ihn spüren
+        if (fz && fz.raeder && fz.raeder[0] && fz.raeder[0].lokalY !== undefined) {
+          var nB = 0, yB = 0;
+          fz.raeder.forEach(function (R) { if (R.kontakt && R.kontakt.aktiv) { nB++; yB += R.lokalY - R.r; } });
+          if (nB) {
+            yB /= nB;
+            ctx.fillStyle = "rgba(20,20,40," + (0.1 * (nB / fz.raeder.length)) + ")";
+            ctx.beginPath(); ctx.ellipse(0.05, yB + 0.02, 1.35, 0.09, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(0.05, yB + 0.02, 1.0, 0.055, 0, 0, Math.PI * 2); ctx.fill();
+          }
+          // Luftkissen: ein zarter Schimmer zwischen Teppich und Boden, kleine Wirbel steigen auf
+          var yU = fz.raeder[0].lokalY - fz.raeder[0].r, kg = ctx.createLinearGradient(0, y0 - 0.05, 0, yU);
+          kg.addColorStop(0, "rgba(225,205,255,0.2)"); kg.addColorStop(1, "rgba(225,205,255,0)");
+          ctx.fillStyle = kg;
+          ctx.beginPath(); ctx.moveTo(-L + 0.1, y0 - 0.05); ctx.lineTo(L - 0.1, y0 - 0.05); ctx.lineTo(L - 0.3, yU); ctx.lineTo(-L + 0.3, yU); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "rgba(240,225,255,0.5)"; ctx.lineWidth = 0.02; ctx.lineCap = "round";
+          for (var wi = 0; wi < 4; wi++) {
+            var ph = (z * 0.9 + wi * 0.25) % 1, xw = -0.9 + wi * 0.6, yw = yU + (y0 - 0.05 - yU) * ph;
+            ctx.globalAlpha = Math.sin(ph * Math.PI);
+            ctx.beginPath(); ctx.arc(xw, yw, 0.07 + 0.05 * ph, Math.PI * 0.15, Math.PI * 0.95); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        }
+        quasten(0, -1);
+        // Oberseite mit Lack (Farbe, Verlauf, Muster)
+        karosserie(ctx, a, z, flaeche, -L, L + dx, y0 - 0.1, y0 + T + 0.1);
+        // Bordüre, Innenrahmen, Medaillons (Teppichmuster), nur auf der Fläche
+        ctx.save(); flaeche(); ctx.clip();
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = gold; ctx.lineWidth = 0.045;
+        ctx.beginPath(); linie(0.035, 0.965, 0.18, 0.18, 14); linie(0.965, 0.965, 0.18, 0.82, 2); linie(0.965, 0.035, 0.82, 0.82, 14); ctx.closePath(); ctx.stroke();
+        ctx.strokeStyle = dunkel(c, 0.35); ctx.lineWidth = 0.025;
+        ctx.beginPath(); linie(0.07, 0.93, 0.36, 0.36, 12); linie(0.93, 0.93, 0.36, 0.64, 2); linie(0.93, 0.07, 0.64, 0.64, 12); ctx.closePath(); ctx.stroke();
+        [0.2, 0.5, 0.8].forEach(function (u, i) {
+          var b = i === 1 ? 0.075 : 0.055, p1 = pt(u - b, 0.5), p2 = pt(u, 0.92), p3 = pt(u + b, 0.5), p4 = pt(u, 0.08);
+          ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]); ctx.lineTo(p4[0], p4[1]); ctx.closePath();
+          ctx.fillStyle = i === 1 ? gold : dunkel(c, 0.3); ctx.fill();
+          ctx.strokeStyle = i === 1 ? goldD : gold; ctx.lineWidth = 0.02; ctx.stroke();
+          var m = pt(u, 0.5); ctx.fillStyle = i === 1 ? dunkel(c, 0.25) : gold;
+          ctx.beginPath(); ctx.arc(m[0], m[1], 0.025, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.fillStyle = "rgba(255,255,255,0.18)";                                   // Glanz der Seide
+        ctx.beginPath(); linie(0.1, 0.9, 0.62, 0.62, 10); linie(0.9, 0.1, 0.78, 0.78, 10); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      };
+      var vorne = function () {
+        // Kind im Schneidersitz: Oberschenkel nach vorn, Unterschenkel gekreuzt
+        var anz = o.seiten || o.anzug, sitz = y0 + T * 0.45 + 0.02;
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.strokeStyle = dunkel(anz, 0.2); ctx.lineWidth = 0.14;
+        ctx.beginPath(); ctx.moveTo(-0.05, sitz + 0.07); ctx.lineTo(0.3, sitz + 0.06); ctx.lineTo(0.06, sitz + 0.02); ctx.stroke();
+        ctx.strokeStyle = anz;
+        ctx.beginPath(); ctx.moveTo(0.0, sitz + 0.1); ctx.lineTo(0.36, sitz + 0.08); ctx.lineTo(0.12, sitz + 0.0); ctx.stroke();
+        ctx.fillStyle = "#2b2f3a"; ctx.beginPath(); ctx.ellipse(0.08, sitz - 0.01, 0.08, 0.04, 0.1, 0, Math.PI * 2); ctx.fill();
+        // vordere Kante (Dicke des Teppichs) und Fransen vorn
+        ctx.beginPath(); linie(0, 1, 0, 0, 16);
+        for (var k = 16; k >= 0; k--) { var q = pt(k / 16, 0); ctx.lineTo(q[0], q[1] - 0.045); }
+        ctx.closePath();
+        ctx.fillStyle = dunkel(c, 0.3); ctx.fill();
+        ctx.strokeStyle = gold; ctx.lineWidth = 0.018; ctx.beginPath(); linie(0, 1, 0, 0, 16); ctx.stroke();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.beginPath();
+        for (k = 0; k <= 16; k++) { var r2 = pt(k / 16, 0); if (k) ctx.lineTo(r2[0], r2[1] - 0.045); else ctx.moveTo(r2[0], r2[1] - 0.045); }
+        ctx.stroke();
+        quasten(1, 1);
+        // Goldene Quaste an den Ecken
+        [pt(0, 0), pt(1, 0)].forEach(function (p, i) {
+          ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(p[0] + (i ? 0.02 : -0.02), p[1] - 0.03, 0.04, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = goldD; ctx.lineWidth = 0.015; ctx.stroke();
+        });
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.2, y0 + T * 0.45, 0.4, 0.4], arme: [0.06, 0.32, 0.3, y0 + T * 0.45 + 0.12],
+               ohneFedern: true, ohneRaeder: true, fahrerZuerst: true, beifahrer: { x: -0.72, y: y0 + T * 0.5 + 0.24 } };
+    },
+
     schlitten: function (ctx, a, z, fz) {
       var c = basisFarbe(a), o = outfitVon(a), holz = "#c98d4f", holzD = "#8d5a2a", holzH = "#e2b07a";
       var prop = fz ? fz.propeller || 0 : 0, schiesst = fz && fz.kanone;
@@ -1235,7 +1388,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         var rg = ctx.createLinearGradient(0, 0.16, 0, -0.16); rg.addColorStop(0, "#f2f5fa"); rg.addColorStop(0.5, "#b9c2d3"); rg.addColorStop(1, "#7d8698");
         ctx.fillStyle = rg; rundRechteck(ctx, -0.26, -0.15, 0.56, 0.3, 0.08); ctx.fill();
         ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = 0.02; ctx.stroke();
-        ctx.fillStyle = c; ctx.fillRect(-0.12, -0.155, 0.08, 0.31);                    // Farbring
+        ctx.fillStyle = farbeVon(c); ctx.fillRect(-0.12, -0.155, 0.08, 0.31);                    // Farbring
         ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.ellipse(0.31, 0, 0.045, 0.16, 0, 0, Math.PI * 2); ctx.fill();   // Düsenring
         ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.015;
         for (k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(0.31, k * 0.06 - 0.02); ctx.lineTo(0.31, k * 0.06 + 0.02); ctx.stroke(); }
@@ -1271,7 +1424,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.strokeStyle = "#f3e6c4"; ctx.lineWidth = 0.025;
         ctx.beginPath(); ctx.moveTo(0.5, 0.42); ctx.quadraticCurveTo(0.9, 0.42, 1.15, yK + 0.45); ctx.stroke();
       };
-      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.22, 0.08, 0.46, 0.4], arme: [0.02, 0.4, 0.5, 0.42], ohneFedern: true, ohneRaeder: true };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.22, 0.08, 0.46, 0.4], arme: [0.02, 0.4, 0.5, 0.42], ohneFedern: true, ohneRaeder: true,
+               beifahrer: { x: 0.98, y: 0.16, gr: 0.85 } };   // vorn auf dem Schlitten, zwischen Stiefeln und Kufen-Schnecke
     },
 
     /* Badewanne: Wanne mit Löwenfüßen auf Rollen. Oben sieht man durch den ovalen Rand ins
@@ -1476,7 +1630,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         [p0, p1].forEach(function (p) { ctx.fillStyle = "#4a505e"; ctx.beginPath(); ctx.arc(p[0], p[1], 0.04, 0, Math.PI * 2); ctx.fill(); });
       };
       return { hinten: hinten, vorne: vorne, nachRaedern: nachRaedern, ohneFedern: true,
-               fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
+               fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe,
+               beifahrer: { x: -1.06, y: 0.68, gr: 0.65, klip: [-1.2, 0.5, 0.72, 0.62] } };   // im Führerhausfenster, nicht außen an der Wand
     },
 
     flugzeug: function (ctx, a, z, fz) {
@@ -1500,7 +1655,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         rohr(ctx, [[1.0, -0.05], [rL.lokalX, rL.lokalY]], 0.05, "#3a4152");
         rohr(ctx, [[-1.5, 0.12], [rH.lokalX, rH.lokalY]], 0.05, "#3a4152");
         // Seitenleitwerk
-        ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(-1.45, 0.4); ctx.lineTo(-1.75, 0.95); ctx.lineTo(-1.95, 0.95); ctx.lineTo(-1.9, 0.1); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = farbeVon(c); ctx.beginPath(); ctx.moveTo(-1.45, 0.4); ctx.lineTo(-1.75, 0.95); ctx.lineTo(-1.95, 0.95); ctx.lineTo(-1.9, 0.1); ctx.closePath(); ctx.fill();
         ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.lineWidth = 0.02; ctx.stroke();
         karosserie(ctx, a, z, rumpf, -1.95, 1.85, -0.2, 0.45);
         // nahe Tragfläche mit Streben
@@ -1650,7 +1805,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         rohr(-0.32, false);
         glanz(ctx, 1.2, 1.0, 2.35, 0.98, 0.04);
       };
-      return { hinten: hinten, vorne: vorne, fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: null, fahrerNachVorne: true, scheibe: scheibe,
+               beifahrer: { x: -0.84, y: 1.36, gr: 0.75, klip: [-1.03, 1.24, 0.38, 0.26] } };   // schaut aus dem Schlafkabinen-Fenster
     },
     bus: function (ctx, a, z) {
       var c = basisFarbe(a);
@@ -2003,7 +2159,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.strokeStyle = "#6b4a2a"; ctx.lineWidth = 0.025;
       [0.05, 0.22].forEach(function (y) { ctx.beginPath(); ctx.moveTo(-0.64, y); ctx.lineTo(0.64, y); ctx.stroke(); });
       kasten(); ctx.lineWidth = 0.04; ctx.stroke();
-      ctx.fillStyle = c; ctx.fillRect(-0.66, 0.3, 1.32, 0.08);                     // Kante in Lokfarbe
+      ctx.fillStyle = farbeVon(c); ctx.fillRect(-0.66, 0.3, 1.32, 0.08);                     // Kante in Lokfarbe
       // Fähnchen hinten
       ctx.strokeStyle = "#4a505e"; ctx.lineWidth = 0.025;
       ctx.beginPath(); ctx.moveTo(-0.6, 0.38); ctx.lineTo(-0.6, 1.05); ctx.stroke();
@@ -2029,6 +2185,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       ctx.translate(sx(K, C.x), sy(K, C.y));
       ctx.rotate(-C.a);
       ctx.scale(K.s, -K.s);
+      LACK.ctx = ctx; LACK.v = aussehen.verlauf || null; LACK.x0 = -1.2; LACK.x1 = 1.2; LACK.y0 = -0.4; LACK.y1 = 1.0;
+      if (ad.huelle) lackBereich(ctx, { huelle: ad.huelle, kopf: { y: 0 } }, aussehen);
       (ANHAENGER[ad.form] || ANHAENGER.kohlewagen)(ctx, aussehen, zeit, A, haken);
       felgeJetzt = aussehen.felge || "standard";
       A.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, ad.form === "anhaenger" ? "normal" : "lok"); });
@@ -2148,8 +2306,17 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   var taucherHelm = false;                   // Meeresgrund: Fiete trägt einen Taucherhelm (Glaskugel)
+  /* Umriss des Fahrzeugs für den Farbverlauf (lokale Meter) */
+  function lackBereich(ctx, def, aussehen) {
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    def.huelle.forEach(function (p) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); });
+    (def.dach || []).forEach(function (p) { y1 = Math.max(y1, p[1]); });
+    LACK.ctx = ctx; LACK.v = aussehen.verlauf || null;
+    LACK.x0 = x0; LACK.x1 = x1; LACK.y0 = y0; LACK.y1 = Math.max(y1, def.kopf.y);
+  }
   function zeichneFahrzeugLokal(ctx, fz, def, aussehen, zeit, ausdruck) {
     var form = KAROSSERIE[def.form] ? def.form : "buggy";
+    lackBereich(ctx, def, aussehen);
     var teile = KAROSSERIE[form](ctx, aussehen, zeit, fz);
     var kp = fz.kopf;
     var tempo = Math.hypot(fz.chassis.vx, fz.chassis.vy);
@@ -2204,14 +2371,39 @@ var FF = globalThis.FF = globalThis.FF || {};
     // Beifahrer: ein Tier sitzt hinter dem Kind (beim Skateboard vorne auf dem Brett)
     if (aussehen.beifahrer) {
       var brett = form === "skateboard" || form === "scooter", bx = brett ? (form === "scooter" ? 0.3 : 0.45) : kp.x - 0.52, by = brett ? -0.05 : kp.y - 0.08 + kind.groesse * 0.5;
-      var bfe = aussehen.beifahrer, spr = emojiSprite(bfe, 64, 1), hopp = Math.abs(Math.sin(zeit * 6)) * 0.03;
-      ctx.save(); ctx.translate(bx, by + hopp); ctx.scale(-1, -1);   // schaut nach vorn
-      // kleine Eigenarten der Tiere (Version 30)
+      if (teile.beifahrer) { bx = teile.beifahrer.x; by = teile.beifahrer.y; }
+      var bKlip = teile.beifahrer && teile.beifahrer.klip, bGross = teile.beifahrer && teile.beifahrer.gr || 1;
+      if (bKlip) { ctx.save(); rundRechteck(ctx, bKlip[0], bKlip[1], bKlip[2], bKlip[3], 0.08); ctx.clip(); }
+      var bfe = aussehen.beifahrer, hopp = Math.abs(Math.sin(zeit * 6)) * 0.03, inLuft = fz.status && fz.status.radKontakte === 0;
+      var hph = (zeit * 0.55) % 1;
+      if (bfe === "🐸" && hph < 0.16) hopp += 0.2 * Math.sin(hph / 0.16 * Math.PI);                                  // Froschhüpfer
+      ctx.save(); ctx.translate(bx, by + hopp); ctx.scale(-bGross, -bGross);   // schaut nach vorn (Bild: −x vorn, −y oben)
+      // kleine Eigenarten der Tiere (Version 30 und 44)
+      var gr = 0.6;
       if (bfe === "🐧") { ctx.translate(Math.sin(zeit * 3.2) * 0.05, 0); ctx.rotate(Math.sin(zeit * 6.4) * 0.22); }       // watschelt
       else if (bfe === "🦊") ctx.rotate(Math.sin(zeit * 9) * 0.1);                                                    // im Fahrtwind
       else if (bfe === "🦉" && Math.sin(zeit * 0.9) > 0.75) ctx.scale(-1, 1);                                         // dreht den Kopf
       else if (bfe === "🐺") ctx.rotate(-0.06 + Math.sin(zeit * 2) * 0.04);
-      ctx.drawImage(spr, -0.3, -0.3, 0.6, 0.6);
+      else if (bfe === "🐙") { ctx.scale(1 + 0.06 * Math.sin(zeit * 7), 1 - 0.06 * Math.sin(zeit * 7)); ctx.rotate(Math.sin(zeit * 3.5) * 0.08); }   // wabbelt
+      else if (bfe === "🐹") ctx.scale(1 + 0.07 * Math.max(0, Math.sin(zeit * 2.2)), 1);                              // Backen aufpusten
+      else if (bfe === "🐨") ctx.rotate(0.12 * Math.sin(zeit * 0.8));                                                 // schläfrig schaukeln
+      else if (bfe === "🦔" && inLuft) ctx.rotate(-zeit * 14);                                                        // rollt sich ein
+      else if (bfe === "🦒") { gr = 0.8; ctx.translate(0, -0.1); ctx.rotate(Math.sin(zeit * 1.6) * 0.07); }           // groß, Hals schwankt
+      else if (bfe === "🦝" && Math.sin(zeit * 0.7) > 0.8) ctx.scale(-1, 1);                                          // schaut sich um
+      if (bfe === "axolotl") zeichneAxolotl(ctx, zeit);
+      else ctx.drawImage(emojiSprite(bfe, 64, 1), -gr / 2, -gr / 2, gr, gr);
+      if (bfe === "🐨" && Math.sin(zeit * 0.8) > 0.2) {                       // „Zzz“
+        ctx.save(); ctx.scale(-1, 1); ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "800 0.16px 'Baloo 2', sans-serif";
+        var zz = (zeit * 0.8) % 1; ctx.globalAlpha = 1 - zz; ctx.fillText("z", 0.12 + 0.1 * zz, -0.28 - 0.2 * zz); ctx.restore();
+      }
+      if (bfe === "🐉" && Math.sin(zeit * 1.3) > 0.7) {                        // kleine Flamme – nach oben, nie zum Kind
+        var fl = (Math.sin(zeit * 1.3) - 0.7) / 0.3, fx = -0.14, fy = -0.24;
+        [["#ff5a1f", 1], ["#ffcc33", 0.65], ["#fffbe0", 0.35]].forEach(function (f) {
+          ctx.fillStyle = f[0]; ctx.beginPath(); ctx.moveTo(fx - 0.04 * f[1], fy);
+          ctx.quadraticCurveTo(fx - 0.06 * f[1], fy - 0.12 * fl * f[1], fx + 0.01 * Math.sin(zeit * 40), fy - 0.26 * fl * f[1]);
+          ctx.quadraticCurveTo(fx + 0.06 * f[1], fy - 0.12 * fl * f[1], fx + 0.04 * f[1], fy); ctx.fill();
+        });
+      }
       if (bfe === "🐼") {                                     // Bambus zum Mampfen
         var bam = emojiSprite("🎋", 40, 1), kau = Math.sin(zeit * 7) * 0.04;
         ctx.save(); ctx.translate(0.24, 0.06 + kau); ctx.rotate(0.4); ctx.drawImage(bam, -0.2, -0.2, 0.4, 0.4); ctx.restore();
@@ -2222,12 +2414,53 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.fillStyle = "#ffd23f"; ctx.fillRect(-0.25, -0.075, 0.2, 0.02);
       }
       ctx.restore();
+      if (bKlip) ctx.restore();
     }
     // Räder zuletzt (vorn)
     felgeJetzt = aussehen.felge || "standard";
     if (!teile.ohneRaeder) fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
     felgeJetzt = "standard";
     if (teile.nachRaedern) teile.nachRaedern();
+  }
+
+  /* Axolotl (Beifahrer, Version 44 – kein Emoji): rosa Schwanzlurch mit großem Kopf, drei
+     gefiederten Kiemenästen je Seite, Knopfaugen und Lächeln. Gezeichnet im Bild des
+     Beifahrers (−x vorn, −y oben, etwa 0,6 m groß). Die Kiemen wedeln. */
+  function zeichneAxolotl(ctx, zeit) {
+    var rosa = "#ffb3d6", rand = "#d9548c", kieme = "#ff6fae";
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    // Schwanz mit Flossensaum
+    ctx.fillStyle = "#ffa3cb"; ctx.beginPath(); ctx.moveTo(0.1, 0.02);
+    ctx.quadraticCurveTo(0.3, -0.05 + 0.03 * Math.sin(zeit * 4), 0.34, 0.06); ctx.quadraticCurveTo(0.26, 0.14, 0.1, 0.16); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rand; ctx.lineWidth = 0.015; ctx.stroke();
+    // Körper und Beinchen
+    ctx.fillStyle = rosa; ctx.beginPath(); ctx.ellipse(0.06, 0.1, 0.15, 0.09, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    [[-0.04, 0.18], [0.14, 0.18]].forEach(function (b) { ctx.beginPath(); ctx.ellipse(b[0], b[1], 0.03, 0.045, 0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
+    // Kiemen hinten am Kopf (die der anderen Seite dunkler dahinter)
+    var kiemen = function (farbe, dx, dy) {
+      ctx.strokeStyle = farbe; ctx.lineWidth = 0.028;
+      for (var i = 0; i < 3; i++) {
+        var w = -2.0 + i * 0.55 + 0.18 * Math.sin(zeit * 6 + i * 1.4), x0 = 0.02 + dx, y0 = -0.1 + i * 0.05 + dy, L = 0.13;
+        var x1 = x0 + Math.cos(w) * -L, y1 = y0 + Math.sin(w) * L;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        for (var k = 1; k <= 3; k++) {                         // Federchen
+          var t = k / 4, xa = x0 + (x1 - x0) * t, ya = y0 + (y1 - y0) * t;
+          ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xa + 0.035, ya - 0.025); ctx.stroke();
+        }
+      }
+    };
+    kiemen("#e0508f", 0.03, -0.01);
+    // Kopf
+    ctx.fillStyle = rosa; ctx.strokeStyle = rand; ctx.lineWidth = 0.015;
+    ctx.beginPath(); ctx.ellipse(-0.09, -0.04, 0.16, 0.12, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    kiemen(kieme, 0, 0);
+    // Gesicht: Knopfauge, Bäckchen, breites Lächeln
+    ctx.fillStyle = "#2b2f3a"; ctx.beginPath(); ctx.arc(-0.16, -0.07, 0.024, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(-0.168, -0.078, 0.008, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255,110,170,0.55)"; ctx.beginPath(); ctx.arc(-0.12, -0.0, 0.025, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#a8306a"; ctx.lineWidth = 0.014;
+    ctx.beginPath(); ctx.moveTo(-0.24, -0.01); ctx.quadraticCurveTo(-0.2, 0.03, -0.15, 0.015); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.beginPath(); ctx.ellipse(-0.06, -0.11, 0.05, 0.02, -0.2, 0, Math.PI * 2); ctx.fill();
   }
 
   /* Ballon-Hilfe nach einem Überschlag */
@@ -2552,7 +2785,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
     zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "", String(kmh), 0, skalaSchritte(vmaxKmh), "km/h");
     var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
-    var titel = fahrt.werte.wanne ? "💧 Strahl" : fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    var titel = fahrt.werte.wanne ? "💧 Strahl" : fahrt.werte.zauber ? "✨ Zauber" : fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
     if (G.dampf) umin = Math.round(G.rpm / 10) * 10;
     zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
                       G.elektro || G.turbine || G.dampf ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
@@ -2604,7 +2837,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneSchilder(ctx, K, gel, b[2], b[3]);
     zeichneLoopings(ctx, K, gel);
     zeichneStartZiel(ctx, K, gel, z);
-    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.schneeTank ? "schnee" : f.werte.wannenTank ? "wanne" : f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
+    zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.schneeTank ? "schnee" : f.werte.wannenTank ? "wanne" : f.werte.zauberTank ? "zauber" : f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
     if (f.roehre && f.roehre.z) {
@@ -2699,6 +2932,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   FF.Grafik = {
     zeichneSzene: zeichneSzene,
+    mische: mische,
     zeichneVorschau: zeichneVorschau,
     zeichnePortrait: zeichnePortrait,
     zeichneMuenze: zeichneMuenze,

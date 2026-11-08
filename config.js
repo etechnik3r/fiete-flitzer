@@ -583,6 +583,44 @@ FF.CONFIG = {
       farbe: "weiss", form: "badewanne",
       klang: { art: "wasser", lautstaerke: 1.0, abrollen: 0.8 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
+    },
+    {
+      /* Fliegender Teppich (Version 44): schwebt eine Handbreit über dem Boden. Statt Rädern
+         drei unsichtbare Schwebekissen (gesperrte „Räder“ wie die Kufen des Schlittens) mit
+         wenig Reibung (schweben.mu). Ein Zauberwind schiebt (zauber.schub [m/s²] bis zauber.vmax).
+         Pfützen, Matsch und Schleim bremsen ihn nicht – er berührt sie ja nicht, über Wasser
+         trägt ihn das Kissen. Dafür: leicht und viel Fläche, der Wind pustet ihn kräftig herum
+         (windMax), in der Luft flattert er (schweben.flattern), bergauf wird er langsam, und
+         gebremst wird nur mit Reibung (schweben.bremsMu). Tank = Zauberstaub. */
+      id: "teppich", name: "Fliegender Teppich", emoji: "🧞", preis: 7000, preisBasis: 200,
+      text: "Ein echter fliegender Teppich! Er schwebt über Pfützen und Matsch – aber der Wind pustet ihn herum, und in der Luft flattert er.",
+      masse: 105, groesse: { laenge: 2.4, hoehe: 1.0 },
+      raeder: [
+        { x: -0.9, y: -0.5, r: 0.12, masse: 2, antrieb: false },
+        { x:  0.0, y: -0.5, r: 0.12, masse: 2, antrieb: false },
+        { x:  0.9, y: -0.5, r: 0.12, masse: 2, antrieb: false }
+      ],
+      federung: { ruhe: 0.16, weg: 0.2, frequenz: 1.9, daempfung: 0.42 },
+      motor: { drehmoment: 1, vmax: 12 }, bremse: 0, grip: 1,
+      tankSekunden: 26, leerlauf: 0.08, luftsteuerung: 2.9, bruchExtra: 8, cwA: 0.95, abtrieb: 0, freilauf: true,
+      windMax: 2.2,              // Wind wirkt bis 2,2-mal so stark wie auf den Flitzer (sonst höchstens 1,5)
+      zauberTank: true,          // Anzeige ✨ Zauberstaub, Zaubertrank-Fläschchen statt Benzin
+      schweben: { mu: 0.07, bremsMu: 0.4, flattern: 1.0, stoff: 0.012 },
+      zauber: { schub: 4.6, anlauf: 0.45, vmax: 11.5, rueck: 0.4 },
+      upgradeNamen: {
+        motor:    { name: "Zauberkraft",   icon: "🪄", text: "Stärkerer Zauberwind – schneller los" },
+        reifen:   { name: "Stoffqualität", icon: "🧶", text: "Feiner gewebt: hält am Hang, flattert weniger" },
+        federung: { name: "Schwebekissen", icon: "☁️", text: "Dickeres Luftkissen – sanfter landen" },
+        tank:     { name: "Zauberstaub",   icon: "✨", text: "Mehr Zauberstaub – weiter fliegen" },
+        kreisel:  { name: "Fransen-Ruder", icon: "🎏", text: "Die Quasten halten dich in der Luft ruhig" },
+        bremse:   { name: "Teppich-Anker", icon: "⚓", text: "Kräftiger bremsen, schneller rückwärts" }
+      },
+      huelle: [[-1.25, -0.2], [1.25, -0.2], [1.3, 0.0], [0.6, 0.62], [-0.6, 0.62], [-1.3, 0.0]],
+      dach: [[-0.45, 1.05], [0.2, 1.0]],
+      kopf: { x: 0.0, y: 0.5, r: 0.28 },
+      farbe: "rot", form: "teppich",
+      klang: { art: "zauber", lautstaerke: 1.0, abrollen: 0 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
     }
   ],
 
@@ -639,7 +677,11 @@ FF.CONFIG = {
     { id: "mint",    name: "Minze",    wert: "#8ee6b8", preis: 200 },
     { id: "gold",    name: "Gold",     wert: "#f3c44a", preis: 1500, glanz: true },
     { id: "regenbogen", name: "Regenbogen", wert: "regenbogen", preis: 3000 },
-    { id: "schwarz", name: "Schwarz",  wert: "#2b2e38", preis: 0 }      // für die Dampf-Lok (hinten angehängt: Spielstand-Code)
+    { id: "schwarz", name: "Schwarz",  wert: "#2b2e38", preis: 0 },     // für die Dampf-Lok (hinten angehängt: Spielstand-Code)
+    // Version 44: selbst gemischt. „eigene“: Farbwähler (fs.eigeneFarbe), „verlauf“: zwei Farben
+    // und eine Richtung (fs.verlauf = { a, b, r }: r "vh" vorne→hinten oder "ou" oben→unten)
+    { id: "eigene",  name: "Eigene Farbe", wert: "eigene", preis: 800 },
+    { id: "verlauf", name: "Farbverlauf",  wert: "verlauf", preis: 2000 }
   ],
   muster: [
     { id: "keins",   name: "Ohne",      icon: "⬜", preis: 0 },
@@ -674,7 +716,19 @@ FF.CONFIG = {
     { id: "panda",   name: "Panda",    icon: "🐼", emoji: "🐼", preis: 7000 },   // mampft Bambus
     { id: "fuchs",   name: "Fuchs",    icon: "🦊", emoji: "🦊", preis: 5000 },   // wackelt im Fahrtwind
     { id: "eule",    name: "Eule",     icon: "🦉", emoji: "🦉", preis: 5500 },   // dreht ab und zu den Kopf
-    { id: "schildkroete", name: "Schildkröte", icon: "🐢", emoji: "🐢", preis: 6500 }   // mit Sturzhelm
+    { id: "schildkroete", name: "Schildkröte", icon: "🐢", emoji: "🐢", preis: 6500 },  // mit Sturzhelm
+    // Version 44: neun neue Tiere. Den Axolotl gibt es nicht als Emoji – er ist selbst gemalt
+    // (grafik.js zeichneAxolotl, Kachel-Bild als SVG). Die übrigen Emojis gibt es seit Emoji 11
+    // (2018), sie erscheinen also auch auf älteren Android-Handys (z. B. Moto G6 mit Android 9).
+    { id: "axolotl", name: "Axolotl", icon: "<svg class=\"icon-svg\" viewBox=\"0 0 64 64\" aria-hidden=\"true\"><g stroke=\"#e2558f\" stroke-width=\"3.5\" stroke-linecap=\"round\" fill=\"none\"><path d=\"M14 22 L4 12\"/><path d=\"M12 30 L2 26\"/><path d=\"M14 38 L4 42\"/><path d=\"M50 22 L60 12\"/><path d=\"M52 30 L62 26\"/><path d=\"M50 38 L60 42\"/></g><ellipse cx=\"32\" cy=\"52\" rx=\"15\" ry=\"10\" fill=\"#ff9ec8\"/><ellipse cx=\"32\" cy=\"32\" rx=\"21\" ry=\"17\" fill=\"#ffb3d6\" stroke=\"#e2558f\" stroke-width=\"2\"/><circle cx=\"23\" cy=\"29\" r=\"3.6\" fill=\"#2b2f3a\"/><circle cx=\"41\" cy=\"29\" r=\"3.6\" fill=\"#2b2f3a\"/><circle cx=\"24\" cy=\"28\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"42\" cy=\"28\" r=\"1.2\" fill=\"#fff\"/><path d=\"M25 37 Q32 43 39 37\" stroke=\"#b0306a\" stroke-width=\"2.2\" fill=\"none\" stroke-linecap=\"round\"/><circle cx=\"17\" cy=\"35\" r=\"3\" fill=\"#ff7fb5\" opacity=\".6\"/><circle cx=\"47\" cy=\"35\" r=\"3\" fill=\"#ff7fb5\" opacity=\".6\"/></svg>", emoji: "axolotl", preis: 7500 },   // wedelt mit den Kiemen
+    { id: "krake",   name: "Krake",    icon: "🐙", emoji: "🐙", preis: 5500 },   // wabbelt mit den Armen
+    { id: "frosch",  name: "Frosch",   icon: "🐸", emoji: "🐸", preis: 3500 },   // hüpft ab und zu hoch
+    { id: "hamster", name: "Hamster",  icon: "🐹", emoji: "🐹", preis: 3500 },   // pustet die Backen auf
+    { id: "koala",   name: "Koala",    icon: "🐨", emoji: "🐨", preis: 6000 },   // schläfrig: „Zzz“
+    { id: "drache",  name: "Drache",   icon: "🐉", emoji: "🐉", preis: 10000 },  // speit kleine Flammen
+    { id: "igel",    name: "Igel",     icon: "🦔", emoji: "🦔", preis: 4000 },   // rollt sich beim Salto ein
+    { id: "giraffe", name: "Giraffe",  icon: "🦒", emoji: "🦒", preis: 7000 },   // groß, Hals schwankt
+    { id: "waschbaer", name: "Waschbär", icon: "🦝", emoji: "🦝", preis: 5000 }   // schaut sich um
   ],
   /* Spuren: Was hinter dem Auto herfliegt, solange es fährt (spiel.js spurZiehen).
      Einmal kaufen, für alle Fahrzeuge – damit Münzen auch später noch etwas wert sind. */
@@ -1494,7 +1548,7 @@ FF.CONFIG = {
          Alles dicht hintereinander (abstandElemente klein, ebene Manege). */
       id: "zirkus", name: "Zirkus", emoji: "🎪", hinweis: "Manege frei! Wippen, Hochseil, Klapprampen – ein Kunststück nach dem anderen!",
       schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.03, abprall: 0.08, luftdichte: 1.2,
-      zelt: true,
+      zelt: true, festHilfe: 4,        // zwischen Hockern festgesteckt: nach 4 s hilft der Ballon
       farben: {
         himmel: ["#2a0f2e", "#5a1a3a"], berge: ["#5a1a3a", "#3a0f28"],
         boden: ["#b3122e", "#5e0818"], oberflaeche: "#f2d08e", kante: "#ffd23f", punkte: "#e2b76a"
@@ -1504,10 +1558,10 @@ FF.CONFIG = {
       deko: ["🎈:0.9:2.4", "🐘:2.0", "🦁:1.2", "🤹:1.2", "🍿:0.5", "🎩:0.5", "🦭:0.9", "🎈:0.8:3.0", "⭐:0.5:3.2"],
       kulisse: [],
       gelaende: { amp: 0.4, welle: 60, holperAmp: 0.03, holperWelle: 6, trend: 0,
-                  maxAuf: 22, maxAb: 28, schanzen: 0.5, buckel: 0.2, steil: 0, taeler: 0, berg: 0, sprung: 0.3, wellen: 0.2, klippe: 0, kuppe: 0,
-                  trampolin: 0.8, seil: 0, wippe: 1.4, hochseil: 1.2, klapprampe: 1.1, wildBasis: 0.2, dicht: 0.4,
+                  maxAuf: 22, maxAb: 28, schanzen: 0, buckel: 0, steil: 0, taeler: 0, berg: 0, sprung: 0, wellen: 0, klippe: 0, kuppe: 0,
+                  trampolin: 0.9, seil: 0, wippe: 0.5, wippenkette: 1.2, hochseil: 1.0, klapprampe: 0.8, podeste: 1.1, wildBasis: 0.2, dicht: 0.25,
                   abstandElemente: 5 },
-      tankAbstand: 170, muenzAbstand: 20,
+      tankAbstand: 120, muenzAbstand: 20,
       level: [ { laenge: 600, seed: 3401 }, { laenge: 800, seed: 3402 }, { laenge: 1000, seed: 3403 }, { laenge: 1200, seed: 3404 } ]
     }
   ],
@@ -1531,6 +1585,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "44", titel: "Fliegender Teppich und Farben nach Wunsch", punkte: [
+      "🧞 Neues Fahrzeug Fliegender Teppich: schwebt über Pfützen und Matsch, aber der Wind pustet ihn herum",
+      "🎪 Mehr Action im Zirkus: Hocker-Springen, Wippen-Ketten, Trampolin-Reihen und ein Hochseil mit Lücke",
+      "🦎 Neun neue Beifahrer: Axolotl, Krake, Frosch, Hamster, Koala, Drache, Igel, Giraffe und Waschbär",
+      "🎨 Eigene Farbe mit dem Farbwähler und Farbverläufe aus zwei Farben" ] },
     { version: "43", titel: "Manege frei!", punkte: [
       "🎪 Der Zirkus ist jetzt ein echtes Zirkuszelt – mit Zuschauern, Lichterketten und Scheinwerfern",
       "🤸 Ein Kunststück nach dem anderen: Wippen, Klapprampen und das Hochseil hoch oben – mit Sprung durch den Feuerreifen",

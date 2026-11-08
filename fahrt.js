@@ -63,6 +63,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.kreisel = kr;
     if (upg.allrad) w.raeder.forEach(function (r) { r.antrieb = true; });
     if (w.wanne) w.wanne.schub *= 1 + 0.6 * U.motorDrehmoment * m;          // Badewanne: Motor-Upgrade = kräftigerer Strahl
+    if (w.zauber) {                                                         // Teppich: Zauberkraft, Stoffqualität
+      w.zauber.schub *= 1 + 0.6 * U.motorDrehmoment * m;
+      w.zauber.vmax *= 1 + U.motorTempo * m;
+      w.schweben.mu += w.schweben.stoff * re;                               // feiner gewebt: hält besser am Hang …
+      w.schweben.flattern *= 1 - 0.12 * re;                                 // … und flattert weniger
+    }
     if (w.propeller) {                                                      // Schlitten: Motor-Upgrade = stärkerer Propeller
       w.propeller.schub *= 1 + 0.6 * U.motorDrehmoment * m;
       w.propeller.vmax *= 1 + U.motorTempo * m;
@@ -81,7 +87,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function Getriebe(klang) {
     this.P = klang || {};
     this.elektro = this.P.art === "elektro";
-    this.turbine = this.P.art === "turbine" || this.P.art === "propeller" || this.P.art === "wasser";   // Drehzahl folgt dem Hochlaufen, nicht den Rädern
+    this.turbine = this.P.art === "turbine" || this.P.art === "propeller" || this.P.art === "wasser" || this.P.art === "zauber";   // Drehzahl folgt dem Hochlaufen, nicht den Rädern
     this.propeller = this.P.art === "propeller";
     this.dampf = this.P.art === "dampf";                // Dampfmaschine: kein Getriebe, Drehzahl = Raddrehzahl
     this.gaenge = this.elektro || this.dampf ? 1 : (this.P.gaenge || 4);
@@ -281,6 +287,43 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (fz.schwapp && this.zeit - fz.schwapp.zeit < 0.05) this.gelaende.wasserDecke.legen(fz.schwapp.x - 0.4, fz.schwapp.x + 0.4);
   };
 
+  /* Fliegender Teppich: Der Zauberwind schiebt entlang des Teppichs (wie der Propeller des
+     Schlittens, auch in der Luft). Die Bremse drückt die Kissen an (schweben.bremsMu).
+     Über Pfützen trägt das Luftkissen auf der Wasseroberfläche. In der Luft flattert der
+     Teppich (kleines, unruhiges Drehmoment), und eine leichte Brise schiebt ihn hin und her. */
+  Fahrt.prototype.teppichSchritt = function (h) {
+    var w = this.werte, Z = w.zauber, S = w.schweben, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
+    var laeuft = this.zustand === "fahrt" && this.tank > 0;
+    var ziel = laeuft ? (this.gas > 0.01 ? this.gas : this.rueckwaerts ? -Z.rueck * this.bremse : 0) : 0;
+    var lauf = this.zauberLauf || 0;
+    lauf += Math.max(-h / Z.anlauf, Math.min(h / Z.anlauf, ziel - lauf));
+    this.zauberLauf = lauf; this.turbinenLauf = Math.abs(lauf); fz.zauber = lauf;
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var schub = Z.schub * lauf * (0.4 + 0.6 * gRel);
+    if ((schub > 0 && st.vorwaerts < Z.vmax) || (schub < 0 && st.vorwaerts > -3)) {
+      var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
+      C.vx += ax * h; C.vy += ay * h;
+      fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+    }
+    fz.kufenBremse = this.rueckwaerts ? 0 : this.bremse;
+    // Über Wasser: das Kissen hält sich an der Oberfläche (sanft nach oben, nie hineintauchen)
+    if (this.welt.wasser) fz.raeder.forEach(function (R) {
+      var ws = gel.wasserBei(R.k.x);
+      if (ws === -Infinity) return;
+      var d = ws + 0.03 - (R.k.y - R.r);
+      if (d > 0) { R.k.vy = Math.max(R.k.vy, Math.min(4, d * 14)); }
+    });
+    // In der Luft: Flattern und Brise (deterministisch, damit Geist und Tests gleich bleiben)
+    var luft = st.radKontakte === 0 && !st.huellKontakt;
+    var t = this.zeit, f = S.flattern;
+    fz.flattern = luft ? Math.min(1, (fz.flattern || 0) + h * 3) : Math.max(0, (fz.flattern || 0) - h * 2);
+    if (luft && this.zustand === "fahrt") {
+      C.w += f * (1.3 * Math.sin(t * 7.3) + 0.8 * Math.sin(t * 12.1 + 1.3)) * h;
+      var brise = f * 0.7 * Math.sin(t * 0.83) * Math.sin(t * 2.1 + 0.5);
+      C.vx += brise * h; fz.raeder.forEach(function (R) { R.k.vx += brise * h; });
+    }
+  };
+
   Fahrt.prototype.schlittenSchritt = function (h) {
     var w = this.werte, P = w.propeller, KA = w.kanone, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
     var laeuft = this.zustand === "fahrt" && this.tank > 0;
@@ -453,11 +496,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
-    if (this.welt.wasser) this.wasser(h);
+    if (this.welt.wasser && !w.schweben) this.wasser(h);      // der Teppich schwebt darüber
     if (w.auftrieb) this.fliegen(h);
     if (w.turbine) this.turbinenSchub(h);
     if (w.kufen) this.schlittenSchritt(h);
     if (w.wanne) this.wanneSchritt(h);
+    if (w.zauber) this.teppichSchritt(h);
     if (this.gelaende.dyn.length) { var self = this; this.gelaende.dynSchritt(h, fz, function (t, d) { self.melde(t, d); }); }
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (this.welt.wolken) this.wolkenPruefen(h);
@@ -502,6 +546,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var last = w.turbine ? 0.25 + 0.75 * (this.turbinenLauf || 0) : 0.55 * Math.min(1, gasWirk) + 0.45 * pAnteil;   // Turbine: Verbrauch nach Drehzahl
       if (w.kufen) last = 0.7 * Math.abs(this.propLauf) + (this.kanoneAn ? w.kanone.verbrauch : 0);          // Schlitten: Propeller + Schneekanone
       if (w.wanne) last = this.wanne.lauf;                                                                   // Badewanne: nur der Strahl (Schwappen rechnet wanneSchritt)
+      if (w.zauber) last = 0.8 * Math.abs(this.zauberLauf || 0);                                             // Teppich: Zauberwind
       this.tank -= (L + (1 - L) * last) / w.tankSekunden * h;
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
@@ -574,7 +619,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     for (var i = 0; i < nAlle; i++) {
       var R = fz.raeder[i];
-      if (w.kufen) { R.motorZiel = 0; R.motorMax = 1e5; continue; }   // Kufen: drehen sich nicht (Gleitreibung)
+      if (w.kufen || w.schweben) { R.motorZiel = 0; R.motorMax = 1e5; continue; }   // Kufen, Schwebekissen: drehen sich nicht (Gleitreibung)
       var rel = Math.abs(R.k.w - C.w);
       var wEck = this.eck * R.wMax;
       var Tkurve = rel <= wEck ? Tmax : Tmax * wEck / rel;   // konstantes Moment, dann konstante Leistung
@@ -1065,7 +1110,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.letzterTipp = this.zeit; this.klemmZeit = 0;
       this.melde("tipp", { text: "Nimm Anlauf! Fahr ein Stück zurück 🔙" });
     }
-    if (this.festZeit > Math.min(this.welt.wolken ? this.welt.wolken.festHilfe : 99, this.werte.stabilisator ? F.hilfeLeicht : F.hilfe)) { this.starteHilfe(this.weitesterX); }   // Wolken: hängt man an der nächsten Wolke fest, hilft der Ballon schnell
+    if (this.festZeit > Math.min(this.welt.wolken ? this.welt.wolken.festHilfe : this.welt.festHilfe || 99, this.werte.stabilisator ? F.hilfeLeicht : F.hilfe)) { this.starteHilfe(this.weitesterX); }   // Wolken: hängt man an der nächsten Wolke fest, hilft der Ballon schnell
   };
 
   /* Wo setzt der Ballon ab? Nicht mitten in einen Steilhang (von dort kommt
