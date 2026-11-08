@@ -921,10 +921,17 @@ wer höchstens 7 m/s fährt, braucht in Level 3 rund 30-mal den Ballon, mit 5 m/
 kommt er in Level 3 und 4 nicht mehr ins Ziel.
 
 **Zirkus** (Version 43 neu gebaut): Man fährt im Zirkuszelt durch die Manege
-(`welt.zelt`). Die Zeltbahnen sind ein kegelförmiger CSS-Verlauf hinter dem Canvas
-(kostet beim Malen nichts), davor Masten mit Lichterketten, Zuschauerränge (einmal in
-eine Kachel gemalt, zwei Bilder für „Jubeln“), der rote Manegen-Rand und zwei
-Scheinwerfer. Der Boden ist Sägespäne auf rotem Samt. Bewegliche Fahrflächen: Die
+(`welt.zelt`). Hinten die Zeltwand (Zweimast-Zelt: Dachbahnen laufen alle 10 Bahnen
+zu einer Spitze zusammen, darunter senkrechte Wandbahnen, Borte an der Dachkante,
+Scheinwerfer am Dach), davor Masten mit Lichterketten, Zuschauerränge (einmal in eine
+Kachel gemalt, zwei Bilder für „Jubeln“) und der rote Manegen-Rand.
+**Kulisse wie echt** (Version 47, `zeltLage`): Jede Ebene ist starr und hat waagrecht
+und senkrecht dieselbe Parallaxe – Wand 0,1, Masten 0,25, Ränge mit Manegen-Rand 0,45.
+Bezug ist die feste Manegenhöhe (y = 0, Kamera dort auf 1,4 m), nicht der Boden unter
+dem Auto; der Tempo-Zoom wirkt wie bei den Bergen. Vorher klebte die Zeltwand am
+Bildschirm (CSS-Verlauf, Verschiebung 0 px) und die Ränge rutschten auf jeder Rampe
+mit dem Boden mit. Messung (2 m Fahrt bzw. Kamera 2 m höher, 42 px/m): Wand −8 px
+(erwartet −8,4), Ränge −38 px (−37,8), Ränge senkrecht +38 px (+37,8). Der Boden ist Sägespäne auf rotem Samt. Bewegliche Fahrflächen: Die
 Physik fährt auf `gel.h`, gezeichnet wird der Boden aus `gel.hBild`; jedes Kunststück
 wird jeden Schritt neu eingetragen (`dynSchritt`). Sie kommen dicht hintereinander
 (`gelaende.dicht`, alle ≈ 30 m):

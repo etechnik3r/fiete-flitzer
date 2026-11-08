@@ -1710,6 +1710,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "47", titel: "Zirkuszelt wie echt", punkte: [
+      "🎪 Im Zirkus zieht jetzt das ganze Zelt vorbei: Zeltwand, Masten und Zuschauer bewegen sich verschieden schnell – wie durchs Kamerafenster",
+      "🎢 Fährt man eine Rampe hoch, rutschen die Zuschauerränge nicht mehr mit dem Boden mit" ] },
     { version: "46", titel: "Feinschliff für die neuen Fahrzeuge", punkte: [
       "🛥️ Das Luftkissenboot schwebt höher und nickt beim Gasgeben und Bremsen aufs Kissen",
       "🐛 Der Kettenwagen hat einen Motorblock mit Auspuff – und seine Kanzel federt und wippt richtig" ] },

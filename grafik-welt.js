@@ -28,10 +28,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   function himmelCss(welt, kopf) {
     var verlauf = "linear-gradient(" + (kopf ? "to top, " : "") + welt.farben.himmel[0] + ", " + welt.farben.himmel[1] + ")";
     // Vulkaninsel: Glühen am Horizont gleich im CSS-Hintergrund (kostet dann keine Malzeit)
-    // Zirkus: Zeltbahnen als kegelförmiger Verlauf (Spitze über der Bildmitte) plus Schatten –
-    // malt der Browser selbst, kostet im Canvas nichts
-    if (welt.zelt) return "linear-gradient(rgba(10,2,8,0.86), rgba(20,4,14,0.5) 45%, rgba(30,6,18,0.3)), " +
-                          "repeating-conic-gradient(from 135deg at 50% -70%, #7a1426 0deg 3deg, #cdb48e 3deg 6deg)";
+    if (welt.zelt) return "#14060f";          // Zirkus: die Zeltwand malt zeichneZelt (mit Parallaxe, nicht bildschirmfest)
     if (welt.sonne === "glut") return "radial-gradient(ellipse 70% 45% at 60% 62%, rgba(255,120,60,0.4), rgba(255,90,40,0)), " + verlauf;
     return verlauf;
   }
@@ -958,7 +955,8 @@ var FF = globalThis.FF = globalThis.FF || {};
      ZIRKUSZELT (welt.zelt): statt Himmel das Innere eines Zirkuszelts. Von hinten nach vorn:
      Zeltwand mit rot-cremefarbenen Bahnen (laufen zur Zeltspitze zusammen), Zeltkante oben,
      Masten mit Lichterketten, Zuschauerränge (vorab in eine Kachel gemalt, zwei Bilder für
-     „Jubeln“), Manegen-Rand, zwei schwenkende Scheinwerfer. Alles mit Parallaxe.
+     „Jubeln“), Manegen-Rand, Scheinwerfer am Zeltdach. Jede Ebene ist eine starre Kulisse
+     mit eigener Parallaxe (zeltLage) – nichts davon klebt am Bildschirm oder am Boden unterm Auto.
      ========================================================================= */
   var publikum = { hoehe: 0, kacheln: null };
   function publikumKachel(rowH, variante) {
@@ -991,93 +989,99 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     return c;
   }
+  /* Kulissen-Ebene im Zelt mit Parallaxe p – wie bei den Bergen (zeichneBerge): starr,
+     waagrecht UND senkrecht dieselbe Parallaxe, Tempo-Zoom gleichmäßig um den Kamera-Anker,
+     ferne Ebenen kaum. u: Ebenen-Koordinate in Metern, yd: Entwurfs-Pixel (so steht es da,
+     wenn die Kamera auf normaler Fahrhöhe über der Manege ist, K.y = ZELT_YREF).
+     Bezug ist die feste Manegenhöhe – NICHT der Boden unter dem Auto: fährt man eine Rampe
+     hoch, wandert die Kulisse nur um p·Höhe nach unten, wie hinter einer echten Kamera. */
+  var ZELT_YREF = 1.4;            // Kamerahöhe beim Fahren auf dem Manegenboden (Auto ≈ 0,8 m + 0,6 m)
+  function zeltLage(K, p) {
+    var zoom = K.zoom || 1, S0 = K.s / zoom, z = 1 + (zoom - 1) * Math.min(1, p * 2), S = S0 * z;
+    var ax = K.b * (K.ankerX === undefined ? 0.5 : K.ankerX), ay = K.h * (K.ankerY === undefined ? 0.5 : K.ankerY);
+    var dy = (K.y - ZELT_YREF) * S0 * p;
+    return {
+      p: p, S: S, S0: S0, z: z,
+      X: function (u) { return ax + (u - K.x * p) * S; },
+      Y: function (yd) { return ay + (yd - ay) * z + dy; },
+      u0: K.x * p - (ax + 2) / S, u1: K.x * p + (K.b - ax + 2) / S
+    };
+  }
+  var ZELT = { wand: 0.1, masten: 0.25, publikum: 0.45 };   // Parallaxe: Zeltwand, Masten, Ränge mit Manegen-Rand
   function zeichneZelt(ctx, K, welt, zeit, gel, perCss) {
-    var W = K.b, H = K.h, s = K.s;
-    // Bezug: Bodenhöhe in der Bildmitte (geglättet), damit die Ränge mit der Manege mitgehen
-    var yB = sy(K, gel.hoeheBildBei(K.x));
-    publikum.yRef = publikum.yRef === undefined ? yB : publikum.yRef + (yB - publikum.yRef) * 0.08;
-    var yRand = Math.max(H * 0.38, Math.min(H * 0.92, H * 0.3 + (publikum.yRef - H * 0.3) * 0.75));
-    // Zeltwand (Verlauf, Bahnen zur Zeltspitze, Schatten, Borte) ist fest: einmal je Bildgröße
-    // vorab in ein eigenes Bild malen und dann nur noch kopieren (spart auf alten Handys viel)
-    var tr = ctx.getTransform ? ctx.getTransform() : { a: 1 }, q = tr.a || 1;
-    if (perCss) {
-      ctx.clearRect(0, 0, W, H);                                 // Zeltwand kommt aus dem CSS-Hintergrund (himmelCss)
-      var bw0 = Math.max(26, H * 0.07);                          // nur die Borte oben malen
-      for (var i0 = 0; i0 * bw0 < W + bw0; i0++) {
-        ctx.fillStyle = i0 % 2 ? "#ffcf3f" : "#c8102e";
-        ctx.beginPath(); ctx.moveTo(i0 * bw0, 0); ctx.lineTo((i0 + 1) * bw0, 0); ctx.lineTo((i0 + 1) * bw0, H * 0.03);
-        ctx.quadraticCurveTo((i0 + 0.5) * bw0, H * 0.075, i0 * bw0, H * 0.03); ctx.closePath(); ctx.fill();
-      }
-    } else if (!publikum.wand || publikum.wandW !== W || publikum.wandH !== H || publikum.wandQ !== q) {
-      var c = document.createElement("canvas"); c.width = Math.ceil(W * q); c.height = Math.ceil(H * q);
-      var w = c.getContext("2d"); w.scale(q, q);
-      var g = w.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#14060f"); g.addColorStop(0.6, "#3a1024"); g.addColorStop(1, "#4a1430");
-      w.fillStyle = g; w.fillRect(0, 0, W, H);
-      var sw = Math.max(60, H * 0.22), cx = W / 2, yW = H;
-      for (var i = -6; i * sw < W + 6 * sw; i++) {
-        var xb0 = i * sw - sw * 3, xb1 = xb0 + sw, f = 0.3;
-        w.fillStyle = i % 2 ? "#7a1426" : "#cdb48e";
-        w.beginPath(); w.moveTo(xb0, yW); w.lineTo(xb1, yW); w.lineTo(cx + (xb1 - cx) * f, 0); w.lineTo(cx + (xb0 - cx) * f, 0); w.closePath(); w.fill();
-      }
-      var sch = w.createLinearGradient(0, 0, 0, H);
-      sch.addColorStop(0, "rgba(10,2,8,0.85)"); sch.addColorStop(0.45, "rgba(20,4,14,0.45)"); sch.addColorStop(1, "rgba(30,6,18,0.3)");
-      w.fillStyle = sch; w.fillRect(0, 0, W, H);
-      var bw = Math.max(26, H * 0.07);
-      for (i = 0; i * bw < W + bw; i++) {
-        w.fillStyle = i % 2 ? "#ffcf3f" : "#c8102e";
-        w.beginPath(); w.moveTo(i * bw, 0); w.lineTo((i + 1) * bw, 0); w.lineTo((i + 1) * bw, H * 0.03);
-        w.quadraticCurveTo((i + 0.5) * bw, H * 0.075, i * bw, H * 0.03); w.closePath(); w.fill();
-      }
-      publikum.wand = c; publikum.wandW = W; publikum.wandH = H; publikum.wandQ = q;
+    var W = K.b, H = K.h, i, k;
+    // ---- Zeltwand (Parallaxe 0,1): Dach aus Bahnen, die zu den Mastspitzen zusammenlaufen
+    //      (Zweimast-Zelt: alle 10 Bahnen eine Spitze), darunter senkrechte Wandbahnen ----
+    var LW = zeltLage(K, ZELT.wand), sw = Math.max(60, H * 0.22) / LW.S0, SPITZE = 10 * sw;
+    var yKante = LW.Y(H * 0.2), ySpitze = LW.Y(-H * 0.6);
+    ctx.fillStyle = "#14060f"; ctx.fillRect(0, 0, W, H);
+    for (k = Math.floor(LW.u0 / sw); k * sw <= LW.u1; k++) {
+      var ua = k * sw, ue = ua + sw, c = Math.round((ua + sw / 2) / SPITZE) * SPITZE;
+      ctx.fillStyle = k % 2 ? "#7a1426" : "#cdb48e";
+      var xa = LW.X(ua), xe = LW.X(ue);
+      ctx.beginPath(); ctx.moveTo(xa, H); ctx.lineTo(xa, yKante); ctx.lineTo(LW.X(c + (ua - c) * 0.22), ySpitze);
+      ctx.lineTo(LW.X(c + (ue - c) * 0.22), ySpitze); ctx.lineTo(xe, yKante); ctx.lineTo(xe, H); ctx.closePath(); ctx.fill();
     }
-    if (!perCss) ctx.drawImage(publikum.wand, 0, 0, W, H);
-    var yW = yRand, i;
-    // Masten mit Lichterketten
-    var ma = 0.25, mAb = 30 * s * ma, mo = -((K.x * s * ma) % mAb), mB = Math.max(6, H * 0.022);
-    var masten = [];
-    for (var xm = mo - mAb; xm < W + mAb; xm += mAb) masten.push(xm);
+    // Schatten: oben im Dach dunkel, an der Wand heller – hängt an der Ebene, nicht am Bildschirm
+    var sch = ctx.createLinearGradient(0, LW.Y(-H * 0.1), 0, LW.Y(H * 0.9));
+    sch.addColorStop(0, "rgba(10,2,8,0.9)"); sch.addColorStop(0.35, "rgba(20,4,14,0.5)"); sch.addColorStop(1, "rgba(30,6,18,0.3)");
+    ctx.fillStyle = sch; ctx.fillRect(0, 0, W, H);
+    // Borte an der Dachkante (Volant mit Bögen)
+    var bw = Math.max(26, H * 0.07) / LW.S0, bh = H * 0.03 * LW.z, bb = H * 0.045 * LW.z;
+    for (k = Math.floor(LW.u0 / bw); k * bw <= LW.u1; k++) {
+      var b0 = LW.X(k * bw), b1 = LW.X((k + 1) * bw);
+      ctx.fillStyle = k % 2 ? "#ffcf3f" : "#c8102e";
+      ctx.beginPath(); ctx.moveTo(b0, yKante - bh); ctx.lineTo(b1, yKante - bh); ctx.lineTo(b1, yKante);
+      ctx.quadraticCurveTo((b0 + b1) / 2, yKante + bb, b0, yKante); ctx.closePath(); ctx.fill();
+    }
+    // Scheinwerfer: hängen am Zeltdach (Ebene der Wand), die Kegel schwenken langsam über die Manege
+    var LA = 1.3 * W / LW.S0;
+    for (k = Math.floor((LW.u0 - LA) / LA); k * LA <= LW.u1 + LA; k++) {
+      var qx = LW.X(k * LA + LA * 0.3), qy = LW.Y(H * 0.05), zx = qx + W * (0.15 * Math.sin(zeit * 0.4 + k * 2.1) + (k % 2 ? -0.12 : 0.12));
+      var zy = LW.Y(H * 0.86), br = H * 0.16;
+      var gl = ctx.createLinearGradient(qx, qy, zx, zy);
+      gl.addColorStop(0, "rgba(255,245,210,0.22)"); gl.addColorStop(1, "rgba(255,245,210,0.04)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.moveTo(qx - 6, qy); ctx.lineTo(qx + 6, qy); ctx.lineTo(zx + br, zy); ctx.lineTo(zx - br, zy); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#3a2a20"; ctx.fillRect(qx - 7, qy - 6, 14, 8);
+    }
+    // ---- Masten mit Lichterketten (Parallaxe 0,25) ----
+    var LM = zeltLage(K, ZELT.masten), mAb = 7.5;      // Mastabstand in Ebenen-Metern
+    var mB = Math.max(6, H * 0.022) * LM.z, mFuss = LM.Y(H * 0.62), masten = [];
+    for (k = Math.floor(LM.u0 / mAb) - 1; k * mAb <= LM.u1 + mAb; k++) masten.push(LM.X(k * mAb));
     masten.forEach(function (x) {
       var gm = ctx.createLinearGradient(x - mB, 0, x + mB, 0); gm.addColorStop(0, "#3a2a20"); gm.addColorStop(0.5, "#8a6a4a"); gm.addColorStop(1, "#2a1e16");
-      ctx.fillStyle = gm; ctx.fillRect(x - mB / 2, 0, mB, yW);
-      ctx.fillStyle = "#ffcf3f"; for (var k = 1; k < 4; k++) ctx.fillRect(x - mB * 0.7, yW * k / 4, mB * 1.4, Math.max(2, mB * 0.3));
+      ctx.fillStyle = gm; ctx.fillRect(x - mB / 2, 0, mB, mFuss);
+      ctx.fillStyle = "#ffcf3f"; for (var r = 1; r < 4; r++) ctx.fillRect(x - mB * 0.7, LM.Y(H * 0.62 * r / 4), mB * 1.4, Math.max(2, mB * 0.3));
     });
-    var LF = ["#ffd23f", "#ff5b8a", "#3fb6ff", "#4fd18b", "#ff8a1f"];
+    var LF = ["#ffd23f", "#ff5b8a", "#3fb6ff", "#4fd18b", "#ff8a1f"], ya = LM.Y(H * 0.13), durch = H * 0.07 * LM.z, rl = Math.max(2, H * 0.007) * LM.z;
     for (i = 0; i + 1 < masten.length; i++) {
-      var xa = masten[i], xe = masten[i + 1], ya = H * 0.13, durch = H * 0.07;
+      var ma = masten[i], me = masten[i + 1];
       ctx.strokeStyle = "rgba(40,20,20,0.8)"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(xa, ya); ctx.quadraticCurveTo((xa + xe) / 2, ya + 2 * durch, xe, ya); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ma, ya); ctx.quadraticCurveTo((ma + me) / 2, ya + 2 * durch, me, ya); ctx.stroke();
       for (var k2 = 1; k2 < 12; k2++) {
-        var u = k2 / 12, lx = xa + (xe - xa) * u, ly = ya + 4 * durch * u * (1 - u) * 1.0, an = ((k2 + Math.floor(zeit * 3)) % 3) !== 0;
+        var u = k2 / 12, lx = ma + (me - ma) * u, ly = ya + 4 * durch * u * (1 - u), an = ((k2 + Math.floor(zeit * 3)) % 3) !== 0;
         ctx.fillStyle = an ? LF[k2 % LF.length] : "rgba(80,60,60,0.8)";
-        ctx.beginPath(); ctx.arc(lx, ly + 3, Math.max(2, H * 0.007), 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(lx, ly + 3, rl, 0, Math.PI * 2); ctx.fill();
       }
     }
-    // Zuschauer
+    // ---- Zuschauerränge und Manegen-Rand (Parallaxe 0,45, eine gemeinsame Ebene) ----
+    var LP = zeltLage(K, ZELT.publikum);
     var rowH = Math.round(Math.max(18, H * 0.075));
     if (publikum.hoehe !== rowH || !publikum.kacheln) { publikum.hoehe = rowH; publikum.kacheln = [publikumKachel(rowH, 0), publikumKachel(rowH, 1)]; }
-    var kach = publikum.kacheln[(Math.floor(zeit * 2.2) % 3 === 0) ? 1 : 0], TW = kach.width;
-    var po = -((K.x * s * 0.4) % TW), yT = yRand - kach.height + rowH * 0.25;
-    for (var xk = po - TW; xk < W; xk += TW) ctx.drawImage(kach, xk, yT);
-    // Manegen-Rand vor den Zuschauern
-    var hR = Math.max(8, H * 0.035);
+    var kach = publikum.kacheln[(Math.floor(zeit * 2.2) % 3 === 0) ? 1 : 0], TW = kach.width / LP.S0;
+    var yRand = LP.Y(H * 0.62), kw = kach.width * LP.z, kh = kach.height * LP.z, yT = yRand - kh + rowH * 0.25 * LP.z;
+    for (k = Math.floor(LP.u0 / TW); k * TW <= LP.u1; k++) ctx.drawImage(kach, LP.X(k * TW), yT, kw + 0.5, kh);
+    var hR = Math.max(8, H * 0.035) * LP.z;
     ctx.fillStyle = "#c8102e"; ctx.fillRect(0, yRand, W, hR);
     ctx.fillStyle = "#ffcf3f"; ctx.fillRect(0, yRand, W, Math.max(2, hR * 0.22));
-    var so = -((K.x * s * 0.55) % (hR * 5));
-    for (var xs2 = so; xs2 < W + hR * 5; xs2 += hR * 5) {
+    var sAb = 5 * Math.max(8, H * 0.035) / LP.S0;
+    for (k = Math.floor(LP.u0 / sAb); k * sAb <= LP.u1 + sAb; k++) {
+      var xs2 = LP.X(k * sAb);
       ctx.beginPath(); for (var z2 = 0; z2 < 10; z2++) { var w2 = -Math.PI / 2 + z2 * Math.PI / 5, r2 = (z2 % 2 ? 0.18 : 0.42) * hR; ctx.lineTo(xs2 + Math.cos(w2) * r2, yRand + hR * 0.6 + Math.sin(w2) * r2); }
       ctx.fill();
     }
-    // dunkler Bereich zwischen Rand und Manege – nur bis knapp unter den Boden (der Boden deckt den Rest)
-    var yBis = Math.min(H, Math.max(yRand + hR, yB + 0.6 * s));
-    if (yBis > yRand + hR) { ctx.fillStyle = "#2a0812"; ctx.fillRect(0, yRand + hR, W, yBis - yRand - hR); }
-    // Scheinwerfer (zwei Kegel von oben, schwenken langsam)
-    [[0.12, 0.7, 0.0], [0.88, 0.45, 2.1]].forEach(function (L) {
-      var qx = W * L[0], zx = W * (L[1] + 0.12 * Math.sin(zeit * 0.4 + L[2])), zy = H * 0.86, br = H * 0.16;
-      var gl = ctx.createLinearGradient(qx, 0, zx, zy);
-      gl.addColorStop(0, "rgba(255,245,210,0.22)"); gl.addColorStop(1, "rgba(255,245,210,0.04)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.moveTo(qx - 6, 0); ctx.lineTo(qx + 6, 0); ctx.lineTo(zx + br, zy); ctx.lineTo(zx - br, zy); ctx.closePath(); ctx.fill();
-    });
+    // Manege zwischen Rand und Boden: dunkler Samt bis unten (der Boden deckt den Rest)
+    if (yRand + hR < H) { ctx.fillStyle = "#2a0812"; ctx.fillRect(0, yRand + hR, W, H - yRand - hR); }
   }
 
   /* Zirkus: Hochseil-Brücken (Masten, Bretter, Halteseile, Netz in der Grube) und Wippen
