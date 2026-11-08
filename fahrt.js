@@ -69,6 +69,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       w.schweben.mu += w.schweben.stoff * re;                               // feiner gewebt: hält besser am Hang …
       w.schweben.flattern *= 1 - 0.12 * re;                                 // … und flattert weniger
     }
+    if (w.feuer) {                                                          // Feuerkutsche: größeres Feuerrohr
+      w.feuer.schub *= 1 + 0.6 * U.motorDrehmoment * m;
+      w.feuer.vmax *= 1 + U.motorTempo * m;
+    }
+    if (w.luftkissen) {                                                     // Luftkissenboot: Propeller, Gummischürze
+      w.luftkissen.schub *= 1 + 0.6 * U.motorDrehmoment * m;
+      w.luftkissen.vmax *= 1 + U.motorTempo * m;
+      w.schweben.mu += w.schweben.stoff * re;
+    }
     if (w.propeller) {                                                      // Schlitten: Motor-Upgrade = stärkerer Propeller
       w.propeller.schub *= 1 + 0.6 * U.motorDrehmoment * m;
       w.propeller.vmax *= 1 + U.motorTempo * m;
@@ -180,6 +189,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.fz.masseGesamt = this.werte.masse + this.werte.raeder.reduce(function (s, r) { return s + r.masse; }, 0);
     if (this.werte.kufen) this.schneeAnlegen();
     if (this.werte.wanne) this.wanneAnlegen();
+    if (this.werte.luftkissen) this.luftkissenAnlegen();
   }
 
   /* -------------------------------------------------------------------------
@@ -322,6 +332,51 @@ var FF = globalThis.FF = globalThis.FF || {};
       var brise = f * 0.7 * Math.sin(t * 0.83) * Math.sin(t * 2.1 + 0.5);
       C.vx += brise * h; fz.raeder.forEach(function (R) { R.k.vx += brise * h; });
     }
+  };
+
+  /* Luftkissenboot: Das Gebläse bläst das Kissen nur auf, solange der Propeller läuft (Gas,
+     oder rückwärts mit der Bremse). Dann schweben die Kissen eine Handbreit über dem Boden und
+     gleiten (schweben.mu). Ohne Gas sinkt das Boot langsam auf die Gummischürze und schleift
+     (muAbgesetzt). Physikalisch wird dafür die Ruhelänge der Kissen-Federn verkürzt – das Boot
+     sinkt also wirklich ab. Der Propeller schiebt entlang des Bootes (wie beim Schlitten). */
+  Fahrt.prototype.luftkissenAnlegen = function () {
+    this.propLauf = 0; this.kissenLuft = 0; this.turbinenLauf = 0;
+    this.kissenSetzen(0);
+    FF.Physik.setzeAufBoden(this.fz, this.gelaende, this.fz.chassis.x, 0);   // startet abgesetzt
+  };
+  Fahrt.prototype.kissenSetzen = function (luft) {
+    var L = this.werte.luftkissen, S = this.werte.schweben, fz = this.fz;
+    fz.raeder.forEach(function (R) { R.L0 = R.Lmax - L.absenkung * (1 - luft); });
+    fz.kissenLuft = luft;
+    fz.schwebeMu = S.mu + (L.muAbgesetzt - S.mu) * (1 - luft) * (1 - luft);
+  };
+  Fahrt.prototype.luftkissenSchritt = function (h) {
+    var w = this.werte, L = w.luftkissen, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
+    var laeuft = this.zustand === "fahrt" && this.tank > 0;
+    var ziel = laeuft ? (this.gas > 0.01 ? this.gas : this.rueckwaerts ? -L.rueck * this.bremse : 0) : 0;
+    var lauf = this.propLauf;
+    lauf += Math.max(-h / L.anlauf, Math.min(h / L.anlauf, ziel - lauf));
+    this.propLauf = lauf; this.turbinenLauf = Math.abs(lauf); fz.luftProp = lauf;
+    // Kissen: aufblasen, solange der Propeller läuft – sonst langsam absinken
+    var blasen = laeuft && Math.abs(ziel) > 0.01;
+    var luft = this.kissenLuft + (blasen ? h / L.anheben : -h / L.absinken);
+    this.kissenLuft = luft = Math.max(0, Math.min(1, luft));
+    this.kissenSetzen(luft);
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var schub = L.schub * lauf * (0.4 + 0.6 * gRel);
+    if ((schub > 0 && st.vorwaerts < L.vmax) || (schub < 0 && st.vorwaerts > -3)) {
+      var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
+      C.vx += ax * h; C.vy += ay * h;
+      fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+    }
+    fz.kufenBremse = this.rueckwaerts ? 0 : this.bremse;
+    // Über Wasser hält sich das Kissen an der Oberfläche (wie der Teppich)
+    if (this.welt.wasser) fz.raeder.forEach(function (R) {
+      var ws = gel.wasserBei(R.k.x);
+      if (ws === -Infinity) return;
+      var d = ws + 0.03 - (R.k.y - R.r);
+      if (d > 0) { R.k.vy = Math.max(R.k.vy, Math.min(4, d * 14)); }
+    });
   };
 
   Fahrt.prototype.schlittenSchritt = function (h) {
@@ -499,9 +554,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.wasser && !w.schweben) this.wasser(h);      // der Teppich schwebt darüber
     if (w.auftrieb) this.fliegen(h);
     if (w.turbine) this.turbinenSchub(h);
+    if (w.feuer) this.feuerSchub(h);
     if (w.kufen) this.schlittenSchritt(h);
     if (w.wanne) this.wanneSchritt(h);
     if (w.zauber) this.teppichSchritt(h);
+    if (w.luftkissen) this.luftkissenSchritt(h);
     if (this.gelaende.dyn.length) { var self = this; this.gelaende.dynSchritt(h, fz, function (t, d) { self.melde(t, d); }); }
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (this.welt.wolken) this.wolkenPruefen(h);
@@ -547,6 +604,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (w.kufen) last = 0.7 * Math.abs(this.propLauf) + (this.kanoneAn ? w.kanone.verbrauch : 0);          // Schlitten: Propeller + Schneekanone
       if (w.wanne) last = this.wanne.lauf;                                                                   // Badewanne: nur der Strahl (Schwappen rechnet wanneSchritt)
       if (w.zauber) last = 0.8 * Math.abs(this.zauberLauf || 0);                                             // Teppich: Zauberwind
+      if (w.luftkissen) last = 0.8 * Math.abs(this.propLauf);
+      if (w.feuer) last = this.turbinenLauf;                                                                 // Feuerkutsche: nach Gasstellung, beim Anfahren nicht mehr                                                // Luftkissenboot: Propeller (Gebläse inklusive)
       this.tank -= (L + (1 - L) * last) / w.tankSekunden * h;
       if (!this.tankGewarnt && this.tank < Rg.tankWarnung) { this.tankGewarnt = true; this.melde("tankWarnung"); }
       if (this.tank <= 0) { this.tank = 0; }
@@ -753,6 +812,27 @@ var FF = globalThis.FF = globalThis.FF || {};
     var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
     var schub = T.schub * Math.pow(lauf, 1.6) * (0.4 + 0.6 * gRel);   // erst wenig, dann kräftig; bei wenig Schwerkraft gedrosselt
     if (schub < 0.01 || st.vorwaerts > T.vmax) return;
+    var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
+    C.vx += ax * h; C.vy += ay * h;
+    fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+  };
+
+  /* Fietes Feuerkutsche: Das Feuerrohr zündet sofort (feuer.anlauf) und schiebt entlang der
+     Kutsche, auch in der Luft. Volle Kraft bis eck·vmax, darüber lässt sie linear nach, bei vmax
+     ist Schluss. fz.feuer (0…1) = wie groß die Flamme gerade ist (Grafik, Rauch): beim Anfahren
+     riesig, bei Tempo nur noch ein Flämmchen. */
+  Fahrt.prototype.feuerSchub = function (h) {
+    var F = this.werte.feuer, fz = this.fz, C = fz.chassis, st = fz.status;
+    var ziel = this.zustand === "fahrt" && this.tank > 0 ? this.gas : 0;
+    var lauf = this.turbinenLauf || 0;
+    lauf += Math.max(-h / F.anlauf, Math.min(h / F.anlauf, ziel - lauf));
+    this.turbinenLauf = lauf;
+    var v = Math.max(0, st.vorwaerts), vEck = F.eck * F.vmax;
+    var kurve = v <= vEck ? 1 : Math.max(0, (F.vmax - v) / (F.vmax - vEck));
+    fz.feuer = lauf * (0.2 + 0.8 * kurve);
+    var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
+    var schub = F.schub * lauf * kurve * (0.4 + 0.6 * gRel);
+    if (schub < 0.01) return;
     var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
     C.vx += ax * h; C.vy += ay * h;
     fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });

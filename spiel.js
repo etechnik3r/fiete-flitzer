@@ -448,6 +448,14 @@
       partikel.neu({ art: "rauch", x: ch.x + ct * xt - stt * yt, y: ch.y + stt * xt + ct * yt,
                      vx: -ct * 3 + ch.vx * 0.4, vy: -stt * 3 + ch.vy * 0.4 + 0.3, t: 0, dauer: 0.5, r0: 0.15, r1: 0.6,
                      farbe: "rgba(210,215,230,0.8)", alpha: 0.45, reibung: 1.5 });
+    } else if (fahrt.werte.feuer && fahrt.tank > 0 && auspuffTakt <= 0) {   // Feuerkutsche: dicker, rußiger Qualm aus dem Feuerrohr
+      var fe = fahrt.fz.feuer || 0, cf = Math.cos(ch.a), sf = Math.sin(ch.a);
+      auspuffTakt = fe > 0.15 ? 0.035 : 0.3;                          // ohne Gas kokelt es nur ein bisschen
+      var xf = -1.35 - fe * 1.6, yf = 0.5, xw = ch.x + cf * xf - sf * yf, yw = ch.y + sf * xf + cf * yf;
+      if (welt.unterwasser) partikel.neu({ art: "blase", x: xw, y: yw, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.22, schwer: -0.35, reibung: 1.2 });
+      else partikel.neu({ art: "rauch", x: xw, y: yw, vx: ch.vx * 0.35 - cf * (1 + 2.5 * fe), vy: ch.vy * 0.35 + 0.6 + 1.2 * fe + Math.random() * 0.4,
+                          t: 0, dauer: 1.1 + 1.3 * fe, r0: 0.12 + 0.12 * fe, r1: 0.45 + 0.9 * fe,
+                          farbe: ["#2e3138", "#454a55", "#5d626e"][Math.floor(Math.random() * 3)], alpha: 0.35 + 0.4 * fe, reibung: 1.2 });
     } else if (fahrt.def.form === "lkw" && fahrt.tank > 0 && auspuffTakt <= 0) {   // Donner-Truck: schwarzer Rauch aus beiden Rohren
       var gl = fahrt.gas, ck = Math.cos(ch.a), sk = Math.sin(ch.a);
       auspuffTakt = gl > 0.3 ? 0.06 : 0.28;
@@ -2150,6 +2158,22 @@
       ["🧶 Halt", 0.25 + w.schweben.mu * 2],
       ["☁️ Schweben", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
       ["✨ Zauberstaub", w.tankSekunden / 70],
+      ["🤸 Saltos", w.luftsteuerung / 9]
+    ];
+    if (w.feuer) return [                                     // Feuerkutsche: das Feuerrohr schiebt
+      ["🏎️ Tempo", w.feuer.vmax / 34],
+      ["💪 Kraft", w.feuer.schub / 9.81 / 1.1],
+      ["🛞 Grip", w.grip / 1.9],
+      ["🌀 Federung", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
+      ["⛽ Tank", w.tankSekunden / 70],
+      ["🤸 Saltos", w.luftsteuerung / 9]
+    ];
+    if (w.luftkissen) return [                                // Luftkissenboot: der Propeller schiebt
+      ["🏎️ Tempo", w.luftkissen.vmax / 34],
+      ["💪 Kraft", w.luftkissen.schub / 9.81 / 1.1],
+      ["🛟 Halt", 0.25 + w.schweben.mu * 2],
+      ["☁️ Schweben", (w.federung.weg / 0.75) * 0.6 + w.federung.daempfung * 0.4],
+      ["⛽ Tank", w.tankSekunden / 70],
       ["🤸 Saltos", w.luftsteuerung / 9]
     ];
     if (w.kufen) return [                                     // Schnee-Schlitten: keine angetriebenen Räder

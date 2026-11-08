@@ -621,6 +621,74 @@ FF.CONFIG = {
       farbe: "rot", form: "teppich",
       klang: { art: "zauber", lautstaerke: 1.0, abrollen: 0 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
+    },
+    {
+      /* Luftkissenboot (Version 45, nach Jontes Bild): schwarzes Luftkissen, orange Brüstung,
+         hinten der Propeller im Gitter. Statt Rädern drei unsichtbare Schwebekissen wie beim
+         Teppich (gesperrte Kontaktpunkte, Gleitreibung schweben.mu). Ein Gebläse bläst das
+         Kissen auf: mit Gas hebt es in luftkissen.anheben [s] eine Handbreit (absenkung [m])
+         ab, ohne Gas sinkt es in luftkissen.absinken [s] langsam auf die Gummischürze – dann
+         schleift es (luftkissen.muAbgesetzt). Der Propeller schiebt (luftkissen.schub [m/s²]
+         entlang des Bootes bis vmax, auch in der Luft) und läuft nur mit Gas (rückwärts mit
+         der Bremse im Stand). Pfützen, Matsch und Schleim bremsen es nicht, über Wasser trägt
+         das Kissen. Dafür: wenig Halt am Hang, lange Bremswege, der Wind schiebt es. */
+      id: "luftkissen", name: "Luftkissenboot", emoji: "🛥️", preis: 9000, preisBasis: 210,
+      text: "Jontes Luftkissenboot schwebt auf einem Luftpolster über Pfützen, Matsch und Schleim – der Propeller schiebt. Ohne Gas sinkt es langsam ab.",
+      masse: 210, groesse: { laenge: 3.44, hoehe: 1.0 },
+      raeder: [
+        { x: -1.2, y: -0.4, r: 0.12, masse: 2, antrieb: false },
+        { x:  0.0, y: -0.4, r: 0.12, masse: 2, antrieb: false },
+        { x:  1.2, y: -0.4, r: 0.12, masse: 2, antrieb: false }
+      ],
+      federung: { ruhe: 0.15, weg: 0.14, frequenz: 2.1, daempfung: 0.5 },
+      motor: { drehmoment: 1, vmax: 14 }, bremse: 0, grip: 1,
+      tankSekunden: 24, leerlauf: 0.05, luftsteuerung: 3.8, bruchExtra: 6, cwA: 0.8, abtrieb: 0, freilauf: true,
+      windMax: 1.8,
+      schweben: { mu: 0.08, bremsMu: 0.45, flattern: 0, stoff: 0.015 },
+      luftkissen: { schub: 5.0, anlauf: 0.35, vmax: 14, rueck: 0.45, anheben: 0.45, absinken: 3.5, absenkung: 0.1, muAbgesetzt: 0.5 },
+      upgradeNamen: {
+        motor:    { name: "Propeller",    icon: "🌀", text: "Größerer Propeller – schiebt kräftiger" },
+        reifen:   { name: "Gummischürze", icon: "🛟", text: "Griffigere Schürze: hält besser am Hang" },
+        federung: { name: "Luftkissen",   icon: "☁️", text: "Dickeres Luftkissen – sanfter landen" },
+        bremse:   { name: "Bremsklappe",  icon: "🛑", text: "Kräftiger bremsen, schneller rückwärts" }
+      },
+      huelle: [[-1.72, -0.28], [-1.6, -0.5], [1.6, -0.5], [1.72, -0.28], [1.6, -0.02], [1.1, 0.4], [-1.0, 0.42], [-1.45, 0.0]],
+      dach: [[-1.38, 1.47], [-0.15, 0.92]],
+      kopf: { x: 0.2, y: 0.78, r: 0.28 },
+      farbe: "orange", form: "luftkissen",
+      klang: { art: "propeller", blaetter: 2, max: 2200, leerlauf: 450, lautstaerke: 1.0, abrollen: 0 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
+    },
+    {
+      /* Fietes Feuerkutsche (Version 45, nach Fietes Bild): zwei riesige Holzräder, ein
+         Holz-Aufbau, darauf ein Häuschen mit roten Dachziegeln. Hinten das Feuerrohr: Mit Gas
+         faucht eine riesige Flamme heraus und schiebt (feuer.schub [m/s²] entlang der Kutsche,
+         auch in der Luft). Sie zündet sofort (feuer.anlauf) und beschleunigt so stärker als
+         alle anderen – aber ab feuer.eck·vmax lässt der Schub nach, bei vmax ist Schluss: alte
+         Holzkutsche, kein Rennwagen. Verbrauch wie sonst (nur nach Gasstellung). Die Räder
+         treiben kaum an (nur zum Rückwärtsfahren). Lokale Koordinaten: Ursprung = Schwerpunkt,
+         etwa 0,6 m über den Achsen (Häuschen und Kind sitzen hoch). */
+      id: "feuerkutsche", name: "Fietes Feuerkutsche", emoji: "🔥", preis: 6000, preisBasis: 170,
+      text: "Fietes Feuerkutsche aus altem Holz: Beim Gasgeben faucht eine riesige Flamme aus dem Feuerrohr – sie beschleunigt wie keine andere! Ganz schnell wird sie aber nicht.",
+      masse: 250, groesse: { laenge: 3.2, hoehe: 1.8 },
+      raeder: [
+        { x: -1.3, y: -0.35, r: 0.78, masse: 28, antrieb: true },
+        { x:  1.4, y: -0.35, r: 0.68, masse: 24, antrieb: false }
+      ],
+      federung: { ruhe: 0.25, weg: 0.14, frequenz: 2.2, daempfung: 0.4 },
+      motor: { drehmoment: 260, vmax: 15 }, bremse: 1600, grip: 0.9,
+      tankSekunden: 21, luftsteuerung: 4.4, cwA: 0.85, abtrieb: 0,
+      feuer: { schub: 10, eck: 0.7, vmax: 16, anlauf: 0.12 },
+      upgradeNamen: {
+        motor:  { name: "Feuerrohr", icon: "🔥", text: "Größeres Feuerrohr – noch mehr Wumms" },
+        reifen: { name: "Eisenreifen", icon: "🛞", text: "Griffigere Eisenreifen" }
+      },
+      huelle: [[-1.05, -0.6], [1.2, -0.6], [1.1, -0.15], [0.66, 0.06], [0.78, 1.12], [0.08, 1.7], [-0.62, 1.12], [-0.5, 0.5], [-1.3, 0.48], [-1.0, -0.2]],
+      dach: [[0.08, 1.7], [-0.3, 1.42], [0.45, 1.42]],
+      kopf: { x: -0.01, y: 0.72, r: 0.28 },
+      farbe: "holz", form: "feuerkutsche",
+      klang: { art: "turbine", max: 9000, leerlauf: 2600, traegheit: 8, lautstaerke: 1.0, abrollen: 1.3 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
     }
   ],
 
@@ -681,7 +749,8 @@ FF.CONFIG = {
     // Version 44: selbst gemischt. „eigene“: Farbwähler (fs.eigeneFarbe), „verlauf“: zwei Farben
     // und eine Richtung (fs.verlauf = { a, b, r }: r "vh" vorne→hinten oder "ou" oben→unten)
     { id: "eigene",  name: "Eigene Farbe", wert: "eigene", preis: 800 },
-    { id: "verlauf", name: "Farbverlauf",  wert: "verlauf", preis: 2000 }
+    { id: "verlauf", name: "Farbverlauf",  wert: "verlauf", preis: 2000 },
+    { id: "holz",    name: "Holz",     wert: "#c98d4f", preis: 0 }      // Version 45: für Fietes Feuerkutsche (hinten angehängt: Spielstand-Code)
   ],
   muster: [
     { id: "keins",   name: "Ohne",      icon: "⬜", preis: 0 },

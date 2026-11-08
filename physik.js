@@ -434,7 +434,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         ko.rollMax = crr * R.r;
         ko.vBand = band ? gel.bandBei(k.x) : 0;
         vorbereiteKontakt(k, ko, h, abprall, T.werte.kufen ? kufenMu(T, gel, welt, k, R, ko)
-          : T.werte.schweben ? T.werte.schweben.mu + (T.kufenBremse || 0) * T.werte.schweben.bremsMu : grip, P);
+          : T.werte.schweben ? (T.schwebeMu !== undefined ? T.schwebeMu : T.werte.schweben.mu) + (T.kufenBremse || 0) * T.werte.schweben.bremsMu : grip, P);
       } else { ko.jn = ko.jt = ko.jr = 0; }
     }
     var muH = P.huellReibung * welt.grip;

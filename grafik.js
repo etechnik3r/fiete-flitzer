@@ -994,6 +994,15 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   /* --- einzelne Karosserien --- */
+  /* Rennnummer im Kreis mit Rahmen (Ring in Farbe ring), z. B. 87 am Luftkissenboot */
+  function rennnummer(ctx, x, y, r, text, ring) {
+    ctx.fillStyle = TINTE; ctx.beginPath(); ctx.arc(x, y, r + 0.035, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = ring || "#e8453c"; ctx.beginPath(); ctx.arc(x, y, r + 0.012, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(x, y, r * 0.78, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+    textLokal(ctx, text, x, y - 0.01, r * 1.05, TINTE, true);
+  }
+
   var KAROSSERIE = {
     buggy: function (ctx, a, z, fz) {
       var c = basisFarbe(a);
@@ -1330,6 +1339,252 @@ var FF = globalThis.FF = globalThis.FF || {};
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.2, y0 + T * 0.45, 0.4, 0.4], arme: [0.06, 0.32, 0.3, y0 + T * 0.45 + 0.12],
                ohneFedern: true, ohneRaeder: true, fahrerZuerst: true, beifahrer: { x: -0.72, y: y0 + T * 0.5 + 0.24 } };
+    },
+
+    /* Luftkissenboot (Version 45, nach Jontes Bild): schwarzes Luftkissen mit Wülsten, orange
+       Brüstung (Lackfarbe) mit Rennnummer 87, schwarzer Sitz, rundes Lenkrad, Armaturentafel,
+       hinten der Mast mit Propeller im halbrunden Schutzgitter. fz.luftProp (−1…1): Propeller,
+       Luftstrom nach hinten; fz.kissenLuft (0…1): Luftstrom unter dem Kissen (es schwebt).
+       Garage/Geist ohne diese Werte: Propeller halb, Kissen voll. */
+    luftkissen: function (ctx, a, z, fz) {
+      var c = basisFarbe(a);
+      var prop = fz && fz.luftProp !== undefined ? fz.luftProp : 0.6;
+      var luft = fz && fz.kissenLuft !== undefined ? fz.kissenLuft : 1;
+      var kissenPfad = function () { rundRechteck(ctx, -1.72, -0.56, 3.44, 0.58, 0.29); };
+      var kissen = function () {
+        // Luftstrom nach unten: es schwebt
+        if (luft > 0.05) {
+          var lg = ctx.createLinearGradient(0, -0.56, 0, -0.72);
+          lg.addColorStop(0, "rgba(255,255,255," + (0.6 * luft) + ")"); lg.addColorStop(1, "rgba(255,255,255,0)");
+          ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(-1.5, -0.5); ctx.lineTo(1.5, -0.5); ctx.lineTo(1.75, -0.74); ctx.lineTo(-1.75, -0.74); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 0.025; ctx.lineCap = "round";
+          for (var w2 = 0; w2 < 9; w2++) {
+            var ph2 = (z * 1.6 + w2 / 9) % 1, xs = -1.45 + w2 * 0.36, sx2 = (xs < 0 ? -1 : 1) * ph2 * 0.35;
+            ctx.globalAlpha = Math.sin(ph2 * Math.PI) * luft;
+            ctx.beginPath(); ctx.moveTo(xs, -0.58); ctx.quadraticCurveTo(xs + sx2 * 0.3, -0.66, xs + sx2, -0.72); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        }
+        kissenPfad();
+        var g = ctx.createLinearGradient(0, 0.02, 0, -0.56);
+        g.addColorStop(0, "#5a6070"); g.addColorStop(0.35, "#33373f"); g.addColorStop(1, "#16181d");
+        ctx.fillStyle = g; ctx.fill();
+        ctx.save(); kissenPfad(); ctx.clip();
+        ctx.strokeStyle = "rgba(0,0,0,0.45)"; ctx.lineWidth = 0.025;           // Wülste der Gummischürze
+        for (var k = -1.4; k <= 1.45; k += 0.32) { ctx.beginPath(); ctx.moveTo(k, -0.56); ctx.quadraticCurveTo(k + 0.05, -0.27, k, 0.02); ctx.stroke(); }
+        ctx.restore();
+        kissenPfad(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.05; ctx.stroke();
+        glanz(ctx, -1.35, -0.05, 1.3, -0.05, 0.04);
+        glanz(ctx, 1.48, -0.12, 1.6, -0.3, 0.035);
+      };
+      var propeller = function () {
+        var mx = -1.38, hy = 0.92, px = -1.6;
+        rohr(ctx, [[mx, -0.02], [mx, 1.45]], 0.08, "#4a5578");          // Mast
+        rohr(ctx, [[mx, hy], [px, hy]], 0.06, "#4a5578");                // Welle nach hinten
+        var dreh = Math.abs(prop);
+        if (dreh > 0.2) {                                                // schnell: nur noch ein Schleier
+          ctx.fillStyle = "rgba(220,226,240," + (0.2 + 0.3 * dreh) + ")";
+          ctx.beginPath(); ctx.ellipse(px, hy, 0.05, 0.42, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        var phase = fz ? (fz.lkPhase = (fz.lkPhase || 0) + prop * 0.9 + 0.01) : z * 6;
+        ctx.strokeStyle = dreh > 0.2 ? "rgba(110,120,140,0.55)" : "#7d8597"; ctx.lineWidth = 0.08; ctx.lineCap = "round";
+        for (var k = 0; k < 2; k++) {
+          var L = 0.4 * Math.cos(phase + k * Math.PI / 2);
+          ctx.beginPath(); ctx.moveTo(px, hy - L); ctx.lineTo(px, hy + L); ctx.stroke();
+        }
+        ctx.fillStyle = "#e8453c"; ctx.beginPath(); ctx.arc(px - 0.02, hy, 0.055, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        // Schutzbügel mit Gitter: halbrund nach hinten, gerade Seite am Mast (wie gemalt)
+        var buegel = function () {
+          ctx.beginPath(); ctx.moveTo(mx, hy + 0.55);
+          ctx.bezierCurveTo(mx - 0.62, hy + 0.5, mx - 0.62, hy - 0.5, mx, hy - 0.55);
+        };
+        ctx.save(); buegel(); ctx.closePath(); ctx.clip();
+        ctx.strokeStyle = "rgba(60,70,95,0.55)"; ctx.lineWidth = 0.015;
+        for (var y = hy - 0.6; y < hy + 0.6; y += 0.11) { ctx.beginPath(); ctx.moveTo(mx - 0.7, y); ctx.lineTo(mx, y); ctx.stroke(); }
+        ctx.restore();
+        buegel(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.08; ctx.stroke();
+        buegel(); ctx.strokeStyle = "#9aa3b8"; ctx.lineWidth = 0.05; ctx.stroke();
+      };
+      var hinten = function () {
+        if (prop > 0.05) {                                               // Luftstrom aus dem Propeller nach hinten
+          ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 0.03; ctx.lineCap = "round";
+          for (var s2 = 0; s2 < 7; s2++) {
+            var ph3 = (z * (0.8 + 1.2 * prop) + s2 / 7) % 1, ys = 0.92 + (s2 - 3) * 0.12, x0s = -1.75 - ph3 * (0.5 + 0.8 * prop);
+            ctx.globalAlpha = Math.sin(ph3 * Math.PI) * 0.9 * Math.min(1, prop * 1.5);
+            ctx.beginPath(); ctx.moveTo(x0s, ys);
+            ctx.bezierCurveTo(x0s - 0.15, ys + 0.06, x0s - 0.3, ys - 0.06, x0s - 0.45, ys); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        }
+        propeller();
+        // schwarzer Sitz (L-Form): Lehne ragt über die Brüstung
+        ctx.fillStyle = "#23262e"; rundRechteck(ctx, -0.22, 0.05, 0.14, 0.86, 0.06); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.fillStyle = "#3a3f4b"; rundRechteck(ctx, -0.19, 0.12, 0.05, 0.72, 0.025); ctx.fill();
+        ctx.fillStyle = "#23262e"; rundRechteck(ctx, -0.2, 0.08, 0.6, 0.12, 0.05); ctx.fill();
+        // Armaturentafel vorn (dunkelgrau, schräg)
+        ctx.beginPath(); ctx.moveTo(0.78, 0.2); ctx.lineTo(0.98, 0.2); ctx.lineTo(1.0, 0.66); ctx.quadraticCurveTo(0.93, 0.72, 0.86, 0.62); ctx.closePath();
+        ctx.fillStyle = "#4b5263"; ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.stroke();
+        ctx.fillStyle = "#7fe0ff"; ctx.beginPath(); ctx.arc(0.9, 0.52, 0.035, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(0.94, 0.42, 0.03, 0, Math.PI * 2); ctx.fill();
+      };
+      var wand = function () {
+        ctx.beginPath();
+        ctx.moveTo(-1.02, 0.0); ctx.lineTo(1.12, 0.0);
+        ctx.quadraticCurveTo(1.2, 0.02, 1.16, 0.12);
+        ctx.lineTo(1.08, 0.36); ctx.quadraticCurveTo(1.05, 0.42, 0.98, 0.42);
+        ctx.lineTo(-0.94, 0.42); ctx.quadraticCurveTo(-1.02, 0.42, -1.02, 0.34);
+        ctx.closePath();
+      };
+      var vorne = function () {
+        kissen();
+        karosserie(ctx, a, z, wand, -1.02, 1.2, 0.0, 0.42);
+        glanz(ctx, -0.85, 0.36, 0.9, 0.36, 0.04);
+        scheinwerfer(ctx, 1.1, 0.2, 0.06);
+        ruecklicht(ctx, -1.06, 0.12, 0.06, 0.16);
+        rennnummer(ctx, -0.5, 0.21, 0.17, "87", "#e8453c");
+        // Lenkrad wie gemalt: rund mit Speichen, Stange zur Armaturentafel
+        var lx = 0.6, ly = 0.62;
+        rohr(ctx, [[lx, ly], [0.86, 0.5]], 0.04, "#2c3550");
+        ctx.strokeStyle = "#23262e"; ctx.lineWidth = 0.05;
+        ctx.beginPath(); ctx.arc(lx, ly, 0.15, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 0.025;
+        for (var k = 0; k < 3; k++) { var w = k * Math.PI * 2 / 3 + 0.5; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + Math.cos(w) * 0.14, ly + Math.sin(w) * 0.14); ctx.stroke(); }
+        ctx.fillStyle = "#23262e"; ctx.beginPath(); ctx.arc(lx, ly, 0.04, 0, Math.PI * 2); ctx.fill();
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [0.0, 0.14, 0.4, 0.36], arme: [0.24, 0.44, 0.52, 0.6],
+               ohneFedern: true, ohneRaeder: true, fahrerZuerst: true, beifahrer: { x: -0.6, y: 0.5 } };
+    },
+
+    /* Fietes Feuerkutsche (Version 45, nach Fietes Bild): zwei riesige Holzräder, flacher
+       Holz-Aufbau (Lackfarbe) mit Rennnummer 67, mittig darauf ein Häuschen mit roten
+       Dachziegeln; Fahrer, Stuhl und altes Holzlenkrad sitzen IM Häuschen. Hinten das Feuerrohr:
+       Die Flamme wächst mit fz.feuer (0…1, fahrt.js feuerSchub). Den Qualm im Spiel machen
+       Partikel (spiel.js); nur in der Garage (ohne fz.feuer) malt die Karosserie ihn selbst.
+       Gezeichnet wird in Bild-Koordinaten mit den Achsen auf y = 0; der Schwerpunkt (Ursprung
+       der Physik) liegt OY = 0,6 m höher. */
+    feuerkutsche: function (ctx, a, z, fz) {
+      var c = basisFarbe(a);
+      var imSpiel = fz && fz.feuer !== undefined, feuer = imSpiel ? fz.feuer : 1, stufe = 0.25 + 1.55 * feuer, OY = -0.6;
+      var hx0 = -0.5, hx1 = 0.66, hy0 = 0.68, hy1 = 1.72, mx = (hx0 + hx1) / 2;
+      var fx0 = -0.38, fx1 = 0.54, fy0 = 0.82, fy1 = 1.6;                       // Fenster
+      var tipX = -1.25, tipY = 1.08;
+      var holzrad = function (R) {
+        var r = R.r;
+        ctx.save(); ctx.translate(R.lokalX, R.lokalY); ctx.rotate(R.k.a - (R.chassisWinkel || 0));
+        ctx.fillStyle = "#5b5f69"; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+        var g = ctx.createRadialGradient(-r * 0.3, r * 0.3, r * 0.1, 0, 0, r);
+        g.addColorStop(0, "#d9a066"); g.addColorStop(1, "#a8692f");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#7a4a22"; ctx.lineWidth = r * 0.12; ctx.beginPath(); ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = r * 0.08; ctx.lineCap = "round";
+        for (var k = 0; k < 8; k++) { var w = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(Math.cos(w) * r * 0.16, Math.sin(w) * r * 0.16); ctx.lineTo(Math.cos(w) * r * 0.76, Math.sin(w) * r * 0.76); ctx.stroke(); }
+        ctx.strokeStyle = "rgba(120,70,30,0.35)"; ctx.lineWidth = 0.012;
+        for (k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(r * 0.1, -r * 0.05, r * (0.3 + k * 0.1), 0.3 + k, 1.4 + k); ctx.stroke(); }
+        ctx.fillStyle = "#6b4220"; ctx.beginPath(); ctx.arc(0, 0, r * 0.17, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#9aa3b8"; ctx.beginPath(); ctx.arc(0, 0, r * 0.07, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      };
+      var flamme = function () {
+        if (feuer < 0.02) return 0;
+        var L0 = 0.5 + 1.6 * stufe, H0 = 0.1 + 0.2 * stufe;
+        var gl = ctx.createRadialGradient(tipX - L0 * 0.35, tipY, 0, tipX - L0 * 0.35, tipY, L0 * 0.8);
+        gl.addColorStop(0, "rgba(255,150,40," + (0.25 * feuer + 0.1) + ")"); gl.addColorStop(1, "rgba(255,150,40,0)");
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(tipX - L0 * 0.35, tipY, L0 * 0.8, 0, Math.PI * 2); ctx.fill();
+        [["#c9251a", 1], ["#ff6a1f", 0.82], ["#ffb02e", 0.62], ["#ffe066", 0.42], ["#fff6d0", 0.22]].forEach(function (l, i) {
+          var L = L0 * l[1] * (1 + 0.1 * Math.sin(z * 31 + i * 1.7)), H = H0 * (0.45 + 0.55 * l[1]);
+          var wob = 0.09 * stufe * Math.sin(z * 23 + i * 2), zung = 0.12 * stufe * Math.sin(z * 17 + i);
+          ctx.fillStyle = l[0]; ctx.beginPath(); ctx.moveTo(tipX, tipY + H * 0.8);
+          ctx.bezierCurveTo(tipX - L * 0.3, tipY + H * 1.6, tipX - L * 0.65, tipY + H * 0.9 + wob, tipX - L, tipY + 0.15 * stufe + wob + zung);
+          ctx.bezierCurveTo(tipX - L * 0.75, tipY - H * 0.2 + wob, tipX - L * 0.35, tipY - H * 1.3, tipX, tipY - H * 0.8);
+          ctx.closePath(); ctx.fill();
+        });
+        ctx.fillStyle = "#ffcf4a";                                             // Glutfunken
+        for (var f = 0; f < 10; f++) {
+          var ph = (z * 1.3 + f * 0.173) % 1;
+          ctx.globalAlpha = (1 - ph) * feuer; ctx.beginPath();
+          ctx.arc(tipX - 0.4 - ph * (L0 + 0.6), tipY + 0.25 * ph + Math.sin(f * 5.3) * 0.35 * ph, 0.03, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        return L0;
+      };
+      var qualm = function (L0) {                                              // dicker, rußiger Qualm
+        var n = 16;
+        for (var i = n - 1; i >= 0; i--) {
+          var ph = (z * 0.45 + i / n) % 1;
+          var rx = tipX - L0 * 0.55 - ph * (2.2 + 0.8 * stufe), ry = tipY + 0.15 + ph * (1.3 + 0.4 * stufe) + 0.12 * Math.sin(i * 2.7 + z);
+          var r = (0.12 + 0.4 * ph) * (0.6 + 0.4 * stufe);
+          ctx.globalAlpha = (1 - ph) * (0.35 + 0.4 * feuer);
+          ctx.fillStyle = ["#2e3138", "#454a55", "#5d626e"][i % 3];
+          ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI * 2); ctx.arc(rx + r * 0.75, ry + r * 0.25, r * 0.75, 0, Math.PI * 2);
+          ctx.arc(rx - r * 0.5, ry + r * 0.45, r * 0.6, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      };
+      var hinten = function () {
+        ctx.save(); ctx.translate(0, OY);
+        var L0 = 0.5 + 1.6 * stufe;
+        if (!imSpiel) qualm(L0);
+        flamme();
+        rohr(ctx, [[hx0 + 0.05, 1.15], [tipX + 0.1, tipY]], 0.17, "#2b2f3a");
+        ctx.fillStyle = "#e8331f"; ctx.beginPath(); ctx.ellipse(tipX, tipY, 0.05, 0.12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+        ctx.fillStyle = "rgba(20,20,25,0.5)"; ctx.beginPath(); ctx.ellipse(tipX + 0.25, tipY + 0.08, 0.14, 0.05, 0, 0, Math.PI * 2); ctx.fill();   // Ruß
+        // Innenraum, schwarzer Stuhl
+        ctx.fillStyle = "#6e5a48"; ctx.fillRect(hx0, hy0, hx1 - hx0, hy1 - hy0);
+        ctx.fillStyle = "#5a4838"; ctx.fillRect(hx0, hy0, hx1 - hx0, 0.14);
+        ctx.fillStyle = "#23262e"; rundRechteck(ctx, -0.34, 0.74, 0.12, 0.74, 0.05); ctx.fill();
+        rundRechteck(ctx, -0.34, 0.74, 0.5, 0.1, 0.04); ctx.fill();
+        ctx.restore();
+      };
+      var aufbau = function () {
+        ctx.beginPath(); ctx.moveTo(-1.05, -0.04);
+        ctx.bezierCurveTo(-0.98, 0.42, -0.78, 0.62, -0.45, 0.62); ctx.lineTo(0.6, 0.62);
+        ctx.bezierCurveTo(0.93, 0.62, 1.12, 0.42, 1.2, -0.04); ctx.closePath();
+      };
+      var vorne = function () {
+        ctx.save(); ctx.translate(0, OY);
+        // Lenkrad IM Häuschen (wird vom Fensterrahmen eingefasst)
+        var lx = 0.36, ly = 1.02, lr = 0.14;
+        rohr(ctx, [[lx, ly], [hx1, 0.9]], 0.045, "#6b4220");
+        ctx.strokeStyle = "#8d5a2a"; ctx.lineWidth = 0.045; ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 0.02;
+        for (var k = 0; k < 8; k++) { var w = k * Math.PI / 4; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + Math.cos(w) * lr, ly + Math.sin(w) * lr); ctx.stroke(); }
+        ctx.fillStyle = "#c98d4f"; for (k = 0; k < 8; k++) { w = k * Math.PI / 4 + 0.39; ctx.beginPath(); ctx.arc(lx + Math.cos(w) * (lr + 0.04), ly + Math.sin(w) * (lr + 0.04), 0.022, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = "#6b4220"; ctx.beginPath(); ctx.arc(lx, ly, 0.035, 0, Math.PI * 2); ctx.fill();
+        // Hauswand mit Fenster, Fensterbrett
+        ctx.beginPath(); ctx.rect(hx0, hy0, hx1 - hx0, hy1 - hy0);
+        ctx.moveTo(fx0, fy0); ctx.lineTo(fx0, fy1); ctx.lineTo(fx1, fy1); ctx.lineTo(fx1, fy0); ctx.closePath();
+        var wg = ctx.createLinearGradient(0, hy1, 0, hy0); wg.addColorStop(0, "#fffaf0"); wg.addColorStop(1, "#e3d8c2");
+        ctx.fillStyle = wg; ctx.fill("evenodd"); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.04; ctx.stroke();
+        ctx.fillStyle = "#8d5a2a"; rundRechteck(ctx, fx0 - 0.05, fy0 - 0.05, fx1 - fx0 + 0.1, 0.06, 0.02); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        // Dach mit roten Ziegeln, mittig über dem Haus
+        var dach = function () { ctx.beginPath(); ctx.moveTo(hx0 - 0.12, hy1 - 0.02); ctx.lineTo(mx, 2.3); ctx.lineTo(hx1 + 0.12, hy1 - 0.02); ctx.closePath(); };
+        dach(); ctx.fillStyle = "#d8402f"; ctx.fill();
+        ctx.save(); dach(); ctx.clip(); ctx.strokeStyle = "#8f2218"; ctx.lineWidth = 0.02;
+        for (var y = hy1 + 0.08, row = 0; y < 2.32; y += 0.11, row++)
+          for (var x = -0.8 + (row % 2) * 0.06; x < 1.0; x += 0.12) { ctx.beginPath(); ctx.arc(x, y, 0.06, Math.PI, 0); ctx.stroke(); }
+        ctx.restore();
+        dach(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.045; ctx.lineJoin = "round"; ctx.stroke();
+        glanz(ctx, mx - 0.36, hy1 + 0.1, mx - 0.08, hy1 + 0.48, 0.03);
+        // Holz-Aufbau (Lackfarbe) mit Brettern, Bodenplatte unter dem Haus
+        karosserie(ctx, a, z, aufbau, -1.05, 1.2, -0.04, 0.62);
+        ctx.save(); aufbau(); ctx.clip(); ctx.strokeStyle = dunkel(c, 0.35); ctx.lineWidth = 0.02;
+        for (y = 0.14; y < 0.62; y += 0.14) { ctx.beginPath(); ctx.moveTo(-1.2, y); ctx.lineTo(1.3, y); ctx.stroke(); }
+        ctx.restore();
+        ctx.fillStyle = "#7a4a22"; rundRechteck(ctx, hx0 - 0.08, 0.6, hx1 - hx0 + 0.16, 0.09, 0.03); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+        rennnummer(ctx, mx, 0.3, 0.19, "67", "#ffd23f");
+        ctx.restore();
+        // Achsschenkel: von der Radnabe hoch in den Aufbau (folgen der Federung), dann die Räder
+        fz.raeder.forEach(function (R) { rohr(ctx, [[R.lokalX, R.lokalY], [R.lokalX * 0.8, OY + 0.18]], 0.09, "#4a3a2c"); });
+        fz.raeder.forEach(holzrad);
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.31, 0.24, 0.4, 0.31], arme: [-0.05, 0.48, 0.3, 0.42],
+               ohneFedern: true, ohneRaeder: true, fahrerZuerst: true };
     },
 
     schlitten: function (ctx, a, z, fz) {
