@@ -102,6 +102,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       R.k.y = C.y + sa * lx + ca * ly;
       R.k.a = mische(a.r[3 * j + 2], b.r[3 * j + 2], u);
     });
+    FF.Physik.stelleGlieder(this.fz);                    // Glieder (Kettenwagen) in Ruhelage zur Karosserie
     var AN = this.fz.anhaenger || [];
     if (AN.length && a.an && b.an) {
       AN.forEach(function (A, j) {

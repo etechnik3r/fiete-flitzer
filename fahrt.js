@@ -62,6 +62,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     w.spoiler = sp;                                                         // für die Grafik
     w.kreisel = kr;
     if (upg.allrad) w.raeder.forEach(function (r) { r.antrieb = true; });
+    (w.glieder || []).forEach(function (g) {                               // Kettenwagen: Federung-Upgrade wirkt auf die Kabinenfeder
+      if (g.feder) { g.feder.daempfung += U.federDaempfung * fe; g.feder.weg *= 1 + U.federWeg * fe; }
+    });
     if (w.wanne) w.wanne.schub *= 1 + 0.6 * U.motorDrehmoment * m;          // Badewanne: Motor-Upgrade = kräftigerer Strahl
     if (w.zauber) {                                                         // Teppich: Zauberkraft, Stoffqualität
       w.zauber.schub *= 1 + 0.6 * U.motorDrehmoment * m;
@@ -186,7 +189,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
     this.miniZeit = 0;             // Obstplantage: Mini-Turbo nach dem Einsammeln von Obst [s]
     this.umhangZeit = 0;           // Superheldenwelt: Heldenumhang nach der Telefonzelle [s]
-    this.fz.masseGesamt = this.werte.masse + this.werte.raeder.reduce(function (s, r) { return s + r.masse; }, 0);
+    this.fz.masseGesamt = this.werte.masse + this.werte.raeder.reduce(function (s, r) { return s + r.masse; }, 0) +
+      (this.werte.glieder || []).reduce(function (s, g) { return s + g.masse; }, 0);
     if (this.werte.kufen) this.schneeAnlegen();
     if (this.werte.wanne) this.wanneAnlegen();
     if (this.werte.luftkissen) this.luftkissenAnlegen();
@@ -679,7 +683,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (var i = 0; i < nAlle; i++) {
       var R = fz.raeder[i];
       if (w.kufen || w.schweben) { R.motorZiel = 0; R.motorMax = 1e5; continue; }   // Kufen, Schwebekissen: drehen sich nicht (Gleitreibung)
-      var rel = Math.abs(R.k.w - C.w);
+      var rel = Math.abs(R.k.w - (R.mk || R.tr || C).w);   // relativ zum Motorträger
       var wEck = this.eck * R.wMax;
       var Tkurve = rel <= wEck ? Tmax : Tmax * wEck / rel;   // konstantes Moment, dann konstante Leistung
       if (this.gas > 0.01 && motorAn) {
@@ -751,6 +755,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       var alpha = M / J, wm = w.maxDrehung || 1;
       if ((alpha > 0 && C.w > wm) || (alpha < 0 && C.w < -wm)) alpha = 0;
       fz.zusatzAlpha = alpha; M = 0;
+    } else if (fz.glieder.length) {
+      // Fahrzeug aus mehreren Körpern (Kettenwagen): alle Körper drehen gemeinsam um den
+      // gemeinsamen Schwerpunkt – sonst müsste die Kabine allein Rahmen und Kettenblöcke mitreißen
+      fz.zusatzAlpha = M / J; M = 0;
     }
     fz.zusatzMoment = M;
   };
@@ -900,7 +908,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (C.x < R.x - 0.3 || C.x > R.x + 3) continue;
       if (st.vorwaerts < 0.5 || C.y - gel.hoeheBei(R.x) > 3.6) continue;
       var hc = 0;                                   // Abstand Schwerpunkt ↔ Unterkante der Räder (Räder ausgefedert)
-      fz.raeder.forEach(function (Rd) { hc = Math.max(hc, Rd.r + Rd.L0 - Rd.ankerY); });
+      fz.raeder.forEach(function (Rd) { hc = Math.max(hc, Rd.r + Rd.L0 - Rd.cy); });
       this.roehre = { R: R, s: Math.max(0, C.x - R.x), v: Math.max(8, st.vorwaerts), hc: hc, t: 0, loopI: 0,
                       dx: 0, dy: 0, da: 0, z: 0, aVorher: null };
       var P0 = gel.roehrenPunkt(R, this.roehre.s), K = this.roehre;

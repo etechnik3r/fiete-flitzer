@@ -1466,7 +1466,7 @@ var FF = globalThis.FF = globalThis.FF || {};
        der Physik) liegt OY = 0,6 m höher. */
     feuerkutsche: function (ctx, a, z, fz) {
       var c = basisFarbe(a);
-      var imSpiel = fz && fz.feuer !== undefined, feuer = imSpiel ? fz.feuer : 1, stufe = 0.25 + 1.55 * feuer, OY = -0.6;
+      var imSpiel = fz && fz.feuer !== undefined, feuer = imSpiel ? fz.feuer : 0.45, stufe = 0.25 + 1.55 * feuer, OY = -0.6;
       var hx0 = -0.5, hx1 = 0.66, hy0 = 0.68, hy1 = 1.72, mx = (hx0 + hx1) / 2;
       var fx0 = -0.38, fx1 = 0.54, fy0 = 0.82, fy1 = 1.6;                       // Fenster
       var tipX = -1.25, tipY = 1.08;
@@ -1585,6 +1585,131 @@ var FF = globalThis.FF = globalThis.FF || {};
       };
       return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.31, 0.24, 0.4, 0.31], arme: [-0.05, 0.48, 0.3, 0.42],
                ohneFedern: true, ohneRaeder: true, fahrerZuerst: true };
+    },
+
+    /* Kettenwagen (Version 45, nach Bastians Bild). Gezeichnet wird aus der echten Physik:
+       – Kettenblöcke aus ihren drei Rädern (fz.raeder 0–2 hinten, 3–5 vorne): untere Zahnräder
+         = äußere Räder, oberes Zahnrad senkrecht darüber, Drehlager im Schwerpunkt des Dreiecks
+       – Rahmen (Stege) aus fz.glieder[0] (lokalX/lokalY/lokalA, grafik.js zeichneFahrzeug)
+       – Kabinenfeder zwischen Rahmen und Kabine: so lang, wie sie gerade ist
+       Die Kette läuft mit der Raddrehung um, ihre geraden Stücke wackeln je nach Tempo.
+       Kabinen-Teile in Bild-Koordinaten mit OY = −1,1 (Ursprung = Schwerpunkt der Kabine). */
+    kettenwagen: function (ctx, a, z, fz) {
+      var c = basisFarbe(a), OY = -1.1;
+      var tempo = fz && fz.chassis ? Math.min(1, Math.hypot(fz.chassis.vx, fz.chassis.vy) / 10) : 0.4;
+      var rr = 0.12, Rh = 0.165, hoehe = 0.66;
+      var G0 = fz && fz.glieder && fz.glieder[0];
+      var rahmen = function (p) {                       // Rahmen-Punkt → Karosserie-Koordinaten
+        if (!G0 || G0.lokalX === undefined) return [p[0], p[1] - 0.8];
+        var ca = Math.cos(G0.lokalA), sa = Math.sin(G0.lokalA);
+        return [G0.lokalX + ca * p[0] - sa * p[1], G0.lokalY + sa * p[0] + ca * p[1]];
+      };
+      var zahnrad = function (x, y, dreh, r) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(dreh);
+        ctx.beginPath();
+        for (var k = 0; k < 40; k++) { var w = k * Math.PI * 2 / 40, rk = (Math.floor(k / 2) % 2) ? r * 0.8 : r; ctx.lineTo(Math.cos(w) * rk, Math.sin(w) * rk); }
+        ctx.closePath(); ctx.fillStyle = "#c9cfdb"; ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.018; ctx.stroke();
+        ctx.fillStyle = "#8a93a8"; ctx.beginPath(); ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#4a5578"; ctx.beginPath(); ctx.arc(0, 0, 0.04, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      };
+      // Ein Kettenblock aus seinen drei Rädern (hinten, Stützrolle, vorne)
+      var block = function (R0, Rm, R1, nr) {
+        var x0 = R0.lokalX, y0 = R0.lokalY, x1 = R1.lokalX, y1 = R1.lokalY;
+        var phi = Math.atan2(y1 - y0, x1 - x0), cs = Math.cos(phi), sn = Math.sin(phi);
+        var bx = (x0 + x1) / 2, by = (y0 + y1) / 2;
+        var top = [bx - sn * hoehe, by + cs * hoehe], mitte = [bx - sn * hoehe / 3, by + cs * hoehe / 3];
+        var P = [[x0, y0], [x1, y1], top];
+        var dreh = R0.k.a - (R0.chassisWinkel || 0);
+        // Kette: Hülle um die drei Zahnräder; gerade Stücke wackeln je nach Tempo
+        var amp = 0.004 + 0.014 * tempo, pts = [];
+        for (var i = 0; i < 3; i++) {
+          var A = P[i], B = P[(i + 1) % 3], C2 = P[(i + 2) % 3];
+          var dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy), nx = dy / l, ny = -dx / l;
+          for (var k = 0; k <= 14; k++) {
+            var t = k / 14, wk = i === 0 ? 0 : amp * Math.sin(Math.PI * t) * Math.sin(z * 15 + i * 2.1 + nr * 1.3 + t * 5);   // unten liegt sie am Boden
+            pts.push([A[0] + dx * t + nx * (Rh + wk), A[1] + dy * t + ny * (Rh + wk)]);
+          }
+          var ex = C2[0] - B[0], ey = C2[1] - B[1], m = Math.hypot(ex, ey);
+          var w0 = Math.atan2(ny, nx), w1 = Math.atan2(-ex / m, ey / m);
+          if (w1 < w0) w1 += Math.PI * 2;
+          for (k = 1; k < 8; k++) { var w = w0 + (w1 - w0) * k / 8; pts.push([B[0] + Math.cos(w) * Rh, B[1] + Math.sin(w) * Rh]); }
+        }
+        var kette = function () { ctx.beginPath(); pts.forEach(function (p, j) { if (j) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); }); ctx.closePath(); };
+        ctx.lineJoin = "round"; ctx.lineCap = "round";
+        P.forEach(function (p) { rohr(ctx, [mitte, p], 0.06, "#7a8299"); });     // Lagerstreben zur Mitte
+        kette(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.1; ctx.stroke();
+        kette(); ctx.strokeStyle = "#3a3f4b"; ctx.lineWidth = 0.07; ctx.stroke();
+        ctx.save(); kette(); ctx.setLineDash([0.045, 0.035]); ctx.lineDashOffset = -dreh * Rh;
+        ctx.strokeStyle = "#6b7182"; ctx.lineWidth = 0.05; ctx.lineCap = "butt"; ctx.stroke(); ctx.restore();
+        P.forEach(function (p) { zahnrad(p[0], p[1], dreh, rr); });
+        // Stützrolle in der Mitte des unteren Kettentrums
+        ctx.fillStyle = "#c9cfdb"; ctx.beginPath(); ctx.arc(Rm.lokalX, Rm.lokalY, 0.075, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.018; ctx.stroke();
+        ctx.fillStyle = "#4a5578"; ctx.beginPath(); ctx.arc(Rm.lokalX, Rm.lokalY, 0.03, 0, Math.PI * 2); ctx.fill();
+        return mitte;
+      };
+      var hinten = function () {
+        var R = fz.raeder;
+        var mh = block(R[0], R[1], R[2], 0), mv = block(R[3], R[4], R[5], 1);
+        // Rahmen: zwei Stege vom Drehlager jedes Blocks zur Brücke in der Mitte
+        var bL = rahmen([-0.25, 0.36]), bR = rahmen([0.25, 0.36]), oben = rahmen([0, 0.36]);
+        var kL = rahmen([-1.15, 0.36]), kR = rahmen([1.15, 0.36]);
+        var steg = function (p, k, q) {
+          ctx.lineCap = "round"; ctx.strokeStyle = TINTE; ctx.lineWidth = 0.19;
+          ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.quadraticCurveTo(k[0], k[1], q[0], q[1]); ctx.stroke();
+          ctx.strokeStyle = c; ctx.lineWidth = 0.13; ctx.stroke();
+          ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 0.035; ctx.stroke();
+        };
+        steg(mh, kL, bL); steg(bL, oben, bR); steg(bR, kR, mv);
+        [mh, mv].forEach(function (m) {                   // Drehlager-Bolzen
+          ctx.fillStyle = "#4a5578"; ctx.beginPath(); ctx.arc(m[0], m[1], 0.08, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025; ctx.stroke();
+          ctx.fillStyle = "#c9cfdb"; ctx.beginPath(); ctx.arc(m[0], m[1], 0.035, 0, Math.PI * 2); ctx.fill();
+        });
+        // Kabinenfeder: Schraubenfeder von der Brücke bis unter die Plattform (federt wirklich)
+        var fu = [oben[0], oben[1] + 0.05], fo = [0, OY + 0.84];
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.06; ctx.lineCap = "round";
+        var feder = function () {
+          ctx.beginPath();
+          for (var k = 0; k <= 48; k++) { var t = k / 48; ctx.lineTo(fu[0] + (fo[0] - fu[0]) * t + 0.1 * Math.sin(t * Math.PI * 12), fu[1] + (fo[1] - fu[1]) * t); }
+        };
+        feder(); ctx.stroke(); ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.03; feder(); ctx.stroke();
+        rohr(ctx, [fu, [fu[0], fu[1] + 0.03]], 0.14, "#4a5578");
+        // Kabine: Plattform, roter Liegesitz (Lehne ca. 65° steil, Kopfstütze)
+        ctx.save(); ctx.translate(0, OY);
+        ctx.fillStyle = "#23262e"; rundRechteck(ctx, -0.66, 0.84, 1.42, 0.12, 0.06); ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.stroke();
+        rohr(ctx, [[-0.3, 0.99], [0.26, 0.99]], 0.1, "#e8453c");
+        rohr(ctx, [[-0.32, 0.99], [-0.56, 1.52]], 0.1, "#e8453c");
+        ctx.fillStyle = "#c22f27"; ctx.save(); ctx.translate(-0.6, 1.6); ctx.rotate(0.42); rundRechteck(ctx, -0.06, -0.09, 0.12, 0.18, 0.05); ctx.fill(); ctx.restore();
+        rohr(ctx, [[-0.4, 0.96], [-0.3, 0.86]], 0.05, "#4a5578");
+        ctx.restore();
+      };
+      var vorne = function () {
+        ctx.save(); ctx.translate(0, OY);
+        var anz = outfitVon(a).anzug;
+        ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = anz; ctx.lineWidth = 0.14;
+        ctx.beginPath(); ctx.moveTo(-0.14, 1.06); ctx.lineTo(0.26, 1.24); ctx.lineTo(0.52, 1.04); ctx.stroke();
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, 0.48, 0.97, 0.16, 0.1, 0.04); ctx.fill();
+        // Lenksäule zur Plattform, Lenkrad bei den Händen
+        rohr(ctx, [[0.5, 0.94], [0.16, 1.36]], 0.045, "#23262e");
+        ctx.strokeStyle = "#23262e"; ctx.lineWidth = 0.05;
+        ctx.beginPath(); ctx.ellipse(0.13, 1.39, 0.05, 0.14, 0.62, 0, Math.PI * 2); ctx.stroke();
+        // Bugverkleidung (Lackfarbe) mit Scheinwerfer, darauf die Windschutzscheibe
+        var bug = function () { ctx.beginPath(); ctx.moveTo(0.56, 0.9); ctx.lineTo(0.86, 0.9); ctx.quadraticCurveTo(0.9, 1.05, 0.74, 1.14); ctx.lineTo(0.6, 1.14); ctx.closePath(); };
+        karosserie(ctx, a, z, bug, 0.56, 0.9, 0.9, 1.14);
+        scheinwerfer(ctx, 0.83, 1.0, 0.045);
+        var scheibe = function () { ctx.beginPath(); ctx.moveTo(0.8, 1.12); ctx.quadraticCurveTo(0.84, 1.46, 0.56, 1.68); ctx.lineTo(0.5, 1.64); ctx.quadraticCurveTo(0.58, 1.36, 0.6, 1.12); ctx.closePath(); };
+        scheibe(); ctx.fillStyle = "rgba(140,195,255,0.4)"; ctx.fill();
+        ctx.save(); scheibe(); ctx.clip(); ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.beginPath(); ctx.moveTo(0.6, 1.2); ctx.lineTo(0.68, 1.2); ctx.lineTo(0.62, 1.55); ctx.lineTo(0.56, 1.55); ctx.fill(); ctx.restore();
+        scheibe(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.stroke();
+        ctx.strokeStyle = "#2f6fd6"; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(0.8, 1.12); ctx.quadraticCurveTo(0.84, 1.46, 0.56, 1.68); ctx.stroke();
+        ctx.restore();
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.55, -0.11, 0.4, 0.22], arme: [-0.32, 0.04, 0.08, 0.16],
+               ohneFedern: true, ohneRaeder: true, fahrerZuerst: true, pose: { x: -0.32, y: -0.1, w: 0.2 },
+               beifahrer: { x: 0.3, y: -0.05, gr: 0.8 } };
     },
 
     schlitten: function (ctx, a, z, fz) {
@@ -2462,6 +2587,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       R.lokalY = -sa * dx + ca * dy;
       R.chassisWinkel = C.a;
     });
+    (fz.glieder || []).forEach(function (G) {          // Glieder (Kettenwagen) in Karosserie-Koordinaten
+      var dx = G.k.x - C.x, dy = G.k.y - C.y;
+      G.lokalX = ca * dx + sa * dy; G.lokalY = -sa * dx + ca * dy; G.lokalA = G.k.a - C.a;
+    });
     ctx.save();
     ctx.translate(sx(K, C.x), sy(K, C.y));
     ctx.rotate(-C.a);
@@ -3136,7 +3265,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var fz = c;
     // Höhe aus Rädern, Umriss, Dach und Kopf bestimmen (Monstertruck ist hoch!)
     var unten = Infinity, oben = -Infinity;
-    fz.raeder.forEach(function (R) { unten = Math.min(unten, R.ankerY - R.L0 - R.r); });
+    fz.raeder.forEach(function (R) { unten = Math.min(unten, R.cy - R.L0 - R.r); });
     def.huelle.concat(def.dach || []).forEach(function (p) { oben = Math.max(oben, p[1]); });
     oben = Math.max(oben, def.kopf.y + def.kopf.r * (def.form === "mond" ? 1.6 : 1.15));
     var laenge = def.groesse.laenge + 0.8, hoehe = (oben - unten) * 1.12 + 0.3, mitteX = 0;

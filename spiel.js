@@ -453,7 +453,8 @@
       auspuffTakt = fe > 0.15 ? 0.035 : 0.3;                          // ohne Gas kokelt es nur ein bisschen
       var xf = -1.35 - fe * 1.6, yf = 0.5, xw = ch.x + cf * xf - sf * yf, yw = ch.y + sf * xf + cf * yf;
       if (welt.unterwasser) partikel.neu({ art: "blase", x: xw, y: yw, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.22, schwer: -0.35, reibung: 1.2 });
-      else partikel.neu({ art: "rauch", x: xw, y: yw, vx: ch.vx * 0.35 - cf * (1 + 2.5 * fe), vy: ch.vy * 0.35 + 0.6 + 1.2 * fe + Math.random() * 0.4,
+      else partikel.neu({ art: "rauch", x: xw, y: yw, vx: ch.vx * 0.35 - cf * (1 + 2.5 * fe),           // ohne Luft (Mond) steigt kein Qualm auf
+                          vy: ch.vy * 0.35 + Math.min(1, welt.luftdichte / 1.2) * (0.6 + 1.2 * fe + Math.random() * 0.4),
                           t: 0, dauer: 1.1 + 1.3 * fe, r0: 0.12 + 0.12 * fe, r1: 0.45 + 0.9 * fe,
                           farbe: ["#2e3138", "#454a55", "#5d626e"][Math.floor(Math.random() * 3)], alpha: 0.35 + 0.4 * fe, reibung: 1.2 });
     } else if (fahrt.def.form === "lkw" && fahrt.tank > 0 && auspuffTakt <= 0) {   // Donner-Truck: schwarzer Rauch aus beiden Rohren
@@ -2140,7 +2141,7 @@
 
   function werteBalken(def, upg) {
     var w = FF.berechneWerte(def, upg, "normal");
-    var mGes = w.masse + w.raeder.reduce(function (s, r) { return s + r.masse; }, 0);
+    var mGes = w.masse + w.raeder.reduce(function (s, r) { return s + r.masse; }, 0) + (w.glieder || []).reduce(function (s, g) { return s + g.masse; }, 0);
     var nA = 0, rA = 0;
     w.raeder.forEach(function (r) { if (r.antrieb) { nA++; rA += r.r; } });
     rA /= nA;

@@ -248,6 +248,36 @@ function physikTests() {
   }
   console.log("Flug ohne Schwerkraft, 1 s Gas: Karosserie ω = " + fz4.chassis.w.toFixed(3) + " rad/s (positiv = Nase hoch), " +
               "Rad ω = " + fz4.raeder[0].k.w.toFixed(1) + " rad/s");
+
+  // 5) Kettenwagen (Glieder, Version 45): gefederte Kabine und pendelnde Kettenblöcke
+  var wk = FF.berechneWerte(FF.fahrzeugDef("kettenwagen"), {}, "normal");
+  var mK = wk.masse + wk.raeder.reduce(function (s, r) { return s + r.masse; }, 0) + wk.glieder.reduce(function (s, g) { return s + g.masse; }, 0);
+  var t5 = ebeneWelt(0), fz5 = FF.Physik.baueFahrzeug(wk, 0, t5.gel);
+  for (var j5 = 0; j5 < 240 * 3; j5++) FF.Physik.schritt(fz5, t5.gel, t5.welt, h);
+  var N5 = fz5.raeder.reduce(function (s, R) { return s + R.kontakt.kraftN; }, 0);
+  var KF = wk.glieder[0].feder, sollSack = 9.81 / Math.pow(2 * Math.PI * KF.frequenz, 2);
+  console.log("Kettenwagen in Ruhe: Σ Normalkraft = " + N5.toFixed(0) + " N, m·g = " + (mK * 9.81).toFixed(0) +
+              " N; Kabinenfeder eingefedert " + ((KF.ruhe - fz5.glieder[0].trans) * 100).toFixed(1) + " cm (g/ω² = " + (sollSack * 100).toFixed(1) + " cm)");
+  // Vorne fährt er auf einen 20°-Hang, hinten steht er noch flach: die Blöcke folgen dem Boden
+  var t6 = ebeneWelt(20), fz6 = FF.Physik.baueFahrzeug(wk, -0.6, t6.gel);
+  for (var j6 = 0; j6 < 240 * 3; j6++) {
+    fz6.raeder.forEach(function (R) { R.motorZiel = 0; R.motorMax = wk.bremse / fz6.raeder.length; });
+    FF.Physik.schritt(fz6, t6.gel, t6.welt, h);
+  }
+  var gr = function (a) { return (a * 180 / Math.PI).toFixed(1) + "°"; };
+  console.log("Kettenwagen am Hangfuß (20°): Block hinten " + gr(fz6.glieder[1].k.a) + ", Block vorne " + gr(fz6.glieder[2].k.a) +
+              ", Kabine " + gr(fz6.chassis.a) + ", Räder am Boden " + fz6.status.radKontakte + " von 6");
+  [35, 45].forEach(function (grad) {
+    var t7 = ebeneWelt(grad), fz7 = FF.Physik.baueFahrzeug(wk, 3, t7.gel);
+    FF.Physik.setzeAufBoden(fz7, t7.gel, 3, Math.atan(Math.tan(grad * Math.PI / 180)));   // parallel zum Hang hinstellen
+    var x7 = fz7.chassis.x;
+    var nA = fz7.raeder.length;
+    for (var j7 = 0; j7 < 240 * 4; j7++) {
+      fz7.raeder.forEach(function (R) { R.motorZiel = -R.wMax; R.motorMax = wk.motor.drehmoment / nA; });
+      FF.Physik.schritt(fz7, t7.gel, t7.welt, h);
+    }
+    console.log("Kettenwagen anfahren am " + grad + "°: Strecke " + (fz7.chassis.x - x7).toFixed(1) + " m in 4 s, v = " + fz7.status.vorwaerts.toFixed(2) + " m/s");
+  });
 }
 
 /* ---------- Geisterrennen: Aufnahme, Wiedergabe, Sieger ---------- */

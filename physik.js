@@ -31,6 +31,15 @@
            federt etwas, darum ruckelt und wackelt der Zug beim Anfahren
          – Knickgrenze: der Winkel zum Vordermann ist auf ±knick begrenzt
            (Ungleichungs-Bindung), so kann der Zug nicht zusammenklappen
+     • Glieder (Kettenwagen, Version 45): weitere Starrkörper im selben Fahrzeug,
+       an der Karosserie oder an einem anderen Glied gelagert:
+         – "dreh": Drehlager (harte Punkt-Bindung, 2 Zeilen) mit Winkelgrenzen und
+           Drehdämpfer – z. B. die pendelnden Kettenblöcke
+         – "schub": Schubführung entlang der Hochachse des Elternkörpers (quer und
+           im Winkel hart, längs eine weiche Feder nach Catto mit Anschlägen) – z. B.
+           die gefederte Kabine
+       Räder können an einem Glied hängen (rd.glied); Räder mit gleicher rd.kette
+       laufen in einer Kette und drehen gleich schnell (wie die Kuppelstangen).
      • Luftwiderstand ½·ρ·cwA·v² und Abtrieb ½·ρ·cA·v² (unter Wasser mit
        größerer Dichte), Wind als Zusatz-Beschleunigung, Drehdämpfung im Wasser.
 
@@ -83,14 +92,46 @@ var FF = globalThis.FF = globalThis.FF || {};
                 leistung: 0, drehzahl: 0, vorwaerts: 0, tempo: 0 }
     };
 
+    // Glieder (Version 45): weitere Starrkörper mit Lager am Elternkörper. Ruhelage (Winkel 0)
+    // relativ zur Karosserie in restX/restY – damit lassen sich Start und Ballon-Hilfe stellen.
+    teil.glieder = [];
+    var mGlieder = 0;
+    (w.glieder || []).forEach(function (gd) {
+      var Jg = gd.J || gd.masse * (gd.groesse.laenge * gd.groesse.laenge + gd.groesse.hoehe * gd.groesse.hoehe) / 12;
+      var G = { def: gd, k: new Koerper(gd.masse, Jg), eltern: gd.an === undefined ? -1 : gd.an, art: gd.art,
+                lager: gd.lager, punkt: gd.punkt || [0, 0], zeilen: [], huelle: [], restX: 0, restY: 0, trans: 0 };
+      var ex = G.eltern < 0 ? 0 : teil.glieder[G.eltern].restX, ey = G.eltern < 0 ? 0 : teil.glieder[G.eltern].restY;
+      var versatz = gd.art === "schub" ? gd.feder.ruhe : 0;          // Schubführung: um die Federlänge tiefer
+      G.restX = ex + gd.lager[0] - G.punkt[0];
+      G.restY = ey + gd.lager[1] - versatz - G.punkt[1];
+      if (gd.art === "schub") {
+        var F = gd.feder, omF = 2 * Math.PI * F.frequenz, mE = F.masse || w.masse;   // mE: Masse, die auf der Feder ruht
+        G.L0 = F.ruhe; G.Lmin = F.ruhe - F.weg; G.Lmax = F.ruhe + (F.aus || 0);
+        G.kF = mE * omF * omF; G.cF = 2 * F.daempfung * mE * omF;
+      }
+      for (var z = 0; z < 5; z++) G.zeilen.push({ A: null, B: null, nx: 0, ny: 0, sA: 0, sB: 0, m: 0, bias: 0, gamma: 0, j: 0, lo: 0, hi: 0, an: false });
+      (gd.huelle || []).forEach(function (a, i, poly) {
+        var b = poly[(i + 1) % poly.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        var n = Math.max(1, Math.ceil(len / FF.CONFIG.physik.punktAbstand));
+        for (var j = 0; j < n; j++) G.huelle.push({ x: a[0] + (b[0] - a[0]) * j / n, y: a[1] + (b[1] - a[1]) * j / n, kontakt: new Kontakt() });
+      });
+      teil.glieder.push(G);
+      mGlieder += gd.masse;
+    });
+
     var fed = w.federung;
-    var mGefedert = w.masse / w.raeder.length;
+    var mGefedert = (w.masse + mGlieder) / w.raeder.length;
     var om = 2 * Math.PI * fed.frequenz;
     var vmax = w.motor ? w.motor.vmax : 20;
     w.raeder.forEach(function (rd) {
       var k = new Koerper(rd.masse, 0.6 * rd.masse * rd.r * rd.r); // Masse sitzt eher außen (Reifen)
+      var Gl = rd.glied !== undefined ? teil.glieder[rd.glied] : null;
       teil.raeder.push({
         k: k, r: rd.r, ankerX: rd.x, ankerY: rd.y, antrieb: !!rd.antrieb,
+        tr: Gl ? Gl.k : null,                                  // Träger: Glied (sonst die Karosserie)
+        mk: Gl && rd.motorAn === "karosserie" ? teil.chassis : null,   // Motor sitzt in der Karosserie: Gegenmoment dort
+        cx: (Gl ? Gl.restX : 0) + rd.x, cy: (Gl ? Gl.restY : 0) + rd.y,   // Aufhängung in Ruhe, Karosserie-Koordinaten
+        kette: rd.kette,
         L0: fed.ruhe, Lmin: fed.ruhe - fed.weg, Lmax: fed.ruhe,
         kF: mGefedert * om * om, cF: 2 * fed.daempfung * mGefedert * om,
         wMax: vmax / rd.r,
@@ -102,6 +143,11 @@ var FF = globalThis.FF = globalThis.FF || {};
         kontakt: new Kontakt()
       });
     });
+
+    // Ketten: Räder mit gleicher rd.kette laufen in einer Kette (drehen gleich schnell)
+    var ketten = {};
+    teil.raeder.forEach(function (R) { if (R.kette !== undefined) (ketten[R.kette] = ketten[R.kette] || []).push(R); });
+    teil.ketten = Object.keys(ketten).map(function (id) { return ketten[id]; });
 
     // Umriss in Punkte zerlegen (geschlossenes Polygon), Dachpunkte extra markieren
     var poly = w.huelle;
@@ -171,10 +217,25 @@ var FF = globalThis.FF = globalThis.FF || {};
     var C = T.chassis, ca = Math.cos(a), sa = Math.sin(a);
     C.x = x; C.y = y; C.a = a; C.vx = C.vy = C.w = 0;
     T.raeder.forEach(function (R) {
-      var lx = R.ankerX, ly = R.ankerY - R.L0;
+      var lx = R.cx, ly = R.cy - R.L0;
       R.k.x = x + ca * lx - sa * ly; R.k.y = y + sa * lx + ca * ly;
       R.k.vx = R.k.vy = 0;
       R.trans = R.L0;
+    });
+    stelleGlieder(T);
+  }
+
+  /* Glieder in ihre Ruhelage zur Karosserie stellen (gleiche Geschwindigkeit wie sie,
+     Lager-Impulse zurückgesetzt) – Start, Ballon-Hilfe, Röhre, Katapult, Geist */
+  function stelleGlieder(T) {
+    if (!T.glieder || !T.glieder.length) return;
+    var C = T.chassis, ca = Math.cos(C.a), sa = Math.sin(C.a);
+    T.glieder.forEach(function (G) {
+      var k = G.k, rx = ca * G.restX - sa * G.restY, ry = sa * G.restX + ca * G.restY;
+      k.x = C.x + rx; k.y = C.y + ry; k.a = C.a;
+      k.vx = C.vx - C.w * ry; k.vy = C.vy + C.w * rx; k.w = C.w;
+      G.zeilen.forEach(function (Z) { Z.j = 0; });
+      G.huelle.forEach(function (p) { p.kontakt.warAktiv = false; p.kontakt.aktiv = false; p.kontakt.jn = p.kontakt.jt = 0; });
     });
   }
 
@@ -245,9 +306,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       A.chassis.vx = C.vx; A.chassis.vy = C.vy; A.chassis.w = 0;
       A.raeder.forEach(function (R) { R.k.vx = C.vx; R.k.vy = C.vy; R.k.w = -Math.hypot(C.vx, C.vy) / R.r; });
     });
+    (fz.glieder || []).forEach(function (G) { G.k.vx = C.vx; G.k.vy = C.vy; G.k.w = C.w; });
   }
   function alleKoerper(fz, f) {
     f(fz.chassis); fz.raeder.forEach(function (R) { f(R.k); });
+    (fz.glieder || []).forEach(function (G) { f(G.k); });
     (fz.anhaenger || []).forEach(function (A) { f(A.chassis); A.raeder.forEach(function (R) { f(R.k); }); });
   }
 
@@ -258,14 +321,14 @@ var FF = globalThis.FF = globalThis.FF || {};
     var y = -Infinity;
     fz.raeder.forEach(function (R) {
       // Radmitte relativ zum Schwerpunkt (entspannte Feder, Achse = lokal unten)
-      var lx = R.ankerX, ly = R.ankerY - R.L0;
+      var lx = R.cx, ly = R.cy - R.L0;
       var wx = ca * lx - sa * ly, wy = sa * lx + ca * ly;
       var boden = gel.hoeheBei(x + wx);
       y = Math.max(y, boden + R.r - wy + 0.02);
     });
     C.x = x; C.y = y; C.a = a; C.vx = C.vy = C.w = 0;
     fz.raeder.forEach(function (R) {
-      var lx = R.ankerX, ly = R.ankerY - R.L0;
+      var lx = R.cx, ly = R.cy - R.L0;
       R.k.x = x + ca * lx - sa * ly; R.k.y = y + sa * lx + ca * ly;
       R.k.vx = R.k.vy = R.k.w = 0;
       R.jLinie = R.jFeder = R.jUnten = R.jOben = R.jMotor = 0;
@@ -273,6 +336,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
     fz.huelle.forEach(function (p) { p.kontakt.warAktiv = false; p.kontakt.jn = p.kontakt.jt = 0; });
     fz.kopf.kontakt.warAktiv = false;
+    stelleGlieder(fz);
     if (fz.anhaenger && fz.anhaenger.length) folgeAnhaenger(fz, gel);
   }
 
@@ -281,7 +345,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var C = fz.chassis, ca = Math.cos(a), sa = Math.sin(a);
     C.x = x; C.y = y; C.a = a; C.vx = C.vy = C.w = 0;
     fz.raeder.forEach(function (R) {
-      var lx = R.ankerX, ly = R.ankerY - R.L0;
+      var lx = R.cx, ly = R.cy - R.L0;
       R.k.x = x + ca * lx - sa * ly; R.k.y = y + sa * lx + ca * ly;
       R.k.vx = R.k.vy = 0; R.k.w *= 0.9;
       R.trans = R.L0;
@@ -289,6 +353,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
     fz.kopf.kontakt.aktiv = false;
     fz.huelle.forEach(function (p) { p.kontakt.aktiv = false; });
+    stelleGlieder(fz);
     if (fz.anhaenger && fz.anhaenger.length) folgeAnhaenger(fz, null);
   }
 
@@ -364,6 +429,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var g = welt.schwerkraft * (gel.schwereBei ? gel.schwereBei(C.x) : 1);   // Schwebe-Säulen: fast keine Schwerkraft
     C.vy -= g * h;
     for (i = 0; i < nR; i++) RR[i].k.vy -= g * h;
+    if (T.glieder) for (i = 0; i < T.glieder.length; i++) T.glieder[i].k.vy -= g * h;
     var rho = welt.luftdichte;
     if (rho > 0) {
       var v2 = C.vx * C.vx + C.vy * C.vy;
@@ -405,6 +471,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     alleKoerper(fz, function (k) { k.vx -= dw * (k.y - sy); k.vy += dw * (k.x - sx); });
     fz.chassis.w += dw;
     fz.anhaenger.forEach(function (A) { A.chassis.w += dw; });
+    (fz.glieder || []).forEach(function (G) { G.k.w += dw; });
   }
 
   /* Schnee-Schlitten: Reibwert einer Kufe. Auf Schnee (von der Kanone gelegt oder in einer
@@ -449,6 +516,20 @@ var FF = globalThis.FF = globalThis.FF || {};
         vorbereiteKontakt(C, ko, h, Math.max(P.huellAbprall, abprall * 0.5), muH, P);
       } else { ko.jn = ko.jt = 0; }
     }
+    if (T.glieder) for (var gi = 0; gi < T.glieder.length; gi++) {
+      var GK = T.glieder[gi].k, gca = Math.cos(GK.a), gsa = Math.sin(GK.a), GH = T.glieder[gi].huelle;
+      for (i = 0; i < GH.length; i++) {
+        p = GH[i]; ko = p.kontakt;
+        var grx = gca * p.x - gsa * p.y, gry = gsa * p.x + gca * p.y;
+        ko.warAktiv = ko.aktiv;
+        ko.aktiv = gel.punktKontakt(GK.x + grx, GK.y + gry, P.kontaktRand, tmp);
+        if (ko.aktiv) {
+          ko.pen = tmp.pen; ko.nx = tmp.nx; ko.ny = tmp.ny; ko.rx = grx; ko.ry = gry; ko.rollMax = 0;
+          ko.vBand = band ? gel.bandBei(GK.x + grx) : 0;
+          vorbereiteKontakt(GK, ko, h, Math.max(P.huellAbprall, abprall * 0.5), muH, P);
+        } else { ko.jn = ko.jt = 0; }
+      }
+    }
     var kp = T.kopf;
     if (kp) {
       ko = kp.kontakt;
@@ -465,10 +546,11 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   // Radaufhängungen vorbereiten
   function aufhaengungVorbereiten(T, h, P) {
-    var C = T.chassis, RR = T.raeder, nR = RR.length, R, k;
-    var ca = Math.cos(C.a), sa = Math.sin(C.a);
+    var C0 = T.chassis, RR = T.raeder, nR = RR.length, R, k, C;
     for (var i = 0; i < nR; i++) {
       R = RR[i]; k = R.k;
+      C = R.tr || C0;                               // Träger: Karosserie oder Glied (Kettenblock)
+      var ca = Math.cos(C.a), sa = Math.sin(C.a);
       var rAx = ca * R.ankerX - sa * R.ankerY, rAy = sa * R.ankerX + ca * R.ankerY;
       R.axx = sa; R.axy = -ca;           // Federachse = Fahrzeug-"unten"
       R.ayx = ca; R.ayy = sa;            // quer dazu = Fahrzeug-"vorn"
@@ -480,7 +562,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       R.sAy = ex * R.ayy - ey * R.ayx;
       R.mAx = 1 / (C.im + k.im + C.iJ * R.sAx * R.sAx);
       R.mLinie = 1 / (C.im + k.im + C.iJ * R.sAy * R.sAy);
-      R.mMotor = 1 / (C.iJ + k.iJ);
+      var M = R.mk || C;                            // Körper, an dem sich der Motor abstützt
+      R.mMotor = 1 / (M.iJ + k.iJ);
       // weiche Feder (Catto)
       var gam = h * (R.cF + h * R.kF);
       R.gamma = gam > 0 ? 1 / gam : 0;
@@ -495,7 +578,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       var ja = R.jFeder + R.jUnten - R.jOben;
       var Px = ja * R.axx + R.jLinie * R.ayx, Py = ja * R.axy + R.jLinie * R.ayy;
       C.vx -= Px * C.im; C.vy -= Py * C.im;
-      C.w -= C.iJ * (ja * R.sAx + R.jLinie * R.sAy + R.jMotor);
+      C.w -= C.iJ * (ja * R.sAx + R.jLinie * R.sAy);
+      M.w -= M.iJ * R.jMotor;
       k.vx += Px * k.im; k.vy += Py * k.im;
       k.w += k.iJ * R.jMotor;
     }
@@ -556,19 +640,21 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* 4) eine Iteration für ein Teil: Aufhängungen, dann Bodenkontakte */
   function iteriere(T, P, h, inv_h, beta) {
-    var C = T.chassis, RR = T.raeder, nR = RR.length, i, R, k, ko;
+    var C0 = T.chassis, C = C0, RR = T.raeder, nR = RR.length, i, R, k, ko;
     for (i = 0; i < nR; i++) {
       R = RR[i]; k = R.k;
+      C = R.tr || C0;                               // Träger des Rades
       var cd, dj, j0, mx;
 
-      // Motor / Bremse (relative Drehzahl, begrenztes Moment)
+      // Motor / Bremse (relative Drehzahl, begrenztes Moment); Gegenmoment auf den Motorträger
       if (R.motorMax > 0) {
-        cd = k.w - C.w - R.motorZiel;
+        var MK = R.mk || C;
+        cd = k.w - MK.w - R.motorZiel;
         dj = -R.mMotor * cd;
         j0 = R.jMotor; mx = R.motorMax * h;
         R.jMotor = Math.max(-mx, Math.min(mx, j0 + dj));
         dj = R.jMotor - j0;
-        C.w -= C.iJ * dj; k.w += k.iJ * dj;
+        MK.w -= MK.iJ * dj; k.w += k.iJ * dj;
       }
 
       // Feder-Dämpfer (weich)
@@ -602,17 +688,16 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     // Kuppelstangen (Dampf-Lok): alle Räder drehen gleich schnell über den Boden –
     // (ω₀ − ω_K)·r₀ = (ωᵢ − ω_K)·rᵢ. So kann kein Rad allein durchdrehen.
-    if (T.gekuppelt) {
-      var R0 = RR[0], k0 = R0.k;
-      for (i = 1; i < nR; i++) {
-        R = RR[i]; k = R.k;
-        var cdK = (k0.w - C.w) * R0.r - (k.w - C.w) * R.r;
-        var dr = R.r - R0.r;
-        var mK = 1 / (k0.iJ * R0.r * R0.r + k.iJ * R.r * R.r + C.iJ * dr * dr);
-        var lam = -mK * cdK;
-        k0.w += k0.iJ * R0.r * lam; k.w -= k.iJ * R.r * lam; C.w += C.iJ * dr * lam;
-      }
+    // Dieselbe Bindung für jede Kette (Kettenwagen): Räder eines Kettenblocks relativ zum Block.
+    if (T.gekuppelt) kuppeln(RR, C0);
+    for (i = 0; i < T.ketten.length; i++) kuppeln(T.ketten[i], T.ketten[i][0].tr || C0);
+
+    // Glieder: Lager und Federn
+    if (T.glieder) for (i = 0; i < T.glieder.length; i++) {
+      var ZZ = T.glieder[i].zeilen;
+      for (var zi = 0; zi < ZZ.length; zi++) if (ZZ[zi].an) zeileLoesen(ZZ[zi]);
     }
+    C = C0;
 
     // Bodenkontakte: erst Normal-, dann Reibimpulse
     for (i = 0; i < nR; i++) {
@@ -631,16 +716,106 @@ var FF = globalThis.FF = globalThis.FF || {};
       ko = T.kopf.kontakt;
       if (ko.aktiv) { loeseNormal(C, ko); loeseReibung(C, ko); }
     }
+    if (T.glieder) for (i = 0; i < T.glieder.length; i++) {
+      var GG = T.glieder[i];
+      for (var hi = 0; hi < GG.huelle.length; hi++) {
+        ko = GG.huelle[hi].kontakt;
+        if (ko.aktiv) { loeseNormal(GG.k, ko); loeseReibung(GG.k, ko); }
+      }
+    }
+  }
+
+  function kuppeln(RR, C) {
+    var R0 = RR[0], k0 = R0.k, R, k;
+    for (var i = 1; i < RR.length; i++) {
+      R = RR[i]; k = R.k;
+      var cdK = (k0.w - C.w) * R0.r - (k.w - C.w) * R.r;
+      var dr = R.r - R0.r;
+      var mK = 1 / (k0.iJ * R0.r * R0.r + k.iJ * R.r * R.r + C.iJ * dr * dr);
+      var lam = -mK * cdK;
+      k0.w += k0.iJ * R0.r * lam; k.w -= k.iJ * R.r * lam; C.w += C.iJ * dr * lam;
+    }
+  }
+
+  /* -------------------------------------------------------------------------
+     Glieder: allgemeine 1D-Bindungszeilen (Sequential Impulses, Catto)
+     Ċ = n·(v_B − v_A) + sB·ω_B − sA·ω_A,   Impuls λ: B +n·λ, A −n·λ
+     sA, sB = Hebelarm × n. Reine Drehzeilen: n = 0, sA = sB = ±1.
+     Weich (Feder/Dämpfer): gamma > 0. Ungleichung: lo = 0.
+     ------------------------------------------------------------------------- */
+  function zeileSetzen(Z, A, B, nx, ny, sA, sB, bias, gamma, lo, hi) {
+    Z.A = A; Z.B = B; Z.nx = nx; Z.ny = ny; Z.sA = sA; Z.sB = sB; Z.bias = bias; Z.gamma = gamma; Z.lo = lo; Z.hi = hi; Z.an = true;
+    var K = (nx * nx + ny * ny) * (A.im + B.im) + sA * sA * A.iJ + sB * sB * B.iJ + gamma;
+    Z.m = K > 0 ? 1 / K : 0;
+    Z.j = Math.max(lo, Math.min(hi, Z.j));
+    zeileImpuls(Z, Z.j);                                  // Warmstart
+  }
+  function zeileImpuls(Z, dj) {
+    var A = Z.A, B = Z.B;
+    B.vx += Z.nx * dj * B.im; B.vy += Z.ny * dj * B.im; B.w += Z.sB * dj * B.iJ;
+    A.vx -= Z.nx * dj * A.im; A.vy -= Z.ny * dj * A.im; A.w -= Z.sA * dj * A.iJ;
+  }
+  function zeileLoesen(Z) {
+    var A = Z.A, B = Z.B;
+    var cd = Z.nx * (B.vx - A.vx) + Z.ny * (B.vy - A.vy) + Z.sB * B.w - Z.sA * A.w;
+    var dj = -Z.m * (cd + Z.bias + Z.gamma * Z.j);
+    var j0 = Z.j;
+    Z.j = Math.max(Z.lo, Math.min(Z.hi, j0 + dj));
+    zeileImpuls(Z, Z.j - j0);
+  }
+  function grenzBias(c, inv_h, beta) { return c > 0 ? c * inv_h : Math.max(-3, beta * c * inv_h); }
+
+  /* Lager aller Glieder für diesen Schritt vorbereiten */
+  function gliederVorbereiten(T, h, P) {
+    var inv_h = 1 / h, beta = P.baumgarte, INF = 1e9;
+    T.glieder.forEach(function (G) {
+      var A = G.eltern < 0 ? T.chassis : T.glieder[G.eltern].k, B = G.k, d = G.def, Z = G.zeilen;
+      var caA = Math.cos(A.a), saA = Math.sin(A.a), caB = Math.cos(B.a), saB = Math.sin(B.a);
+      var rAx = caA * G.lager[0] - saA * G.lager[1], rAy = saA * G.lager[0] + caA * G.lager[1];
+      var rBx = caB * G.punkt[0] - saB * G.punkt[1], rBy = saB * G.punkt[0] + caB * G.punkt[1];
+      var dx = B.x + rBx - A.x - rAx, dy = B.y + rBy - A.y - rAy;
+      var rel = normW(B.a - A.a);
+      G.winkel = rel;
+      if (G.art === "dreh") {
+        // Drehlager: Punkt fest (hart), Winkel zwischen min und max, Drehdämpfer
+        zeileSetzen(Z[0], A, B, 1, 0, -rAy, -rBy, beta * inv_h * dx, 0, -INF, INF);
+        zeileSetzen(Z[1], A, B, 0, 1, rAx, rBx, beta * inv_h * dy, 0, -INF, INF);
+        zeileSetzen(Z[2], A, B, 0, 0, 1, 1, grenzBias(rel - d.min, inv_h, beta), 0, 0, INF);
+        zeileSetzen(Z[3], A, B, 0, 0, -1, -1, grenzBias(d.max - rel, inv_h, beta), 0, 0, INF);
+        if (d.daempfung > 0) zeileSetzen(Z[4], A, B, 0, 0, 1, 1, 0, 1 / (h * d.daempfung), -INF, INF);
+        else Z[4].an = false;
+      } else {
+        // Schubführung entlang der Hochachse von A ("unten" = (sin a, −cos a)):
+        // quer und im Winkel hart, längs weiche Feder mit Anschlägen
+        var ax = saA, ay = -caA, qx = caA, qy = saA;
+        var tr = dx * ax + dy * ay, quer = dx * qx + dy * qy;
+        G.trans = tr;
+        var hx = rAx + dx, hy = rAy + dy;                 // Hebel an A: bis zum Punkt auf B
+        zeileSetzen(Z[0], A, B, qx, qy, hx * qy - hy * qx, rBx * qy - rBy * qx, beta * inv_h * quer, 0, -INF, INF);
+        zeileSetzen(Z[1], A, B, 0, 0, 1, 1, beta * inv_h * rel, 0, -INF, INF);
+        var sA = hx * ay - hy * ax, sB = rBx * ay - rBy * ax;
+        var gam = h * (G.cF + h * G.kF), gamma = gam > 0 ? 1 / gam : 0;
+        zeileSetzen(Z[2], A, B, ax, ay, sA, sB, (tr - G.L0) * h * G.kF * gamma, gamma, -INF, INF);
+        zeileSetzen(Z[3], A, B, ax, ay, sA, sB, grenzBias(tr - G.Lmin, inv_h, beta), 0, 0, INF);
+        zeileSetzen(Z[4], A, B, -ax, -ay, -sA, -sB, grenzBias(G.Lmax - tr, inv_h, beta), 0, 0, INF);
+      }
+    });
   }
 
   /* 5) Lage integrieren */
   function integriere(T, P, h) {
-    var C = T.chassis, RR = T.raeder, k;
+    var C = T.chassis, RR = T.raeder, k, i;
     if (C.w > P.maxWinkelGeschw) C.w = P.maxWinkelGeschw;
     if (C.w < -P.maxWinkelGeschw) C.w = -P.maxWinkelGeschw;
     C.x += C.vx * h; C.y += C.vy * h; C.a += C.w * h;
-    for (var i = 0; i < RR.length; i++) {
+    for (i = 0; i < RR.length; i++) {
       k = RR[i].k;
+      k.x += k.vx * h; k.y += k.vy * h; k.a += k.w * h;
+    }
+    if (T.glieder) for (i = 0; i < T.glieder.length; i++) {
+      k = T.glieder[i].k;
+      if (k.w > 2 * P.maxWinkelGeschw) k.w = 2 * P.maxWinkelGeschw;
+      if (k.w < -2 * P.maxWinkelGeschw) k.w = -2 * P.maxWinkelGeschw;
       k.x += k.vx * h; k.y += k.vy * h; k.a += k.w * h;
     }
   }
@@ -657,7 +832,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       ko.kraftT = ko.aktiv ? ko.jt * inv_h : 0;
       if (ko.aktiv && ko.pen > schwelle) st.radKontakte++;
       if (R.antrieb) {
-        var rel = R.k.w - C.w;
+        var rel = R.k.w - (R.mk || R.tr || C).w;
         st.leistung += Math.abs(R.jMotor * inv_h * rel) * (R.motorZiel !== 0 ? 1 : 0);
         st.drehzahl += Math.abs(rel) / R.wMax;
         nAntrieb++;
@@ -673,6 +848,9 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (p.dach) st.dachKontakt = true;
       }
     }
+    if (T.glieder) T.glieder.forEach(function (G) {
+      G.huelle.forEach(function (q) { var kq = q.kontakt; if (kq.aktiv && kq.pen > schwelle) st.huellKontakt = true; });
+    });
     if (T.kopf) { ko = T.kopf.kontakt; st.kopfKontakt = ko.aktiv && ko.pen > schwelle; }
     st.vorwaerts = C.vx * Math.cos(C.a) + C.vy * Math.sin(C.a);
     st.tempo = Math.sqrt(C.vx * C.vx + C.vy * C.vy);
@@ -682,10 +860,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     var P = FF.CONFIG.physik, AN = fz.anhaenger || [], nA = AN.length, i, it;
     kraefte(fz, gel, welt, h);
     for (i = 0; i < nA; i++) kraefte(AN[i], gel, welt, h);
-    if (nA && fz.zusatzAlpha) zugDrehen(fz, fz.zusatzAlpha, h);
+    if ((nA || fz.glieder.length) && fz.zusatzAlpha) zugDrehen(fz, fz.zusatzAlpha, h);
 
     kontakteVorbereiten(fz, gel, welt, h, P);
     aufhaengungVorbereiten(fz, h, P);
+    if (fz.glieder.length) gliederVorbereiten(fz, h, P);
     for (i = 0; i < nA; i++) {
       AN[i].ohneLoop = true;                            // Anhänger fahren nie Looping-Bahn
       kontakteVorbereiten(AN[i], gel, welt, h, P);
@@ -724,6 +903,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     baueFahrzeug: baueFahrzeug,
     setzeAufBoden: setzeAufBoden,
     setzePose: setzePose,
+    stelleGlieder: stelleGlieder,
     folgeAnhaenger: folgeAnhaenger,
     stelleTeil: stelleTeil,
     zugHinten: zugHinten,

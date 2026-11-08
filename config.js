@@ -689,6 +689,53 @@ FF.CONFIG = {
       farbe: "holz", form: "feuerkutsche",
       klang: { art: "turbine", max: 9000, leerlauf: 2600, traegheit: 8, lautstaerke: 1.0, abrollen: 1.3 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
+    },
+    {
+      /* Kettenwagen (Version 45, nach Bastians Bild): vorn und hinten je ein Dreier-Block aus drei
+         Zahnrädern mit umlaufender Kette. Fünf Starrkörper (physik.js „glieder“):
+           – Karosserie = Kabine (Plattform, roter Liegesitz, Kind); Ursprung = ihr Schwerpunkt
+           – glieder[0] Rahmen (die zwei Stege): hängt an einer Schubführung mit Feder unter der
+             Kabine – die Kabine federt wirklich ein (feder.frequenz, Anschläge über weg)
+           – glieder[1], [2] Kettenblöcke: in ihrer Mitte drehbar am Rahmen gelagert (Pendel,
+             ±min/max, etwas Drehdämpfung), so folgen sie dem Boden
+         Bodenkontakt: je Block drei Räder entlang des unteren Kettentrums (die beiden unteren
+         Zahnräder und eine Stützrolle in der Mitte, r = Zahnrad + Kette), steif gefedert (Kette
+         und Gummi). Räder eines Blocks laufen in einer Kette (rd.kette) und drehen gleich schnell. */
+      id: "kettenwagen", name: "Kettenwagen", emoji: "🐛", preis: 12000, preisBasis: 260,
+      text: "Zwei Kettenblöcke, die pendeln, und eine gefederte Kabine: Der Kettenwagen klebt am Boden und klettert steil bergauf – aber er ist gemütlich langsam.",
+      masse: 130, groesse: { laenge: 1.5, hoehe: 1.1 },
+      glieder: [
+        { name: "rahmen", art: "schub", an: -1, lager: [0, -0.26], punkt: [0, 0.36],
+          masse: 45, J: 30, feder: { ruhe: 0.24, weg: 0.14, frequenz: 2.0, daempfung: 0.35, masse: 130 } },
+        { name: "kette hinten", art: "dreh", an: 0, lager: [-1.35, -0.53], punkt: [0, 0],
+          masse: 32, J: 3.2, min: -0.5, max: 0.5, daempfung: 12,
+          huelle: [[-0.62, -0.18], [0.62, -0.18], [0.16, 0.62], [-0.16, 0.62]] },
+        { name: "kette vorne", art: "dreh", an: 0, lager: [1.35, -0.53], punkt: [0, 0],
+          masse: 32, J: 3.2, min: -0.5, max: 0.5, daempfung: 12,
+          huelle: [[-0.62, -0.18], [0.62, -0.18], [0.16, 0.62], [-0.16, 0.62]] }
+      ],
+      raeder: [
+        { x: -0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: "karosserie" },
+        { x:  0.0,  y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: "karosserie" },
+        { x:  0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: "karosserie" },
+        { x: -0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: "karosserie" },
+        { x:  0.0,  y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: "karosserie" },
+        { x:  0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: "karosserie" }
+      ],
+      federung: { ruhe: 0.04, weg: 0.05, frequenz: 7, daempfung: 0.7 },
+      motor: { drehmoment: 440, vmax: 12, eck: 0.35 }, bremse: 1400, grip: 1.25,
+      tankSekunden: 22, luftsteuerung: 4.0, cwA: 0.6, abtrieb: 0,
+      upgradeNamen: {
+        reifen:   { name: "Kettenglieder", icon: "⛓️", text: "Griffigere Kettenglieder" },
+        federung: { name: "Kabinenfeder",  icon: "🌀", text: "Bessere Kabinenfeder – sanfter landen" }
+      },
+      huelle: [[-0.66, -0.26], [0.86, -0.26], [0.88, 0.04], [0.56, 0.58], [-0.62, 0.5], [-0.7, 0.0]],
+      dach: [[0.53, 0.6], [-0.62, 0.55]],
+      kopf: { x: -0.25, y: 0.28, r: 0.28 },
+      farbe: "blau", form: "kettenwagen",
+      klang: { art: "verbrenner", zylinder: 2, takte: 4, leerlauf: 900, max: 4200, gaenge: 3, abkling: 7, ungleich: 0.3,
+               rohr: 0.009, rueck: 0.5, koerper: 120, hell: 0.8, diesel: 0.5, unruhe: 12, traegheit: 9, lautstaerke: 1.0, abrollen: 1.5 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
     }
   ],
 
@@ -1654,6 +1701,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "45", titel: "Drei neue Fahrzeuge nach euren Bildern", punkte: [
+      "🛥️ Jontes Luftkissenboot: schwebt über Pfützen, Matsch und Schleim – ohne Gas sinkt es langsam ab",
+      "🔥 Fietes Feuerkutsche: riesige Flamme, dicker Qualm – sie beschleunigt schneller als alle anderen",
+      "🐛 Der Kettenwagen: pendelnde Kettenblöcke und eine gefederte Kabine – er klettert steil bergauf" ] },
     { version: "44", titel: "Fliegender Teppich und Farben nach Wunsch", punkte: [
       "🧞 Neues Fahrzeug Fliegender Teppich: schwebt über Pfützen und Matsch, aber der Wind pustet ihn herum",
       "🎪 Mehr Action im Zirkus: Hocker-Springen, Wippen-Ketten, Trampolin-Reihen und ein Hochseil mit Lücke",
