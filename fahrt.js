@@ -372,6 +372,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
       C.vx += ax * h; C.vy += ay * h;
       fz.raeder.forEach(function (R) { R.k.vx += ax * h; R.k.vy += ay * h; });
+      // Der Schub greift an der Propellernabe an, schubHebel über dem Schwerpunkt: Moment
+      // −Hebel·F (F entlang der Längsachse) – Gas drückt die Nase aufs Kissen. Nur solange das
+      // Kissen trägt; in der Luft bleibt es bei der Spiel-Regel „Gas = Nase hoch“.
+      if (st.radKontakte > 0) C.w += -L.schubHebel * schub * fz.masseGesamt * C.iJ * h;
     }
     fz.kufenBremse = this.rueckwaerts ? 0 : this.bremse;
     // Über Wasser hält sich das Kissen an der Oberfläche (wie der Teppich)

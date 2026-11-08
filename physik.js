@@ -37,7 +37,8 @@
            Drehdämpfer – z. B. die pendelnden Kettenblöcke
          – "schub": Schubführung entlang der Hochachse des Elternkörpers (quer und
            im Winkel hart, längs eine weiche Feder nach Catto mit Anschlägen) – z. B.
-           die gefederte Kabine
+           die gefederte Kabine. Mit "kipp" ist der Winkel nicht fest, sondern eine
+           weiche Drehfeder mit Anschlägen (die Kabine wippt vor und zurück)
        Räder können an einem Glied hängen (rd.glied); Räder mit gleicher rd.kette
        laufen in einer Kette und drehen gleich schnell (wie die Kuppelstangen).
      • Luftwiderstand ½·ρ·cwA·v² und Abtrieb ½·ρ·cA·v² (unter Wasser mit
@@ -109,7 +110,11 @@ var FF = globalThis.FF = globalThis.FF || {};
         G.L0 = F.ruhe; G.Lmin = F.ruhe - F.weg; G.Lmax = F.ruhe + (F.aus || 0);
         G.kF = mE * omF * omF; G.cF = 2 * F.daempfung * mE * omF;
       }
-      for (var z = 0; z < 5; z++) G.zeilen.push({ A: null, B: null, nx: 0, ny: 0, sA: 0, sB: 0, m: 0, bias: 0, gamma: 0, j: 0, lo: 0, hi: 0, an: false });
+      if (gd.kipp) {                                                  // gefedertes Kippgelenk (Drehfeder nach Catto)
+        var omK = 2 * Math.PI * gd.kipp.frequenz, JE = gd.kipp.J || 1;
+        G.kK = JE * omK * omK; G.cK = 2 * gd.kipp.daempfung * JE * omK;
+      }
+      for (var z = 0; z < 7; z++) G.zeilen.push({ A: null, B: null, nx: 0, ny: 0, sA: 0, sB: 0, m: 0, bias: 0, gamma: 0, j: 0, lo: 0, hi: 0, an: false });
       (gd.huelle || []).forEach(function (a, i, poly) {
         var b = poly[(i + 1) % poly.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
         var n = Math.max(1, Math.ceil(len / FF.CONFIG.physik.punktAbstand));
@@ -129,7 +134,8 @@ var FF = globalThis.FF = globalThis.FF || {};
       teil.raeder.push({
         k: k, r: rd.r, ankerX: rd.x, ankerY: rd.y, antrieb: !!rd.antrieb,
         tr: Gl ? Gl.k : null,                                  // Träger: Glied (sonst die Karosserie)
-        mk: Gl && rd.motorAn === "karosserie" ? teil.chassis : null,   // Motor sitzt in der Karosserie: Gegenmoment dort
+        // Motor sitzt woanders als das Rad (Karosserie oder ein Glied): Gegenmoment dort
+        mk: Gl && rd.motorAn === "karosserie" ? teil.chassis : Gl && typeof rd.motorAn === "number" ? teil.glieder[rd.motorAn].k : null,
         cx: (Gl ? Gl.restX : 0) + rd.x, cy: (Gl ? Gl.restY : 0) + rd.y,   // Aufhängung in Ruhe, Karosserie-Koordinaten
         kette: rd.kette,
         L0: fed.ruhe, Lmin: fed.ruhe - fed.weg, Lmax: fed.ruhe,
@@ -784,6 +790,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         zeileSetzen(Z[3], A, B, 0, 0, -1, -1, grenzBias(d.max - rel, inv_h, beta), 0, 0, INF);
         if (d.daempfung > 0) zeileSetzen(Z[4], A, B, 0, 0, 1, 1, 0, 1 / (h * d.daempfung), -INF, INF);
         else Z[4].an = false;
+        Z[5].an = Z[6].an = false;
       } else {
         // Schubführung entlang der Hochachse von A ("unten" = (sin a, −cos a)):
         // quer und im Winkel hart, längs weiche Feder mit Anschlägen
@@ -792,7 +799,16 @@ var FF = globalThis.FF = globalThis.FF || {};
         G.trans = tr;
         var hx = rAx + dx, hy = rAy + dy;                 // Hebel an A: bis zum Punkt auf B
         zeileSetzen(Z[0], A, B, qx, qy, hx * qy - hy * qx, rBx * qy - rBy * qx, beta * inv_h * quer, 0, -INF, INF);
-        zeileSetzen(Z[1], A, B, 0, 0, 1, 1, beta * inv_h * rel, 0, -INF, INF);
+        if (d.kipp) {
+          // Kippgelenk: Drehfeder (weich) mit Anschlägen ±kipp.max statt fester Winkel
+          var gamK = h * (G.cK + h * G.kK), gK = gamK > 0 ? 1 / gamK : 0;
+          zeileSetzen(Z[1], A, B, 0, 0, 1, 1, rel * h * G.kK * gK, gK, -INF, INF);
+          zeileSetzen(Z[5], A, B, 0, 0, 1, 1, grenzBias(rel + d.kipp.max, inv_h, beta), 0, 0, INF);
+          zeileSetzen(Z[6], A, B, 0, 0, -1, -1, grenzBias(d.kipp.max - rel, inv_h, beta), 0, 0, INF);
+        } else {
+          zeileSetzen(Z[1], A, B, 0, 0, 1, 1, beta * inv_h * rel, 0, -INF, INF);
+          Z[5].an = Z[6].an = false;
+        }
         var sA = hx * ay - hy * ax, sB = rBx * ay - rBy * ax;
         var gam = h * (G.cF + h * G.kF), gamma = gam > 0 ? 1 / gam : 0;
         zeileSetzen(Z[2], A, B, ax, ay, sA, sB, (tr - G.L0) * h * G.kF * gamma, gamma, -INF, INF);

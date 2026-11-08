@@ -631,7 +631,10 @@ FF.CONFIG = {
          schleift es (luftkissen.muAbgesetzt). Der Propeller schiebt (luftkissen.schub [m/s²]
          entlang des Bootes bis vmax, auch in der Luft) und läuft nur mit Gas (rückwärts mit
          der Bremse im Stand). Pfützen, Matsch und Schleim bremsen es nicht, über Wasser trägt
-         das Kissen. Dafür: wenig Halt am Hang, lange Bremswege, der Wind schiebt es. */
+         das Kissen. Dafür: wenig Halt am Hang, lange Bremswege, der Wind schiebt es.
+         Version 45b: schwebt 20 cm hoch. Der Schub greift an der Propellernabe an (über dem
+         Schwerpunkt): Gas drückt die Nase etwas auf das Kissen, Bremsen (Schürze schleift am
+         Boden, unter dem Schwerpunkt) ebenso – die Kissenfedern zeigen das. */
       id: "luftkissen", name: "Luftkissenboot", emoji: "🛥️", preis: 9000, preisBasis: 210,
       text: "Jontes Luftkissenboot schwebt auf einem Luftpolster über Pfützen, Matsch und Schleim – der Propeller schiebt. Ohne Gas sinkt es langsam ab.",
       masse: 210, groesse: { laenge: 3.44, hoehe: 1.0 },
@@ -640,12 +643,13 @@ FF.CONFIG = {
         { x:  0.0, y: -0.4, r: 0.12, masse: 2, antrieb: false },
         { x:  1.2, y: -0.4, r: 0.12, masse: 2, antrieb: false }
       ],
-      federung: { ruhe: 0.15, weg: 0.14, frequenz: 2.1, daempfung: 0.5 },
+      federung: { ruhe: 0.24, weg: 0.22, frequenz: 2.1, daempfung: 0.5 },
       motor: { drehmoment: 1, vmax: 14 }, bremse: 0, grip: 1,
       tankSekunden: 24, leerlauf: 0.05, luftsteuerung: 3.8, bruchExtra: 6, cwA: 0.8, abtrieb: 0, freilauf: true,
       windMax: 1.8,
       schweben: { mu: 0.08, bremsMu: 0.45, flattern: 0, stoff: 0.015 },
-      luftkissen: { schub: 5.0, anlauf: 0.35, vmax: 14, rueck: 0.45, anheben: 0.45, absinken: 3.5, absenkung: 0.1, muAbgesetzt: 0.5 },
+      luftkissen: { schub: 5.0, anlauf: 0.35, vmax: 14, rueck: 0.45, anheben: 0.55, absinken: 3.5, absenkung: 0.19, muAbgesetzt: 0.5,
+                    schubHebel: 0.5 },   // Propellernabe 0,92 m über dem Deck, Schwerpunkt (Kissen, Kabine, Mast, Kind) ≈ 0,42 m
       upgradeNamen: {
         motor:    { name: "Propeller",    icon: "🌀", text: "Größerer Propeller – schiebt kräftiger" },
         reifen:   { name: "Gummischürze", icon: "🛟", text: "Griffigere Schürze: hält besser am Hang" },
@@ -694,8 +698,10 @@ FF.CONFIG = {
       /* Kettenwagen (Version 45, nach Bastians Bild): vorn und hinten je ein Dreier-Block aus drei
          Zahnrädern mit umlaufender Kette. Fünf Starrkörper (physik.js „glieder“):
            – Karosserie = Kabine (Plattform, roter Liegesitz, Kind); Ursprung = ihr Schwerpunkt
-           – glieder[0] Rahmen (die zwei Stege): hängt an einer Schubführung mit Feder unter der
-             Kabine – die Kabine federt wirklich ein (feder.frequenz, Anschläge über weg)
+           – glieder[0] Rahmen (die zwei Stege) mit dem Motorblock darunter: hängt an einer
+             Schubführung mit Feder unter der Kabine – die Kabine federt wirklich ein
+             (feder.frequenz, Anschläge über weg) und wippt im gefederten Kippgelenk (kipp)
+             vor und zurück. Der Motor sitzt am Rahmen: dort wirkt sein Gegenmoment (motorAn: 0)
            – glieder[1], [2] Kettenblöcke: in ihrer Mitte drehbar am Rahmen gelagert (Pendel,
              ±min/max, etwas Drehdämpfung), so folgen sie dem Boden
          Bodenkontakt: je Block drei Räder entlang des unteren Kettentrums (die beiden unteren
@@ -703,10 +709,13 @@ FF.CONFIG = {
          und Gummi). Räder eines Blocks laufen in einer Kette (rd.kette) und drehen gleich schnell. */
       id: "kettenwagen", name: "Kettenwagen", emoji: "🐛", preis: 12000, preisBasis: 260,
       text: "Zwei Kettenblöcke, die pendeln, und eine gefederte Kabine: Der Kettenwagen klebt am Boden und klettert steil bergauf – aber er ist gemütlich langsam.",
-      masse: 130, groesse: { laenge: 1.5, hoehe: 1.1 },
+      masse: 100, groesse: { laenge: 1.5, hoehe: 1.1 },
       glieder: [
         { name: "rahmen", art: "schub", an: -1, lager: [0, -0.26], punkt: [0, 0.36],
-          masse: 45, J: 30, feder: { ruhe: 0.24, weg: 0.14, frequenz: 2.0, daempfung: 0.35, masse: 130 } },
+          masse: 75, J: 38, feder: { ruhe: 0.31, weg: 0.22, aus: 0.03, frequenz: 1.4, daempfung: 0.25, masse: 100 },
+          kipp: { frequenz: 1.6, daempfung: 0.22, max: 0.21, J: 35 },
+          motor: { block: [-0.45, 0.0, 0.8, 0.3], auspuff: [-0.72, 0.68] },   // nur Grafik/Rauch (Rahmen-Koordinaten)
+          huelle: [[-0.45, 0.0], [0.35, 0.0], [0.35, 0.3], [-0.45, 0.3]] },
         { name: "kette hinten", art: "dreh", an: 0, lager: [-1.35, -0.53], punkt: [0, 0],
           masse: 32, J: 3.2, min: -0.5, max: 0.5, daempfung: 12,
           huelle: [[-0.62, -0.18], [0.62, -0.18], [0.16, 0.62], [-0.16, 0.62]] },
@@ -715,12 +724,12 @@ FF.CONFIG = {
           huelle: [[-0.62, -0.18], [0.62, -0.18], [0.16, 0.62], [-0.16, 0.62]] }
       ],
       raeder: [
-        { x: -0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: "karosserie" },
-        { x:  0.0,  y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: "karosserie" },
-        { x:  0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: "karosserie" },
-        { x: -0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: "karosserie" },
-        { x:  0.0,  y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: "karosserie" },
-        { x:  0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: "karosserie" }
+        { x: -0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: 0 },
+        { x:  0.0,  y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: 0 },
+        { x:  0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 1, kette: "antrieb", motorAn: 0 },
+        { x: -0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: 0 },
+        { x:  0.0,  y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: 0 },
+        { x:  0.44, y: -0.18, r: 0.21, masse: 4, antrieb: true, glied: 2, kette: "antrieb", motorAn: 0 }
       ],
       federung: { ruhe: 0.04, weg: 0.05, frequenz: 7, daempfung: 0.7 },
       motor: { drehmoment: 440, vmax: 12, eck: 0.35 }, bremse: 1400, grip: 1.25,
@@ -1701,6 +1710,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "46", titel: "Feinschliff für die neuen Fahrzeuge", punkte: [
+      "🛥️ Das Luftkissenboot schwebt höher und nickt beim Gasgeben und Bremsen aufs Kissen",
+      "🐛 Der Kettenwagen hat einen Motorblock mit Auspuff – und seine Kanzel federt und wippt richtig" ] },
     { version: "45", titel: "Drei neue Fahrzeuge nach euren Bildern", punkte: [
       "🛥️ Jontes Luftkissenboot: schwebt über Pfützen, Matsch und Schleim – ohne Gas sinkt es langsam ab",
       "🔥 Fietes Feuerkutsche: riesige Flamme, dicker Qualm – sie beschleunigt schneller als alle anderen",

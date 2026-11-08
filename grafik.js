@@ -1353,15 +1353,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       var kissenPfad = function () { rundRechteck(ctx, -1.72, -0.56, 3.44, 0.58, 0.29); };
       var kissen = function () {
         // Luftstrom nach unten: es schwebt
-        if (luft > 0.05) {
-          var lg = ctx.createLinearGradient(0, -0.56, 0, -0.72);
-          lg.addColorStop(0, "rgba(255,255,255," + (0.6 * luft) + ")"); lg.addColorStop(1, "rgba(255,255,255,0)");
-          ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(-1.5, -0.5); ctx.lineTo(1.5, -0.5); ctx.lineTo(1.75, -0.74); ctx.lineTo(-1.75, -0.74); ctx.closePath(); ctx.fill();
+        // Unterkante der Schwebekissen (folgt der Physik): so weit reicht der Luftstrom
+        var yB = -0.76;
+        if (fz && fz.raeder && fz.raeder[0].lokalY !== undefined) {
+          yB = 0; fz.raeder.forEach(function (R) { yB += (R.lokalY - R.r) / fz.raeder.length; });
+        }
+        if (luft > 0.05 && yB < -0.6) {
+          var lg = ctx.createLinearGradient(0, -0.56, 0, yB);
+          lg.addColorStop(0, "rgba(255,255,255," + (0.6 * luft) + ")"); lg.addColorStop(1, "rgba(255,255,255,0.05)");
+          ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(-1.5, -0.5); ctx.lineTo(1.5, -0.5); ctx.lineTo(1.78, yB); ctx.lineTo(-1.78, yB); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 0.025; ctx.lineCap = "round";
           for (var w2 = 0; w2 < 9; w2++) {
-            var ph2 = (z * 1.6 + w2 / 9) % 1, xs = -1.45 + w2 * 0.36, sx2 = (xs < 0 ? -1 : 1) * ph2 * 0.35;
+            var ph2 = (z * 1.6 + w2 / 9) % 1, xs = -1.45 + w2 * 0.36, sx2 = (xs < 0 ? -1 : 1) * ph2 * 0.4;
             ctx.globalAlpha = Math.sin(ph2 * Math.PI) * luft;
-            ctx.beginPath(); ctx.moveTo(xs, -0.58); ctx.quadraticCurveTo(xs + sx2 * 0.3, -0.66, xs + sx2, -0.72); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(xs, -0.58); ctx.quadraticCurveTo(xs + sx2 * 0.3, (yB - 0.56) / 2, xs + sx2, yB + 0.02); ctx.stroke();
           }
           ctx.globalAlpha = 1;
         }
@@ -1652,6 +1657,25 @@ var FF = globalThis.FF = globalThis.FF || {};
       var hinten = function () {
         var R = fz.raeder;
         var mh = block(R[0], R[1], R[2], 0), mv = block(R[3], R[4], R[5], 1);
+        // Motorblock am Rahmen unter der Kanzel: Antriebswellen zu den Drehlagern der Blöcke
+        var MB = [-0.45, 0.0, 0.8, 0.3], ab = rahmen([0.12, 0.12]);
+        [mh, mv].forEach(function (m) { rohr(ctx, [ab, m], 0.05, "#3a3f4b"); });
+        var mpoly = function (pts) { ctx.beginPath(); pts.forEach(function (q, i) { var w = rahmen(q); if (i) ctx.lineTo(w[0], w[1]); else ctx.moveTo(w[0], w[1]); }); ctx.closePath(); };
+        mpoly([[MB[0], MB[1]], [MB[0] + MB[2], MB[1]], [MB[0] + MB[2], MB[1] + MB[3]], [MB[0], MB[1] + MB[3]]]);
+        var mg = ctx.createLinearGradient(0, OY + 0.9, 0, OY + 0.4); mg.addColorStop(0, "#7d8597"); mg.addColorStop(1, "#4b5263");
+        ctx.fillStyle = mg; ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.lineJoin = "round"; ctx.stroke();
+        ctx.strokeStyle = "rgba(220,226,240,0.55)"; ctx.lineWidth = 0.02;               // Kühlrippen
+        for (var ri = 0; ri < 6; ri++) { var rx = MB[0] + 0.08 + ri * 0.11, p1 = rahmen([rx, 0.05]), p2 = rahmen([rx, 0.25]); ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke(); }
+        mpoly([[MB[0] + 0.05, MB[1] + MB[3]], [MB[0] + 0.5, MB[1] + MB[3]], [MB[0] + 0.46, MB[1] + MB[3] + 0.07], [MB[0] + 0.09, MB[1] + MB[3] + 0.07]]);   // Zylinderkopf
+        ctx.fillStyle = "#e8453c"; ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        var sch = rahmen([0.22, 0.12]);                                                  // Riemenscheibe (dreht mit)
+        ctx.fillStyle = "#c9cfdb"; ctx.beginPath(); ctx.arc(sch[0], sch[1], 0.07, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.02; ctx.stroke();
+        var wd = R[0].k.a * 3, sp = [Math.cos(wd) * 0.06, Math.sin(wd) * 0.06];
+        ctx.beginPath(); ctx.moveTo(sch[0] - sp[0], sch[1] - sp[1]); ctx.lineTo(sch[0] + sp[0], sch[1] + sp[1]); ctx.stroke();
+        // Auspuff: vom Motor nach hinten und hoch, Öffnung schräg nach hinten
+        var M0 = G0 && G0.def.motor, ap = M0 ? M0.auspuff : [-0.72, 0.68];
+        rohr(ctx, [rahmen([MB[0], 0.18]), rahmen([-0.6, 0.18]), rahmen([-0.66, 0.5]), rahmen(ap)], 0.055, "#9aa3b8");
+        var ao = rahmen(ap); ctx.fillStyle = "#2b2f3a"; ctx.beginPath(); ctx.arc(ao[0], ao[1], 0.035, 0, Math.PI * 2); ctx.fill();
         // Rahmen: zwei Stege vom Drehlager jedes Blocks zur Brücke in der Mitte
         var bL = rahmen([-0.25, 0.36]), bR = rahmen([0.25, 0.36]), oben = rahmen([0, 0.36]);
         var kL = rahmen([-1.15, 0.36]), kR = rahmen([1.15, 0.36]);
