@@ -749,6 +749,42 @@ FF.CONFIG = {
       klang: { art: "verbrenner", zylinder: 2, takte: 4, leerlauf: 900, max: 4200, gaenge: 3, abkling: 7, ungleich: 0.3,
                rohr: 0.009, rueck: 0.5, koerper: 120, hell: 0.8, diesel: 0.5, unruhe: 12, traegheit: 9, lautstaerke: 1.0, abrollen: 1.5 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
+    },
+    {
+      /* Pistenraupe (Version 53, aus PR #15 portiert): Kettenfahrwerk aus sechs Rollen –
+         hinten das Antriebsrad, vier Laufrollen, vorn das Leitrad (beide etwas höher, so
+         klettert die Kette über Kanten). Alle Rollen laufen in EINER Kette (rd.kette): gleiche
+         Umfangsgeschwindigkeit trotz verschiedener Radien (kuppeln in physik.js). Der Radius r
+         enthält die Kette. Eigene Fahreigenschaft (kettenlaufwerk, physik.js): die breite Kette
+         rutscht auf Schnee, Eis und Sand kaum (Boden-Grip mindestens bodenGrip) und sinkt nicht
+         ein (Rollwiderstand höchstens rollMax). Pfützen und Matsch bremsen nur zu 10 %
+         (matschFest). Dafür gemütlich (45 km/h) und in der Luft träge. Hinten angehängt:
+         Spielstand-Code. */
+      id: "raupe", name: "Pistenraupe", emoji: "🎿", preis: 2500, preisBasis: 150,
+      text: "Mit Kettenantrieb! Schnee, Eis, Sand und Matsch bremsen sie kaum – dafür ist sie gemütlich unterwegs und in der Luft eher träge.",
+      masse: 470, groesse: { laenge: 3.3, hoehe: 1.5 },
+      raeder: [
+        { x: -1.32, y: -0.06, r: 0.30, masse: 22, antrieb: true, kette: "kette" },
+        { x: -0.78, y: -0.20, r: 0.23, masse: 14, antrieb: true, kette: "kette" },
+        { x: -0.26, y: -0.20, r: 0.23, masse: 14, antrieb: true, kette: "kette" },
+        { x:  0.26, y: -0.20, r: 0.23, masse: 14, antrieb: true, kette: "kette" },
+        { x:  0.78, y: -0.20, r: 0.23, masse: 14, antrieb: true, kette: "kette" },
+        { x:  1.33, y: -0.02, r: 0.28, masse: 18, antrieb: true, kette: "kette" }
+      ],
+      federung: { ruhe: 0.2, weg: 0.13, frequenz: 2.1, daempfung: 0.65 },
+      motor: { drehmoment: 850, vmax: 12.5 }, bremse: 1700, grip: 1.25,
+      tankSekunden: 28, luftsteuerung: 3.6, cwA: 0.9, abtrieb: 0, matschFest: 0.1,
+      kettenlaufwerk: { bodenGrip: 0.95, rollMax: 0.025 },
+      upgradeNamen: {
+        reifen: { name: "Kettenstollen", icon: "⛓️", text: "Griffigere Stollen auf der Kette" }
+      },
+      huelle: [[-1.70, -0.10], [1.62, -0.10], [1.68, 0.42], [1.56, 0.72], [1.08, 0.82], [0.84, 1.46], [-0.34, 1.46], [-0.36, 0.66], [-1.70, 0.62]],
+      dach: [[-0.22, 1.52], [0.72, 1.52], [-0.44, 1.30]],
+      kopf: { x: 0.36, y: 1.0, r: 0.28 },
+      farbe: "rot", form: "raupe",
+      klang: { art: "verbrenner", zylinder: 6, takte: 4, leerlauf: 700, max: 2300, gaenge: 3, abkling: 6, ungleich: 0.2,
+               rohr: 0.012, rueck: 0.5, koerper: 85, hell: 0.7, diesel: 0.85, unruhe: 9, traegheit: 6, lautstaerke: 1.05, abrollen: 1.5 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
     }
   ],
 
@@ -1784,6 +1820,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "53", titel: "Pistenraupe", punkte: [
+      "🎿 Neues Fahrzeug Pistenraupe für 2.500 Münzen: mit Kettenfahrwerk, Schlitten und Skiern auf der Pritsche",
+      "❄️ Auf Schnee, Eis und Sand rutscht die Raupe kaum, Matsch und Pfützen bremsen sie fast nicht – dafür ist sie gemütlich (höchstens 45 km/h) und in der Luft träge" ] },
     { version: "52", titel: "Neues in der Datenwelt", punkte: [
       "⏳ Ladebalken-Brücken: Die Brücke lädt erst – fahr dem Balken hinterher, sonst landest du im Papierkorb",
       "📋 Kopieren & Einfügen: Spring durch den Strg+C-Ring, dann wirst du hinter die Firewall eingefügt",

@@ -517,6 +517,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     var C = T.chassis, RR = T.raeder, nR = RR.length, i, R, k, ko, p;
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     var grip = T.werte.grip * welt.grip, crr = welt.rollwiderstand, abprall = welt.abprall;
+    var KL = T.werte.kettenlaufwerk;
+    if (KL) {                            // Pistenraupe: breite Kette rutscht auf Schnee/Eis kaum, sinkt in Sand nicht ein
+      grip = T.werte.grip * Math.max(welt.grip, KL.bodenGrip);
+      crr = Math.min(crr, KL.rollMax);
+    }
     var band = gel.baender && gel.baender.length > 0;
     for (i = 0; i < nR; i++) {
       R = RR[i]; k = R.k; ko = R.kontakt;
