@@ -265,7 +265,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     Sockel, leuchtet beim Drücken auf, „Enter! ⏎“).
   - Robotertest (Flitzer, Upgrades „auto“, Normal): Profi 4/4 im Ziel (niedrigster
     Tankstand 43–74 %), Loslassen 3/4, „Kind“ im Modus Leicht 4/4.
-- **⚗️ Chemiewelt** (Version 49): ein riesiges Chemielabor mit Fliesenboden (bunte
+- **⚗️ Chemiewelt** (Version 50): ein riesiges Chemielabor mit Fliesenboden (bunte
   Kleckse), Laborregalen und Glaskolben als Kulisse (`labor`, `kolben`), Deko:
   **Erlenmeyerkolben** (`@kolben`, bunte Flüssigkeit, Korken oder Dampf) und
   **Reagenzglas-Ständer** (`@reagenz`).
@@ -480,7 +480,7 @@ Seed) und jede Zeit ab dem eigenen Start gemessen wird.
 | 🧞 Fliegender Teppich | 7.000 | Version 44. Schwebt eine Handbreit über dem Boden: statt Rädern drei unsichtbare **Schwebekissen** (gesperrte Kontaktpunkte wie die Kufen des Schlittens, µ 0,07, gefedert 1,9 Hz). Ein **Zauberwind** schiebt (4,6 m/s² entlang des Teppichs, auch in der Luft, bis 41 km/h). **Pfützen, Matsch und Schleim bremsen ihn nicht** (er berührt sie nicht, über Wasser trägt das Kissen), dafür: leicht und viel Fläche, der Wind pustet ihn bis 2,2-mal so stark wie den Flitzer (`windMax`), in der Luft **flattert** er (kleines unruhiges Drehmoment und eine Brise, `schweben.flattern`), bremsen geht nur über Reibung (`schweben.bremsMu`), steile Berge schafft er kaum. Tank = **Zauberstaub ✨** (lila Zauberfläschchen 🧪). Upgrades mit eigenen Namen (`upgradeNamen`): 🪄 Zauberkraft, 🧶 Stoffqualität (+0,012 µ und −12 % Flattern je Stufe), ☁️ Schwebekissen, ✨ Zauberstaub, 🎏 Fransen-Ruder, ⚓ Teppich-Anker. Grafik: Perserteppich schräg von oben (Bordüre, Medaillons, Quasten), wellt sich mit Tempo und im Flug, Kind im Schneidersitz, Glitzerstaub darunter. Klang: zwei verstimmte Dreiecksschwingungen im Quintabstand mit Tremolo und Luftrauschen. Profi-Roboter: Blumenwiese und Pfützenland 4/4 (Flitzer im Pfützenland 1/4), Herbststurm 2/4, Gebirge 0/4 |
 | 🛁 Badewanne | 4.000 | Spaßmobil (Version 42): Wanne mit Löwenfüßen auf Rollen, Kind im Schaumbad, Quietscheente. Antrieb: Der **Abfluss spritzt einen Wasserstrahl nach hinten** (Rückstoß 4 m/s², bis 36 km/h). Der Tank ist das **Badewasser** (75 s Strahl): Der Strahl verbraucht es, und es **schwappt**: Die Wasseroberfläche ist ein gedämpftes Pendel, das der scheinbaren Schwerkraft g − a folgt; steht sie schiefer als der Rand erlaubt (voll ≈ 26°, halb ≈ 47°), läuft Wasser über – beim Aufsetzen nach Sprüngen (im Flug schwebt das Wasser mit), beim Bremsen und kopfüber; ein Looping kostet nur ≈ 5–7 %. Profi-Roboter: in Blumenwiese, Wüste, Baustelle, Bonbon-Land, Achterbahn-Park, Pfützenland und Raumstation Level 1–2 im Ziel. Ausgelaufenes Wasser und der Strahl bleiben als Pfützen liegen. Sammelt blaue Eimer 🪣. Klang: Rauschen des Strahls und Gluckern |
 | 🛥️ Luftkissenboot | 9.000 | Version 45, nach Jontes Bild. Wie der Teppich drei unsichtbare **Schwebekissen** (µ 0,08), aber ein **Gebläse** bläst das Kissen nur auf, solange der Propeller läuft: Mit Gas hebt es in 0,55 s 20 cm ab, **ohne Gas sinkt es in 3,5 s langsam auf die Gummischürze** und schleift (µ 0,5). Physikalisch wird dafür die Ruhelänge der Kissenfedern verkürzt, das Boot sinkt also wirklich ab (`luftkissen.absenkung`, `muAbgesetzt`). Der **Propeller** schiebt mit Gas (5 m/s² entlang des Bootes, auch in der Luft, bis 50 km/h; rückwärts mit der Bremse im Stand). **Nicken** (Version 46): Der Schub greift an der Propellernabe an, 0,5 m über dem Schwerpunkt (`schubHebel`) – Gas drückt die Nase gut 1° aufs Kissen; beim Bremsen schleift die Schürze am Boden (unter dem Schwerpunkt), die Nase taucht ebenfalls etwa 1,5° ab. Anders als beim Auto, dessen Antriebskraft unter dem Schwerpunkt angreift. In der Luft gilt weiter „Gas = Nase hoch“. Pfützen, Matsch und Schleim bremsen nicht, über Wasser trägt das Kissen. Dafür wenig Halt am Hang, lange Bremswege, Wind schiebt es (`windMax` 1,8). Grafik: Gitter am Propeller, Wülste am Kissen, Scheinwerfer und Rücklicht, Rennnummer 87; Luftstrom nach hinten (nur mit Gas) und nach unten (solange es schwebt). Profi-Roboter: 128 von 136 Leveln |
-| 🔥 Fietes Feuerkutsche | 6.000 | Version 45, nach Fietes Bild. Zwei riesige Holzräder, Holz-Aufbau (neue Lackfarbe Holz), mittig ein Häuschen mit roten Dachziegeln, Lenkrad im Häuschen, Rennnummer 67. **Feuerrohr**: zündet sofort (0,12 s) und schiebt mit 10 m/s² entlang der Kutsche (auch in der Luft) – **0→50 km/h in 1,7 s**, schneller als alle anderen (E-Auto 2,3 s). Volle Kraft bis 70 % der Höchstgeschwindigkeit, dann lässt sie nach, bei 58 km/h ist Schluss (`feuer.eck`, `feuer.vmax`). Verbrauch nur nach Gasstellung, beim Anfahren nicht mehr. Die Flamme wächst mit dem Schub (`fz.feuer`), dicker rußiger Qualm als Partikel, ohne Gas kokelt es nur. Räder treiben kaum (nur rückwärts). Schwerpunkt 0,6 m über den Achsen. Klang (Version 49): **fauchender Gasbrenner** (`klang.brenner`) – Fauchen (Bandpass-Rauschen), Brodeln (Tiefpass) und Zischen des Gasstrahls, unregelmäßig flackernd; ohne Gas komplett still, beim Gasgeben klickt der Piezo-Zünder zweimal, dann zündet es mit einem dumpfen Wumm. Profi-Roboter: 134 von 136 Leveln |
+| 🔥 Fietes Feuerkutsche | 6.000 | Version 45, nach Fietes Bild. Zwei riesige Holzräder, Holz-Aufbau (neue Lackfarbe Holz), mittig ein Häuschen mit roten Dachziegeln, Lenkrad im Häuschen, Rennnummer 67. **Feuerrohr**: zündet sofort (0,12 s) und schiebt mit 10 m/s² entlang der Kutsche (auch in der Luft) – **0→50 km/h in 1,7 s**, schneller als alle anderen (E-Auto 2,3 s). Volle Kraft bis 70 % der Höchstgeschwindigkeit, dann lässt sie nach, bei 58 km/h ist Schluss (`feuer.eck`, `feuer.vmax`). Verbrauch nur nach Gasstellung, beim Anfahren nicht mehr. Die Flamme wächst mit dem Schub (`fz.feuer`), dicker rußiger Qualm als Partikel, ohne Gas kokelt es nur. Räder treiben kaum (nur rückwärts). Schwerpunkt 0,6 m über den Achsen. Klang (Version 50): **fauchender Gasbrenner** (`klang.brenner`) – Fauchen (Bandpass-Rauschen), Brodeln (Tiefpass) und Zischen des Gasstrahls, unregelmäßig flackernd; ohne Gas komplett still, beim Gasgeben klickt der Piezo-Zünder zweimal, dann zündet es mit einem dumpfen Wumm. Profi-Roboter: 134 von 136 Leveln |
 | 🐛 Kettenwagen | 12.000 | Version 45, nach Bastians Bild. **Fünf Starrkörper** (`glieder` in physik.js): Kabine mit rotem Liegesitz, darunter der Rahmen (zwei Stege) mit dem **Motorblock** (Kühlrippen, Riemenscheibe, Antriebswellen zu den Blöcken, Auspuff mit Rauch; der Motor sitzt am Rahmen, dort wirkt auch sein Gegenmoment) an einer **gefederten Schubführung** (1,4 Hz, ζ 0,25, 22 cm Federweg, Anschläge – die Kabine federt wirklich ein, in Ruhe 12,7 cm = g/ω²) mit **gefedertem Kippgelenk** (1,6 Hz, ζ 0,22, ±12°: die Kanzel wippt vor und zurück), an den Stegen zwei **Kettenblöcke im Drehlager** (Pendel ±29°, etwas Drehdämpfung). Je Block drei Zahnräder mit umlaufender Kette; Bodenkontakt über die beiden unteren Zahnräder und eine Stützrolle (r = Zahnrad + Kette, steif gefedert). Alle sechs laufen über Kette und Antriebswelle gleich schnell; das Motor-Gegenmoment wirkt am Rahmen (nicht am Block – sonst hebt der Block beim Anfahren vorne ab). Folgt dem Boden sehr gut und klettert aus dem Stand 45° (Flitzer: 34° nicht mehr), dafür nur 43 km/h. Federung-Upgrade wirkt auf die Kabinenfeder. Profi-Roboter: 134 von 136 Leveln |
 
 **Tuning** pro Fahrzeug, je 5 Stufen: 🔧 Motor (Drehmoment und
@@ -929,6 +929,35 @@ maß 18–26 Bilder/s. Damit es flüssig bleibt, liegt der Himmelsverlauf als CS
 hinter dem Spielfeld, Deko-Emojis werden pixelgenau kopiert und der Geist
 wird in einer kleinen eigenen Ebene gemalt.
 
+## 🎬 Startseiten-Show (Version 50)
+
+Hinter dem Titel fährt Fiete (bzw. Jonte, abwechselnd) von allein durch alle
+Welten – mit echter Physik und Grafik, aber ohne Ton, Tipps und Spielstand.
+Tippen irgendwo (oder Enter/Leertaste) startet das Spiel.
+
+- **Fahrer:** `roboter.js` – der Profi aus der Testfahrt plus Show-Fahrer, der
+  bei langen Sprüngen einen Salto dreht (andrehen mit Gas, rechtzeitig
+  bremsen, Landung macht der Profi).
+- **Szenen:** `startseite-szenen.js`, erzeugt von `node werkzeuge/startseite.js`.
+  Das Werkzeug fährt jede Welt mit allen Fahrzeugen und Level 1–3 ab und
+  sucht das schönste 8-Sekunden-Fenster (Saltos, Loopings, Röhren, Katapulte,
+  Hüpfpilze … gut; Ballon-Hilfe, Stillstand schlecht). Fahrt und Physik sind
+  deterministisch, und die Show rechnet in festen 1/60-s-Schritten – darum
+  fährt das Spiel genau diese Szene nach. Den Vorlauf bis zum Fenster rechnet
+  die Show im Hintergrund (höchstens 4 ms je Bild), während die vorige Szene läuft.
+- **Nach Änderungen an Physik, Gelände oder Fahrzeugen:**
+  `node werkzeuge/startseite.js --pruefen` – meldet Szenen, die nicht mehr
+  passen; dann neu erzeugen (`node werkzeuge/startseite.js`, gut 1 Minute,
+  parallel: `--teil 0/2 --json a.json` + `--teil 1/2 --json b.json`, dann
+  `--zusammen a.json b.json`).
+- **Langsame Geräte:** Die Show misst die Bildrate. Unter 24 Bilder/s erst
+  halbe Auflösung, reicht das nicht, **Sparmodus**: Weltbilder aus
+  `bilder/welten/` mit langsamer Kamerafahrt (nur CSS). Ebenso bei
+  „Bewegung reduzieren“ im System. Entwickler-Bereich → 🎬 Startseite:
+  Auto / Voll / Spar (zeigt die zuletzt gemessene Bildrate).
+  Messung (Chromium, gedrosselte CPU): 4× 42–45 Bilder/s, 8× 30–34 mit
+  halber Auflösung, 14× Sparmodus.
+
 ## 🗂️ Dateien: wo ändere ich was?
 
 | Datei | Inhalt |
@@ -936,6 +965,8 @@ wird in einer kleinen eigenen Ebene gemalt.
 | `config.js` | **Alle Stellschrauben**: Physik-Löser, Fahrzeuge (Masse, Federn, Motor, Umriss), Upgrades und Preise, Farben, Muster, Welten (Schwerkraft, Grip, Gelände, Kanister-Abstand, Deko). Hier zuerst schauen! |
 | `gelaende.js` | Strecken-Generator, Münzen, Kanister, Deko, Schilder |
 | `physik.js` | 2D-Fahrzeugphysik (Federn, Reifen, Motor, Kontakte) |
+| `roboter.js` | Roboter-Fahrer (Profi, Show-Fahrer mit Salto) – für Testfahrt und Startseiten-Show |
+| `startseite-szenen.js` | Szenen der Startseiten-Show (erzeugt von `werkzeuge/startseite.js`) |
 | `fahrt.js` | Regeln einer Fahrt: Pedale, Tank und Akku, Saltos, Bruchlandung, Ballon-Hilfe, Festgefahren-Hilfe, virtuelles Getriebe, Ziel, Ergebnis |
 | `geist.js` | Geisterrennen: Fahrt aufzeichnen, als Geist abspielen, Sieger bestimmen |
 | `kinder.js` | So sehen Fiete und Jonte aus: Gesicht, Haare, Brille und die Looks (Cap, Dutt), nach einem Foto der beiden. Steckbrief und Bilder: [`docs/KINDER.md`](docs/KINDER.md), Vorschau: `werkzeuge/kinder-vorschau.html` |
@@ -950,6 +981,7 @@ wird in einer kleinen eigenen Ebene gemalt.
 | `fonts/` | Baloo 2 und Nunito, lokal eingebunden (SIL Open Font License) |
 | `werkzeuge/testfahrt.js` | Roboter-Testfahrer, Physik- und Geist-Tests (Node) |
 | `werkzeuge/browsertest.js` | Prüfungen im echten Browser (Playwright) |
+| `werkzeuge/startseite.js` | Sucht die Szenen der Startseiten-Show (Node) |
 
 Der Code ist durchgehend **auf Deutsch kommentiert**.
 

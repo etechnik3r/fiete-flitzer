@@ -182,12 +182,12 @@
   var luftTippDieseFahrt = false;            // "Gas hebt die Nase" wurde in dieser Fahrt schon geprüft
 
   function groesseAnpassen() {
-    DPR = Math.min(2, window.devicePixelRatio || 1);
+    DPR = Math.min(2, window.devicePixelRatio || 1, modus === "titel" && show && show.dprMax ? show.dprMax : 2);
     B = window.innerWidth; H = window.innerHeight;
     canvas.width = Math.round(B * DPR); canvas.height = Math.round(H * DPR);
     kamera.b = B; kamera.h = H;
     if (fahrt) wetter.setze(fahrt.welt.wetter, kamera);
-    ["vorschau", "titel-auto"].forEach(function (id) {
+    ["vorschau"].forEach(function (id) {
       var c = $(id);
       if (!c) return;
       var r = c.getBoundingClientRect();
@@ -310,6 +310,7 @@
       var decke = fahrt.gelaende.deckeBei(zielX);
       zielY = Math.min(Math.max(zielY, decke - sichtOben + 2.0), ch.y + sichtUnten);
     }
+    if (modus === "titel" && !quer) kamera.s *= 1.3;          // Startseiten-Show hochkant: näher ran, das Auto ist der Star
     if (sofort) { kamera.x = zielX; kamera.y = zielY; return; }
     var k = Math.min(1, dt * Kc.glaettung);
     kamera.x += (zielX - kamera.x) * k;
@@ -337,6 +338,7 @@
 
   var meldungTimer = null;
   function meldung(text) {
+    if (demo) return;
     var el = $("meldung");
     el.hidden = false;
     el.textContent = text;
@@ -350,7 +352,7 @@
   var tippTimer = null;
   var tippSchlange = [];             // Tipps, die während der Start-Ampel kommen, warten hier – keiner geht verloren
   function tipp(text, dauer, sag) {
-    if (!S.einstellungen.tipps) return;
+    if (!S.einstellungen.tipps || demo) return;
     if (countdown) {                                                    // erst nach der Start-Ampel, der Reihe nach
       if (!tippSchlange.some(function (t) { return t[0] === text; })) tippSchlange.push([text, dauer, sag]);
       return;
@@ -370,6 +372,7 @@
   function tippsLeeren() { tippSchlange = []; clearTimeout(tippTimer); $("tipp").hidden = true; }
   /* Erklär-Tipps nur die ersten Male (gemerkt im Spielstand, auch nach einem Neustart der App) */
   function ersteMale(id, n) {
+    if (demo) return false;                    // Startseiten-Show zählt nicht mit
     var k = S.gesehen[id] || 0;
     if (k >= n) return false;
     S.gesehen[id] = k + 1; speichere();
@@ -377,6 +380,7 @@
   }
 
   function konfetti(anzahl) {
+    if (demo) return;
     var ebene = $("konfetti"), farben = ["#ff5b5b", "#ffd23f", "#28c08a", "#2f6fd6", "#ff6fb5", "#ff9e2c"];
     for (var i = 0; i < (anzahl || 60); i++) {
       var t = document.createElement("div");
@@ -818,7 +822,7 @@
           konfettiWelt(ch.x, ch.y + 1, 18);
           setzeAusdruck("freude", 1.6);
           FF.Klang.sprich(e.anzahl > 1 ? e.anzahl + " Saltos!" : "Salto!");
-          if (P.beifahrer === "wolf") {                     // der Wolf freut sich mit
+          if (P.beifahrer === "wolf" && !demo) {            // der Wolf freut sich mit
             setTimeout(function () { FF.Klang.spiele("heulen"); }, 650);
             schwebeText(ch.x - 0.6, ch.y + 2.6, "Auuu! 🐺", "#cfe3ff");
           }
@@ -1172,6 +1176,7 @@
           FF.Klang.sprich("Ziel erreicht! Super!");
           break;
         case "ende":
+          if (demo) break;                 // Startseiten-Show: kein Ergebnis
           // nur diese Fahrt beenden – nicht eine inzwischen neu gestartete
           setTimeout(function (f) { if (f === fahrt) fahrtZuEnde(); }.bind(null, fahrt), e.grund === "ziel" ? 200 : 600);
           break;
@@ -1548,6 +1553,7 @@
      9) SPIELERWAHL, MENÜ, WELTEN
      ========================================================================= */
   function zeigeBildschirm(name) {
+    if (name !== "titel") showStopp();
     $("titelscreen").hidden = name !== "titel";
     $("spielerwahl").hidden = name !== "wahl";
     $("menue").hidden = name !== "menue";
@@ -2729,7 +2735,19 @@
     $("dev-alle-offen").classList.toggle("aktiv", S.entwickler.alleOffen);
     $("dev-editor").classList.toggle("aktiv", !!S.entwickler.editor);
     $("dev-gasbremse").classList.toggle("aktiv", !!S.entwickler.gasBremseAlt);
+    var sw = S.entwickler.startseite || "auto";
+    $("dev-startseite").querySelector(".opt-schalter-status").textContent = { auto: "Auto", voll: "Voll", spar: "Spar" }[sw];
   }
+  /* Startseiten-Show: Auto (misst die Bildrate) → immer voll → immer Sparmodus */
+  $("dev-startseite").addEventListener("click", function () {
+    var reihe = ["auto", "voll", "spar"], sw = S.entwickler.startseite || "auto";
+    S.entwickler.startseite = reihe[(reihe.indexOf(sw) + 1) % 3];
+    speichere(); entwicklerAnzeigen();
+    FF.Klang.spiele("klick");
+    popover("🎬 Startseite: " + { auto: "Automatisch (Sparmodus, wenn das Gerät zu langsam ist)", voll: "Immer die volle Show", spar: "Immer Sparmodus" }[S.entwickler.startseite] +
+            (letzteShowFps ? "<small>Zuletzt gemessen: " + Math.round(letzteShowFps) + " Bilder/s" + (letzteShowSpar ? " → Sparmodus" : "") + "</small>" : "") +
+            "<small>Gilt beim nächsten Öffnen des Spiels.</small>", 3600);
+  });
   $("dev-gasbremse").addEventListener("click", function () {
     S.entwickler.gasBremseAlt = !S.entwickler.gasBremseAlt;
     speichere(); entwicklerAnzeigen();
@@ -2770,17 +2788,209 @@
   $("hud-tank").addEventListener("click", function () { if (fahrt) popover(energie(fahrt.def).info, 2400); });
 
   /* =========================================================================
+     12b) STARTSEITEN-SHOW: Hinter dem Titel fährt ein Roboter (roboter.js)
+     vorberechnete Szenen aus allen Welten (startseite-szenen.js, erzeugt von
+     werkzeuge/startseite.js) – mit echter Physik und Grafik, aber ohne Ton,
+     Tipps und Spielstand. Gerechnet wird in festen 1/60-s-Schritten, so ist
+     jede Szene genau die, die das Werkzeug ausgesucht hat.
+     Die nächste Szene wird im Hintergrund vorgefahren (ein paar ms je Bild).
+     Ist das Gerät zu langsam, erst mit halber Auflösung, dann Sparmodus:
+     Weltbilder mit langsamer Kamerafahrt (CSS, kaum Rechenlast).
+     ========================================================================= */
+  var SHOW_DT = 1 / 60, SHOW_BUDGET_MS = 4, SHOW_BLENDE = 0.35;
+  var show = null;
+  var demo = false;                       // true, während die Show rechnet: keine Tipps, Meldungen, Töne, kein Speichern
+  var KLANG_STUMM = null;
+  var letzteShowFps = 0, letzteShowSpar = false;   // für den Entwickler-Bereich
+
+  function showKinder() {
+    return C.kinder.filter(function (k) { return !k.eigen || (S.eigene[k.id] && S.eigene[k.id].aktiv); }).map(function (k) { return k.id; });
+  }
+  function mischen(a) {
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function showSzenenListe() {
+    var Z = (FF.STARTSEITE && FF.STARTSEITE.szenen) || [];
+    return mischen(Z.filter(function (sz) {
+      return C.welten.some(function (w) { return w.id === sz.welt; }) && C.fahrzeuge.some(function (f) { return f.id === sz.fahrzeug; });
+    }).slice());
+  }
+  /* Szene vorbereiten: Fahrt anlegen; vorfahren() rechnet den Vorlauf in Häppchen */
+  function showNeueSzene() {
+    if (!show.liste.length) show.liste = showSzenenListe();
+    var sz = show.liste.shift();
+    if (!sz) return null;
+    var wi = C.welten.findIndex(function (w) { return w.id === sz.welt; });
+    var f = new FF.Fahrt({ weltIndex: wi, stufe: sz.stufe, fahrzeugId: sz.fahrzeug, upgrades: FF.STARTSEITE.upgrades, schwierigkeit: "normal" });
+    var s = sz.seed % 2147483646 + 1;
+    var kinder = showKinder();
+    show.kindNr = (show.kindNr + 1) % kinder.length;
+    return { sz: sz, fahrt: f, fahrer: FF.Roboter.show(function () { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }),
+             schritte: 0, t: 0, kind: kinder[show.kindNr] };
+  }
+  function showVorfahren(n, budgetMs) {
+    if (!n) return true;
+    var t0 = performance.now();
+    while (n.schritte < n.sz.vorlauf) {
+      n.fahrt.aktualisiere(SHOW_DT, n.fahrer.eingabe(n.fahrt, SHOW_DT));
+      n.fahrt.ereignisse.length = 0;
+      n.schritte++;
+      if (budgetMs && (n.schritte & 7) === 0 && performance.now() - t0 > budgetMs) return false;
+    }
+    return true;
+  }
+  /* Aufs Spielfeld: Kamera, Wetter, Partikel für die neue Szene */
+  function showAufbuehne(n) {
+    show.aktiv = n;
+    fahrt = n.fahrt;
+    partikel.liste.length = 0; texte.length = 0;
+    kopfLage = fahrt.kopf ? 1 : 0; schleimFaelle = []; schleimTakt = 2;
+    ausdruck = "normal"; ausdruckBis = 0;
+    wetter.setze(fahrt.welt.wetter, kamera);
+    $("nacht-ebene").style.display = "none";
+    kameraNachfuehren(0, true);
+    var w = fahrt.welt, d = fahrt.def;
+    var schild = $("show-welt");
+    schild.innerHTML = '<span aria-hidden="true">' + w.emoji + "</span> " + w.name + ' <span class="show-welt-fz" aria-hidden="true">' + d.emoji + "</span>";
+    schild.classList.remove("rein"); void schild.offsetWidth; schild.classList.add("rein");
+  }
+
+  function showStart() {
+    if (!FF.STARTSEITE || !FF.Roboter) { showLeicht(true); return; }
+    var modusWunsch = S.entwickler.startseite || "auto";       // auto | voll | spar
+    show = { liste: showSzenenListe(), kindNr: -1, aktiv: null, naechste: null, acc: 0, blende: 0, wechsel: false,
+             messung: { n: 0, summe: 0 }, fps: 0, dprMax: 0, leicht: false, wunsch: modusWunsch };
+    if (modusWunsch === "spar" || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) { showLeicht(true); return; }
+    $("titelscreen").classList.add("mit-show");
+    var n = showNeueSzene();
+    if (!n) { showLeicht(true); return; }
+    showVorfahren(n, 0);
+    showAufbuehne(n);
+    show.naechste = showNeueSzene();
+  }
+  function showStopp() {
+    if (!show) return;
+    if (show.aktiv && fahrt === show.aktiv.fahrt) fahrt = null;
+    var hatteDpr = show.dprMax;
+    show = null;
+    partikel.liste.length = 0; texte.length = 0;
+    $("nacht-ebene").style.display = "none";
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.style.background = ""; himmelWelt = null;
+    $("show-leicht").hidden = true;
+    $("titelscreen").classList.remove("mit-show", "leicht");
+    if (hatteDpr) groesseAnpassen();
+  }
+
+  function showSchritt(dt) {
+    if (!show) return;
+    if (show.leicht) { showLeichtSchritt(dt); return; }
+    var n = show.aktiv;
+    if (!n) return;
+    // Bildrate messen (nicht während der Blende, da wird im Hintergrund mehr gerechnet)
+    if (dt > 0 && !show.wechsel && n.t > 1) {
+      var M = show.messung;
+      M.n++; M.summe += dt;
+      if (M.n >= 60) {
+        show.fps = letzteShowFps = M.n / M.summe; M.n = 0; M.summe = 0;
+        // zu langsam: erst halbe Auflösung, reicht das nicht, Sparmodus
+        if (show.wunsch === "auto" && show.fps < 24) {
+          if (!show.dprMax && DPR > 1) { show.dprMax = 1; groesseAnpassen(); kameraNachfuehren(0, true); }
+          else { showLeicht(false); return; }
+        }
+      }
+    }
+    // Physik in festen Schritten (höchstens 3 je Bild – lieber kurz Zeitlupe als Ruckeln)
+    show.acc = Math.min(show.acc + dt, 3 * SHOW_DT);
+    var K = FF.Klang;
+    if (!KLANG_STUMM) { KLANG_STUMM = {}; Object.keys(K).forEach(function (k) { KLANG_STUMM[k] = typeof K[k] === "function" ? function () {} : K[k]; }); }
+    FF.Klang = KLANG_STUMM; demo = true;
+    try {
+      while (show.acc >= SHOW_DT) {
+        show.acc -= SHOW_DT;
+        n.fahrt.aktualisiere(SHOW_DT, n.fahrer.eingabe(n.fahrt, SHOW_DT));
+        n.t += SHOW_DT;
+        verarbeiteEreignisse();
+        fahrEffekte(SHOW_DT);
+        spurZiehen(SHOW_DT);
+        kameraNachfuehren(SHOW_DT, false);
+        var st = n.fahrt.fz.status, inLuft = st.radKontakte === 0 && !st.huellKontakt && n.fahrt.zustand === "fahrt";
+        if (zeit > ausdruckBis) ausdruck = n.fahrt.luftZeit > 0.35 && inLuft ? "freude" : "normal";
+      }
+      // nächste Szene im Hintergrund vorfahren
+      var fertig = showVorfahren(show.naechste, SHOW_BUDGET_MS);
+      szeneZeichnen(dt, aussehenVon(n.kind, n.sz.fahrzeug), null, false, false);
+    } finally { FF.Klang = K; demo = false; }
+    // Szenenwechsel mit Blende
+    var D = FF.STARTSEITE.dauer;
+    if (!show.wechsel && n.t >= D - SHOW_BLENDE && fertig && show.naechste) {
+      show.wechsel = true;
+      $("show-blende").classList.add("zu");
+    }
+    if (show.wechsel && n.t >= D) {
+      showAufbuehne(show.naechste);
+      show.naechste = showNeueSzene();
+      show.wechsel = false; show.messung.n = 0; show.messung.summe = 0;
+      $("show-blende").classList.remove("zu");
+    }
+    if (n.fahrt.zustand === "ende" && !show.wechsel && show.naechste && fertig) { show.wechsel = true; $("show-blende").classList.add("zu"); n.t = Math.max(n.t, D - SHOW_BLENDE); }
+  }
+
+  /* Sparmodus: Weltbilder (bilder/welten, Fiete fährt darauf) gleiten langsam durchs Bild – nur CSS */
+  function showLeicht(sofort) {
+    if (!show) show = { leicht: true, wunsch: "spar", fps: 0 };
+    if (show.aktiv && fahrt === show.aktiv.fahrt) fahrt = null;
+    show.leicht = true; show.aktiv = null; show.naechste = null;
+    if (!sofort) letzteShowSpar = true;
+    if (show.dprMax) { show.dprMax = 0; groesseAnpassen(); }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.style.background = ""; himmelWelt = null;
+    $("nacht-ebene").style.display = "none";
+    $("titelscreen").classList.add("mit-show", "leicht");
+    $("show-blende").classList.remove("zu");
+    $("show-leicht").hidden = false;
+    show.bilder = mischen(C.welten.map(function (w) { return w; }));
+    show.bildNr = -1; show.bildT = 99; show.ebene = 0;
+    showLeichtSchritt(0);
+  }
+  function showLeichtSchritt(dt) {
+    show.bildT += dt;
+    if (show.bildT < (FF.STARTSEITE ? FF.STARTSEITE.dauer : 8)) return;
+    show.bildT = 0;
+    show.bildNr = (show.bildNr + 1) % show.bilder.length;
+    var w = show.bilder[show.bildNr], E = $("show-leicht").children, neu = E[show.ebene], alt = E[1 - show.ebene];
+    neu.style.backgroundImage = 'url("bilder/welten/' + w.id + '.jpg")';
+    neu.classList.remove("fahrt"); void neu.offsetWidth; neu.classList.add("fahrt", "sichtbar");
+    alt.classList.remove("sichtbar");
+    show.ebene = 1 - show.ebene;
+    var schild = $("show-welt");
+    schild.innerHTML = '<span aria-hidden="true">' + w.emoji + "</span> " + w.name;
+    schild.classList.remove("rein"); void schild.offsetWidth; schild.classList.add("rein");
+  }
+
+  /* =========================================================================
      13) TITEL + PWA
      ========================================================================= */
   var startGedrueckt = false;
-  $("knopf-start").addEventListener("click", function () {
+  /* Wie an der Konsole: Tippen irgendwo auf die Startseite (außer auf ❓ / ⚙️) oder
+     Enter/Leertaste startet – der große Knopf ist nur der deutlichste Weg. */
+  $("titelscreen").addEventListener("click", function (e) {
+    if (e.target.closest("button") && e.target.closest("button").id !== "knopf-start") return;
+    titelStart();
+  });
+  window.addEventListener("keydown", function (e) {
+    if (modus !== "titel" || $("titelscreen").hidden || document.querySelector(".modal-overlay.offen")) return;
+    if (e.code === "Enter" || e.code === "Space" || e.code === "NumpadEnter") { e.preventDefault(); titelStart(); }
+  });
+  function titelStart() {
     if (startGedrueckt) return;
     startGedrueckt = true;
     FF.Klang.init(); einstellungenAnwenden(); FF.Klang.spiele("klick");
     var t = $("titelscreen");
     t.classList.add("aus");
     setTimeout(function () { t.classList.remove("aus"); startGedrueckt = false; zeigeSpielerwahl(); }, 380);
-  });
+  }
 
   /* App-Update (PWA): Der Service Worker sucht beim Start und beim Zurückkehren in die
      App nach einer neuen Version. Ist eine da, lädt das Spiel neu – aber nie mitten in
@@ -2890,36 +3100,42 @@
           }
         }
       }
-      partikel.aktualisiere(pausiert ? 0 : dt, fahrt.welt.schwerkraft);
-      texteAktualisieren(pausiert ? 0 : dt);
-      kopfLage += ((fahrt.kopf ? 1 : 0) - kopfLage) * Math.min(1, (pausiert ? 0 : dt) * 3.2);
-      if (Math.abs(kopfLage - (fahrt.kopf ? 1 : 0)) < 0.002) kopfLage = fahrt.kopf ? 1 : 0;
-      var kf = Math.cos(Math.PI * kopfLage), himmelKopf = kf < 0;
-      if (himmelWelt !== fahrt.welt || himmelKopf !== himmelWarKopf) {
-        himmelWelt = fahrt.welt; himmelWarKopf = himmelKopf;
-        canvas.style.background = FF.Grafik.himmelCss(himmelWelt, himmelKopf);
-      }
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      FF.Grafik.zeichneSzene(ctx, {
-        fahrt: fahrt, kamera: kamera, zeit: zeit, dt: pausiert ? 0 : dt, dpr: DPR, himmelPerCss: true, kopf: kf,
-        partikel: partikel, texte: texte, wetter: wetter,
-        aussehen: aussehenVon(S.aktiv), ausdruck: ausdruck,
-        geist: geist ? { fz: geist.obj.fz, def: geist.obj.def, aussehen: geist.aussehen, ausdruck: geist.obj.ausdruck,
-                         hilfe: geist.obj.hilfe, name: geist.name } : null,
-        kraefte: S.einstellungen.kraefte, instrumente: S.einstellungen.instrumente,
-        nachtEbene: fahrt.welt.nacht ? $("nacht-ebene") : null
-      });
+      szeneZeichnen(pausiert ? 0 : dt, aussehenVon(S.aktiv), geist ? { fz: geist.obj.fz, def: geist.obj.def, aussehen: geist.aussehen,
+                    ausdruck: geist.obj.ausdruck, hilfe: geist.obj.hilfe, name: geist.name } : null, S.einstellungen.kraefte, S.einstellungen.instrumente);
     } else if (modus === "menue" && aktiverTab === "garage") {
       zeichneKleinCanvas("vorschau");
     } else if (modus === "titel") {
-      zeichneKleinCanvas("titel-auto");
+      showSchritt(dt);
     }
+  }
+
+  /* Eine Fahrt aufs Spielfeld zeichnen (Fahrt im Spiel und Startseiten-Show).
+     Partikel, Schwebetexte und das Umklappen der Kopfüberwelt laufen mit dt weiter. */
+  function szeneZeichnen(dt, aussehen, geistInfo, kraefte, instrumente) {
+    partikel.aktualisiere(dt, fahrt.welt.schwerkraft);
+    texteAktualisieren(dt);
+    kopfLage += ((fahrt.kopf ? 1 : 0) - kopfLage) * Math.min(1, dt * 3.2);
+    if (Math.abs(kopfLage - (fahrt.kopf ? 1 : 0)) < 0.002) kopfLage = fahrt.kopf ? 1 : 0;
+    var kf = Math.cos(Math.PI * kopfLage), himmelKopf = kf < 0;
+    if (himmelWelt !== fahrt.welt || himmelKopf !== himmelWarKopf) {
+      himmelWelt = fahrt.welt; himmelWarKopf = himmelKopf;
+      canvas.style.background = FF.Grafik.himmelCss(himmelWelt, himmelKopf);
+    }
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    FF.Grafik.zeichneSzene(ctx, {
+      fahrt: fahrt, kamera: kamera, zeit: zeit, dt: dt, dpr: DPR, himmelPerCss: true, kopf: kf,
+      partikel: partikel, texte: texte, wetter: wetter,
+      aussehen: aussehen, ausdruck: ausdruck, geist: geistInfo,
+      kraefte: kraefte, instrumente: instrumente,
+      nachtEbene: fahrt.welt.nacht ? $("nacht-ebene") : null
+    });
   }
 
   einstellungenAnwenden();
   zeigeBildschirm("titel");
   modus = "titel";
   groesseAnpassen();
+  showStart();
   // Schriften laden, dann Canvas-Größen neu bestimmen (Layout kann sich ändern)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(groesseAnpassen);
   requestAnimationFrame(schleife);

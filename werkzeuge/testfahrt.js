@@ -38,7 +38,7 @@ var path = require("path");
 var vm = require("vm");
 
 var basis = path.join(__dirname, "..");
-["config.js", "gelaende.js", "physik.js", "fahrt.js", "geist.js", "spielstand.js"].forEach(function (datei) {
+["config.js", "gelaende.js", "physik.js", "fahrt.js", "roboter.js", "geist.js", "spielstand.js"].forEach(function (datei) {
   vm.runInThisContext(fs.readFileSync(path.join(basis, datei), "utf8"), { filename: datei });
 });
 var FF = globalThis.FF;
@@ -77,55 +77,9 @@ function kindEingabe(f) {
   return { gas: true, bremse: false };
 }
 
-/* "Profi": wie ein geübter Spieler (siehe Kopf der Datei) */
-function profiFahrer() {
-  var rueck = 0, rueckBis = 0, klemm = 0, statistik = { boden: 0, gasWeg: 0, bremse: 0, luft: 0 };
-  function eingabe(f, dt) {
-    var fz = f.fz, C = fz.chassis, st = fz.status, gel = f.gelaende, g = f.welt.schwerkraft;
-    var a = FF.normWinkel(C.a);
-    if (f.imLooping) return { gas: true, bremse: false };   // im Looping: Vollgas durch
-    if (inDerLuft(st)) {
-      statistik.luft += dt;
-      // Landepunkt aus der Wurfparabel, dort soll die Nase zum Hang passen
-      var x = C.x, y = C.y, t = 0;
-      for (var k = 0; k < 90; k++) {
-        t += 0.04; x = C.x + C.vx * t; y = C.y + C.vy * t - 0.5 * g * t * t;
-        if (y - 0.9 < gel.hoeheBei(x)) break;
-      }
-      var fehler = FF.normWinkel(Math.atan(gel.steigungBei(x)) - a);
-      var u = fehler / Math.max(0.3, t) - C.w;            // gewünschte minus aktuelle Drehrate
-      if (u > 0.4) return { gas: true, bremse: false };
-      if (u < -0.4) return { gas: false, bremse: true };
-      return { gas: false, bremse: false };
-    }
-    statistik.boden += dt;
-    var v = st.vorwaerts;
-    // festgefahren? → zurückrollen/-fahren und Anlauf nehmen
-    if (rueck > 0) {
-      rueck -= dt; statistik.bremse += dt;
-      if (C.x < rueckBis) rueck = 0;
-      return { gas: false, bremse: true };
-    }
-    klemm = (st.tempo < 0.5 && f.gas > 0.9) ? klemm + dt : 0;
-    if (klemm > 1.5 && !gel.wolken.length) { klemm = 0; rueck = 5; rueckBis = C.x - 12; }   // Wolken: hinter einem ist eine Lücke
-    var rel = FF.normWinkel(a - Math.atan(gel.steigungBei(C.x)));   // + = Nase höher als der Boden
-    if (rel > 0.5 || (rel > 0.3 && C.w > 0.6)) {                 // Überschlag nach hinten droht
-      statistik.gasWeg += dt;
-      if (rel > 0.75) { statistik.bremse += dt; return { gas: false, bremse: true }; }
-      return { gas: false, bremse: false };
-    }
-    // vor steilem Gefälle oder Abbruchkante nicht zu schnell
-    var vorX = C.x + 3 + Math.max(0, v) * 0.6;
-    var gef = Math.min(gel.steigungBei(vorX), gel.steigungBei(vorX + 4));
-    var vMax = gef < -0.9 ? 8 : (gef < -0.6 ? 11 : 99);
-    if (gel.wolken.length && gel.wolkenLuecke(vorX) || gel.wolken.length && gel.wolkenLuecke(vorX + 4)) vMax = 99;   // Wolken: vor der Lücke nicht bremsen, sondern springen
-    if (gel.dyn && gel.dyn.some(function (d) { return d.typ === "hochseil" && C.x > d.x0 - 6 && C.x < d.x1; })) vMax = 99;   // Zirkus: Hochseil mit Schwung
-    if (gel.dyn && gel.dyn.some(function (d) { return d.typ === "podest" && C.x > d.x0 - 6 && C.x < d.x1; })) vMax = 10;     // Hocker: mit Gefühl
-    if (v > vMax) { statistik.bremse += dt; return { gas: false, bremse: true }; }
-    return { gas: true, bremse: false };
-  }
-  return { eingabe: eingabe, statistik: statistik };
-}
+/* "Profi": wie ein geübter Spieler (siehe Kopf der Datei) – steckt in roboter.js,
+   damit auch die Startseiten-Show ihn nutzen kann */
+var profiFahrer = FF.Roboter.profi;
 
 function neuerFahrer(art) {
   if (art === "vollgas") return { eingabe: vollgasEingabe, statistik: null };

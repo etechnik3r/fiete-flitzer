@@ -350,12 +350,14 @@ button { font: inherit; color: inherit; }
 }
 
 
-/* 7) TITELSCREEN (Jonfie-Backglass: dunkles Blau, Goldrahmen, Glanz) -------- */
+/* 7) TITELSCREEN ------------------------------------------------------------
+   Vollbild-Bühne: Hinter dem Titel fährt die Startseiten-Show (spiel.js 12b) auf
+   dem Spielfeld-Canvas. Oben ein kompaktes Logo-Schild (Jonfie-Gold auf
+   Dunkelblau – lesbar auf jeder Welt), unten der große Los-Knopf, ❓/⚙️ klein in
+   der Ecke. Ohne Show (JS lädt noch) bleibt der dunkelblaue Jonfie-Verlauf. */
 .titelscreen {
   position: fixed; inset: 0;
   z-index: 300;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 16px;
   text-align: center;
   background:
     radial-gradient(120% 70% at 50% 120%, rgba(47, 111, 214, 0.28), transparent 60%),
@@ -363,113 +365,174 @@ button { font: inherit; color: inherit; }
     linear-gradient(180deg, #2a3d68 0%, #21335c 45%, var(--card-2) 72%, #10192f 100%);
   transition: opacity 0.45s ease;
   overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none; -webkit-user-select: none;
 }
-.titelscreen::before {
-  content: ""; position: absolute; inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1.4px, transparent 1.5px);
-  background-size: 26px 26px;
-  opacity: 0.7; pointer-events: none;
-}
+.titelscreen.mit-show { background: transparent; }
+.titelscreen.leicht { background: linear-gradient(180deg, var(--bg-top), var(--bg-bot)); }
 .titelscreen.aus { opacity: 0; pointer-events: none; }
-.titel-funke {
-  position: absolute; color: var(--gold); opacity: 0.5;
-  animation: titel-funkeln 2.6s ease-in-out infinite; pointer-events: none;
+
+/* Weicher Schleier oben und unten: Logo und Knopf heben sich ab, die Welt bleibt hell */
+.titel-schleier {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(14, 24, 52, 0.38) 0%, rgba(14, 24, 52, 0) 32%),
+    linear-gradient(0deg, rgba(14, 24, 52, 0.42) 0%, rgba(14, 24, 52, 0) 30%);
 }
-.titel-funke-1 { top: 14%; left: 12%; font-size: 1.1rem; }
-.titel-funke-2 { top: 22%; right: 10%; font-size: 0.8rem; animation-delay: 0.9s; }
-.titel-funke-3 { bottom: 26%; left: 18%; font-size: 0.7rem; animation-delay: 1.6s; }
-.titel-funke-4 { top: 12%; right: 22%; font-size: 0.95rem; animation-delay: 1.2s; }
-.titel-funke-5 { bottom: 18%; right: 16%; font-size: 0.8rem; animation-delay: 0.4s; }
-.titel-rahmen {
-  position: relative;
-  width: min(88vw, 440px);
-  padding: clamp(14px, 4vh, 34px) clamp(18px, 5vw, 32px) clamp(14px, 4vh, 28px);
-  border-radius: 32px;
+.titelscreen:not(.mit-show) .titel-schleier { display: none; }
+
+/* Szenenwechsel: kurz hell überblenden */
+.show-blende {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 55%, #ffffff 0%, #e4efff 70%);
+  opacity: 0; transition: opacity 0.32s ease-in;
+}
+.show-blende.zu { opacity: 1; }
+
+/* Sparmodus: zwei Weltbilder mit langsamer Kamerafahrt */
+.show-leicht { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.show-bild {
+  position: absolute; inset: -4%;
+  background: center / cover no-repeat;
+  opacity: 0; transition: opacity 0.9s ease;
+}
+.show-bild.sichtbar { opacity: 1; }
+.show-bild.fahrt { animation: show-kamerafahrt 9s linear both; }
+@keyframes show-kamerafahrt {
+  from { transform: scale(1.06) translateX(3%); }
+  to   { transform: scale(1.16) translateX(-3%); }
+}
+/* Logo-Schild oben */
+.titel-logo {
+  position: absolute; left: 50%; top: calc(clamp(12px, 4.5vh, 40px) + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  padding: clamp(6px, 1.6vh, 14px) clamp(20px, 4vw, 40px) clamp(6px, 1.4vh, 12px);
+  border-radius: 26px;
   border: 3px solid var(--gold);
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 40%),
-    linear-gradient(200deg, rgba(36, 54, 98, 0.85), rgba(19, 31, 62, 0.9));
-  box-shadow: 0 0 0 6px rgba(243, 196, 74, 0.16), 0 22px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(200deg, rgba(36, 54, 98, 0.92), rgba(19, 31, 62, 0.94));
+  box-shadow: 0 0 0 5px rgba(243, 196, 74, 0.22), 0 14px 32px rgba(10, 18, 40, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   overflow: hidden;
-}
-.titel-rahmen-glanz {
-  position: absolute; inset: -60% -20%;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.22) 48%, transparent 62%);
-  transform: translateX(-60%);
-  animation: titel-glanz-schwenk 4.5s ease-in-out infinite;
+  white-space: nowrap;
   pointer-events: none;
+  animation: titel-plumps 0.9s cubic-bezier(0.25, 1.4, 0.45, 1) both;
 }
-.titel-auto {
-  display: block;
-  width: min(70vw, 300px); height: clamp(70px, 20vh, 130px);
-  margin: 0 auto;
-  animation: titel-schweben 3.4s ease-in-out infinite;
+.titel-logo-glanz {
+  position: absolute; inset: -60% -20%;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.26) 48%, transparent 62%);
+  transform: translateX(-60%);
+  animation: titel-glanz-schwenk 4.5s ease-in-out 1s infinite;
 }
 .titel-name {
+  position: relative;
   font-family: var(--font-display);
-  font-size: clamp(2rem, min(9.5vw, 11vh), 3.4rem);
+  font-size: clamp(2.1rem, min(10vw, 12vh), 4.2rem);
   font-weight: 800; color: var(--gold);
   letter-spacing: 1px; line-height: 1.05;
-  margin-top: 4px;
-  text-shadow: 0 1px 0 #fff8e2, 0 3px 0 rgba(178, 122, 24, 0.6), 0 6px 16px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 0 #fff8e2, 0 3px 0 rgba(178, 122, 24, 0.75), 0 6px 14px rgba(0, 0, 0, 0.45);
 }
 .titel-unter {
+  position: relative;
   font-family: var(--font-display);
-  font-size: clamp(0.95rem, 4.3vw, 1.25rem);
-  letter-spacing: 1.5px; color: #aebce6; margin-top: 2px;
+  font-size: clamp(0.9rem, min(4vw, 4.4vh), 1.3rem);
+  letter-spacing: 1.5px; color: #c9d6ff;
 }
-.titel-chips { display: flex; justify-content: center; gap: 9px; margin-top: clamp(6px, 2vh, 16px); }
-.titel-chip {
-  display: flex; align-items: center; justify-content: center;
-  width: clamp(32px, 9vw, 44px); height: clamp(32px, 9vw, 44px);
-  border-radius: 12px;
-  font-size: clamp(1.05rem, 4.5vw, 1.4rem);
-  background: linear-gradient(180deg, #ffffff, #eef2fb);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  border: 1.5px solid rgba(243, 196, 74, 0.7);
+
+/* ❓ und ⚙️ klein oben rechts (Elternsache) */
+.titel-ecke {
+  position: absolute; top: calc(12px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right));
+  display: flex; gap: 10px;
+  animation: titel-einblenden 0.6s ease 0.6s both;
 }
-.titel-knoepfe { display: flex; flex-direction: column; gap: 10px; margin-top: clamp(10px, 3vh, 24px); }
+.titel-rund { background: rgba(255, 255, 255, 0.88); box-shadow: 0 4px 14px rgba(10, 20, 50, 0.3); }
+.titel-rund:active { transform: scale(0.92); }
+
+/* Großer Los-Knopf unten */
+.titel-unten {
+  position: absolute; left: 0; right: 0;
+  bottom: calc(clamp(34px, 9vh, 70px) + env(safe-area-inset-bottom));
+  display: flex; justify-content: center;
+  pointer-events: none;
+  animation: titel-einblenden 0.6s ease 0.45s both;
+}
 .titel-start {
-  min-height: 58px;
-  font-family: var(--font-display); font-size: clamp(1.3rem, 5.5vw, 1.6rem); font-weight: 800;
+  pointer-events: auto;
+  min-height: clamp(56px, 13vh, 76px); min-width: min(78vw, 320px);
+  padding: 0 34px;
+  font-family: var(--font-display); font-size: clamp(1.4rem, min(6vw, 7vh), 2rem); font-weight: 800;
   color: #fff;
-  background: linear-gradient(180deg, var(--cta), var(--cta-deep));
-  border: none; border-radius: 18px;
-  box-shadow: 0 10px 22px rgba(20, 158, 114, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 0 2px 0 rgba(0, 80, 50, 0.35);
+  background: linear-gradient(180deg, #35d79c, var(--cta) 45%, var(--cta-deep));
+  border: 3px solid rgba(255, 255, 255, 0.85); border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(20, 158, 114, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.45);
   cursor: pointer;
   animation: titel-pulsieren-knopf 2.2s ease-in-out infinite;
 }
-.titel-start:active { transform: translateY(2px); }
-.titel-optionen {
-  min-height: 48px;
-  font-family: var(--font-display); font-size: clamp(1.05rem, 4.4vw, 1.3rem);
-  color: #ffe6a8;
-  background: rgba(243, 196, 74, 0.12);
-  border: 1.5px solid rgba(243, 196, 74, 0.5); border-radius: 16px;
-  cursor: pointer;
+.titel-start-icon { display: inline-block; animation: titel-pfeil 2.2s ease-in-out infinite; }
+.titel-start:active { transform: translateY(2px) scale(0.98); }
+
+/* Welt-Schildchen oben links, Studio unten in der Mitte */
+.show-welt {
+  position: absolute; left: calc(12px + env(safe-area-inset-left)); top: calc(18px + env(safe-area-inset-top));
+  padding: 4px 12px;
+  font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--ink);
+  background: rgba(255, 255, 255, 0.86); border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(10, 20, 50, 0.25);
+  opacity: 0; pointer-events: none;
 }
-.titel-optionen:active { transform: scale(0.97); }
+.show-welt:empty { display: none; }
+.show-welt.rein { animation: show-schild 0.5s ease 0.15s both; }
+.show-welt-fz { margin-left: 2px; }
+@keyframes show-schild { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
 .titel-studio {
-  position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); left: 0; right: 0;
-  font-family: var(--font-display); font-size: 0.95rem;
-  letter-spacing: 1.5px; color: #8fa3d6;
+  position: absolute; left: 0; right: 0; bottom: calc(8px + env(safe-area-inset-bottom));
+  font-family: var(--font-display); font-size: 0.8rem;
+  letter-spacing: 1.5px; color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
 }
+.titelscreen:not(.mit-show) .titel-studio { color: #8fa3d6; text-shadow: none; }
+
 @keyframes titel-pulsieren-knopf {
-  0%, 100% { box-shadow: 0 10px 22px rgba(20, 158, 114, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
-  50%      { box-shadow: 0 12px 30px rgba(40, 192, 138, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+  0%, 100% { box-shadow: 0 10px 22px rgba(20, 158, 114, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.45); }
+  50%      { box-shadow: 0 12px 30px rgba(40, 192, 138, 0.75), inset 0 2px 0 rgba(255, 255, 255, 0.45); }
 }
+/* Ring, der vom Knopf weg pulsiert (der Knopf selbst bleibt ruhig – leichter zu treffen) */
+.titel-start { position: relative; }
+.titel-start::after {
+  content: ""; position: absolute; inset: -3px; border-radius: inherit; pointer-events: none;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  animation: titel-ring 2.2s ease-out infinite;
+}
+@keyframes titel-ring { 0% { transform: scale(1); opacity: 0.9; } 70%, 100% { transform: scale(1.14, 1.35); opacity: 0; } }
+@keyframes titel-pfeil { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@keyframes titel-plumps {
+  0%   { opacity: 0; transform: translate(-50%, -120%) scale(0.9); }
+  60%  { opacity: 1; transform: translate(-50%, 6%) scale(1.03, 0.96); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes titel-einblenden { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes titel-schweben { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes titel-glanz-schwenk { 0%, 15% { transform: translateX(-60%); } 55%, 100% { transform: translateX(60%); } }
-@keyframes titel-funkeln { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 0.8; transform: scale(1.15); } }
 
-/* Querformat mit wenig Höhe (Handy quer): Titel-Karte breiter und flacher */
+/* Handy quer (wenig Höhe): Logo und Knopf etwas kompakter */
 @media (orientation: landscape) and (max-height: 500px) {
-  .titel-rahmen { width: min(92vw, 640px); display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: center; }
-  .titel-auto { grid-row: 1 / 4; width: 100%; height: 34vh; }
-  .titel-chips { display: none; }
-  .titel-knoepfe { grid-column: 1 / 3; flex-direction: row; justify-content: center; }
-  .titel-knoepfe button { flex: 1; }
-  .titel-studio { bottom: 6px; font-size: 0.8rem; }
+  .titel-logo { padding: 4px 26px 4px; border-radius: 20px; }
+  .titel-name { font-size: clamp(1.8rem, 11vh, 2.8rem); }
+  .titel-unter { font-size: 0.85rem; }
+  .titel-unten { bottom: calc(30px + env(safe-area-inset-bottom)); }
+  .titel-start { min-height: 52px; font-size: 1.4rem; }
+  .show-welt { font-size: 0.85rem; }
+}
+/* Hochkant / schmal: Logo unter die Ecken-Knöpfe und das Welt-Schildchen */
+@media (max-width: 620px) and (orientation: portrait) {
+  .titel-logo { top: calc(76px + env(safe-area-inset-top)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .titel-logo, .titel-unten, .titel-ecke { animation: none; }
+  .titel-start, .titel-start-icon, .titel-logo-glanz, .titel-start::after { animation: none; }
 }
 
 
@@ -919,6 +982,7 @@ button { font: inherit; color: inherit; }
 .opt-text { font-size: 0.75rem; color: var(--muted); line-height: 1.15; }
 .opt-schalter-status { margin-top: 2px; min-width: 56px; padding: 2px 10px; font-family: var(--font-display); font-size: 0.9rem; color: #8a97b8; background: #e6eaf4; border-radius: 999px; }
 .opt-schalter-status::after { content: "Aus"; }
+.opt-schalter-status.dev-wert::after { content: none; }
 .opt-schalter.aktiv { border-color: var(--cta); background: #eafaf3; }
 .opt-schalter.aktiv .opt-schalter-status { color: #fff; background: var(--cta); }
 .opt-schalter.aktiv .opt-schalter-status::after { content: "An"; }

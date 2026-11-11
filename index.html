@@ -18,6 +18,7 @@
     gelaende.js Strecken-Generator
     physik.js   2D-Fahrzeugphysik (Federn, Reifen, Motor)
     fahrt.js    Spielregeln einer Fahrt
+    roboter.js  Roboter-Fahrer (Tests + Startseiten-Show)
     kinder.js   so sehen Fiete und Jonte aus (Gesicht, Haare, Looks)
     grafik.js   Zeichnen auf dem Canvas
     klang.js    Töne + Vorlesen
@@ -40,7 +41,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=49">
+  <link rel="stylesheet" href="style.css?v=50">
 </head>
 
 <body>
@@ -121,38 +122,34 @@
 
 
   <!-- ========================================================================
-       TITELSCREEN (wie bei allen JONFIE-STUDIOS-Spielen)
+       TITELSCREEN: Hinter dem Titel läuft die Startseiten-Show (spiel.js 12b):
+       Fiete fährt von allein durch alle Welten. Tippen irgendwo = Los.
        ======================================================================== -->
   <div class="titelscreen" id="titelscreen">
-    <span class="titel-funke titel-funke-1" aria-hidden="true">✦</span>
-    <span class="titel-funke titel-funke-2" aria-hidden="true">✦</span>
-    <span class="titel-funke titel-funke-3" aria-hidden="true">✦</span>
-    <span class="titel-funke titel-funke-4" aria-hidden="true">✦</span>
-    <span class="titel-funke titel-funke-5" aria-hidden="true">✦</span>
-    <div class="titel-rahmen">
-      <span class="titel-rahmen-glanz" aria-hidden="true"></span>
-      <canvas class="titel-auto" id="titel-auto" aria-hidden="true"></canvas>
+    <!-- Sparmodus der Show: zwei Weltbilder (mit Auto drauf) zum Überblenden -->
+    <div class="show-leicht" id="show-leicht" hidden aria-hidden="true">
+      <div class="show-bild"></div><div class="show-bild"></div>
+    </div>
+    <div class="show-blende" id="show-blende" aria-hidden="true"></div>
+    <div class="titel-schleier" aria-hidden="true"></div>
+
+    <div class="titel-ecke">
+      <button type="button" class="rund-knopf titel-rund" id="knopf-titel-anleitung" aria-label="So geht's">❓</button>
+      <button type="button" class="rund-knopf titel-rund" id="knopf-titel-einstellungen" aria-label="Einstellungen">⚙️</button>
+    </div>
+
+    <div class="titel-logo">
+      <span class="titel-logo-glanz" aria-hidden="true"></span>
       <h1 class="titel-name">Fiete Flitzer</h1>
       <p class="titel-unter">Gas geben, Berge rauf!</p>
-      <div class="titel-chips" aria-hidden="true">
-        <span class="titel-chip">🪙</span>
-        <span class="titel-chip">⛽</span>
-        <span class="titel-chip">⛰️</span>
-        <span class="titel-chip">🔧</span>
-        <span class="titel-chip">🏁</span>
-      </div>
-      <div class="titel-knoepfe">
-        <button type="button" class="titel-start" id="knopf-start" aria-label="Spiel starten">
-          <span class="titel-start-icon" aria-hidden="true">▶</span> Los geht's!
-        </button>
-        <button type="button" class="titel-optionen" id="knopf-titel-einstellungen" aria-label="Einstellungen öffnen">
-          ⚙️ Einstellungen
-        </button>
-        <button type="button" class="titel-optionen" id="knopf-titel-anleitung" aria-label="Anleitung öffnen">
-          ❓ So geht's
-        </button>
-      </div>
     </div>
+
+    <div class="titel-unten">
+      <button type="button" class="titel-start" id="knopf-start" aria-label="Spiel starten">
+        <span class="titel-start-icon" aria-hidden="true">▶</span> Los geht's!
+      </button>
+    </div>
+    <div class="show-welt" id="show-welt" aria-hidden="true"></div>
     <p class="titel-studio">ein Spiel von JONFIE STUDIOS</p>
   </div>
 
@@ -467,6 +464,9 @@
             <button type="button" class="opt-karte opt-schalter" id="dev-gasbremse">
               <span class="opt-icon">🎛️</span><span class="opt-name">Gas+Bremse alt</span><span class="opt-schalter-status"></span>
             </button>
+            <button type="button" class="opt-karte" id="dev-startseite">
+              <span class="opt-icon">🎬</span><span class="opt-name">Startseite</span><span class="opt-schalter-status dev-wert"></span>
+            </button>
             <button type="button" class="opt-karte" id="dev-aus">
               <span class="opt-icon">🙈</span><span class="opt-name">Verstecken</span><span class="opt-text">Bereich ausblenden</span>
             </button>
@@ -602,18 +602,20 @@
   <div class="popover" id="popover" role="status" hidden></div>
 
   <!-- Skripte in der richtigen Reihenfolge -->
-  <script src="config.js?v=49"></script>
-  <script src="gelaende.js?v=49"></script>
-  <script src="physik.js?v=49"></script>
-  <script src="fahrt.js?v=49"></script>
-  <script src="geist.js?v=49"></script>
-  <script src="kinder.js?v=49"></script>
-  <script src="spielstand.js?v=49"></script>
-  <script src="requisiten.js?v=49"></script>
-  <script src="grafik.js?v=49"></script>
-  <script src="grafik-welt.js?v=49"></script>
-  <script src="klang.js?v=49"></script>
-  <script src="editor.js?v=49"></script>
-  <script src="spiel.js?v=49"></script>
+  <script src="config.js?v=50"></script>
+  <script src="gelaende.js?v=50"></script>
+  <script src="physik.js?v=50"></script>
+  <script src="fahrt.js?v=50"></script>
+  <script src="roboter.js?v=50"></script>
+  <script src="startseite-szenen.js?v=50"></script>
+  <script src="geist.js?v=50"></script>
+  <script src="kinder.js?v=50"></script>
+  <script src="spielstand.js?v=50"></script>
+  <script src="requisiten.js?v=50"></script>
+  <script src="grafik.js?v=50"></script>
+  <script src="grafik-welt.js?v=50"></script>
+  <script src="klang.js?v=50"></script>
+  <script src="editor.js?v=50"></script>
+  <script src="spiel.js?v=50"></script>
 </body>
 </html>

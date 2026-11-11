@@ -1781,6 +1781,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "50", titel: "Startseite mit Show", punkte: [
+      "🎬 Auf der Startseite fährt Fiete jetzt von allein durch alle Welten – mit Sprüngen, Saltos, Röhren und mehr",
+      "👆 Einfach irgendwo hintippen, dann geht's los",
+      "❓ ⚙️ Hilfe und Einstellungen sitzen oben rechts in der Ecke",
+      "🐢 Ist das Gerät zu langsam, schaltet die Startseite von selbst auf einen Sparmodus" ] },
     { version: "49", titel: "Die Chemiewelt", punkte: [
       "⚗️ Neue Welt Chemiewelt: riesige Glasbehälter mit bunten Flüssigkeiten – hineinplumpsen, hineinspringen oder hineinrutschen und darin wie unter Wasser weiterfahren",
       "🧪 Aus tiefen Behältern saugt dich ein Glasrohr wieder nach oben",
