@@ -19,6 +19,9 @@
                                                      hinten: Gas wegnehmen oder kurz bremsen
      kuppe    scharfe Kuppe vor steilem Abhang     → bei Tempo dreht das Auto im Flug nach vorn
                                                      (ω ≈ v/R): vorher bremsen, in der Luft Gas
+     becken   Chemiewelt: tiefer Glasbehälter mit  → hineinplumpsen, -springen oder -rutschen,
+              bunter Flüssigkeit                     unten wie unter Wasser weiterfahren, über
+                                                     eine Rampe oder durch ein Glasrohr hinaus
 
    Ablauf pro Abtastpunkt (alle 0,5 m):
      1. Rohhöhe   = große Hügel + kleine Wellen + Trend + Bau-Elemente
@@ -111,6 +114,30 @@ var FF = globalThis.FF = globalThis.FF || {};
     plan.hoch = hoch0;
     plan.figuren = ["schlange"];                         // Notlösung: nur die Schlange
     return roehrenPfad(plan, 3);
+  }
+
+  /* Glasrohr aus einem tiefen Behälter (Chemiewelt): direkt vor der rechten Wand vom
+     Behälterboden steil hinauf (72°, vor der Wand und dem Boden dahinter), oben waagrecht weiter. Steigt um "hoch" [m]; P.oben = x,
+     an dem die Fahrlinie oben ankommt. Gleiches Format wie roehrenPfad. */
+  function schlauchPfad(hoch) {
+    var P = { x: [0], y: [0], z: [0], a: [0], s: [0], g: [0], loops: [], fuss: [] }, x = 0, y = 0, a = 0, s = 0;
+    function punkt() { P.x.push(x); P.y.push(y); P.z.push(0); P.a.push(a); P.s.push(s); P.g.push(0); }
+    function gerade(L) {
+      var n = Math.max(1, Math.round(L / ROEHRE_DS));
+      for (var i = 1; i <= n; i++) { x += Math.cos(a) * L / n; y += Math.sin(a) * L / n; s += L / n; punkt(); }
+    }
+    function bogen(R, dA) {
+      var L = R * Math.abs(dA), n = Math.max(2, Math.round(L / ROEHRE_DS));
+      for (var i = 1; i <= n; i++) {
+        var a1 = a + dA / n, sm = (a + a1) / 2, c = 2 * R * Math.sin(Math.abs(dA) / n / 2);
+        x += Math.cos(sm) * c; y += Math.sin(sm) * c; a = a1; s += L / n; punkt();
+      }
+    }
+    var th = 72 * GRAD, R = 2.4, L = Math.max(0.5, (hoch - 2 * R * (1 - Math.cos(th))) / Math.sin(th));
+    gerade(1); bogen(R, th); gerade(L); bogen(R, -th);
+    a = 0; P.oben = x;
+    gerade(4.5);
+    return P;
   }
 
   /* Prüft, ob sich zwei verschiedene Teile (Anstieg, Figur 1, Figur 2, Abstieg) der
@@ -219,7 +246,8 @@ var FF = globalThis.FF = globalThis.FF || {};
                   schwebe: (g.schwebe || 0) * (0.6 + wild), katapult: (g.katapult || 0) * (0.6 + wild),
                   scheune: 0, seil: (g.seil || 0) * (0.7 + wild), wippe: (g.wippe || 0) * (0.7 + wild),
                   hochseil: (g.hochseil || 0) * (0.7 + wild), klapprampe: (g.klapprampe || 0) * (0.7 + wild),
-                  wippenkette: (g.wippenkette || 0) * (0.7 + wild), podeste: (g.podeste || 0) * (0.7 + wild) },
+                  wippenkette: (g.wippenkette || 0) * (0.7 + wild), podeste: (g.podeste || 0) * (0.7 + wild),
+                  becken: (g.becken || 0) * (0.7 + wild) },
       // Bauernhof: Scheunen gleichmäßig über das Level verteilt (nicht zufällig)
       scheuneAbstand: g.scheunen ? (this.endlos ? 150 : (optionen.laenge - 150) / g.scheunen) : 0,
       scheunenAnzahl: g.scheunen || 0,
@@ -280,6 +308,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.verdeckt = [];            // [von, bis]: dort fährt man nicht über den Boden (Röhre) oder sieht ihn nicht (Scheune) – keine Münz-Reihen, keine Kanister
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
+    this.becken = [];              // Chemiewelt: Behälter mit Flüssigkeit {xl, xr, ys, yBoden, fl, …}, nach x sortiert (beckenBei)
     this.muenzWertGesamt = 0;
 
     this.platziertBis = this.x0;
@@ -324,7 +353,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe", "hochseil", "klapprampe", "wippenkette", "podeste"];
+               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe", "hochseil", "klapprampe", "wippenkette", "podeste", "becken"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -341,6 +370,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (p.roehreAbstand && (this.endlos || xs + 120 < this.ziel) &&
         (this.seitRoehre >= 2 || (this.seitRoehre >= 1 && xs - this.roehreEnde >= p.roehreAbstand * (0.8 + 0.4 * r())))) typ = "roehre";
     this.seitRoehre = typ === "roehre" ? 0 : (this.seitRoehre || 0) + 1;
+    if (typ === "becken" && !this.endlos && xs + 110 > this.ziel) typ = "buckel";   // Behälter nie hinter dem Ziel
     if (p.scheuneAbstand && xs - this.scheuneEnde >= p.scheuneAbstand * 0.72 && (this.endlos || (xs + 60 < this.ziel && this.scheunen.length < p.scheunenAnzahl))) typ = "scheune";
     var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
@@ -529,6 +559,74 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.sperrzonen.push([xr - 1, xr + el.span + 2]);
       this.verdeckt.push([xr + 0.5, xr + el.span - 0.5]);
       this.roehreEnde = xr + el.span;
+    } else if (typ === "becken") {
+      // Chemiewelt (Version 49): Glasbehälter mit bunter Flüssigkeit. Darin fährt man wie unter
+      // Wasser (physik.js beckenBei). Vier Arten hineinzukommen und wieder heraus:
+      //   rampe    Rampe hinauf auf den Rand, hineinplumpsen; innen eine Rampe hinaus, außen hinunter
+      //   schanze  Sprungschanze am Rand: weit hinein (Platsch!), langer Behälter, Rampe hinaus
+      //   tief     Behälter im Boden versenkt, sehr tief: über die Kante hinunter, unten entlang,
+      //            am Ende trägt ein Glasrohr das Auto wieder hinauf (Röhren-Mechanik, fahrt.js)
+      //   rutsche  Rutsche schräg hinein, unten entlang, Rampe wieder hinauf auf den Boden
+      // Das Profil wird EXAKT so gebaut (ohne Steigungsbegrenzer und Tiefpass, aus.exakt), damit
+      // die Glaswände senkrecht stehen. s = Abstand zu xs, Höhen relativ zum eingefrorenen Boden.
+      el.flach = true;
+      el.basis = this.rohRauschen(xs);
+      var BW = this.welt.becken || {}, FLs = BW.fluessigkeiten || [{ farbe: "#5fe03a", zaeh: 6, schwere: 0.45, blasen: 0.6 }];
+      var arten = BW.arten || ["rampe", "schanze", "tief", "rutsche"];
+      var art = arten[Math.floor(r() * arten.length)], fl = FLs[Math.floor(r() * FLs.length)];
+      var tG = function (grad) { return Math.tan(grad * GRAD); }, schlauch = null, sT = 0;
+      el.art = art; el.La = 10;
+      var a0 = el.La, ysRel, rimL, rimR;
+      if (art === "rampe" || art === "schanze") {
+        if (art === "rampe") {
+          el.Hr = 1.8 + 0.7 * r(); el.Lr = 1.5 * el.Hr / tG(17); el.sL = a0 + el.Lr + 0.8; rimL = el.Hr;
+          el.D = 2.2 + 1.3 * r(); el.Lb = 14 + 6 * r();
+        } else {
+          el.Hk = 2.4 + 0.8 * r(); el.Lk = 9 + 2 * r(); el.Hr = el.Hk - 0.6 - 0.3 * r(); el.sL = a0 + el.Lk; rimL = el.Hk;
+          el.D = 2.6 + 1.4 * r(); el.Lb = 15 + 7 * r() + 3 * p.wild;
+        }
+        el.sF = el.sL + el.Lb;
+        el.Li = 1.5 * (el.Hr + el.D) / tG(25);
+        el.sR = el.sF + el.Li + 0.6;
+        el.Ld = 1.5 * el.Hr / tG(24);
+        el.sE = el.sR + 0.6 + el.Ld;
+        ysRel = el.Hr - 0.55; rimR = el.Hr;
+      } else if (art === "tief") {
+        el.sL = a0 + 4; el.D = 7.5 + 3 * r() + 1.5 * p.wild;
+        schlauch = schlauchPfad(el.D + 0.25);
+        el.Lb = 18 + 6 * r() + 3 * p.wild;
+        el.sR = el.sL + el.Lb;
+        sT = el.sR - 2;                                   // Einfahrt ins Glasrohr: auf dem Boden kurz vor der Wand
+        el.sF = sT;
+        el.sE = sT + schlauch.x[schlauch.x.length - 1] + 0.5;
+        ysRel = -1.0; rimL = rimR = 0;
+      } else {                                            // rutsche
+        el.sL = a0 + 3; el.D = 4.2 + 2 * r();
+        el.Lc = 1.5 * el.D / tG(32);
+        el.Lb = 7 + 5 * r();
+        el.sF = el.sL + el.Lc + el.Lb;
+        el.Li = 1.5 * el.D / tG(23);
+        el.sR = el.sF + el.Li;
+        el.sE = el.sR + 1;
+        ysRel = -0.7; rimL = rimR = 0;
+      }
+      el.Lflach = el.sE + 2;
+      el.Lo = 14;
+      el.xe = xs + el.Lflach + el.Lo;
+      var y0b = el.basis, xl = xs + el.sL, xr = xs + el.sR;
+      var bk = { art: art, fl: fl, xl: xl, xr: xr, ys: y0b + ysRel, yBoden: y0b - el.D, rimL: y0b + rimL, rimR: y0b + rimR,
+                 strom: fl.strom || 0, sprudel: fl.sprudel || 0, mixer: null, phase: r() * 100, drin: false };
+      if (fl.mixer) bk.mixer = { x: (xl + xs + el.sF) / 2, y: y0b - el.D + 1.7, r: 1.35 };
+      this.becken.push(bk);
+      this.sperrzonen.push([xl - 1, xr + 2]);
+      if (schlauch) {
+        var xRohr = xs + sT;
+        this.roehren.push({ x: xRohr, pfad: schlauch, L: schlauch.s[schlauch.s.length - 1], span: schlauch.x[schlauch.x.length - 1],
+                            y0: null, farbe: Math.floor(r() * 1000), platziert: false, schlauch: true });
+        this.verdeckt.push([xRohr + 0.5, xRohr + schlauch.x[schlauch.x.length - 1] - 0.5]);
+        this.sperrzonen.push([xRohr - 1, xRohr + schlauch.x[schlauch.x.length - 1] + 2]);
+        bk.rohr = xRohr;
+      }
     } else if (typ === "schwebe") {
       // Schwebe-Säule: kleine Sprungkante, dann wird die Schwerkraft fast ausgeschaltet –
       // darunter eine Senke, oben hängen Münzen, die man nur schwebend erreicht
@@ -664,7 +762,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Beitrag eines Elements an der Stelle x (und ob dort steiles Gefälle erlaubt ist) */
   function elementBeitrag(el, x, aus) {
     var s = x - el.xs;
-    aus.steilAb = false; aus.steilAuf = false;
+    aus.steilAb = false; aus.steilAuf = false; aus.exakt = false;
     if (s < 0 || x > el.xe) return 0;
     switch (el.typ) {
       case "schanze":
@@ -756,6 +854,24 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (sk2 < 1.2) aus.steilAb = true;
         if (sk2 > el.G - 1.2) aus.steilAuf = true;
         return sk2 < 0.6 || sk2 > el.G - 0.6 ? 0 : -el.D;
+      case "becken":
+        if (s < el.La || s > el.sE) return 0;
+        aus.exakt = true;
+        if (el.art === "rampe" || el.art === "schanze") {
+          if (s < el.sL) {
+            if (el.art === "rampe") return el.Hr * glatt(el.La, el.La + el.Lr, s);
+            var qk = (s - el.La) / el.Lk; return el.Hk * qk * qk;
+          }
+          if (s < el.sF) return -el.D;
+          if (s < el.sF + el.Li) return -el.D + (el.Hr + el.D) * glatt(el.sF, el.sF + el.Li, s);
+          if (s < el.sR + 0.6) return el.Hr;
+          return el.Hr * (1 - glatt(el.sR + 0.6, el.sE, s));
+        }
+        if (el.art === "tief") return s >= el.sL && s < el.sR ? -el.D : 0;
+        if (s < el.sL) return 0;
+        if (s < el.sL + el.Lc) return -el.D * glatt(el.sL, el.sL + el.Lc, s);
+        if (s < el.sF) return -el.D;
+        return -el.D * (1 - glatt(el.sF, el.sR, s));
       case "schwebe":
         var sz = s - el.La;
         if (sz < 0) return 0;
@@ -809,13 +925,20 @@ var FF = globalThis.FF = globalThis.FF || {};
         var m = glatt(ef.xs + ef.Lflach, ef.xe, x);
         roh = ef.basis * (1 - m) + roh * m;
       }
-      var steilAb = false, steilAuf = false;
+      var steilAb = false, steilAuf = false, exakt = false;
       for (var i = this.elemente.length - 1; i >= 0; i--) {
         var e = this.elemente[i];
         if (e.xe < x - 1) { this.elemente.splice(i, 1); continue; }
         roh += elementBeitrag(e, x, hilf);
         if (hilf.steilAb) steilAb = true;
         if (hilf.steilAuf) steilAuf = true;
+        if (hilf.exakt) exakt = true;
+      }
+      if (exakt) {                                     // Behälter (Chemiewelt): Profil genau so, senkrechte Wände
+        this.aus = this.tp1 = this.tp2 = roh;
+        this.h.push(roh);
+        if (this.hBild) this.hBild.push(roh);
+        continue;
       }
 
       // 2) Slew-Rate-Begrenzer
@@ -1203,6 +1326,22 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     }
     return 1;
+  };
+
+  /* Chemiewelt: Behälter, in dessen Flüssigkeit der Punkt (x, y) steckt, sonst null.
+     this.beckenU = wie tief (0…1): ab 0,6 m unter dem Spiegel ganz, 0,4 m darüber gar nicht. */
+  Gelaende.prototype.beckenBei = function (x, y) {
+    var L = this.becken;
+    for (var i = 0; i < L.length; i++) {
+      var b = L[i];
+      if (x < b.xl) return null;
+      if (x > b.xr) continue;
+      var u = (b.ys - y) + 0.4;
+      if (u <= 0) return null;
+      this.beckenU = Math.min(1, u);
+      return b;
+    }
+    return null;
   };
 
   /* Wasserspiegel einer Pfütze bei x, sonst -Infinity */
@@ -1633,6 +1772,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     while (this.dyn.length && this.dyn[0].b < xHinten) this.dyn.shift();
     while (this.reifen.length && this.reifen[0].x < xHinten) this.reifen.shift();
     while (this.roehren.length && this.roehren[0].x + this.roehren[0].span < xHinten) this.roehren.shift();
+    while (this.becken.length && this.becken[0].xr < xHinten) this.becken.shift();
     var n = 0;
     while (n < this.pfuetzen.length && this.pfuetzen[n].x1 < xHinten) n++;
     if (n > 0) this.pfuetzen.splice(0, n);

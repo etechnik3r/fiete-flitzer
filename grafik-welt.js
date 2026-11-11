@@ -754,6 +754,35 @@ var FF = globalThis.FF = globalThis.FF || {};
       knoten.forEach(function (q, j) { ctx.globalAlpha = 0.3 + 0.5 * Math.max(0, Math.sin(zeit * 3 + j * 2 + k)); ctx.beginPath(); ctx.arc(q[0], q[1], s * 0.014, 0, Math.PI * 2); ctx.fill(); });
       ctx.globalAlpha = 1; ctx.fillStyle = alt; ctx.strokeStyle = alt;
     } },
+    labor: { abst: 22, male: function (ctx, x, y, s, R) {
+      // Chemiewelt: Laborregal mit Kolben, Flaschen und Reagenzgläsern (Silhouette)
+      var b = s * (0.55 + 0.3 * R()), hR = s * (0.55 + 0.25 * R()), bretter = 2 + Math.floor(R() * 2), alt = ctx.fillStyle;
+      ctx.fillRect(x - b, y - hR, s * 0.025, hR + 2); ctx.fillRect(x + b - s * 0.025, y - hR, s * 0.025, hR + 2);
+      for (var i = 0; i < bretter; i++) {
+        var yb = y - hR * (i + 1) / bretter;
+        ctx.fillRect(x - b, yb, 2 * b, s * 0.022);
+        for (var xx = x - b + s * 0.08; xx < x + b - s * 0.06; xx += s * (0.1 + 0.08 * R())) {
+          var art = Math.floor(R() * 3), hg = s * (0.08 + 0.06 * R());
+          ctx.beginPath();
+          if (art === 0) { ctx.moveTo(xx - hg * 0.45, yb); ctx.lineTo(xx - hg * 0.1, yb - hg * 0.65); ctx.lineTo(xx - hg * 0.1, yb - hg); ctx.lineTo(xx + hg * 0.1, yb - hg); ctx.lineTo(xx + hg * 0.1, yb - hg * 0.65); ctx.lineTo(xx + hg * 0.45, yb); }
+          else if (art === 1) { ctx.arc(xx, yb - hg * 0.32, hg * 0.32, 0, Math.PI * 2); ctx.rect(xx - hg * 0.08, yb - hg, hg * 0.16, hg * 0.5); }
+          else ctx.rect(xx - hg * 0.12, yb - hg * 1.1, hg * 0.24, hg * 1.1);
+          ctx.fill();
+        }
+      }
+      ctx.fillStyle = alt;
+    } },
+    kolben: { abst: 28, male: function (ctx, x, y, s, R) {
+      // Chemiewelt: riesige Glaskolben und Standzylinder mit Schlauch dazwischen
+      var h = s * (0.5 + 0.4 * R()), b = h * 0.42, hals = h * 0.35;
+      ctx.beginPath(); ctx.moveTo(x - b, y + 2); ctx.lineTo(x - b * 0.18, y - h + hals); ctx.lineTo(x - b * 0.18, y - h); ctx.lineTo(x + b * 0.18, y - h);
+      ctx.lineTo(x + b * 0.18, y - h + hals); ctx.lineTo(x + b, y + 2); ctx.fill();
+      var x2 = x + b * 1.9, h2 = h * (0.6 + 0.4 * R());
+      ctx.fillRect(x2 - b * 0.3, y - h2, b * 0.6, h2 + 2);
+      ctx.fillRect(x2 - b * 0.45, y - s * 0.03, b * 0.9, s * 0.03 + 2);
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = Math.max(1, s * 0.025);
+      ctx.beginPath(); ctx.moveTo(x, y - h); ctx.quadraticCurveTo((x + x2) / 2, y - h - s * 0.25, x2, y - h2); ctx.stroke();
+    } },
     netz: { abst: 30, male: function (ctx, x, y, s, R, f, zeit, k) {
       // Datenwelt: Netzwerk-Knoten auf Masten, verbunden durch Leitungen, auf denen Datenpakete wandern
       var alt = ctx.fillStyle, n = 3 + Math.floor(R() * 2), P = [];
@@ -1463,6 +1492,26 @@ var FF = globalThis.FF = globalThis.FF || {};
       for (i = i0 - (i0 % 4); i <= i1; i += 4) {
         X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 0.35);
         ctx.beginPath(); ctx.arc(X, Y + 0.25 * K.s, 0.3 * K.s, 1.25 * Math.PI, 1.75 * Math.PI); ctx.stroke();
+      }
+    } else if (stil === "chemie") {
+      // Laborfliesen: Fugen parallel zur Oberfläche und senkrecht alle 1,5 m, ab und zu ein Klecks
+      ctx.strokeStyle = "rgba(120,150,170,0.35)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
+      ctx.beginPath();
+      [0.9, 2.4].forEach(function (tiefe) {
+        for (var ii = i0; ii <= i1; ii += 2) { var XX = sx(K, x0 + ii * dx), YY = sy(K, h[ii] - tiefe); if (ii === i0) ctx.moveTo(XX, YY); else ctx.lineTo(XX, YY); }
+      });
+      for (var jj = i0 - (i0 % 3); jj <= i1; jj += 3) {
+        var Xf = sx(K, x0 + jj * dx), Yf = sy(K, h[jj]), off = (Math.round(jj / 3) % 2) * 1.5;
+        ctx.moveTo(Xf, Yf + (0.3 + off) * K.s); ctx.lineTo(Xf, Yf + (0.9 + off) * K.s);
+      }
+      ctx.stroke();
+      var KL = ["#5fe03a", "#3f9dff", "#ff5fc8", "#9a5cff", "#ff9a2e"];
+      for (var kk = i0 - (i0 % 17); kk <= i1; kk += 17) {
+        var hz = FF.rauschen(kk * 0.73, 19) * 0.5 + 0.5;
+        if (hz < 0.55) continue;
+        ctx.fillStyle = KL[Math.floor(hz * 97) % KL.length]; ctx.globalAlpha = 0.75;
+        ctx.beginPath(); ctx.ellipse(sx(K, x0 + kk * dx), sy(K, h[kk]) + 0.04 * K.s, (0.25 + 0.3 * hz) * K.s, 0.06 * K.s, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
       }
     } else if (stil === "daten") {
       // Platine: Leiterbahnen parallel zur Oberfläche, Abzweige nach unten mit Lötpunkten,
@@ -2473,9 +2522,129 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+  /* Chemiewelt (Version 49): Glasbehälter mit bunter Flüssigkeit (gelaende.becken).
+     teil "hinten" (vor dem Gelände): zart getönte Rückwand mit Messstrichen.
+     teil "vorn" (nach dem Auto): Bodenbleche, Mixer, die durchsichtige Flüssigkeit mit Wellen,
+     aufsteigenden Blasen und Strömungspfeilen, dazu Glaswände mit Metallrand und ein Etikett. */
+  function zeichneBecken(ctx, K, gel, welt, teil, zeit) {
+    var L = gel.becken, s = K.s, sb = sichtbereich(K, gel);
+    for (var i = 0; i < L.length; i++) {
+      var B = L[i];
+      if (B.xr < sb[2] - 3 || B.xl > sb[3] + 3) continue;
+      var f = B.fl.farbe, X0 = sx(K, B.xl), X1 = sx(K, B.xr), YB = sy(K, B.yBoden - 0.2);
+      var obenL = B.rimL + 0.35, obenR = B.rimR + 0.35, YO = sy(K, Math.max(obenL, obenR)), dw = 0.24 * s;
+      if (teil === "hinten") {
+        var gr0 = ctx.createLinearGradient(0, YO, 0, YB);
+        gr0.addColorStop(0, "rgba(225,242,255,0.18)"); gr0.addColorStop(1, "rgba(160,200,235,0.32)");
+        ctx.fillStyle = gr0; ctx.fillRect(X0, YO, X1 - X0, YB - YO);
+        ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = Math.max(1, 0.03 * s);   // Messskala innen an der Wand
+        for (var yk = B.yBoden + 0.5, n = 0; yk < Math.min(B.rimL, B.ys); yk += 0.5, n++) {
+          var lk = (n % 2 ? 0.25 : 0.5) * s;
+          ctx.beginPath(); ctx.moveTo(X0 + dw, sy(K, yk)); ctx.lineTo(X0 + dw + lk, sy(K, yk)); ctx.stroke();
+        }
+        continue;
+      }
+      var schritt = Math.max(0.25, Math.min(0.5, 6 / s)), x;
+      var xa = Math.max(B.xl, sb[2] - 1), xb = Math.min(B.xr, sb[3] + 1);
+      // Bodenbleche und Rampen aus Metall (innen)
+      ctx.strokeStyle = "#c9d2de"; ctx.lineWidth = Math.max(2, 0.14 * s); ctx.lineJoin = "round"; ctx.lineCap = "butt";
+      ctx.beginPath();
+      for (x = xa; x <= xb; x += schritt) { var hy = sy(K, gel.hoeheBei(x)) + 0.07 * s; if (x === xa) ctx.moveTo(sx(K, x), hy); else ctx.lineTo(sx(K, x), hy); }
+      ctx.stroke();
+      // Mixer: Welle vom Boden, drei Flügel drehen sich
+      var M = B.mixer;
+      if (M && M.x > sb[2] - 3 && M.x < sb[3] + 3) {
+        var MX = sx(K, M.x), MY = sy(K, M.y), wm = zeit * 7;
+        ctx.strokeStyle = "#7d8597"; ctx.lineWidth = Math.max(2, 0.16 * s);
+        ctx.beginPath(); ctx.moveTo(MX, sy(K, B.yBoden)); ctx.lineTo(MX, MY); ctx.stroke();
+        for (var k = 0; k < 3; k++) {
+          var wk = wm + k * 2 * Math.PI / 3, c = Math.cos(wk), sn = Math.sin(wk);
+          ctx.fillStyle = sn > 0 ? "#e7ecf3" : "#aeb7c6";
+          ctx.beginPath(); ctx.ellipse(MX + c * M.r * 0.5 * s, MY, Math.abs(c) * M.r * 0.5 * s + 1, 0.22 * s, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = "#5a6275"; ctx.beginPath(); ctx.arc(MX, MY, 0.2 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = Math.max(1, 0.05 * s);        // Wirbel
+        for (var kw = 0; kw < 2; kw++) {
+          ctx.beginPath(); ctx.arc(MX, MY, (1.8 + kw * 0.9) * s, -wm * 0.5 + kw * 2, -wm * 0.5 + kw * 2 + 1.6); ctx.stroke();
+        }
+      }
+      // Flüssigkeit: Oberfläche mit Wellen, unten bis zum Boden
+      var Y = sy(K, B.ys);
+      ctx.beginPath(); ctx.moveTo(X0, Y);
+      for (x = B.xl + schritt; x < B.xr; x += schritt) ctx.lineTo(sx(K, x), Y + Math.sin(x * 1.9 + zeit * 2.6 + B.phase) * 0.05 * s);
+      ctx.lineTo(X1, Y);
+      for (x = B.xr; x > B.xl; x -= schritt) ctx.lineTo(sx(K, x), sy(K, Math.min(gel.hoeheBei(x), B.ys)));
+      ctx.lineTo(X0, sy(K, Math.min(gel.hoeheBei(B.xl + 0.01), B.ys)));
+      ctx.closePath();
+      var gr = ctx.createLinearGradient(0, Y, 0, YB);
+      gr.addColorStop(0, hell(f, 0.2)); gr.addColorStop(1, dunkel(f, 0.35));
+      ctx.globalAlpha = 0.6; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
+      // Blasen steigen auf (mehr oder weniger, je nach Flüssigkeit)
+      var nB = Math.round((B.xr - B.xl) * (B.fl.blasen || 0.5) * 0.9);
+      ctx.strokeStyle = "rgba(255,255,255,0.75)"; ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.lineWidth = Math.max(1, 0.03 * s);
+      for (var kb = 0; kb < nB; kb++) {
+        var tb = (zeit * (0.18 + 0.12 * zufall01(kb + i * 7, 41)) + zufall01(kb + i * 7, 42)) % 1;
+        var xbB = B.xl + 0.4 + (B.xr - B.xl - 0.8) * zufall01(kb + i * 7 + Math.floor(zeit * 0.25 + zufall01(kb, 43)) * 97, 44);
+        var yBod = gel.hoeheBei(xbB);
+        if (yBod > B.ys - 0.3) continue;
+        var ybB = yBod + (B.ys - yBod) * tb, rb = (0.06 + 0.12 * zufall01(kb + i * 7, 45)) * (0.6 + 0.6 * tb);
+        xbB += Math.sin(zeit * 3 + kb) * 0.12 + (B.strom || 0) * 0.3 * tb;
+        if (xbB < B.xl + 0.2 || xbB > B.xr - 0.2) continue;
+        ctx.beginPath(); ctx.arc(sx(K, xbB), sy(K, ybB), rb * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      if (B.sprudel) {                                       // Sprudel: Blasenschwaden direkt unter der Oberfläche
+        for (var ks = 0; ks < (B.xr - B.xl) * 1.5; ks++) {
+          var xsP = B.xl + 0.3 + (B.xr - B.xl - 0.6) * zufall01(ks + i * 3, 46), us = (zeit * 1.6 + zufall01(ks, 47)) % 1;
+          if (gel.hoeheBei(xsP) > B.ys - 0.2) continue;
+          ctx.globalAlpha = 1 - us;
+          ctx.beginPath(); ctx.arc(sx(K, xsP), Y + (0.1 + 0.25 * (1 - us)) * s, (0.04 + 0.05 * us) * s, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      if (B.strom) {                                         // Strömung: wandernde Pfeile
+        var rS = B.strom > 0 ? 1 : -1;
+        ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1.5, 0.07 * s); ctx.lineCap = "round"; ctx.lineJoin = "round";
+        for (var ka = 0; ka < (B.xr - B.xl) / 3.5; ka++) {
+          var ua = ((zeit * 0.35 * rS + ka / ((B.xr - B.xl) / 3.5)) % 1 + 1) % 1, xpA = B.xl + 1 + (B.xr - B.xl - 2) * ua;
+          var yb2 = gel.hoeheBei(xpA);
+          if (yb2 > B.ys - 1) continue;
+          var ypA = yb2 + (B.ys - yb2) * (0.35 + 0.3 * zufall01(ka, 48)), XA = sx(K, xpA), YA = sy(K, ypA), g = 0.3 * s * rS;
+          ctx.globalAlpha = Math.sin(Math.PI * ua);
+          ctx.beginPath(); ctx.moveTo(XA - g, YA - Math.abs(g)); ctx.lineTo(XA, YA); ctx.lineTo(XA - g, YA + Math.abs(g)); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+      // glänzende Oberfläche
+      ctx.strokeStyle = hell(f, 0.55); ctx.lineWidth = Math.max(1.5, 0.07 * s); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(X0 + dw, Y);
+      for (x = B.xl + schritt; x < B.xr; x += schritt) { if (gel.hoeheBei(x) > B.ys) break; ctx.lineTo(sx(K, x), Y + Math.sin(x * 1.9 + zeit * 2.6 + B.phase) * 0.05 * s); }
+      ctx.stroke();
+      // Glaswände mit Metallrand
+      [[B.xl, obenL, 1], [B.xr, obenR, -1]].forEach(function (W) {
+        var XW = sx(K, W[0]), YT = sy(K, W[1]), xi = W[2] > 0 ? XW : XW - dw;
+        ctx.fillStyle = "rgba(225,245,255,0.5)"; ctx.fillRect(xi, YT, dw, YB - YT);
+        ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.fillRect(xi + dw * 0.2, YT + 0.2 * s, dw * 0.18, YB - YT - 0.4 * s);
+        ctx.strokeStyle = "rgba(120,160,200,0.8)"; ctx.lineWidth = Math.max(1, 0.03 * s); ctx.strokeRect(xi, YT, dw, YB - YT);
+        ctx.fillStyle = "#9aa4b5"; ctx.fillRect(xi - 0.08 * s, YT - 0.12 * s, dw + 0.16 * s, 0.16 * s);       // Rand oben
+        ctx.fillStyle = "#c9d2de"; ctx.fillRect(xi - 0.08 * s, YT - 0.12 * s, dw + 0.16 * s, 0.05 * s);
+      });
+      // Etikett über dem Behälter: Name der Flüssigkeit (wie im Labor)
+      if (B.fl.name) {
+        var xm = (B.xl + B.xr) / 2, XM = sx(K, xm), YE = sy(K, Math.max(B.rimL, B.rimR) + 1.9), fs = Math.max(9, Math.round(0.42 * s));
+        ctx.font = "800 " + fs + "px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        var tx = "⚗️ " + B.fl.name, tw = ctx.measureText(tx).width + fs;
+        ctx.fillStyle = "rgba(255,255,255,0.92)"; ctx.strokeStyle = f; ctx.lineWidth = Math.max(2, 0.08 * s);
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(XM - tw / 2, YE - fs * 0.8, tw, fs * 1.6, fs * 0.4); else ctx.rect(XM - tw / 2, YE - fs * 0.8, tw, fs * 1.6);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = dunkel(f, 0.45); ctx.fillText(tx, XM, YE + 1);
+      }
+    }
+  }
+
   FF.GrafikWelt = {
     zeichneSchneeDecke: zeichneSchneeDecke, zeichneZirkus: zeichneZirkus, zeichneZelt: zeichneZelt, zeichneReifen: zeichneReifen,
     zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,
+    zeichneBecken: zeichneBecken,
     zeichneHimmel: zeichneHimmel, zeichneWolken: zeichneWolken, zeichneBerge: zeichneBerge, bezugsHoehe: bezugsHoehe, zeichneDecke: zeichneDecke,
     zeichneGelaende: zeichneGelaende, zeichneWasser: zeichneWasser, zeichneTrampoline: zeichneTrampoline,
     zeichneNacht: zeichneNacht, windAktualisieren: windAktualisieren, KULISSE: KULISSE, zeichneBaender: zeichneBaender,

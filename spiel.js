@@ -288,7 +288,10 @@
     var zielX = ch.x + klemme(ch.vx * Kc.vorausschau, -3, 6);
     var zielY = ch.y + 0.6;
     // In der Röhre: etwas weiter weg, damit man Loopings und Kurven ganz sieht
-    roehrenZoom += ((fahrt.roehre ? 0.78 : 1) - roehrenZoom) * (sofort ? 1 : Math.min(1, dt * 1.5));
+    // Chemiewelt: im oder kurz vor einem Behälter auch, damit man ihn ganz sieht (Wände, Spiegel, Ausgang)
+    var beiBecken = false, BK = fahrt.gelaende.becken;
+    for (var bi = 0; bi < BK.length; bi++) if (ch.x > BK[bi].xl - 10 && ch.x < BK[bi].xr + 2) { beiBecken = true; break; }
+    roehrenZoom += ((fahrt.roehre ? 0.78 : beiBecken ? 0.72 : 1) - roehrenZoom) * (sofort ? 1 : Math.min(1, dt * 1.5));
     kamera.s *= roehrenZoom;
     if (fahrt.zugHinten) {                       // Dampf-Lok: etwas weiter weg und weniger voraus, damit der ganze Zug ins Bild passt
       kamera.s *= quer ? 0.94 : 0.84;
@@ -452,7 +455,7 @@
       var fe = fahrt.fz.feuer || 0, cf = Math.cos(ch.a), sf = Math.sin(ch.a);
       auspuffTakt = fe > 0.15 ? 0.035 : 0.3;                          // ohne Gas kokelt es nur ein bisschen
       var xf = -1.35 - fe * 1.6, yf = 0.5, xw = ch.x + cf * xf - sf * yf, yw = ch.y + sf * xf + cf * yf;
-      if (welt.unterwasser) partikel.neu({ art: "blase", x: xw, y: yw, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.22, schwer: -0.35, reibung: 1.2 });
+      if (welt.unterwasser || fahrt.imBecken) partikel.neu({ art: "blase", x: xw, y: yw, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.22, schwer: -0.35, reibung: 1.2 });
       else partikel.neu({ art: "rauch", x: xw, y: yw, vx: ch.vx * 0.35 - cf * (1 + 2.5 * fe),           // ohne Luft (Mond) steigt kein Qualm auf
                           vy: ch.vy * 0.35 + Math.min(1, welt.luftdichte / 1.2) * (0.6 + 1.2 * fe + Math.random() * 0.4),
                           t: 0, dauer: 1.1 + 1.3 * fe, r0: 0.12 + 0.12 * fe, r1: 0.45 + 0.9 * fe,
@@ -461,7 +464,7 @@
       var GR = fahrt.fz.glieder[0], gk = GR.k, ck2 = Math.cos(gk.a), sk2 = Math.sin(gk.a), ap = GR.def.motor.auspuff;
       auspuffTakt = fahrt.gas > 0.3 ? 0.08 : 0.35;
       var xa = gk.x + ck2 * ap[0] - sk2 * ap[1], ya = gk.y + sk2 * ap[0] + ck2 * ap[1];
-      if (welt.unterwasser) partikel.neu({ art: "blase", x: xa, y: ya, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.2, r0: 0.05, r1: 0.14, schwer: -0.35, reibung: 1.2 });
+      if (welt.unterwasser || fahrt.imBecken) partikel.neu({ art: "blase", x: xa, y: ya, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.2, r0: 0.05, r1: 0.14, schwer: -0.35, reibung: 1.2 });
       else partikel.neu({ art: "rauch", x: xa, y: ya, vx: gk.vx * 0.4 - ck2 * 0.8, vy: gk.vy * 0.4 + Math.min(1, welt.luftdichte / 1.2) * (0.5 + 0.8 * fahrt.gas),
                           t: 0, dauer: 0.7 + 0.5 * fahrt.gas, r0: 0.05, r1: 0.22 + 0.2 * fahrt.gas, farbe: "rgba(120,126,140,0.85)", alpha: 0.35 + 0.25 * fahrt.gas, reibung: 1.6 });
     } else if (fahrt.def.form === "lkw" && fahrt.tank > 0 && auspuffTakt <= 0) {   // Donner-Truck: schwarzer Rauch aus beiden Rohren
@@ -472,7 +475,7 @@
       [[-0.32, 2.74], [-0.5, 2.7]].forEach(function (r, n) {
         if (n && Math.random() < 0.5) return;
         var xk = ch.x + ck * r[0] - sk * r[1], yk = ch.y + sk * r[0] + ck * r[1];
-        if (welt.unterwasser) { partikel.neu({ art: "blase", x: xk, y: yk, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.2, schwer: -0.35, reibung: 1.2 }); return; }
+        if (welt.unterwasser || fahrt.imBecken) { partikel.neu({ art: "blase", x: xk, y: yk, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.08, r1: 0.2, schwer: -0.35, reibung: 1.2 }); return; }
         partikel.neu({ art: "rauch", x: xk, y: yk, vx: ch.vx * 0.5 - sk * (1 + 2 * gl), vy: ch.vy * 0.5 + ck * (1 + 2.5 * gl),
                        t: 0, dauer: 0.9 + 0.6 * gl, r0: 0.12, r1: 0.45 + 0.6 * gl, farbe: gl > 0.3 ? "rgba(35,35,40,0.95)" : "rgba(90,90,100,0.8)",
                        alpha: gl > 0.3 ? 0.75 : 0.35, reibung: 1.3 });
@@ -481,7 +484,7 @@
       auspuffTakt = 0.09;
       var L = fahrt.werte.groesse.laenge;
       var ca = Math.cos(ch.a), sa = Math.sin(ch.a), lx = -L * 0.5, ly = -0.05;
-      if (welt.unterwasser) {                                  // unter Wasser blubbert der Auspuff
+      if (welt.unterwasser || fahrt.imBecken) {                                  // unter Wasser blubbert der Auspuff
         partikel.neu({ art: "blase", x: ch.x + ca * lx - sa * ly, y: ch.y + sa * lx + ca * ly,
                        vx: -ca * 0.8 + ch.vx * 0.3, vy: 0.4, t: 0, dauer: 1.4, r0: 0.05, r1: 0.14, schwer: -0.35, reibung: 1.2 });
       } else partikel.neu({ art: "rauch", x: ch.x + ca * lx - sa * ly, y: ch.y + sa * lx + ca * ly,
@@ -599,12 +602,12 @@
   /* Schleimwelt: Ab und zu fällt ein dicker Tropfen von oben genau dorthin, wo das Auto
      gleich ist; trifft er, bleibt ein grüner Fleck auf dem Auto (nur Grafik, verblasst). */
   var schleimTakt = 2, schleimFaelle = [];
-  function schleimFleck(n) {
+  function schleimFleck(n, farbe) {
     var fz = fahrt.fz, L = fahrt.werte.groesse.laenge, H0 = fahrt.werte.groesse.hoehe;
     fz.flecken = fz.flecken || [];
     for (var i = 0; i < n; i++) {
       if (fz.flecken.length >= 9) fz.flecken.shift();
-      fz.flecken.push({ x: (Math.random() - 0.5) * L * 0.8, y: Math.random() * H0 * 0.55, r: 0.1 + Math.random() * 0.12, t: 9 + Math.random() * 4, w: Math.random() * 6 });
+      fz.flecken.push({ x: (Math.random() - 0.5) * L * 0.8, y: Math.random() * H0 * 0.55, r: 0.1 + Math.random() * 0.12, t: 9 + Math.random() * 4, w: Math.random() * 6, farbe: farbe });
     }
   }
   function schleimTropfen(dt) {
@@ -642,7 +645,7 @@
     if (tropfTakt > 0) return;
     tropfTakt = 0.45 - 0.33 * gas + Math.random() * 0.1;
     var x = ch.x + ca * lx - sa * ly, y = ch.y + sa * lx + ca * ly;
-    if (fahrt.welt.unterwasser) {
+    if (fahrt.welt.unterwasser || fahrt.imBecken) {
       partikel.neu({ art: "blase", x: x, y: y, vx: ch.vx * 0.3, vy: 0.4, t: 0, dauer: 1.2, r0: 0.04, r1: 0.12, schwer: -0.35, reibung: 1.2 });
       return;
     }
@@ -669,7 +672,7 @@
     if (!puff || (rate > 12 && Math.random() < 0.4)) return;
     var gas = fahrt.gas, lx = 1.07, ly = 1.12;
     var x = ch.x + ca * lx - sa * ly, y = ch.y + sa * lx + ca * ly;
-    if (welt.unterwasser) {
+    if (welt.unterwasser || fahrt.imBecken) {
       partikel.neu({ art: "blase", x: x, y: y, vx: ch.vx * 0.3, vy: 0.6, t: 0, dauer: 1.4, r0: 0.06, r1: 0.16, schwer: -0.35, reibung: 1.2 });
       return;
     }
@@ -931,8 +934,38 @@
           setzeAusdruck("freude", 1.4);
           if (ersteMale("tipp-obst", 2)) { tipp("🍎 Lecker! Jedes Obst gibt dir einen kleinen Raketen-Schub.", 4000, "Lecker! Ein kleiner Turbo!"); spruchBis = zeit + 3; }
           break;
+        case "eintauchen":               // Chemiewelt: hinein in einen Behälter
+          var bkE = e.bk, flE = bkE.fl, farbeE = flE.farbe;
+          FF.Klang.spiele("eintauchen", e.staerke);
+          for (var pe = 0; pe < 10 + 18 * e.staerke; pe++) {
+            var pwe = Math.PI * (0.12 + 0.76 * Math.random()), pve = 2.5 + Math.random() * 5 * (0.4 + e.staerke);
+            partikel.neu({ art: "tropfen", x: e.x + (Math.random() - 0.5) * 1.6, y: e.y + 0.05, vx: Math.cos(pwe) * pve, vy: Math.sin(pwe) * pve,
+                           t: 0, dauer: 0.8 + Math.random() * 0.4, r0: 0.08 + Math.random() * 0.1, farbe: farbeE, schwer: 1, reibung: 0.4 });
+          }
+          for (var pb = 0; pb < 10; pb++) partikel.neu({ art: "blase", x: e.x + (Math.random() - 0.5) * 2, y: e.y - 0.5 - Math.random() * 1.5, vx: (Math.random() - 0.5) * 0.6,
+                                                     vy: 0.6 + Math.random() * 0.6, t: 0, dauer: 1.2 + Math.random(), r0: 0.06, r1: 0.2, schwer: -0.35, reibung: 1.2 });
+          if (e.staerke > 0.35) schwebeText(e.x, e.y + 1.8, ["Platsch!", "Blubb!", "Splash!", "Plumps!"][Math.floor(Math.random() * 4)] + " ⚗️", FF.Grafik.hell(farbeE, 0.35), true);
+          setzeAusdruck(e.staerke > 0.5 ? "staunen" : "freude", 1.6);
+          if (ersteMale("tipp-becken", 2)) { tipp("⚗️ Im Behälter fährst du wie unter Wasser: alles schwebt, die Brühe bremst. Gib Gas, dann kommst du wieder raus!", 5000, "Platsch! Ab in die " + (flE.name || "Brühe") + "!"); spruchBis = zeit + 3; }
+          else if (zeit > spruchBis && Math.random() < 0.5) { FF.Klang.sprich(flE.name ? flE.name + "!" : "Platsch!"); spruchBis = zeit + 3; }
+          if (bkE.mixer && ersteMale("tipp-mixer", 1)) tipp("🌀 Achtung, ein Mixer! Er wirbelt dich herum.", 3500);
+          else if (bkE.strom && ersteMale("tipp-strom" + (bkE.strom > 0 ? "+" : "-"), 1)) tipp(bkE.strom > 0 ? "➡️ Eine Strömung schiebt dich vorwärts!" : "⬅️ Die Strömung drückt dagegen – gib Gas!", 3500);
+          else if (bkE.sprudel && ersteMale("tipp-sprudel", 1)) tipp("🫧 Sprudel! Die Blasen heben dich hoch.", 3500);
+          break;
+        case "auftauchen":               // Chemiewelt: wieder heraus
+          FF.Klang.spiele("auftauchen");
+          for (var pa = 0; pa < 8; pa++) partikel.neu({ art: "tropfen", x: ch.x + (Math.random() - 0.5) * 2, y: ch.y + Math.random(), vx: ch.vx * 0.3 + (Math.random() - 0.5) * 2,
+                                                    vy: Math.random() * 2, t: 0, dauer: 0.7, r0: 0.06 + Math.random() * 0.06, farbe: e.bk.fl.farbe, schwer: 1, reibung: 0.4 });
+          schleimFleck(3, e.bk.fl.farbe);                 // es tropft noch ein bisschen bunt vom Auto
+          break;
         case "roehre":                   // hinein in die Röhre
           FF.Klang.spiele("roehre");
+          if (e.schlauch) {                               // Chemiewelt: Glasrohr aus dem Behälter
+            schwebeText(e.x + 2, e.y + 4, "Schlürf! 🧪", "#ffffff", true);
+            setzeAusdruck("freude", 3);
+            if (ersteMale("tipp-glasrohr", 2)) { tipp("🧪 Das Glasrohr saugt dich nach oben – mit Gas geht's schneller!", 4500, "Ab durchs Glasrohr nach oben!"); spruchBis = zeit + 3; }
+            break;
+          }
           schwebeText(e.x + 2, e.y + 4, "Hui! 🌀", "#ffffff", true);
           setzeAusdruck("freude", 3);
           if (ersteMale("tipp-roehre", 2)) { tipp("🌀 Die Röhre fährt dich ganz von allein – mit Gas wirst du schneller!", 4500, "Hui! Ab durch die Röhre!"); spruchBis = zeit + 3; }
@@ -2565,6 +2598,7 @@
     if (w.wasser) m.push("💧 Pfützen");
     if (w.wind) m.push("💨 Wind");
     if (w.unterwasser) m.push("🫧 unter Wasser");
+    if (g.becken) m.push("⚗️ Behälter zum Reintauchen");
     if (w.nacht) m.push("🔦 dunkel");
     if (w.decke) m.push("🪨 Höhlendecke");
     if (w.spuk) m.push("👻 Geister");
@@ -2838,7 +2872,7 @@
           drehzahl: hilfe ? 0 : st.drehzahl, bremse: fahrt.bremse, rueckwaerts: fahrt.rueckwaerts,
           gas: fahrt.gas + (fahrt.rueckwaerts ? 0.6 * fahrt.bremse : 0),       // rückwärts treibt der Motor auch
           laeuft: fahrt.tank > 0 && fahrt.zustand !== "ende", tempo: hilfe ? 0 : st.tempo, vmax: fahrt.werte.motor.vmax,
-          boden: !hilfe && st.radKontakte > 0, luft: fahrt.welt.luftdichte > 0 && !fahrt.welt.unterwasser, getriebe: fahrt.getriebe, dt: dt
+          boden: !hilfe && st.radKontakte > 0, luft: fahrt.welt.luftdichte > 0 && !fahrt.welt.unterwasser && !fahrt.imBecken, getriebe: fahrt.getriebe, dt: dt
         });
         if (fahrt.welt.wind) FF.Klang.umgebungStaerke(Math.min(1, Math.abs(fahrt.gelaende.windBei(fahrt.fz.chassis.x)) / fahrt.welt.wind.staerke));
         var inLuft = st.radKontakte === 0 && !st.huellKontakt && fahrt.zustand === "fahrt";

@@ -49,6 +49,7 @@ server.listen(0, "127.0.0.1", async function () {
       // typische Stelle: kurz vor dem Besonderen der Welt (wichtigstes zuerst), sonst bei 130 m
       var kandidaten = [];
       function gel_schleim(g) { return g.welt.schleimbach && g.trampoline.length; }
+      if (g.becken.length) kandidaten.push(g.becken[0].xl - 9);          // Chemiewelt: kurz vor dem Behälter
       if (g.roehren.length) kandidaten.push(g.roehren[0].x - 8);
       if (gel_schleim(g)) kandidaten.push(g.trampoline[0].x0 - 9);
       if (g.welt.datenstrom && g.baender.length) kandidaten.push(g.baender[0].x0 - 3);

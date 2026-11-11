@@ -105,7 +105,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.gaenge = this.elektro || this.dampf ? 1 : (this.P.gaenge || 4);
     this.leerlauf = this.elektro ? 0 : (this.P.leerlauf || 800);
     this.max = this.P.max || (this.elektro ? 12000 : 6000);
-    if (this.turbine) { this.gaenge = 1; this.leerlauf = this.P.leerlauf || 8000; }
+    if (this.turbine) { this.gaenge = 1; this.leerlauf = this.P.leerlauf != null ? this.P.leerlauf : 8000; }   // Gasbrenner: 0 (aus ist aus)
     if (this.dampf) { this.leerlauf = 0; this.max = this.P.max || 400; }
     this.gang = 1; this.schaltZeit = 0;
     this.rf = 0;                  // Drehzahl relativ zur Höchstdrehzahl im Gang (> 1: Begrenzer)
@@ -185,6 +185,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.boostLadung = 0; this.boostZeit = 0;
     this.federLadung = 0; this.federZeit = 0; this.federSperre = 0;
     this.imWasser = false; this.letztesPlatsch = -9;
+    this.imBecken = null;          // Chemiewelt: Behälter, in dessen Flüssigkeit das Auto gerade steckt
     this.windZone = 0; this.letzterWind = -99;
     this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
     this.miniZeit = 0;             // Obstplantage: Mini-Turbo nach dem Einsammeln von Obst [s]
@@ -521,7 +522,7 @@ var FF = globalThis.FF = globalThis.FF || {};
 
     if (this.zustand === "hilfe") { this.hilfeSchritt(h); return; }
     if (this.katapult) { this.katapultSchritt(h, eingabe); return; }
-    if (this.roehre) { this.roehrenSchritt(h, eingabe); return; }
+    if (this.roehre) { this.imBecken = null; this.roehrenSchritt(h, eingabe); return; }
 
     this.setzeAntrieb();
     this.setzeZusatzMoment();
@@ -560,6 +561,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.duese = this.boostZeit;                  // für die Grafik: Düsen und Flammen
     fz.feder = this.federZeit;                  // … ausgefahrene Sprungfedern
     if (this.welt.wasser && !w.schweben) this.wasser(h);      // der Teppich schwebt darüber
+    if (this.gelaende.becken.length || this.imBecken) this.beckenPruefen();
     if (w.auftrieb) this.fliegen(h);
     if (w.turbine) this.turbinenSchub(h);
     if (w.feuer) this.feuerSchub(h);
@@ -730,6 +732,11 @@ var FF = globalThis.FF = globalThis.FF || {};
       var losgelassen = this.gasBremseAlt ? Math.abs(steuer) < 0.1 : this.gas < 0.1 && this.bremse < 0.1;
       M = steuer * w.luftsteuerung * J;
       if ((steuer > 0 && C.w > 5.5) || (steuer < 0 && C.w < -5.5)) M = 0;
+      if (this.imBecken) {
+        // Chemiewelt: in der Flüssigkeit dreht sich das Auto nur halb so stark, und der Auftrieb
+        // richtet es langsam wieder auf (sonst landet es nach dem Hineinplumpsen auf dem Dach)
+        M = M * 0.45 + (-2.2 * normWinkel(C.a) - 1.2 * C.w) * J;
+      }
       if (w.stabilisator && losgelassen) {
         M += (-3 * normWinkel(C.a) - 1.5 * C.w) * J * w.stabilisator;
       }
@@ -919,7 +926,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       K.dx = C.x - (P0.x - Math.sin(P0.a) * hc); K.dy = C.y - (P0.y + Math.cos(P0.a) * hc); K.da = normWinkel(C.a - P0.a);
       while (K.loopI < R.pfad.loops.length && R.pfad.loops[K.loopI] <= K.s) K.loopI++;
       this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
-      this.melde("roehre", { x: R.x, y: gel.hoeheBei(R.x) });
+      this.melde("roehre", { x: R.x, y: gel.hoeheBei(R.x), schlauch: !!R.schlauch });
       return;
     }
   };
@@ -974,6 +981,19 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
     this.weitesterX = Math.max(this.weitesterX, C.x); this.festZeit = 0;
     this.melde("roehreAus", { x: C.x, y: C.y });
+  };
+
+  /* Chemiewelt: Eintauchen in einen Behälter (Ereignis "eintauchen": Platsch, Tipp) und
+     wieder Auftauchen. Im Glasrohr ist man nicht mehr in der Flüssigkeit. */
+  Fahrt.prototype.beckenPruefen = function () {
+    var gel = this.gelaende, C = this.fz.chassis;
+    var bk = this.roehre ? null : gel.beckenBei(C.x, C.y);
+    if (bk && gel.beckenU < 0.5) bk = this.imBecken === bk ? bk : null;   // Hysterese am Spiegel
+    if (bk && bk !== this.imBecken && this.zustand === "fahrt")
+      this.melde("eintauchen", { x: C.x, y: bk.ys, staerke: Math.min(1, Math.abs(C.vy) / 7 + Math.abs(C.vx) / 16), bk: bk });
+    else if (!bk && this.imBecken && this.zustand === "fahrt" && !this.roehre)
+      this.melde("auftauchen", { x: C.x, y: this.imBecken.ys, bk: this.imBecken });
+    this.imBecken = bk;
   };
 
   function v_quadrat(v) { return v * v; }
@@ -1086,8 +1106,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     var schief = normWinkel(C.a - Math.atan(gel.steigungBei(C.x)));   // + = Nase zu hoch
     if (this.luftZeit > 0) {
       if (this.luftZeit > 0.3) this.melde("landung", { staerke: Math.min(1, this.luftZeit / 1.5) });
-      // Bruchlandung: viel zu schief zum Hang aufgekommen
-      if (this.bruchAn && this.zustand === "fahrt" && this.luftZeit > 0.45 && Math.abs(schief) > ((this.schw.bruchWinkel || 90) + (this.werte.bruchExtra || 0)) * Math.PI / 180) {
+      // Bruchlandung: viel zu schief zum Hang aufgekommen (nicht im Behälter: dort landet man weich)
+      if (this.bruchAn && this.zustand === "fahrt" && this.luftZeit > 0.45 && !this.imBecken && Math.abs(schief) > ((this.schw.bruchWinkel || 90) + (this.werte.bruchExtra || 0)) * Math.PI / 180) {
         this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
         this.melde("bruch", { nase: schief > 0 ? "hoch" : "tief" });
         this.starteHilfe();
@@ -1232,6 +1252,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
     this.boostZeit = 0; this.fz.duese = 0; this.miniZeit = 0; this.fz.mini = 0; this.umhangZeit = 0; this.fz.umhang = 0;
     var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3 + this.zugHinten), true) : this.landeplatz(C.x);
+    if (this.imBecken) x1 = this.landeplatz(Math.max(C.x, this.imBecken.xr + 2), true);   // Chemiewelt: aus dem Behälter hinaus
+    this.imBecken = null;
     var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
     var a0 = C.a, d = normWinkel(zielA - a0);

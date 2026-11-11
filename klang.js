@@ -235,7 +235,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.quellen = [];
     this.rpm = 0; this.t0 = ac.currentTime;
     this.zz = 99991;
-    if (P.art === "elektro") this.baueElektro(); else if (P.art === "turbine") this.baueTurbine();
+    if (P.art === "elektro") this.baueElektro(); else if (P.brenner) this.baueBrenner(); else if (P.art === "turbine") this.baueTurbine();
     else if (P.art === "propeller") this.bauePropeller();
     else if (P.art === "wasser") this.baueWasser();
     else if (P.art === "zauber") this.baueZauber();
@@ -363,6 +363,75 @@ var FF = globalThis.FF = globalThis.FF || {};
     V.bp.frequency.setTargetAtTime(400 + 1400 * rel, t, 0.1);
     V.gF.gain.setTargetAtTime(L * an * (0.015 + 0.16 * rel * rel), t, 0.1);
     V.gG.gain.setTargetAtTime(L * an * 0.12 * rel, t, 0.1);
+  };
+
+  /* Gasbrenner (Fietes Feuerkutsche, Version 49): Fauchen einer großen Flamme statt einer
+     Turbine. Drei Rauschanteile: das Fauchen (Bandpass, mit der Flamme lauter und heller),
+     tiefes Brodeln der Verbrennung (Tiefpass) und das Zischen des Gasstrahls (Hochpass).
+     Ein zweites, langsames Rauschen (Tiefpass ≈ 7 Hz) lässt die Flamme unregelmäßig flackern.
+     Ohne Gas ist alles still; beim Gasgeben klickt der Piezo-Zünder zweimal, dann zündet die
+     Flamme mit einem dumpfen „Wumm“ (zuenden). Stärke = fahrt.turbinenLauf (gt.rf, 0…1). */
+  Motor.prototype.baueBrenner = function () {
+    var ac = this.ac;
+    var q = rauschQuelle(ac);
+    var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 0.55; bp.frequency.value = 400;
+    var tpF = ac.createBiquadFilter(); tpF.type = "lowpass"; tpF.frequency.value = 2200;
+    var gF = ac.createGain(); gF.gain.value = 0;
+    q.connect(bp); bp.connect(tpF); tpF.connect(gF); gF.connect(this.bus);
+    var tpB = ac.createBiquadFilter(); tpB.type = "lowpass"; tpB.frequency.value = 110; tpB.Q.value = 1.2;
+    var gB = ac.createGain(); gB.gain.value = 0;
+    q.connect(tpB); tpB.connect(gB); gB.connect(this.bus);
+    var hpZ = ac.createBiquadFilter(); hpZ.type = "highpass"; hpZ.frequency.value = 3500;
+    var gZ = ac.createGain(); gZ.gain.value = 0;
+    q.connect(hpZ); hpZ.connect(gZ); gZ.connect(this.bus);
+    // Flackern: eigenes, langsam abgespieltes Rauschen moduliert Fauchen und Brodeln
+    var fq = rauschQuelle(ac); fq.playbackRate.value = 0.37;
+    var ftp = ac.createBiquadFilter(); ftp.type = "lowpass"; ftp.frequency.value = 7;
+    var fG = ac.createGain(), fGB = ac.createGain(); fG.gain.value = 0; fGB.gain.value = 0;
+    fq.connect(ftp); ftp.connect(fG); fG.connect(gF.gain); ftp.connect(fGB); fGB.connect(gB.gain);
+    [q, fq].forEach(this.starte, this);
+    this.v = { bp: bp, tpF: tpF, gF: gF, gB: gB, tpB: tpB, gZ: gZ, fG: fG, fGB: fGB };
+    this.flamme = 0; this.ausSeit = 9;
+  };
+  Motor.prototype.zuenden = function (t, L) {
+    var ac = this.ac, bus = this.bus;
+    [0, 0.07].forEach(function (d) {                                // Piezo-Zünder: „Tick-tick“
+      var o = ac.createOscillator(), g = ac.createGain(); o.type = "square"; o.frequency.value = 2600;
+      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.05 * L, t + d + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.018);
+      o.connect(g); g.connect(bus); o.start(t + d); o.stop(t + d + 0.03);
+    });
+    var t1 = t + 0.12;                                              // „Wumm“: das Gas entzündet sich
+    var q = rauschQuelle(ac), tp = ac.createBiquadFilter(), gq = ac.createGain();
+    tp.type = "lowpass"; tp.Q.value = 0.9;
+    tp.frequency.setValueAtTime(2400, t1); tp.frequency.exponentialRampToValueAtTime(220, t1 + 0.4);
+    gq.gain.setValueAtTime(0.0001, t1); gq.gain.exponentialRampToValueAtTime(0.42 * L, t1 + 0.025); gq.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.5);
+    q.connect(tp); tp.connect(gq); gq.connect(bus); q.start(t1, Math.random()); q.stop(t1 + 0.55);
+    var o2 = ac.createOscillator(), g2 = ac.createGain(); o2.type = "sine";
+    o2.frequency.setValueAtTime(95, t1); o2.frequency.exponentialRampToValueAtTime(40, t1 + 0.3);
+    g2.gain.setValueAtTime(0.0001, t1); g2.gain.exponentialRampToValueAtTime(0.35 * L, t1 + 0.02); g2.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.35);
+    o2.connect(g2); g2.connect(bus); o2.start(t1); o2.stop(t1 + 0.4);
+    return t1;
+  };
+  Motor.prototype.setzeBrenner = function (z, gt, t) {
+    var P = this.P, V = this.v, L = P.lautstaerke || 1, dt = Math.min(0.1, z.dt || 1 / 60);
+    var rel = z.laeuft ? Math.max(0, Math.min(1, gt.rf || 0)) : 0;
+    var an = rel > 0.03;
+    if (!an) { this.ausSeit += dt; this.zuendung = 0; }
+    else if (this.ausSeit > 0.25) { this.zuendung = this.zuenden(t, L); this.ausSeit = 0; }   // nach einer Pause neu zünden
+    else this.ausSeit = 0;
+    var ab = this.zuendung && t < this.zuendung ? this.zuendung : t; // bis zum Wumm bleibt es still
+    var f = an ? 0.25 + 0.75 * rel : 0;
+    if (ab > t) { V.gF.gain.setTargetAtTime(0, t, 0.02); V.gB.gain.setTargetAtTime(0, t, 0.02); V.gZ.gain.setTargetAtTime(an ? 0.012 * L : 0, t, 0.02); }
+    else {
+      V.gF.gain.setTargetAtTime(L * f * (0.13 + 0.2 * rel), t, an ? 0.06 : 0.05);
+      V.gB.gain.setTargetAtTime(L * f * (0.16 + 0.16 * rel), t, an ? 0.08 : 0.05);
+      V.gZ.gain.setTargetAtTime(L * f * (0.008 + 0.02 * rel), t, 0.06);
+    }
+    V.fG.gain.setTargetAtTime(L * f * (0.08 + 0.22 * rel), t, 0.1);  // Flackern: tiefer, je größer die Flamme
+    V.fGB.gain.setTargetAtTime(L * f * (0.1 + 0.25 * rel), t, 0.1);
+    V.bp.frequency.setTargetAtTime(260 + 900 * rel, t, 0.1);
+    V.tpF.frequency.setTargetAtTime(1400 + 2400 * rel, t, 0.1);
+    V.tpB.frequency.setTargetAtTime(80 + 90 * rel, t, 0.1);
   };
 
   /* Alter Holzpropeller (Schnee-Schlitten): Jedes Blatt, das vorbeiwischt, drückt einen
@@ -578,6 +647,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var gt = z.probe ? this.leerlaufGetriebe(r, dt)
            : z.getriebe || (this.getriebe = this.getriebe || new FF.Getriebe(P)).schritt(r, v, gas, z.boden, z.laeuft, dt);
     if (P.art === "elektro") return this.setzeElektro(z, gt, tempo, gas, t, dt);
+    if (P.brenner) return this.setzeBrenner(z, gt, t);
     if (P.art === "turbine") return this.setzeTurbine(z, gt, t);
     if (P.art === "propeller") return this.setzePropeller(z, gt, t);
     if (P.art === "wasser") return this.setzeWasser(z, gt, t);
@@ -929,6 +999,15 @@ var FF = globalThis.FF = globalThis.FF || {};
         break;
       case "extraBereit":              // Knopf ist voll aufgeladen
         ton(1047, 0, 0.1, "triangle", 0.14); ton(1568, 0.09, 0.25, "triangle", 0.14);
+        break;
+      case "eintauchen":               // Chemiewelt: Platsch in einen Behälter, dann blubbert es
+        var we = wert === undefined ? 0.6 : wert;
+        rauschen(0, 0.35 + 0.3 * we, 0.18 + 0.25 * we, 900);
+        ton(140, 0, 0.3, "sine", 0.22 * (0.5 + we), 60);
+        [420, 610, 380, 720, 540].forEach(function (f, i) { ton(f, 0.15 + i * 0.09, 0.07, "sine", 0.07, f * 1.8); });
+        break;
+      case "auftauchen":               // wieder heraus: kurzes Schlürfen und Tropfen
+        ton(300, 0, 0.18, "sine", 0.08, 900); ton(900, 0.12, 0.06, "sine", 0.05, 500); ton(760, 0.22, 0.05, "sine", 0.04, 420);
         break;
       case "platsch":                  // durch eine Pfütze: Spritzen + ein paar Tropfen
         rauschen(0, 0.25 + 0.2 * (wert || 0.5), 0.12 + 0.2 * (wert || 0.5), 1400);

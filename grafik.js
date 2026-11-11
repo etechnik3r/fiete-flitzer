@@ -2734,7 +2734,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     teile.vorne();
     if (fz.flecken && fz.flecken.length) {                 // Schleimwelt: grüne Flecken auf dem Auto
       fz.flecken.forEach(function (f) {
-        ctx.globalAlpha = Math.min(1, f.t / 2) * 0.9; ctx.fillStyle = "#7fe23a";
+        ctx.globalAlpha = Math.min(1, f.t / 2) * 0.9; ctx.fillStyle = f.farbe || "#7fe23a";
         ctx.beginPath();
         for (var k = 0; k < 10; k++) { var wk = f.w + k * Math.PI / 5, rk = f.r * (k % 2 ? 0.65 : 1); ctx.lineTo(f.x + Math.cos(wk) * rk, f.y + Math.sin(wk) * rk); }
         ctx.closePath(); ctx.fill();
@@ -3168,11 +3168,13 @@ var FF = globalThis.FF = globalThis.FF || {};
     var st = fahrt.fz.status;
     var r = Math.max(26, Math.min(44, K.h * 0.085));
     var y = K.h - r * 0.75 - 8;
-    var kmh = Math.round(Math.abs(st.vorwaerts) * 3.6);
+    // Betrag der Geschwindigkeit (Version 49): bei Saltos und Loopings dreht sich das Auto, die
+    // Vorwärts-Komponente (Projektion auf die Längsachse) pendelte dann wild hin und her
+    var kmh = Math.round(st.tempo * 3.6);
     var vmaxKmh = Math.max(40, Math.ceil(fahrt.werte.motor.vmax * 3.6 / 20) * 20 + 20);
     zeichneInstrument(ctx, K.b / 2 - r * 1.15, y, r, kmh, vmaxKmh, "", String(kmh), 0, skalaSchritte(vmaxKmh), "km/h");
     var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
-    var titel = fahrt.werte.wanne ? "💧 Strahl" : fahrt.werte.zauber ? "✨ Zauber" : fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
+    var titel = fahrt.werte.wanne ? "💧 Strahl" : fahrt.werte.zauber ? "✨ Zauber" : fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.P.brenner ? "🔥 Brenner" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
     if (G.dampf) umin = Math.round(G.rpm / 10) * 10;
     zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
                       G.elektro || G.turbine || G.dampf ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
@@ -3184,7 +3186,7 @@ var FF = globalThis.FF = globalThis.FF || {};
      ========================================================================= */
   function zeichneSzene(ctx, sz) {
     var K = sz.kamera, f = sz.fahrt, welt = f.welt, gel = f.gelaende, z = sz.zeit, W = FF.GrafikWelt;
-    taucherHelm = !!(welt.unterwasser || welt.helm);
+    taucherHelm = !!(welt.unterwasser || welt.helm || f.imBecken);
     W.windAktualisieren(K, welt, gel, sz.dt);
     // Kopfüberwelt: die ganze Welt wird um die Bildmitte gespiegelt (sz.kopf: 1 normal, −1 kopfüber,
     // dazwischen klappt sie gerade um). Anzeigen und Schwebetexte bleiben richtig herum.
@@ -3204,6 +3206,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     W.zeichneDecke(ctx, K, gel, welt, z);
     var b = sichtbereich(K, gel);
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
+    if (gel.becken.length) W.zeichneBecken(ctx, K, gel, welt, "hinten", z);
     W.zeichneGelaende(ctx, K, gel, welt, z);
     if (gel.schneeDecke) W.zeichneSchneeDecke(ctx, K, gel);
     if (gel.wasserDecke) W.zeichneSchneeDecke(ctx, K, gel, gel.wasserDecke, true);
@@ -3234,6 +3237,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       K2.s = K.s * q; K2.x = ch.x - (ch.x - K.x) / q; K2.y = ch.y - (ch.y - K.y) / q;
       zeichneFahrzeug(ctx, K2, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
     } else zeichneFahrzeug(ctx, K, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
+    if (gel.becken.length) W.zeichneBecken(ctx, K, gel, welt, "vorn", z);
     if (gel.roehren.length) W.zeichneRoehren(ctx, K, gel, welt, "vorn", z);
     if (gel.scheunen.length) W.zeichneScheunen(ctx, K, gel, "vorn");
     if (gel.zellen.length) W.zeichneZellen(ctx, K, gel, "vorn", b[2], b[3]);

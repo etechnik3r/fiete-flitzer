@@ -433,10 +433,31 @@ var FF = globalThis.FF = globalThis.FF || {};
   function kraefte(T, gel, welt, h) {
     var w = T.werte, C = T.chassis, RR = T.raeder, nR = RR.length, i;
     var g = welt.schwerkraft * (gel.schwereBei ? gel.schwereBei(C.x) : 1);   // Schwebe-Säulen: fast keine Schwerkraft
+    // Chemiewelt: im Behälter wie unter Wasser – weniger Schwerkraft (Auftrieb), zähe Flüssigkeit
+    // bremst und dämpft Drehungen, Strömung oder Mixer schieben. bu = wie tief eingetaucht (0…1).
+    var bk = gel.becken && gel.becken.length ? gel.beckenBei(C.x, C.y) : null, bu = bk ? gel.beckenU : 0;
+    if (bk) g = g * (1 - bu * (1 - (bk.fl.schwere || 0.45))) - bu * bk.sprudel;
     C.vy -= g * h;
     for (i = 0; i < nR; i++) RR[i].k.vy -= g * h;
     if (T.glieder) for (i = 0; i < T.glieder.length; i++) T.glieder[i].k.vy -= g * h;
-    var rho = welt.luftdichte;
+    if (bk) {
+      var sax = bu * bk.strom, say = 0, M = bk.mixer;
+      if (M) {                                                // Mixer: Wirbel im Uhrzeigersinn (oben nach vorn)
+        var mdx = C.x - M.x, mdy = C.y - M.y, md = Math.sqrt(mdx * mdx + mdy * mdy), RW = 3.4;
+        if (md < RW && md > 0.05) { var st = 4 * bu * (1 - md / RW) / md; sax += mdy * st; say -= mdx * st; }
+      }
+      if (sax || say) {
+        C.vx += sax * h; C.vy += say * h;
+        for (i = 0; i < nR; i++) { RR[i].k.vx += sax * h; RR[i].k.vy += say * h; }
+      }
+      C.w -= C.w * Math.min(1, 1.3 * bu * h);
+      // zähe Brühe: dazu eine lineare Dämpfung (k = zaeh/10 [1/s]) – wer hineinspringt, wird schnell
+      // langsamer und fliegt nicht quer durch den ganzen Behälter gegen die Wand
+      var kd = Math.min(1, (bk.fl.zaeh || 6) * 0.1 * bu * h);
+      C.vx -= C.vx * kd; C.vy -= C.vy * kd;
+      for (i = 0; i < nR; i++) { RR[i].k.vx -= RR[i].k.vx * kd; RR[i].k.vy -= RR[i].k.vy * kd; }
+    }
+    var rho = welt.luftdichte + bu * (bk ? bk.fl.zaeh || 6 : 0);
     if (rho > 0) {
       var v2 = C.vx * C.vx + C.vy * C.vy;
       if (v2 > 1e-4) {

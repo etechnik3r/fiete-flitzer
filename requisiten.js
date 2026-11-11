@@ -983,6 +983,44 @@
       g.fillStyle = "rgba(255,255,255,0.6)"; g.beginPath(); g.arc(-u * 0.03, -u * 0.98, u * 0.035, 0, Math.PI * 2); g.fill();
     } },
     // Datenwelt (Version 41): Mikrochip, freundlicher Roboter, Server-Schrank, Bildschirm
+    // Chemiewelt (Version 49): Erlenmeyerkolben mit bunter, blubbernder Flüssigkeit, Reagenzglas-Ständer
+    kolben: { breite: 0.9, sinken: 0, male: function (g, u, R) {
+      var f = ["#5fe03a", "#3f9dff", "#ff5fc8", "#9a5cff", "#ff9a2e", "#ffe03a"][Math.floor(R() * 6)];
+      var b = u * 0.4, hs = u * 0.95, hals = u * 0.3, bh = u * 0.09;
+      var form = function () {
+        g.beginPath(); g.moveTo(-b, -u * 0.02); g.lineTo(-bh, -hs + hals); g.lineTo(-bh, -hs); g.lineTo(bh, -hs); g.lineTo(bh, -hs + hals); g.lineTo(b, -u * 0.02); g.closePath();
+      };
+      form(); g.fillStyle = "rgba(225,245,255,0.55)"; g.fill();
+      g.save(); form(); g.clip();                                           // Flüssigkeit bis etwa zur Hälfte
+      var yS = -u * (0.3 + 0.2 * R()), gr = g.createLinearGradient(0, yS, 0, 0); gr.addColorStop(0, hell(f, 0.25)); gr.addColorStop(1, dunkel(f, 0.25));
+      g.fillStyle = gr; g.fillRect(-b, yS, 2 * b, -yS);
+      g.fillStyle = "rgba(255,255,255,0.6)";
+      for (var i = 0; i < 4; i++) { g.beginPath(); g.arc((R() - 0.5) * b, yS * (0.2 + 0.7 * R()), u * (0.02 + 0.025 * R()), 0, Math.PI * 2); g.fill(); }
+      g.restore();
+      form(); g.strokeStyle = "#7da3c0"; g.lineWidth = Math.max(1, u * 0.03); g.stroke();
+      g.fillStyle = "rgba(255,255,255,0.7)"; g.fillRect(-b * 0.55, -u * 0.25, u * 0.04, u * 0.18);   // Glanz
+      if (R() < 0.6) {                                                      // Korken oder Dampfwölkchen
+        g.fillStyle = "#c08a52"; g.fillRect(-bh * 1.15, -hs - u * 0.07, bh * 2.3, u * 0.08);
+      } else {
+        g.fillStyle = "rgba(255,255,255,0.75)";
+        [[0, -hs - u * 0.08, 0.06], [u * 0.06, -hs - u * 0.18, 0.05], [-u * 0.03, -hs - u * 0.27, 0.04]].forEach(function (q) { g.beginPath(); g.arc(q[0], q[1], u * q[2], 0, Math.PI * 2); g.fill(); });
+      }
+    } },
+    reagenz: { breite: 1.1, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.5, hh = u * 0.32;
+      g.fillStyle = "#c79a62"; g.fillRect(-b, -u * 0.08, 2 * b, u * 0.08); g.fillRect(-b, -hh, 2 * b, u * 0.06);     // Holzständer
+      g.fillRect(-b, -hh, u * 0.05, hh); g.fillRect(b - u * 0.05, -hh, u * 0.05, hh);
+      var n = 4;
+      for (var i = 0; i < n; i++) {
+        var x = -b + (i + 0.5) * 2 * b / n, f = ["#5fe03a", "#3f9dff", "#ff5fc8", "#9a5cff", "#ff9a2e", "#ffe03a"][Math.floor(R() * 6)];
+        var top = -u * (0.62 + 0.12 * R()), r = u * 0.065, voll = u * (0.12 + 0.25 * R());
+        g.fillStyle = "rgba(225,245,255,0.6)"; g.fillRect(x - r, top, 2 * r, -top - u * 0.1);
+        g.fillStyle = f; g.fillRect(x - r, -u * 0.1 - voll, 2 * r, voll);
+        g.beginPath(); g.arc(x, -u * 0.1, r, 0, Math.PI); g.fill();
+        g.strokeStyle = "#7da3c0"; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(x - r, top, 2 * r, -top - u * 0.1);
+      }
+      g.fillStyle = "#a87a44"; g.fillRect(-b, -hh, 2 * b, u * 0.06);
+    } },
     chip: { breite: 1.2, sinken: 0, male: function (g, u, R) {
       var f = ["#1e2633", "#26344f", "#1d3d36", "#3a2a4f"][Math.floor(R() * 4)], b = u * 0.42, h = u * 0.78, yb = -u * 0.14;
       g.fillStyle = "#c9cfdb";                                          // Beinchen
@@ -1298,7 +1336,7 @@
   /* ---------------------------------------------------------------------------
      Bild-Zwischenspeicher
      --------------------------------------------------------------------------- */
-  var VARIANTEN = { dino: 12, riesenblume: 6, glasskulptur: 6, obstbaum: 10, obstkiste: 5 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
+  var VARIANTEN = { kolben: 8, dino: 12, riesenblume: 6, glasskulptur: 6, obstbaum: 10, obstkiste: 5 };   // Dinos: 4 Arten × 3 Farben, Blumen 3 Arten × 2, sonst 4 Varianten
   var cache = {}, anzahl = 0;
   function sprite(typ, variante, px, q) {
     var M = MALER[typ];

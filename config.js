@@ -691,7 +691,9 @@ FF.CONFIG = {
       dach: [[0.08, 1.7], [-0.3, 1.42], [0.45, 1.42]],
       kopf: { x: -0.01, y: 0.72, r: 0.28 },
       farbe: "holz", form: "feuerkutsche",
-      klang: { art: "turbine", max: 9000, leerlauf: 2600, traegheit: 8, lautstaerke: 1.0, abrollen: 1.3 },
+      // Klang (Version 49): fauchender Gasbrenner statt Turbine – aus ist aus, beim Gasgeben
+      // klickt der Zünder, es wummt, dann faucht die Flamme (klang.js baueBrenner)
+      klang: { art: "turbine", brenner: true, max: 9000, leerlauf: 0, traegheit: 8, lautstaerke: 1.0, abrollen: 1.3 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
     },
     {
@@ -1718,6 +1720,45 @@ FF.CONFIG = {
                   abstandElemente: 25 },
       tankAbstand: 280, muenzAbstand: 22,
       level: [ { laenge: 820, seed: 3501 }, { laenge: 1080, seed: 3502 }, { laenge: 1340, seed: 3503 }, { laenge: 1600, seed: 3504 } ]
+    },
+    {
+      /* Chemiewelt (Version 49): ein riesiges Chemielabor. Überall stehen tiefe Glasbehälter
+         (Bau-Element "becken", gelaende.js) mit bunten Flüssigkeiten. Darin fährt man wie unter
+         Wasser (physik.js beckenBei): weniger Schwerkraft (schwere = Anteil, der bleibt), die
+         Brühe bremst (zaeh = Dichte für ½·ρ·cwA·v²) und dämpft Drehungen. Manche haben eine
+         Strömung (strom [m/s²], + vorwärts, − dagegen), einen Mixer (Wirbel) oder Sprudel
+         (sprudel [m/s²] Auftrieb nach oben). Hinein: über eine Rampe hineinplumpsen, mit der
+         Sprungschanze hineinspringen, über die Kante in einen tiefen, versenkten Behälter fallen
+         oder hineinrutschen; heraus über eine Rampe oder durch ein Glasrohr. */
+      id: "chemie", name: "Chemiewelt", emoji: "⚗️", hinweis: "Im Chemielabor: Platsch in die bunten Behälter – darin schwebst du wie unter Wasser!",
+      schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.018, abprall: 0.06, luftdichte: 1.2,
+      farben: {
+        himmel: ["#eaf7f5", "#b6dfe6"], berge: ["#9cc9d2", "#7fb2bf"],
+        boden: ["#dbe5ec", "#a9b8c6"], oberflaeche: "#f5f9fc", kante: "#6fd3df", punkte: "#9fb2c2",
+        wolken: "rgba(255,255,255,0.7)"
+      },
+      sonne: "sonne",
+      becken: {
+        fluessigkeiten: [
+          { name: "Glibber-Grün", farbe: "#5fe03a", zaeh: 10, schwere: 0.5, blasen: 0.5 },
+          { name: "Blubber-Blau", farbe: "#3f9dff", zaeh: 5, schwere: 0.45, blasen: 1.1 },
+          { name: "Brause-Pink", farbe: "#ff5fc8", zaeh: 4, schwere: 0.42, blasen: 1.5, sprudel: 1.6 },
+          { name: "Mixer-Lila", farbe: "#9a5cff", zaeh: 6, schwere: 0.45, blasen: 0.6, mixer: true },
+          { name: "Strömungs-Orange", farbe: "#ff9a2e", zaeh: 6, schwere: 0.45, blasen: 0.4, strom: 2.4 },
+          { name: "Zitronen-Gelb", farbe: "#ffd83a", zaeh: 5, schwere: 0.45, blasen: 0.7, strom: -1.0 },
+          { name: "Zaubertrank-Türkis", farbe: "#2fe0c8", zaeh: 7, schwere: 0.36, blasen: 0.9 }
+        ]
+      },
+      roehrenFarben: ["#8fdcff", "#b9a8ff", "#7ff0c8"],
+      tipp: ["⚗️ In der Chemiewelt plumpst du in bunte Behälter – darin schwebst du wie unter Wasser. Gib Gas, dann kommst du wieder raus!", "Ab ins Chemielabor!"],
+      deko: ["@kolben:1.2", "@reagenz:0.9", "🧪:0.7", "@kolben:1.6", "🔬:1.0", "@reagenz:1.1", "@kolben:0.9", "🧫:0.5", "@kolben:2.0", "🧯:0.8", "@reagenz:0.8", "🧲:0.6"],
+      beiwerk: ["@kolben:0.45", "@kolben:0.35"], kulisse: ["labor", "kolben", "labor"],
+      gelaende: { amp: 5.5, welle: 44, holperAmp: 0.1, holperWelle: 7, trend: 0.014,
+                  maxAuf: 28, maxAb: 38, schanzen: 1.0, buckel: 0.8, steil: 0.6, taeler: 0.7, berg: 0.5, sprung: 0.8, wellen: 0.7, klippe: 0.5, rampe: 0.6, kuppe: 0.5, stufe: 0.6,
+                  becken: 3.2, wildBasis: 0.35,
+                  abstandElemente: 18 },
+      tankAbstand: 195, muenzAbstand: 22,
+      level: [ { laenge: 820, seed: 3601 }, { laenge: 1080, seed: 3602 }, { laenge: 1340, seed: 3603 }, { laenge: 1600, seed: 3604 } ]
     }
   ],
 
@@ -1740,6 +1781,12 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "49", titel: "Die Chemiewelt", punkte: [
+      "⚗️ Neue Welt Chemiewelt: riesige Glasbehälter mit bunten Flüssigkeiten – hineinplumpsen, hineinspringen oder hineinrutschen und darin wie unter Wasser weiterfahren",
+      "🧪 Aus tiefen Behältern saugt dich ein Glasrohr wieder nach oben",
+      "🌀 Manche Behälter haben einen Mixer, eine Strömung oder Sprudel",
+      "🔥 Fietes Feuerkutsche faucht jetzt wie ein Gasbrenner: ohne Gas ist sie still, beim Gasgeben zündet sie mit einem Wumm",
+      "⏱️ Der Tacho zeigt immer das Tempo, auch bei Saltos und rückwärts – der Zeiger zappelt nicht mehr" ] },
     { version: "48", titel: "Die Datenwelt", punkte: [
       "💾 Neue Welt Datenwelt: mitten im Computer – Einsen und Nullen rieseln vom Himmel, Roboter und Chips schauen zu",
       "⏩ Datenströme nehmen dich mit und machen dich superschnell",
