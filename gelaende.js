@@ -370,7 +370,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (p.roehreAbstand && (this.endlos || xs + 120 < this.ziel) &&
         (this.seitRoehre >= 2 || (this.seitRoehre >= 1 && xs - this.roehreEnde >= p.roehreAbstand * (0.8 + 0.4 * r())))) typ = "roehre";
     this.seitRoehre = typ === "roehre" ? 0 : (this.seitRoehre || 0) + 1;
-    if (typ === "becken" && !this.endlos && xs + 110 > this.ziel) typ = "buckel";   // Behälter nie hinter dem Ziel
+    if (typ === "becken" && !this.endlos && xs + 100 > this.ziel) typ = "buckel";   // Behälter nie hinter dem Ziel
     if (p.scheuneAbstand && xs - this.scheuneEnde >= p.scheuneAbstand * 0.72 && (this.endlos || (xs + 60 < this.ziel && this.scheunen.length < p.scheunenAnzahl))) typ = "scheune";
     var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
@@ -575,15 +575,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       var arten = BW.arten || ["rampe", "schanze", "tief", "rutsche"];
       var art = arten[Math.floor(r() * arten.length)], fl = FLs[Math.floor(r() * FLs.length)];
       var tG = function (grad) { return Math.tan(grad * GRAD); }, schlauch = null, sT = 0;
-      el.art = art; el.La = 10;
+      el.art = art; el.La = art === "rampe" || art === "schanze" ? 5 : 10;   // Rampe/Schanze: kurzer Anlauf (mehr Flüssigkeit, Version 51); über die Kante: ruhig anfahren
       var a0 = el.La, ysRel, rimL, rimR;
       if (art === "rampe" || art === "schanze") {
         if (art === "rampe") {
           el.Hr = 1.8 + 0.7 * r(); el.Lr = 1.5 * el.Hr / tG(17); el.sL = a0 + el.Lr + 0.8; rimL = el.Hr;
-          el.D = 2.2 + 1.3 * r(); el.Lb = 14 + 6 * r();
+          el.D = 2.4 + 1.3 * r(); el.Lb = 34 + 12 * r() + 4 * p.wild;
         } else {
           el.Hk = 2.4 + 0.8 * r(); el.Lk = 9 + 2 * r(); el.Hr = el.Hk - 0.6 - 0.3 * r(); el.sL = a0 + el.Lk; rimL = el.Hk;
-          el.D = 2.6 + 1.4 * r(); el.Lb = 15 + 7 * r() + 3 * p.wild;
+          el.D = 2.8 + 1.4 * r(); el.Lb = 42 + 12 * r() + 5 * p.wild;   // länger als der weiteste Sprung
         }
         el.sF = el.sL + el.Lb;
         el.Li = 1.5 * (el.Hr + el.D) / tG(25);
@@ -594,7 +594,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (art === "tief") {
         el.sL = a0 + 4; el.D = 7.5 + 3 * r() + 1.5 * p.wild;
         schlauch = schlauchPfad(el.D + 0.25);
-        el.Lb = 18 + 6 * r() + 3 * p.wild;
+        el.Lb = 36 + 12 * r() + 4 * p.wild;
         el.sR = el.sL + el.Lb;
         sT = el.sR - 2;                                   // Einfahrt ins Glasrohr: auf dem Boden kurz vor der Wand
         el.sF = sT;
@@ -603,7 +603,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else {                                            // rutsche
         el.sL = a0 + 3; el.D = 4.2 + 2 * r();
         el.Lc = 1.5 * el.D / tG(32);
-        el.Lb = 7 + 5 * r();
+        el.Lb = 26 + 10 * r() + 3 * p.wild;
         el.sF = el.sL + el.Lc + el.Lb;
         el.Li = 1.5 * el.D / tG(23);
         el.sR = el.sF + el.Li;
@@ -611,7 +611,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         ysRel = -0.7; rimL = rimR = 0;
       }
       el.Lflach = el.sE + 2;
-      el.Lo = 14;
+      el.Lo = 6;
       el.xe = xs + el.Lflach + el.Lo;
       var y0b = el.basis, xl = xs + el.sL, xr = xs + el.sR;
       var bk = { art: art, fl: fl, xl: xl, xr: xr, ys: y0b + ysRel, yBoden: y0b - el.D, rimL: y0b + rimL, rimR: y0b + rimR,
@@ -1224,6 +1224,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     return E.h[i] * (1 - t) + E.h[i + 1] * t;
   };
 
+  /* Chemiewelt: liegt x über einem Behälter (zwischen den Glaswänden)? */
+  Gelaende.prototype.imBecken = function (x) {
+    for (var i = 0; i < this.becken.length; i++) if (x > this.becken[i].xl && x < this.becken[i].xr) return true;
+    return false;
+  };
+
   /* Liegt x in einer Sperrzone (Grube, Looping)? */
   Gelaende.prototype.gesperrt = function (x) {
     for (var i = 0; i < this.sperrzonen.length; i++) if (x > this.sperrzonen[i][0] && x < this.sperrzonen[i][1]) return true;
@@ -1525,7 +1531,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     // (Im Endlos-Modus werden die Abstände langsam größer.)
     while (this.tankX < bis && this.tankX < ende - 10) {
       var sl = this.wolken.length && this.verdecktBis(this.tankX) ? 0 : this.steigungBei(this.tankX);   // Wolken: die Lückenwände zählen nicht
-      this.tankRest -= this.dx * Math.max(0.4, 1 + 3 * Math.max(0, sl) - 0.6 * Math.max(0, -sl)) / 1.3;
+      var zaeh = this.becken.length && this.imBecken(this.tankX) ? 2 : 1;   // Chemiewelt: in der Brühe kommt man langsamer voran
+      this.tankRest -= zaeh * this.dx * Math.max(0.4, 1 + 3 * Math.max(0, sl) - 0.6 * Math.max(0, -sl)) / 1.3;
       this.tankX += this.dx;
       if (this.tankRest <= 0) {
         var xt = this.tankPlatz(this.tankX);

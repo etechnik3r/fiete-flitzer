@@ -1740,13 +1740,13 @@ FF.CONFIG = {
       sonne: "sonne",
       becken: {
         fluessigkeiten: [
-          { name: "Glibber-Grün", farbe: "#5fe03a", zaeh: 10, schwere: 0.5, blasen: 0.5 },
-          { name: "Blubber-Blau", farbe: "#3f9dff", zaeh: 5, schwere: 0.45, blasen: 1.1 },
-          { name: "Brause-Pink", farbe: "#ff5fc8", zaeh: 4, schwere: 0.42, blasen: 1.5, sprudel: 1.6 },
-          { name: "Mixer-Lila", farbe: "#9a5cff", zaeh: 6, schwere: 0.45, blasen: 0.6, mixer: true },
-          { name: "Strömungs-Orange", farbe: "#ff9a2e", zaeh: 6, schwere: 0.45, blasen: 0.4, strom: 2.4 },
-          { name: "Zitronen-Gelb", farbe: "#ffd83a", zaeh: 5, schwere: 0.45, blasen: 0.7, strom: -1.0 },
-          { name: "Zaubertrank-Türkis", farbe: "#2fe0c8", zaeh: 7, schwere: 0.36, blasen: 0.9 }
+          { name: "Glibber-Grün", farbe: "#5fe03a", zaeh: 5.5, schwere: 0.5, blasen: 0.5 },
+          { name: "Blubber-Blau", farbe: "#3f9dff", zaeh: 3, schwere: 0.45, blasen: 1.1 },
+          { name: "Brause-Pink", farbe: "#ff5fc8", zaeh: 2.5, schwere: 0.42, blasen: 1.5, sprudel: 1.6 },
+          { name: "Mixer-Lila", farbe: "#9a5cff", zaeh: 3.5, schwere: 0.45, blasen: 0.6, mixer: true },
+          { name: "Strömungs-Orange", farbe: "#ff9a2e", zaeh: 3.5, schwere: 0.45, blasen: 0.4, strom: 2.4 },
+          { name: "Zitronen-Gelb", farbe: "#ffd83a", zaeh: 3, schwere: 0.45, blasen: 0.7, strom: -1.0 },
+          { name: "Zaubertrank-Türkis", farbe: "#2fe0c8", zaeh: 4, schwere: 0.36, blasen: 0.9 }
         ]
       },
       roehrenFarben: ["#8fdcff", "#b9a8ff", "#7ff0c8"],
@@ -1754,9 +1754,9 @@ FF.CONFIG = {
       deko: ["@kolben:1.2", "@reagenz:0.9", "🧪:0.7", "@kolben:1.6", "🔬:1.0", "@reagenz:1.1", "@kolben:0.9", "🧫:0.5", "@kolben:2.0", "🧯:0.8", "@reagenz:0.8", "🧲:0.6"],
       beiwerk: ["@kolben:0.45", "@kolben:0.35"], kulisse: ["labor", "kolben", "labor"],
       gelaende: { amp: 5.5, welle: 44, holperAmp: 0.1, holperWelle: 7, trend: 0.014,
-                  maxAuf: 28, maxAb: 38, schanzen: 1.0, buckel: 0.8, steil: 0.6, taeler: 0.7, berg: 0.5, sprung: 0.8, wellen: 0.7, klippe: 0.5, rampe: 0.6, kuppe: 0.5, stufe: 0.6,
-                  becken: 3.2, wildBasis: 0.35,
-                  abstandElemente: 18 },
+                  maxAuf: 28, maxAb: 38, schanzen: 0.5, buckel: 0.4, steil: 0.3, taeler: 0.35, berg: 0.25, sprung: 0.4, wellen: 0.35, klippe: 0.25, rampe: 0.3, kuppe: 0.25, stufe: 0.3,
+                  becken: 11, wildBasis: 0.35,
+                  abstandElemente: 7 },      // Version 51: Behälter lang und häufig – mehr Flüssigkeit als Land
       tankAbstand: 195, muenzAbstand: 22,
       level: [ { laenge: 820, seed: 3601 }, { laenge: 1080, seed: 3602 }, { laenge: 1340, seed: 3603 }, { laenge: 1600, seed: 3604 } ]
     }
@@ -1781,6 +1781,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "51", titel: "Großes Chemielabor", punkte: [
+      "⚗️ Die Behälter in der Chemiewelt sehen jetzt aus wie echte Bechergläser: dickes Glas, Messskala, Dampf und Etikett",
+      "🧪 Viel mehr Flüssigkeit: die Behälter sind drei- bis viermal so lang – man springt nicht mehr bis an den Rand",
+      "🏊 Die Brühe ist etwas dünner, damit man darin flotter vorankommt" ] },
     { version: "50", titel: "Startseite mit Show", punkte: [
       "🎬 Auf der Startseite fährt Fiete jetzt von allein durch alle Welten – mit Sprüngen, Saltos, Röhren und mehr",
       "👆 Einfach irgendwo hintippen, dann geht's los",

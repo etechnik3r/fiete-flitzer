@@ -270,7 +270,14 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   **Erlenmeyerkolben** (`@kolben`, bunte Flüssigkeit, Korken oder Dampf) und
   **Reagenzglas-Ständer** (`@reagenz`).
   - **Behälter** (Bau-Element `becken`, `gelaende.js`): tiefe Glasbehälter mit bunter
-    Flüssigkeit, über dem Rand ein Etikett mit dem Namen. Das Profil wird **exakt**
+    Flüssigkeit, gezeichnet wie große Bechergläser (Version 51, `zeichneBecken` mit den
+    Teilen `mitte` und `vorn`): innen klares Glas statt Erde, dicker Glasboden mit runden
+    Ecken, Rampen und Rutschen als Metallblech auf Stelzen, Messskalen mit ml-Zahlen alle
+    16 m, gerollter Rand, Ausguss, Dampfwölkchen und ein aufgeklebtes Etikett.
+    **Mehr Flüssigkeit als Land** (Version 51): Behälter 26–60 m lang (länger als der
+    weiteste Sprung), kurze Anläufe, Gewicht `becken: 11` und kleiner Abstand – ab Level 3
+    liegt rund 60 % der Strecke in Flüssigkeit. Die Brühe ist dafür dünner (`zaeh` 2,5–5,5),
+    und Meter im Behälter zählen beim Verteilen der Kanister doppelt. Das Profil wird **exakt**
     gebaut (ohne Steigungsbegrenzer und Tiefpass, `aus.exakt`), damit die Glaswände
     senkrecht stehen. Vier Arten hinein und heraus:
     `rampe` (Rampe hinauf auf den Rand, hineinplumpsen, innen Rampe hinaus, außen

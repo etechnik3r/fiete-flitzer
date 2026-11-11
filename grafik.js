@@ -3208,6 +3208,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneDeko(ctx, K, gel, b[2], b[3], sz.dpr || 1, z);
     if (gel.becken.length) W.zeichneBecken(ctx, K, gel, welt, "hinten", z);
     W.zeichneGelaende(ctx, K, gel, welt, z);
+    if (gel.becken.length) W.zeichneBecken(ctx, K, gel, welt, "mitte", z);
     if (gel.schneeDecke) W.zeichneSchneeDecke(ctx, K, gel);
     if (gel.wasserDecke) W.zeichneSchneeDecke(ctx, K, gel, gel.wasserDecke, true);
     if (gel.reifen.length) W.zeichneReifen(ctx, K, gel, z);
