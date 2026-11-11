@@ -673,16 +673,18 @@ FF.CONFIG = {
          treiben kaum an (nur zum Rückwärtsfahren). Lokale Koordinaten: Ursprung = Schwerpunkt,
          etwa 0,6 m über den Achsen (Häuschen und Kind sitzen hoch). */
       id: "feuerkutsche", name: "Fietes Feuerkutsche", emoji: "🔥", preis: 6000, preisBasis: 170,
-      text: "Fietes Feuerkutsche aus altem Holz: Beim Gasgeben faucht eine riesige Flamme aus dem Feuerrohr – sie beschleunigt wie keine andere! Ganz schnell wird sie aber nicht.",
+      text: "Fietes Feuerkutsche aus altem Holz: Beim Gasgeben faucht eine riesige Flamme aus dem Feuerrohr – sie zieht kräftig los! Ganz schnell wird sie aber nicht.",
       masse: 250, groesse: { laenge: 3.2, hoehe: 1.8 },
       raeder: [
         { x: -1.3, y: -0.35, r: 0.78, masse: 28, antrieb: true },
         { x:  1.4, y: -0.35, r: 0.68, masse: 24, antrieb: false }
       ],
       federung: { ruhe: 0.25, weg: 0.14, frequenz: 2.2, daempfung: 0.4 },
-      motor: { drehmoment: 260, vmax: 15 }, bremse: 1600, grip: 0.9,
+      motor: { drehmoment: 260, vmax: 12 }, bremse: 1600, grip: 0.9,
       tankSekunden: 21, luftsteuerung: 4.4, cwA: 0.85, abtrieb: 0,
-      feuer: { schub: 10, eck: 0.7, vmax: 16, anlauf: 0.12 },
+      // Version 52 abgeschwächt (war wie eine Rakete): Schub 10 → 7 m/s², Schluss bei 12 statt 16 m/s;
+      // in der Luft nur noch luft·Schub, und der Schub bleibt auch voll aufgerüstet unter g
+      feuer: { schub: 7, eck: 0.6, vmax: 12, anlauf: 0.12, luft: 0.35 },
       upgradeNamen: {
         motor:  { name: "Feuerrohr", icon: "🔥", text: "Größeres Feuerrohr – noch mehr Wumms" },
         reifen: { name: "Eisenreifen", icon: "🛞", text: "Griffigere Eisenreifen" }
@@ -1701,7 +1703,7 @@ FF.CONFIG = {
              draufdrücken schießt dich hoch
            • Pixel-Sonne mit Ladekreis, Pixel-Wolken; freundliche Roboter, Chips,
              Server und Bildschirme als Deko */
-      id: "daten", name: "Datenwelt", emoji: "💾", hinweis: "Im Computer: Datenströme schieben dich, Enter-Knöpfe schießen dich hoch!",
+      id: "daten", name: "Datenwelt", emoji: "💾", hinweis: "Im Computer: Ladebalken-Brücken, Kopieren & Einfügen durch die Firewall, Datenströme und Enter-Knöpfe!",
       schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.016, abprall: 0.06, luftdichte: 1.2,
       farben: {
         himmel: ["#060a26", "#14467c"], berge: ["#2a5a94", "#1a3d6e"],
@@ -1710,14 +1712,15 @@ FF.CONFIG = {
       },
       sonne: "sonne", sonnenArt: "pixel", wetter: "binaer", wolkenStil: "pixel",
       datenstrom: true, trampolinStil: "taste",
-      tipp: ["💾 Datenströme schieben dich schneller voran – und drück mit dem Auto auf die Enter-Knöpfe, dann fliegst du hoch!", "Datenstrom! Ab ins Internet!"],
+      tipp: ["💾 Die Brücken laden erst – fahr dem Ladebalken hinterher! Und spring durch den Strg+C-Ring, dann wirst du hinter die Firewall eingefügt.", "Datenwelt! Ab ins Internet!"],
       deko: ["@chip:1.0", "@roboter:1.3", "@server:2.2", "💾:0.7", "@monitor:1.3", "@chip:1.4", "@roboter:1.0", "🖱️:0.6", "@server:1.8",
              "📡:1.2", "@chip:0.8", "@monitor:1.0", "@roboter:1.6", "🛰️:1.1:4.2"],
       beiwerk: ["@chip:0.35", "@chip:0.45"], kulisse: ["netz", "server", "platine"],
       gelaende: { amp: 6.5, welle: 42, holperAmp: 0.1, holperWelle: 7, trend: 0.016,
                   maxAuf: 29, maxAb: 40, schanzen: 1.2, buckel: 0.8, steil: 0.8, taeler: 0.8, berg: 0.8, sprung: 1.1, wellen: 0.8, klippe: 0.8, rampe: 1.0, kuppe: 0.8, stufe: 1.2,
-                  band: 1.8, trampolin: 0.8, wildBasis: 0.4,
-                  abstandElemente: 25 },
+                  band: 1.2, trampolin: 0.8, ladebalken: 0.5, portal: 0.5, wildBasis: 0.4,
+                  abwechselnd: ["portal", "ladebalken"], abwechselndJedes: 3,   // v52: jedes 3. Element abwechselnd Ladebalken-Brücke / Kopieren-Einfügen-Portal
+                  abstandElemente: 22 },
       tankAbstand: 280, muenzAbstand: 22,
       level: [ { laenge: 820, seed: 3501 }, { laenge: 1080, seed: 3502 }, { laenge: 1340, seed: 3503 }, { laenge: 1600, seed: 3504 } ]
     },
@@ -1753,7 +1756,7 @@ FF.CONFIG = {
       tipp: ["⚗️ In der Chemiewelt plumpst du in bunte Behälter – darin schwebst du wie unter Wasser. Gib Gas, dann kommst du wieder raus!", "Ab ins Chemielabor!"],
       deko: ["@kolben:1.2", "@reagenz:0.9", "🧪:0.7", "@kolben:1.6", "🔬:1.0", "@reagenz:1.1", "@kolben:0.9", "🧫:0.5", "@kolben:2.0", "🧯:0.8", "@reagenz:0.8", "🧲:0.6"],
       beiwerk: ["@kolben:0.45", "@kolben:0.35"], kulisse: ["labor", "kolben", "labor"],
-      gelaende: { amp: 5.5, welle: 44, holperAmp: 0.1, holperWelle: 7, trend: 0.014,
+      gelaende: { amp: 3.2, welle: 44, holperAmp: 0.1, holperWelle: 7, trend: 0.008,   // v52: flacherer Laborboden – kürzere Übergänge zwischen den Behältern
                   maxAuf: 28, maxAb: 38, schanzen: 0.5, buckel: 0.4, steil: 0.3, taeler: 0.35, berg: 0.25, sprung: 0.4, wellen: 0.35, klippe: 0.25, rampe: 0.3, kuppe: 0.25, stufe: 0.3,
                   becken: 11, wildBasis: 0.35,
                   abstandElemente: 7 },      // Version 51: Behälter lang und häufig – mehr Flüssigkeit als Land
@@ -1781,13 +1784,18 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "52", titel: "Neues in der Datenwelt", punkte: [
+      "⏳ Ladebalken-Brücken: Die Brücke lädt erst – fahr dem Balken hinterher, sonst landest du im Papierkorb",
+      "📋 Kopieren & Einfügen: Spring durch den Strg+C-Ring, dann wirst du hinter die Firewall eingefügt",
+      "🔥 Die Feuerkutsche ist jetzt etwas zahmer und fliegt nicht mehr wie eine Rakete",
+      "⚗️ Chemiewelt: Die fiese Kante in Level 4 ist weg",
+      "▶ Die Startseite startet nur noch mit dem grünen Knopf" ] },
     { version: "51", titel: "Großes Chemielabor", punkte: [
       "⚗️ Die Behälter in der Chemiewelt sehen jetzt aus wie echte Bechergläser: dickes Glas, Messskala, Dampf und Etikett",
       "🧪 Viel mehr Flüssigkeit: die Behälter sind drei- bis viermal so lang – man springt nicht mehr bis an den Rand",
       "🏊 Die Brühe ist etwas dünner, damit man darin flotter vorankommt" ] },
     { version: "50", titel: "Startseite mit Show", punkte: [
       "🎬 Auf der Startseite fährt Fiete jetzt von allein durch alle Welten – mit Sprüngen, Saltos, Röhren und mehr",
-      "👆 Einfach irgendwo hintippen, dann geht's los",
       "❓ ⚙️ Hilfe und Einstellungen sitzen oben rechts in der Ecke",
       "🐢 Ist das Gerät zu langsam, schaltet die Startseite von selbst auf einen Sparmodus" ] },
     { version: "49", titel: "Die Chemiewelt", punkte: [

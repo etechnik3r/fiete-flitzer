@@ -1210,6 +1210,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (D.typ === "hochseil") { zeichneHochseil(ctx, K, gel, D); continue; }
       if (D.typ === "klapp") { zeichneKlapp(ctx, K, gel, D, zeit); continue; }
       if (D.typ === "podest") { zeichnePodeste(ctx, K, gel, D); continue; }
+      if (D.typ === "laden") { zeichneLadebalken(ctx, K, gel, D, zeit); continue; }
       if (D.typ === "seil") {
         var xa = D.a + 0.6, xb = D.b - 0.6, mH = 2.6, x, i, N = 24;
         // Netz unten in der Grube
@@ -1334,6 +1335,120 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.fillStyle = "#3a4152"; ctx.beginPath(); ctx.arc(X0, Y0, 0.13 * K.s, 0, Math.PI * 2); ctx.fill();   // Scharnier
   }
   /* Feuerreifen hinter dem Sprung vom Hochseil (nur Grafik) */
+  /* Datenwelt: Ladebalken-Brücke über dem Papierkorb. Leerer Teil: gestrichelter Rahmen,
+     geladener Teil: leuchtende Blöcke mit wandernden Streifen, darüber die Prozentanzeige. */
+  function zeichneLadebalken(ctx, K, gel, D, zeit) {
+    var s = K.s, XA = sx(K, D.a), XB = sx(K, D.b), Y = sy(K, D.yA), H = 0.7 * s, XF = sx(K, Math.min(D.front, D.b));
+    // Papierkorb unten in der Grube
+    var xm = (D.a + D.b) / 2, yG = gel.hoeheBildBei(xm);
+    ctx.font = Math.round(2.2 * s) + "px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.globalAlpha = 0.85; ctx.fillText("🗑️", sx(K, xm), sy(K, yG) - 0.1 * s); ctx.globalAlpha = 1;
+    // Rahmen der ganzen Brücke
+    ctx.fillStyle = "rgba(6,14,40,0.55)"; ctx.fillRect(XF, Y, XB - XF, H);
+    ctx.setLineDash([0.35 * s, 0.25 * s]); ctx.strokeStyle = "rgba(70,240,255,0.75)"; ctx.lineWidth = Math.max(1.5, 0.07 * s);
+    ctx.strokeRect(XA, Y, XB - XA, H); ctx.setLineDash([]);
+    // geladener Teil: Blöcke + Streifen
+    if (XF > XA + 1) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(XA, Y, XF - XA, H); ctx.clip();
+      var gr = ctx.createLinearGradient(0, Y, 0, Y + H);
+      gr.addColorStop(0, "#9dffcf"); gr.addColorStop(0.5, "#2fe08a"); gr.addColorStop(1, "#139a63");
+      ctx.fillStyle = gr; ctx.fillRect(XA, Y, XF - XA, H);
+      ctx.fillStyle = "rgba(255,255,255,0.22)";                       // wandernde Schrägstreifen
+      var w = 0.6 * s, off = (zeit * 1.4 * s) % (2 * w);
+      for (var x = XA - 2 * w + off; x < XF + H; x += 2 * w) {
+        ctx.beginPath(); ctx.moveTo(x, Y + H); ctx.lineTo(x + w, Y + H); ctx.lineTo(x + w + H, Y); ctx.lineTo(x + H, Y); ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle = "rgba(6,60,40,0.45)"; ctx.lineWidth = Math.max(1, 0.04 * s);   // Blockfugen alle 1 m
+      for (var xb = D.a + 1; xb < D.front; xb += 1) { ctx.beginPath(); ctx.moveTo(sx(K, xb), Y); ctx.lineTo(sx(K, xb), Y + H); ctx.stroke(); }
+      ctx.restore();
+      if (!D.fertig) {                                                  // Lade-Kante glüht
+        ctx.fillStyle = "rgba(200,255,240," + (0.6 + 0.4 * Math.sin(zeit * 12)) + ")";
+        ctx.fillRect(XF - 0.12 * s, Y - 0.08 * s, 0.24 * s, H + 0.16 * s);
+      }
+    }
+    ctx.strokeStyle = "#46f0ff"; ctx.lineWidth = Math.max(1.5, 0.06 * s); ctx.strokeRect(XA, Y, XF - XA, H);
+    // Prozentanzeige über der Mitte
+    var pz = Math.max(0, Math.min(100, Math.floor(100 * (D.front - D.a) / (D.b - D.a))));
+    var txt = D.fertig ? "✓ 100 %" : (D.gestartet ? (D.stockt ? "⏳ " : "") + "Lädt … " + pz + " %" : "⏳ 0 %");
+    var fs = Math.max(10, Math.round(0.6 * s));
+    ctx.font = "800 " + fs + "px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var tw = ctx.measureText(txt).width + fs, XT = sx(K, xm), YT = Y - 1.8 * s;
+    ctx.fillStyle = "rgba(6,14,40,0.82)"; ctx.strokeStyle = D.fertig ? "#5dffa8" : "#46f0ff"; ctx.lineWidth = Math.max(1.5, 0.06 * s);
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(XT - tw / 2, YT - fs * 0.8, tw, fs * 1.6, fs * 0.4); else ctx.rect(XT - tw / 2, YT - fs * 0.8, tw, fs * 1.6);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = D.fertig ? "#5dffa8" : "#e8fdff"; ctx.fillText(txt, XT, YT + 1);
+  }
+
+  /* Datenwelt: Kopieren-Ring vor der Firewall, Einfügen-Ring dahinter, die Firewall selbst
+     als Mauer mit Flammen auf dem Berg. */
+  function zeichnePortale(ctx, K, gel, zeit) {
+    var b = sichtbereich(K, gel), s = K.s;
+    for (var n = 0; n < gel.portale.length; n++) {
+      var P = gel.portale[n];
+      // Firewall: Mauerwerk auf dem Berg, oben Flammen
+      var f0 = P.firewall[0], f1 = P.firewall[1];
+      if (f1 > b[2] - 2 && f0 < b[3] + 2) {
+        var xa = Math.max(f0, b[2] - 1), xe = Math.min(f1, b[3] + 1), dxs = 0.5, x;
+        ctx.save();
+        ctx.beginPath(); ctx.moveTo(sx(K, xa), sy(K, gel.hoeheBildBei(xa) - 30));
+        for (x = xa; x <= xe; x += dxs) ctx.lineTo(sx(K, x), sy(K, gel.hoeheBildBei(x)));
+        ctx.lineTo(sx(K, xe), sy(K, gel.hoeheBildBei(xe) - 30)); ctx.closePath(); ctx.clip();
+        var yMin = Math.min(gel.hoeheBildBei(f0), gel.hoeheBildBei(f1)) - 2, yMax = yMin + 2 + P.hf + 2;
+        ctx.fillStyle = "#8a2f22"; ctx.fillRect(sx(K, xa), sy(K, yMax), sx(K, xe) - sx(K, xa), sy(K, yMin) - sy(K, yMax));
+        ctx.strokeStyle = "#e0773d"; ctx.lineWidth = Math.max(1, 0.06 * s);
+        for (var yr = yMin, rN = 0; yr < yMax; yr += 0.6, rN++) {
+          ctx.beginPath(); ctx.moveTo(sx(K, xa), sy(K, yr)); ctx.lineTo(sx(K, xe), sy(K, yr)); ctx.stroke();
+          for (var xz = f0 + (rN % 2) * 0.6; xz < xe; xz += 1.2) {
+            if (xz < xa) continue;
+            ctx.beginPath(); ctx.moveTo(sx(K, xz), sy(K, yr)); ctx.lineTo(sx(K, xz), sy(K, yr + 0.6)); ctx.stroke();
+          }
+        }
+        ctx.restore();
+        for (x = Math.ceil(xa / 1.3) * 1.3; x <= xe; x += 1.3) {                 // Flammen auf der Mauerkrone
+          var hx = gel.hoeheBildBei(x), fl = (0.35 + 0.18 * Math.sin(zeit * 8 + x * 2.1)) * s, X = sx(K, x), YF = sy(K, hx);
+          ctx.fillStyle = "rgba(255,120,30,0.85)";
+          ctx.beginPath(); ctx.moveTo(X - 0.2 * s, YF); ctx.quadraticCurveTo(X, YF - fl * 1.8, X + 0.2 * s, YF); ctx.fill();
+          ctx.fillStyle = "rgba(255,225,80,0.9)";
+          ctx.beginPath(); ctx.moveTo(X - 0.1 * s, YF); ctx.quadraticCurveTo(X, YF - fl, X + 0.1 * s, YF); ctx.fill();
+        }
+        var xs2 = (f0 + f1) / 2;
+        if (xs2 > b[2] - 4 && xs2 < b[3] + 4) {
+          var fsF = Math.max(10, Math.round(0.65 * s));
+          ctx.font = "900 " + fsF + "px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillStyle = "#ffe08a"; ctx.strokeStyle = "rgba(60,10,5,0.8)"; ctx.lineWidth = Math.max(2, 0.12 * s);
+          var YS = sy(K, gel.hoeheBildBei(xs2) - 1.6);
+          ctx.strokeText("FIREWALL", sx(K, xs2), YS); ctx.fillText("FIREWALL", sx(K, xs2), YS);
+        }
+      }
+      // Ringe
+      [[P.x1, P.y1, "#46f0ff", "📋 Strg+C"], [P.x2, P.y2, "#ff5fd2", "📌 Strg+V"]].forEach(function (R, k) {
+        if (R[0] < b[2] - 4 || R[0] > b[3] + 4) return;
+        var X = sx(K, R[0]), Y = sy(K, R[1]), rr = P.r * s, boden = sy(K, gel.hoeheBildBei(R[0]));
+        ctx.strokeStyle = "#5a6a8e"; ctx.lineWidth = Math.max(1.5, 0.08 * s);              // Ständer
+        ctx.beginPath(); ctx.moveTo(X, Y + rr); ctx.lineTo(X, boden); ctx.stroke();
+        var pulse = 1 + 0.06 * Math.sin(zeit * 5 + k * 2);
+        var gw = ctx.createRadialGradient(X, Y, 0, X, Y, rr * pulse);              // Wirbel im Ring
+        gw.addColorStop(0, "rgba(255,255,255,0.0)"); gw.addColorStop(0.7, k ? "rgba(255,95,210,0.22)" : "rgba(70,240,255,0.22)"); gw.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = gw; ctx.beginPath(); ctx.ellipse(X, Y, rr * 0.42 * pulse, rr * pulse, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = R[2]; ctx.lineWidth = 0.16 * s; ctx.shadowColor = R[2]; ctx.shadowBlur = 0.5 * s;
+        ctx.beginPath(); ctx.ellipse(X, Y, rr * 0.4, rr, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = Math.max(1, 0.05 * s);         // umlaufende Bits
+        ctx.setLineDash([0.25 * s, 0.35 * s]); ctx.lineDashOffset = -zeit * 2 * s * (k ? -1 : 1);
+        ctx.beginPath(); ctx.ellipse(X, Y, rr * 0.4, rr, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]); ctx.lineDashOffset = 0;
+        var fsR = Math.max(10, Math.round(0.55 * s));
+        ctx.font = "800 " + fsR + "px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        var tw = ctx.measureText(R[3]).width + fsR, YT = Y - rr - 0.8 * s;
+        ctx.fillStyle = "rgba(6,14,40,0.82)"; ctx.strokeStyle = R[2]; ctx.lineWidth = Math.max(1.5, 0.06 * s);
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(X - tw / 2, YT - fsR * 0.8, tw, fsR * 1.6, fsR * 0.4); else ctx.rect(X - tw / 2, YT - fsR * 0.8, tw, fsR * 1.6);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#ffffff"; ctx.fillText(R[3], X, YT + 1);
+      });
+    }
+  }
+
   function zeichneReifen(ctx, K, gel, zeit) {
     var b = sichtbereich(K, gel);
     for (var n = 0; n < gel.reifen.length; n++) {
@@ -2732,6 +2847,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
 
   FF.GrafikWelt = {
+    zeichnePortale: zeichnePortale,
     zeichneSchneeDecke: zeichneSchneeDecke, zeichneZirkus: zeichneZirkus, zeichneZelt: zeichneZelt, zeichneReifen: zeichneReifen,
     zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,
     zeichneBecken: zeichneBecken,

@@ -75,7 +75,22 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (gel.wolken.length && gel.wolkenLuecke(vorX) || gel.wolken.length && gel.wolkenLuecke(vorX + 4)) vMax = 99;   // Wolken: vor der Lücke nicht bremsen, sondern springen
       if (gel.dyn && gel.dyn.some(function (d) { return d.typ === "hochseil" && C.x > d.x0 - 6 && C.x < d.x1; })) vMax = 99;   // Zirkus: Hochseil mit Schwung
       if (gel.dyn && gel.dyn.some(function (d) { return d.typ === "podest" && C.x > d.x0 - 6 && C.x < d.x1; })) vMax = 10;     // Hocker: mit Gefühl
-      if (v > vMax) { statistik.bremse += dt; return { gas: false, bremse: true }; }
+      // Datenwelt: Ladebalken-Brücke – nicht schneller als der Balken lädt, notfalls davor warten
+      if (gel.dyn) for (var di = 0; di < gel.dyn.length; di++) {
+        var D = gel.dyn[di];
+        if (D.typ !== "laden" || D.fertig || C.x > D.b || C.x < D.a - 40) continue;
+        var frei = (D.gestartet ? D.front - 2.5 : D.a - 3) - (C.x + 1.6), laeuft = D.gestartet && !D.stockt;
+        if (frei < 0.6 && v < 1.5) return { gas: false, bremse: false };                         // stehen und warten
+        vMax = Math.min(vMax, Math.sqrt(2 * 3.5 * Math.max(0, frei)) + (laeuft ? D.v * 0.8 : 0));
+      }
+      // Datenwelt: Kopieren-Ring – mit dem passenden Tempo über die Rampe
+      if (gel.portale) for (var pi = 0; pi < gel.portale.length; pi++) {
+        var P = gel.portale[pi];
+        if (P.benutzt || C.x > P.lippe || C.x < P.lippe - 35) continue;
+        if (v > P.vRing + 0.4) { statistik.bremse += dt; return { gas: false, bremse: true }; }
+        if (v > P.vRing - 0.3) return { gas: false, bremse: false };
+      }
+      if (v > vMax) { statistik.bremse += dt; return { gas: false, bremse: v > 0.8 }; }
       return { gas: true, bremse: false };
     }
     return { eingabe: eingabe, statistik: statistik };

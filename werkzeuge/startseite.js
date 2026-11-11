@@ -44,7 +44,8 @@ var THEMA = {
 
 /* Punkte für Ereignisse im Fenster */
 var PUNKTE = { salto: 7, looping: 7, roehre: 5, roehrenLoop: 3, katapult: 6, boing: 4, zelle: 6, umdrehen: 6, schwebe: 4,
-               stroh: 5, scheune: 1, objekt: 1.5, platsch: 1, obst: 1.2, katze: 2, wind: 0.5, band: 1, luftsprung: 1.5, landung: 0.3 };
+               stroh: 5, scheune: 1, objekt: 1.5, platsch: 1, obst: 1.2, katze: 2, wind: 0.5, band: 1, luftsprung: 1.5, landung: 0.3,
+               portal: 9, ladebalkenFertig: 4, ladebalken: 2 };
 var DECKEL = { objekt: 5, platsch: 3, obst: 4, landung: 1.5, luftsprung: 3 };
 
 function zufallAus(seed) { var s = seed % 2147483646 + 1; return function () { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }; }

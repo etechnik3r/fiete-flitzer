@@ -73,7 +73,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       w.schweben.flattern *= 1 - 0.12 * re;                                 // … und flattert weniger
     }
     if (w.feuer) {                                                          // Feuerkutsche: größeres Feuerrohr
-      w.feuer.schub *= 1 + 0.6 * U.motorDrehmoment * m;
+      w.feuer.schub = Math.min(9, w.feuer.schub * (1 + 0.3 * U.motorDrehmoment * m));   // nie stärker als die Schwerkraft: keine Rakete
       w.feuer.vmax *= 1 + U.motorTempo * m;
     }
     if (w.luftkissen) {                                                     // Luftkissenboot: Propeller, Gummischürze
@@ -595,6 +595,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     if (this.gelaende.scheunen.length) this.pruefeScheunen();
     if (this.gelaende.roehren.length && this.zustand === "fahrt") this.pruefeRoehren();
+    if (this.gelaende.portale.length && this.zustand === "fahrt") this.pruefePortale();
+    if (this.gelaende.dyn.length && this.zustand === "fahrt") this.pruefePapierkorb(h);
     var SP = this.gelaende.spuk;                              // Geisterwelt: Geist taucht auf
     for (var si = 0; si < SP.length; si++) {
       if (!SP[si].gesehen && C.x > SP[si].x - 13 && C.x < SP[si].x) { SP[si].gesehen = true; this.melde("spuk", { x: SP[si].x }); }
@@ -850,7 +852,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     var kurve = v <= vEck ? 1 : Math.max(0, (F.vmax - v) / (F.vmax - vEck));
     fz.feuer = lauf * (0.2 + 0.8 * kurve);
     var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
-    var schub = F.schub * lauf * kurve * (0.4 + 0.6 * gRel);
+    var amBoden = st.radKontakte > 0 || st.huellKontakt;
+    var schub = F.schub * lauf * kurve * (0.4 + 0.6 * gRel) * (amBoden ? 1 : F.luft);   // in der Luft schiebt die Flamme kaum
     if (schub < 0.01) return;
     var ax = Math.cos(C.a) * schub, ay = Math.sin(C.a) * schub;
     C.vx += ax * h; C.vy += ay * h;
@@ -893,6 +896,45 @@ var FF = globalThis.FF = globalThis.FF || {};
     fz.raeder.forEach(function (R) { R.k.vx = vx; R.k.vy = vy; });
     FF.Physik.anhaengerTempo(fz);
     this.melde("katapult", { x: k.x, y: C.y });
+  };
+
+  /* Datenwelt: Kopieren & Einfügen. Fliegt der Schwerpunkt durch den Kopieren-Ring, wird das
+     ganze Auto hinter die Firewall versetzt – Tempo, Drehung und Lage bleiben, wie sie sind. */
+  Fahrt.prototype.pruefePortale = function () {
+    var PO = this.gelaende.portale, fz = this.fz, C = fz.chassis;
+    for (var i = 0; i < PO.length; i++) {
+      var P = PO[i];
+      if (C.x < P.x1 - P.r || C.x > P.x1 + P.r) continue;
+      if (P.benutzt || Math.hypot(C.x - P.x1, (C.y - P.y1) * 0.85) > P.r) continue;
+      P.benutzt = true; P.zeit = this.zeit;
+      var dx = P.x2 - P.x1, dy = P.y2 - P.y1;
+      var v = { vx: C.vx, vy: C.vy, w: C.w, rw: fz.raeder.map(function (R) { return R.k.w; }) };
+      FF.Physik.setzePose(fz, C.x + dx, C.y + dy, C.a);
+      C.vx = v.vx; C.vy = v.vy; C.w = v.w;
+      fz.raeder.forEach(function (R, k) { R.k.vx = v.vx; R.k.vy = v.vy; R.k.w = v.rw[k]; });
+      if (fz.anhaenger && fz.anhaenger.length) FF.Physik.anhaengerTempo(fz);
+      this.weitesterX = Math.max(this.weitesterX, C.x);
+      this.melde("portal", { x1: P.x1, y1: P.y1, x2: P.x2, y2: P.y2 });
+      return;
+    }
+  };
+
+  /* Datenwelt: In den Papierkorb unter einer Ladebalken-Brücke gefallen? Kurz darauf setzt
+     der Ballon das Auto vor die Brücke zurück („Wiederherstellen“) – dort kann man warten. */
+  Fahrt.prototype.pruefePapierkorb = function (h) {
+    var DY = this.gelaende.dyn, C = this.fz.chassis;
+    for (var i = 0; i < DY.length; i++) {
+      var D = DY[i];
+      if (D.typ !== "laden" || D.i0 < 0 || C.x < D.a || C.x > D.b) continue;
+      if (C.y > D.yA - 1.2) { this.papierZeit = 0; return; }
+      this.papierZeit = (this.papierZeit || 0) + h;
+      if (this.papierZeit > 0.7) {
+        this.papierZeit = 0;
+        this.melde("papierkorb", { x: C.x, y: C.y });
+        this.starteHilfe(undefined, D.a - 7);
+      }
+      return;
+    }
   };
 
   /* Scheune: Meldung beim Hineinfahren und beim Hinausfahren (dann fliegt Stroh, spiel.js) */
@@ -1248,11 +1290,12 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   /* Ballon-Hilfe; ueberX: festgefahren → hinter diesem Punkt (weitester Fortschritt) absetzen */
-  Fahrt.prototype.starteHilfe = function (ueberX) {
+  Fahrt.prototype.starteHilfe = function (ueberX, zurueckX) {
     var C = this.fz.chassis, gel = this.gelaende, H = FF.CONFIG.regeln.hoppla;
     this.boostZeit = 0; this.fz.duese = 0; this.miniZeit = 0; this.fz.mini = 0; this.umhangZeit = 0; this.fz.umhang = 0;
     var x1 = ueberX !== undefined ? this.landeplatz(Math.max(C.x, ueberX + 3 + this.zugHinten), true) : this.landeplatz(C.x);
     if (this.imBecken) x1 = this.landeplatz(Math.max(C.x, this.imBecken.xr + 2), true);   // Chemiewelt: aus dem Behälter hinaus
+    if (zurueckX !== undefined) x1 = this.landeplatz(zurueckX);                           // Datenwelt: vor die Ladebalken-Brücke zurück
     this.imBecken = null;
     var zielA = Math.atan(gel.steigungBei(x1));
     // auf kürzestem Weg aufrichten
@@ -1267,11 +1310,11 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.hilfe.yHoch = Math.max(Math.min(this.hilfe.yHoch, unterDecke), Math.max(gel.hoeheBei(C.x), gel.hoeheBei(x1)) + 1.2);
     this.zustand = "hilfe";
     if (gel.aktiverLoop) { gel.aktiverLoop.fertig = true; gel.aktiverLoop = null; this.imLooping = false; }
-    this.hoppla++;
+    if (zurueckX === undefined) this.hoppla++;                // Papierkorb (Datenwelt): „Wiederherstellen“ zählt nicht als Hoppla
     this.liegeZeit = 0; this.seitenZeit = 0; this.kopfGemeldet = false;
     this.klemmZeit = 0; this.festZeit = 0; this.weitesterX = Math.max(this.weitesterX, x1);
     this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
-    var abzug = this.schw.hopplaTank;
+    var abzug = zurueckX === undefined ? this.schw.hopplaTank : 0;   // … und kostet kein Benzin
     this.tank = Math.max(0, this.tank - abzug);
     this.melde("hilfe", { abzug: abzug });
   };

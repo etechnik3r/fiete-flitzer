@@ -1026,6 +1026,31 @@
           meldung("🎯 Drück Gas!");
           if (ersteMale("tipp-katapult", 3)) FF.Klang.sprich("Drück Gas, dann fliegst du!");
           break;
+        case "ladebalken":               // Datenwelt: die Ladebalken-Brücke beginnt zu laden
+          FF.Klang.spiele("daten");
+          schwebeText(e.x + 1, e.y + 3.2, "Lädt … ⏳", "#9ff6ff", true);
+          if (ersteMale("tipp-ladebalken", 2)) { tipp("⏳ Die Brücke lädt noch! Fahr langsam hinter dem Balken her – oder warte, bis sie fertig ist.", 5200, "Warte, bis die Brücke geladen ist!"); spruchBis = zeit + 3; }
+          break;
+        case "ladebalkenFertig":         // … und ist fertig
+          FF.Klang.spiele("stern");
+          schwebeText(e.x, e.y + 3.4, "100 % ✅", "#5dffa8", true);
+          funkeln(e.x, e.y + 0.6, "#5dffa8", 10);
+          break;
+        case "papierkorb":               // zu schnell: in den Papierkorb gefallen
+          FF.Klang.spiele("fehler");
+          schwebeText(e.x, e.y + 2.5, "Papierkorb! 🗑️", "#ffffff", true);
+          setzeAusdruck("staunen", 2);
+          break;
+        case "portal":                   // Kopieren & Einfügen: hinter die Firewall versetzt
+          FF.Klang.spiele("enter");
+          FF.Klang.spiele("daten");
+          for (var pg = 0; pg < 3; pg++) { funkeln(e.x1, e.y1, ["#46f0ff", "#ff5fd2", "#ffffff"][pg], 8); funkeln(e.x2, e.y2, ["#ff5fd2", "#46f0ff", "#ffffff"][pg], 8); }
+          schwebeText(e.x1, e.y1 + 2.6, "Kopiert! 📋", "#9ff6ff", true);
+          schwebeText(e.x2 + 2, e.y2 + 2.6, "Eingefügt! ✨", "#ffb3f0", true);
+          setzeAusdruck("freude", 2.5);
+          kameraNachfuehren(0, true);
+          if (ersteMale("tipp-portal", 2)) { tipp("📋 Kopieren & Einfügen: Spring durch den Ring – dann bist du hinter der Firewall!", 5200, "Kopiert und eingefügt!"); spruchBis = zeit + 3; }
+          break;
         case "katapult":                 // abgeschossen
           FF.Klang.spiele("boing");
           schwebeText(e.x + 2, e.y + 2, "Wuuusch! 🎯", "#ffd23f", true);
@@ -2973,12 +2998,8 @@
      13) TITEL + PWA
      ========================================================================= */
   var startGedrueckt = false;
-  /* Wie an der Konsole: Tippen irgendwo auf die Startseite (außer auf ❓ / ⚙️) oder
-     Enter/Leertaste startet – der große Knopf ist nur der deutlichste Weg. */
-  $("titelscreen").addEventListener("click", function (e) {
-    if (e.target.closest("button") && e.target.closest("button").id !== "knopf-start") return;
-    titelStart();
-  });
+  /* Nur der große grüne Knopf startet (Tippen daneben tut nichts), am Rechner auch Enter/Leertaste */
+  $("knopf-start").addEventListener("click", titelStart);
   window.addEventListener("keydown", function (e) {
     if (modus !== "titel" || $("titelscreen").hidden || document.querySelector(".modal-overlay.offen")) return;
     if (e.code === "Enter" || e.code === "Space" || e.code === "NumpadEnter") { e.preventDefault(); titelStart(); }

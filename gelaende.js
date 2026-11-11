@@ -247,11 +247,14 @@ var FF = globalThis.FF = globalThis.FF || {};
                   scheune: 0, seil: (g.seil || 0) * (0.7 + wild), wippe: (g.wippe || 0) * (0.7 + wild),
                   hochseil: (g.hochseil || 0) * (0.7 + wild), klapprampe: (g.klapprampe || 0) * (0.7 + wild),
                   wippenkette: (g.wippenkette || 0) * (0.7 + wild), podeste: (g.podeste || 0) * (0.7 + wild),
-                  becken: (g.becken || 0) * (0.7 + wild) },
+                  becken: (g.becken || 0) * (0.7 + wild),
+                  ladebalken: (g.ladebalken || 0) * (0.7 + wild), portal: (g.portal || 0) * (0.7 + wild) },
       // Bauernhof: Scheunen gleichmäßig über das Level verteilt (nicht zufällig)
       scheuneAbstand: g.scheunen ? (this.endlos ? 150 : (optionen.laenge - 150) / g.scheunen) : 0,
       scheunenAnzahl: g.scheunen || 0,
       roehreAbstand: g.roehreAbstand || 0,        // Röhrenwelt: nach so viel Gelände [m] kommt immer die nächste Röhre
+      abwechselnd: g.abwechselnd || null,         // Datenwelt: diese Typen kommen reihum, …
+      abwechselndJedes: g.abwechselndJedes || 3,  // … spätestens als jedes n-te Element
       wild: wild,
       abstand: g.abstandElemente * (1 - 0.25 * wild)
     };
@@ -309,6 +312,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.pfuetzen = [];            // Wasser in Mulden {x0, x1, y} (nur Welten mit welt.wasser), nach x sortiert
     this.pfuetzenI = 0;            // bis zu diesem Abtastpunkt ist nach Pfützen gesucht
     this.becken = [];              // Chemiewelt: Behälter mit Flüssigkeit {xl, xr, ys, yBoden, fl, …}, nach x sortiert (beckenBei)
+    this.portale = [];             // Datenwelt: Kopieren-Einfügen-Portale {x1, y1, x2, y2, r, …} (fahrt.js pruefePortale)
     this.muenzWertGesamt = 0;
 
     this.platziertBis = this.x0;
@@ -353,7 +357,8 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* ---------- Bau-Elemente ---------- */
   var TYPEN = ["schanze", "buckel", "steil", "tal", "berg", "sprung", "wellen", "klippe", "rampe", "kuppe", "stufe",
-               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe", "hochseil", "klapprampe", "wippenkette", "podeste", "becken"];
+               "looping", "luecke", "trampolin", "band", "schwebe", "katapult", "scheune", "seil", "wippe", "hochseil", "klapprampe", "wippenkette", "podeste", "becken",
+               "ladebalken", "portal"];
 
   Gelaende.prototype.neuesElement = function (xs) {
     var p = this.p, r = this.rnd, f = this.fortschritt(xs);
@@ -370,7 +375,16 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (p.roehreAbstand && (this.endlos || xs + 120 < this.ziel) &&
         (this.seitRoehre >= 2 || (this.seitRoehre >= 1 && xs - this.roehreEnde >= p.roehreAbstand * (0.8 + 0.4 * r())))) typ = "roehre";
     this.seitRoehre = typ === "roehre" ? 0 : (this.seitRoehre || 0) + 1;
+    // Datenwelt: jedes n-te Element ist abwechselnd eine der Besonderheiten (Ladebalken, Portal)
+    if (p.abwechselnd) {
+      this.seitSpezial = (this.seitSpezial || 0) + 1;
+      if (p.abwechselnd.indexOf(typ) >= 0 || this.seitSpezial >= p.abwechselndJedes) {
+        typ = p.abwechselnd[(this.spezialNr = (this.spezialNr || 0) + 1) % p.abwechselnd.length];
+        this.seitSpezial = 0;
+      }
+    }
     if (typ === "becken" && !this.endlos && xs + 100 > this.ziel) typ = "buckel";   // Behälter nie hinter dem Ziel
+    if ((typ === "portal" && xs + 120 > this.ziel || typ === "ladebalken" && xs + 70 > this.ziel) && !this.endlos) typ = "buckel";
     if (p.scheuneAbstand && xs - this.scheuneEnde >= p.scheuneAbstand * 0.72 && (this.endlos || (xs + 60 < this.ziel && this.scheunen.length < p.scheunenAnzahl))) typ = "scheune";
     var stark = Math.min(1.5, f + 0.2) * (0.85 + 0.3 * p.wild);   // Elemente wachsen mit Strecke und Level
 
@@ -611,7 +625,10 @@ var FF = globalThis.FF = globalThis.FF || {};
         ysRel = -0.7; rimL = rimR = 0;
       }
       el.Lflach = el.sE + 2;
+      // Auslauf: lang genug, dass der Boden danach sanft (≤ 11°) wieder zum Gelände findet –
+      // sonst entsteht beim nächsten Behälter eine Kante, die man nicht hinaufkommt (Version 52)
       el.Lo = 6;
+      for (var it = 0; it < 2; it++) el.Lo = Math.max(6, Math.min(36, Math.abs(this.rohRauschen(xs + el.Lflach + el.Lo) - el.basis) / 0.19));
       el.xe = xs + el.Lflach + el.Lo;
       var y0b = el.basis, xl = xs + el.sL, xr = xs + el.sR;
       var bk = { art: art, fl: fl, xl: xl, xr: xr, ys: y0b + ysRel, yBoden: y0b - el.D, rimL: y0b + rimL, rimR: y0b + rimR,
@@ -627,6 +644,45 @@ var FF = globalThis.FF = globalThis.FF || {};
         this.sperrzonen.push([xRohr - 1, xRohr + schlauch.x[schlauch.x.length - 1] + 2]);
         bk.rohr = xRohr;
       }
+    } else if (typ === "ladebalken") {
+      // Datenwelt (Version 52): Ladebalken-Brücke über einer Grube („Papierkorb“). Kommt das Auto
+      // näher, lädt die Brücke Stück für Stück von links nach rechts (dynSchritt, typ "laden") –
+      // mit festem Tempo, kurz vor Schluss stockt sie („99 %“). Wer schneller fährt als der
+      // Balken lädt, fällt in den Papierkorb und wird vor die Brücke zurückgesetzt (fahrt.js).
+      // Andere Fahrweise: abwarten, Tempo anpassen, dem Balken hinterherfahren.
+      el.flach = true;
+      el.La = 16; el.G = 15 + 6 * r() + 5 * p.wild; el.D = 3.4; el.Lf = 10;
+      el.Lflach = el.La + el.G + el.Lf; el.Lo = 16;
+      el.xe = xs + el.Lflach + el.Lo;
+      var xla = xs + el.La, xlb = xla + el.G;
+      this.dyn.push({ typ: "laden", a: xla, b: xlb, x0: xla - 0.3, x1: xlb + 9, i0: -1,
+                      v: 8.5 - 1.2 * p.wild - 1.2 * r(),                 // Ladetempo [m/s]: Level 1 ≈ 8, Level 4 ≈ 6
+                      stock: 0.95 + 0.04 * r(), stockDauer: 0.8 + 0.8 * r() + 0.5 * p.wild,   // stockt kurz vor Schluss („99 %“)
+                      front: xla, gestartet: false, fertig: false, gestockt: 0 });
+      this.sperrzonen.push([xla - 1.5, xlb + 9]);
+      this.verdeckt.push([xla + 0.3, xlb + 9]);          // keine Münzen unter der Brücke (auch nicht am Gegenhang)
+    } else if (typ === "portal") {
+      // Datenwelt (Version 52): Kopieren & Einfügen. Eine Sprungrampe, dahinter schwebt der
+      // „Kopieren“-Ring, dann kommt eine hohe Firewall (steiler Berg). Wer durch den Ring springt,
+      // wird hinter die Firewall „eingefügt“ – mit demselben Tempo aus dem Einfügen-Ring heraus.
+      // Wer den Ring verfehlt, muss über die Firewall. Andere Fahrweise: mit dem richtigen Tempo
+      // zielen (zu langsam: unter dem Ring durch, zu schnell: drüber).
+      el.flach = true;
+      el.La = 12; el.Lk = 7; el.Hk = 1.3 + 0.2 * r();
+      el.Ld = 1.4; el.Lr = 7;
+      el.Hf = (6.5 + 2 * r() + 2.2 * p.wild); el.Lu = 1.5 * el.Hf / Math.tan(31 * GRAD); el.Lp = 4 + 2 * r(); el.Ldn = 1.5 * el.Hf / Math.tan(30 * GRAD);
+      el.Lf = 26;
+      var sLip = el.La + el.Lk, sF = sLip + el.Ld + el.Lr;
+      el.sF = sF;
+      el.Lflach = sF + el.Lu + el.Lp + el.Ldn + el.Lf; el.Lo = 16;
+      el.xe = xs + el.Lflach + el.Lo;
+      var thK = Math.atan(2 * el.Hk / el.Lk), dR = 6.5, hR = el.Hk + 1.3;      // Ring 6,5 m hinter der Lippe, 1,3 m über der Lippe
+      var vR = Math.sqrt(this.welt.schwerkraft * dR * dR / (2 * Math.cos(thK) * Math.cos(thK) * (dR * Math.tan(thK) - 1.3)));
+      el.basis = this.rohRauschen(xs);
+      this.portale.push({ x1: xs + sLip + dR, y1: el.basis + hR, r: 2.1, vRing: vR, lippe: xs + sLip,
+                          x2: xs + sF + el.Lu + el.Lp + el.Ldn + 5, y2: el.basis + 3.2, firewall: [xs + sF, xs + sF + el.Lu + el.Lp + el.Ldn],
+                          hf: el.Hf, benutzt: false, zeit: -9, platziert: false });
+      this.sperrzonen.push([xs + sLip - 1, xs + sF + el.Lu + el.Lp + el.Ldn + 12]);   // kein Kanister unterm Ring und auf der Firewall
     } else if (typ === "schwebe") {
       // Schwebe-Säule: kleine Sprungkante, dann wird die Schwerkraft fast ausgeschaltet –
       // darunter eine Senke, oben hängen Münzen, die man nur schwebend erreicht
@@ -762,7 +818,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Beitrag eines Elements an der Stelle x (und ob dort steiles Gefälle erlaubt ist) */
   function elementBeitrag(el, x, aus) {
     var s = x - el.xs;
-    aus.steilAb = false; aus.steilAuf = false; aus.exakt = false;
+    aus.steilAb = false; aus.steilAuf = false; aus.exakt = false; aus.angleich = null;
     if (s < 0 || x > el.xe) return 0;
     switch (el.typ) {
       case "schanze":
@@ -848,6 +904,25 @@ var FF = globalThis.FF = globalThis.FF || {};
       case "scheune":
       case "roehre":
         return 0;                                   // nur ebener Boden – Scheune und Röhre stehen in scheunen/roehren
+      case "ladebalken":
+        var sl2 = s - el.La;                        // Papierkorb-Grube unter der Ladebalken-Brücke
+        if (sl2 < 0 || sl2 > el.G) return 0;
+        if (sl2 < 1.2) aus.steilAb = true;
+        if (sl2 > el.G - 1.2) aus.steilAuf = true;
+        return sl2 < 0.6 || sl2 > el.G - 0.6 ? 0 : -el.D;
+      case "portal":
+        var sp = s - el.La;                         // Sprungrampe, Firewall-Berg, Landewiese
+        if (sp < 0) return 0;
+        if (sp < el.Lk) { var qp = sp / el.Lk; return el.Hk * qp * qp; }
+        sp -= el.Lk;
+        if (sp < el.Ld) { aus.steilAb = true; return el.Hk * (1 - sp / el.Ld); }
+        sp = s - el.sF;
+        if (sp < 0) return 0;
+        if (sp < el.Lu) return el.Hf * glatt(0, el.Lu, sp);
+        if (sp < el.Lu + el.Lp) return el.Hf;
+        sp -= el.Lu + el.Lp;
+        if (sp < el.Ldn) return el.Hf * (1 - glatt(0, el.Ldn, sp));
+        return 0;
       case "katapult":
         var sk2 = s - el.La - el.Lc;
         if (sk2 < 0 || sk2 > el.G) return 0;
@@ -855,7 +930,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (sk2 > el.G - 1.2) aus.steilAuf = true;
         return sk2 < 0.6 || sk2 > el.G - 0.6 ? 0 : -el.D;
       case "becken":
-        if (s < el.La || s > el.sE) return 0;
+        if (s < el.La) { aus.angleich = el; return 0; }   // Anlauf: gleichmäßig auf die Höhe des Behälters
+        if (s > el.sE) return 0;
         aus.exakt = true;
         if (el.art === "rampe" || el.art === "schanze") {
           if (s < el.sL) {
@@ -925,7 +1001,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         var m = glatt(ef.xs + ef.Lflach, ef.xe, x);
         roh = ef.basis * (1 - m) + roh * m;
       }
-      var steilAb = false, steilAuf = false, exakt = false;
+      var steilAb = false, steilAuf = false, exakt = false, angleich = null;
       for (var i = this.elemente.length - 1; i >= 0; i--) {
         var e = this.elemente[i];
         if (e.xe < x - 1) { this.elemente.splice(i, 1); continue; }
@@ -933,6 +1009,14 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (hilf.steilAb) steilAb = true;
         if (hilf.steilAuf) steilAuf = true;
         if (hilf.exakt) exakt = true;
+        if (hilf.angleich) angleich = hilf.angleich;
+      }
+      if (angleich && !exakt && this.h.length) {      // vor einem Behälter: geradlinig auf seine Höhe, ohne Kante am Anfang (Version 52)
+        var rest = angleich.xs + angleich.La - x, hv = this.h[this.h.length - 1];
+        this.aus = this.tp1 = this.tp2 = hv + (roh - hv) * Math.min(1, dx / Math.max(dx, rest));
+        this.h.push(this.aus);
+        if (this.hBild) this.hBild.push(this.aus);
+        continue;
       }
       if (exakt) {                                     // Behälter (Chemiewelt): Profil genau so, senkrechte Wände
         this.aus = this.tp1 = this.tp2 = roh;
@@ -973,6 +1057,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (D.typ === "hochseil") { D.yG = this.hoeheBildBei(D.rampe); D.yA = D.yG + D.H; D.yB = D.yA + (D.dH || 0); }
       if (D.typ === "podest") D.yG = this.hoeheBildBei(D.a);
       if (D.typ === "klapp") D.yH = this.hoeheBildBei(D.xh);
+      if (D.typ === "laden") {                                   // Brücke reicht, bis der Boden drüben wieder oben ist
+        D.yA = this.hoeheBildBei(D.a - 0.5);
+        for (; D.b < D.x1 - 0.5 && this.hoeheBildBei(D.b) < D.yA - 0.06; D.b += 0.25);
+      }
       this.dynEintragen(D);
     }
   };
@@ -1021,6 +1109,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (D.typ === "hochseil") { var yh = this.hochseilY(D, x); this.h[i] = yh === null ? boden : Math.max(boden, yh); }
       else if (D.typ === "klapp") { var yk = this.klappY(D, x); this.h[i] = yk === null ? boden : Math.max(boden, yk); }
       else if (D.typ === "podest") { var yp = this.podestY(D, x); this.h[i] = yp === null ? boden : Math.max(boden, yp); }
+      else if (D.typ === "laden") this.h[i] = x <= D.front && x < D.b ? Math.max(boden, D.yA) : boden;
       else {
         var c = D.Lw / 2 * Math.cos(D.th);
         this.h[i] = Math.abs(x - D.xp) <= c ? Math.max(boden, this.wippeY(D, x)) : boden;
@@ -1034,6 +1123,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     for (var n = 0; n < this.dyn.length; n++) {
       var D = this.dyn[n];
       if (D.i0 < 0 || D.statisch) continue;
+      if (D.typ === "laden") { if (this.ladenSchritt(D, h, fz, melde)) this.dynEintragen(D); continue; }
       var sx = 0, k = 0;
       for (var j = 0; j < fz.raeder.length; j++) {
         var R = fz.raeder[j];
@@ -1081,6 +1171,25 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
       this.dynEintragen(D);
     }
+  };
+
+  /* Ladebalken-Brücke (Datenwelt): startet, wenn das Auto 24 m davor ist, lädt mit D.v [m/s],
+     stockt bei D.stock (Anteil) für D.stockDauer s. Steckt das Auto im Papierkorb darunter,
+     wartet der Balken (sonst wüchse die Brücke durch das Auto). true = Fläche geändert. */
+  Gelaende.prototype.ladenSchritt = function (D, h, fz, melde) {
+    var C = fz.chassis;
+    if (D.fertig) return false;
+    if (!D.gestartet) {
+      if (C.x < D.a - 24 || C.x > D.b) return false;
+      D.gestartet = true; melde("ladebalken", { x: D.a, y: D.yA });
+    }
+    if (C.x > D.a - 1 && C.x < D.b + 1 && C.y < D.yA - 1) return false;       // im Papierkorb: warten
+    var anteil = (D.front - D.a) / (D.b - D.a);
+    D.stockt = anteil >= D.stock && D.gestockt < D.stockDauer;
+    if (D.stockt) { D.gestockt += h; return false; }
+    D.front = Math.min(D.b, D.front + D.v * h);
+    if (D.front >= D.b) { D.fertig = true; melde("ladebalkenFertig", { x: (D.a + D.b) / 2, y: D.yA }); }
+    return true;
   };
 
   /* =========================================================================
@@ -1222,6 +1331,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     var E = this.eigene, L = (E.h.length - 1) * E.dx;
     var f = Math.max(12, Math.min(L - 12, x)) / E.dx, i = Math.min(E.h.length - 2, Math.floor(f)), t = f - i;
     return E.h[i] * (1 - t) + E.h[i + 1] * t;
+  };
+
+  /* Datenwelt: liegt x an einer Ladebalken-Brücke (Anfahrt oder Brücke)? */
+  Gelaende.prototype.anLadebalken = function (x) {
+    for (var i = 0; i < this.dyn.length; i++) { var D = this.dyn[i]; if (D.typ === "laden" && x > D.a - 24 && x < D.b) return true; }
+    return false;
   };
 
   /* Chemiewelt: liegt x über einem Behälter (zwischen den Glaswänden)? */
@@ -1532,6 +1647,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     while (this.tankX < bis && this.tankX < ende - 10) {
       var sl = this.wolken.length && this.verdecktBis(this.tankX) ? 0 : this.steigungBei(this.tankX);   // Wolken: die Lückenwände zählen nicht
       var zaeh = this.becken.length && this.imBecken(this.tankX) ? 2 : 1;   // Chemiewelt: in der Brühe kommt man langsamer voran
+      if (this.welt.gelaende.ladebalken && this.anLadebalken(this.tankX)) zaeh = 2.5;   // Datenwelt: Warten und Bremsen vor der Brücke kostet auch
       this.tankRest -= zaeh * this.dx * Math.max(0.4, 1 + 3 * Math.max(0, sl) - 0.6 * Math.max(0, -sl)) / 1.3;
       this.tankX += this.dx;
       if (this.tankRest <= 0) {
@@ -1671,6 +1787,17 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.spukX += 40 + 30 * hash01(Math.round(this.spukX), this.seed + 72);
     }
 
+    // Kopieren-Einfügen-Portale: Münzbogen zum Ring hin, hinter dem Einfügen-Ring eine Münzspur
+    for (i = 0; i < this.portale.length; i++) {
+      var po = this.portale[i];
+      if (po.platziert || po.x2 > bis - 40) continue;
+      po.platziert = true;
+      if (po.x2 > ende - 30) continue;
+      var vxp = po.vRing * 0.93, vyp = po.vRing * 0.37, yl = po.y1 - 1.3, tp2 = 1.2 * vyp / g;
+      for (var kq = 1; kq <= 3; kq++) { var tq = (6.5 / vxp) * kq / 4; this.neueMuenze(po.lippe + vxp * tq, yl + vyp * tq - 0.5 * g * tq * tq + 0.3, 10); }
+      for (var kr = 1; kr <= 5; kr++) { var tr = 0.12 * kr; this.neueMuenze(po.x2 + 13 * tr, po.y2 + 0.2 + 1.5 * tr - 0.5 * g * tr * tr, kr === 3 ? 100 : 10); }
+    }
+
     // Katapulte: Münzen entlang der Flugbahn, oben ein Diamant
     for (i = 0; i < this.katapulte.length; i++) {
       var kp = this.katapulte[i];
@@ -1778,6 +1905,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     while (this.wolken.length > 3 && this.wolken[1].x1 < xHinten - 60) this.wolken.shift();
     while (this.dyn.length && this.dyn[0].b < xHinten) this.dyn.shift();
     while (this.reifen.length && this.reifen[0].x < xHinten) this.reifen.shift();
+    while (this.portale.length && this.portale[0].x2 < xHinten) this.portale.shift();
     while (this.roehren.length && this.roehren[0].x + this.roehren[0].span < xHinten) this.roehren.shift();
     while (this.becken.length && this.becken[0].xr < xHinten) this.becken.shift();
     var n = 0;

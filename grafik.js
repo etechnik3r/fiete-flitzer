@@ -3213,6 +3213,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.wasserDecke) W.zeichneSchneeDecke(ctx, K, gel, gel.wasserDecke, true);
     if (gel.reifen.length) W.zeichneReifen(ctx, K, gel, z);
     if (gel.dyn.length) W.zeichneZirkus(ctx, K, gel, z);
+    if (gel.portale.length) W.zeichnePortale(ctx, K, gel, z);
     if (gel.pfuetzen.length) W.zeichneWasser(ctx, K, gel, welt, z, b[2], b[3]);
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);

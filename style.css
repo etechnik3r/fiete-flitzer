@@ -365,7 +365,6 @@ button { font: inherit; color: inherit; }
     linear-gradient(180deg, #2a3d68 0%, #21335c 45%, var(--card-2) 72%, #10192f 100%);
   transition: opacity 0.45s ease;
   overflow: hidden;
-  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   user-select: none; -webkit-user-select: none;
 }
