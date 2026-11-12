@@ -90,7 +90,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       zusatzMoment: 0,
       gekuppelt: !!w.kuppelstange,
       status: { radKontakte: 0, huellKontakt: false, dachKontakt: false, kopfKontakt: false,
-                leistung: 0, drehzahl: 0, vorwaerts: 0, tempo: 0 }
+                leistung: 0, drehzahl: 0, vorwaerts: 0, tempo: 0, luftZeit: 0 }
     };
 
     // Glieder (Version 45): weitere Starrkörper mit Lager am Elternkörper. Ruhelage (Winkel 0)
@@ -896,6 +896,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (T.kopf) { ko = T.kopf.kontakt; st.kopfKontakt = ko.aktiv && ko.pen > schwelle; }
     st.vorwaerts = C.vx * Math.cos(C.a) + C.vy * Math.sin(C.a);
     st.tempo = Math.sqrt(C.vx * C.vx + C.vy * C.vy);
+    // Zeit ohne Bodenkontakt [s] (Version 54): zählt nur echte Physikschritte – während der
+    // Start-Ampel läuft keine Physik, kurze Hüpfer über Holperstellen bleiben unter 0,1 s
+    st.luftZeit = st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt ? (st.luftZeit || 0) + h : 0;
   }
 
   function schritt(fz, gel, welt, h) {

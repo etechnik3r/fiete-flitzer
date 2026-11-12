@@ -553,7 +553,9 @@ Fahrtwind), Eule (dreht den Kopf) und Schildkröte (mit Sturzhelm) fahren mit
 (3.000–12.000, `beifahrer`). Seit Version 44: Axolotl (selbst gemalt, weil es kein
 Emoji gibt; wedelt mit den Kiemen), Krake (wabbelt), Frosch (hüpft), Hamster
 (pustet die Backen auf), Koala (schläfrig, „Zzz“), Drache (kleine Flamme nach oben),
-Igel (rollt sich im Flug ein), Giraffe (groß, Hals schwankt) und Waschbär (schaut
+Igel (rollt sich im Flug ein – seit Version 54 erst nach 0,35 s echter Flugzeit in
+Physikzeit `status.luftZeit`, und nach der Landung rollt er zur vollen Umdrehung weiter;
+vorher kreiselte er während der Start-Ampel, weil dort keine Physik läuft), Giraffe (groß, Hals schwankt) und Waschbär (schaut
 sich um). Nur Emojis bis Emoji 11 (2018), damit sie auch auf Android 9 erscheinen.
 Wo der Platz hinter dem Kind nicht passt, sitzt der Beifahrer woanders (`teile.beifahrer`
 in `KAROSSERIE`): im Schlafkabinen-Fenster des Donner-Trucks, im Führerhausfenster der
@@ -576,7 +578,8 @@ die Klemmbaustein-Welt).
   Drehzahlmesser: Skala in tausend U/min, in der Mitte die ganze Drehzahl
   („4.600 U/min“), darüber der Gang (Verbrenner, mit rotem Bereich),
   „⚡ E-Motor“ (ein Gang, Höchstdrehzahl Mondmobil 9.000, E-Auto 15.000,
-  Skateboard 22.000 U/min), „🔥 Turbine“ (Sofa, bis 30.000 U/min), „🔥 Brenner“ (Feuerkutsche) oder
+  Skateboard 22.000 U/min), „🔥 Turbine“ (Sofa, bis 30.000 U/min), „🔥 Brenner“ (Feuerkutsche; seit Version 54 kein
+  Drehzahlmesser mehr, sondern Gasdurchfluss 0–60 L/min Propan, `feuer.durchfluss`) oder
   „♨️ Dampf“ (Dampf-Lok, Raddrehzahl, bis ≈ 420 U/min). Die
   Gänge schaltet das virtuelle Getriebe wirklich (z. B. Flitzer: 2. Gang bei
   17, 3. bei 30, 4. bei 41 km/h). Der Tacho zeigt seit Version 49 den **Betrag**

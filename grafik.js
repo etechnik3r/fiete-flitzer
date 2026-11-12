@@ -2963,7 +2963,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (teile.beifahrer) { bx = teile.beifahrer.x; by = teile.beifahrer.y; }
       var bKlip = teile.beifahrer && teile.beifahrer.klip, bGross = teile.beifahrer && teile.beifahrer.gr || 1;
       if (bKlip) { ctx.save(); rundRechteck(ctx, bKlip[0], bKlip[1], bKlip[2], bKlip[3], 0.08); ctx.clip(); }
-      var bfe = aussehen.beifahrer, hopp = Math.abs(Math.sin(zeit * 6)) * 0.03, inLuft = fz.status && fz.status.radKontakte === 0;
+      var bfe = aussehen.beifahrer, hopp = Math.abs(Math.sin(zeit * 6)) * 0.03;
       var hph = (zeit * 0.55) % 1;
       if (bfe === "🐸" && hph < 0.16) hopp += 0.2 * Math.sin(hph / 0.16 * Math.PI);                                  // Froschhüpfer
       ctx.save(); ctx.translate(bx, by + hopp); ctx.scale(-bGross, -bGross);   // schaut nach vorn (Bild: −x vorn, −y oben)
@@ -2976,7 +2976,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       else if (bfe === "🐙") { ctx.scale(1 + 0.06 * Math.sin(zeit * 7), 1 - 0.06 * Math.sin(zeit * 7)); ctx.rotate(Math.sin(zeit * 3.5) * 0.08); }   // wabbelt
       else if (bfe === "🐹") ctx.scale(1 + 0.07 * Math.max(0, Math.sin(zeit * 2.2)), 1);                              // Backen aufpusten
       else if (bfe === "🐨") ctx.rotate(0.12 * Math.sin(zeit * 0.8));                                                 // schläfrig schaukeln
-      else if (bfe === "🦔" && inLuft) ctx.rotate(-zeit * 14);                                                        // rollt sich ein
+      else if (bfe === "🦔") ctx.rotate(igelWinkel(fz, zeit));                                                        // rollt sich ein
       else if (bfe === "🦒") { gr = 0.8; ctx.translate(0, -0.1); ctx.rotate(Math.sin(zeit * 1.6) * 0.07); }           // groß, Hals schwankt
       else if (bfe === "🦝" && Math.sin(zeit * 0.7) > 0.8) ctx.scale(-1, 1);                                          // schaut sich um
       if (bfe === "axolotl") zeichneAxolotl(ctx, zeit);
@@ -3010,6 +3010,28 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (!teile.ohneRaeder) fz.raeder.forEach(function (R) { zeichneRad(ctx, R, R.lokalX, R.lokalY, artRad); });
     felgeJetzt = "standard";
     if (teile.nachRaedern) teile.nachRaedern();
+  }
+
+  /* Igel (Version 54): rollt sich erst ein, wenn das Auto wirklich fliegt (mindestens
+     IGEL_LUFT s ohne Bodenkontakt, gemessen in Physikzeit), und rollt nach der Landung bis
+     zur nächsten vollen Umdrehung weiter, statt zurückzuspringen. Vorher hing der Winkel
+     direkt an der Uhr (−zeit·14) und galt bei jedem Frame ohne Radkontakt: Während der
+     Start-Ampel läuft keine Physik, radKontakte blieb 0 – der Igel kreiselte bis „LOS“;
+     bei jedem kurzen Hüpfer sprang er auf einen zufälligen Winkel und wieder zurück.
+     Der Zustand hängt am Fahrzeug (Geisterrennen: jedes Auto hat seinen eigenen Igel). */
+  var IGEL_LUFT = 0.35, IGEL_DREH = 12;
+  function igelWinkel(fz, zeit) {
+    var I = fz.igel || (fz.igel = { w: 0, t: zeit }), dt = Math.max(0, Math.min(0.1, zeit - I.t));
+    I.t = zeit;
+    var luft = fz.status && fz.status.luftZeit > IGEL_LUFT;
+    if (luft) I.w -= IGEL_DREH * dt;
+    else if (I.w !== 0) {
+      var ziel = -Math.ceil(-I.w / (2 * Math.PI) - 1e-6) * 2 * Math.PI;   // nächste volle Umdrehung
+      I.w -= IGEL_DREH * dt;
+      if (I.w <= ziel) I.w = 0;
+    }
+    if (I.w < -2 * Math.PI * 1000) I.w %= 2 * Math.PI;
+    return I.w;
   }
 
   /* Axolotl (Beifahrer, Version 44 – kein Emoji): rosa Schwanzlurch mit großem Kopf, drei
@@ -3378,6 +3400,12 @@ var FF = globalThis.FF = globalThis.FF || {};
     var G = fahrt.getriebe, tsd = Math.ceil(G.max / 1000), umin = Math.round(G.rpm / 100) * 100;
     var titel = fahrt.werte.wanne ? "💧 Strahl" : fahrt.werte.zauber ? "✨ Zauber" : fahrt.werte.propeller ? (fahrt.kanoneAn ? "❄️ Kanone" : "🌀 Propeller") : G.elektro ? "⚡ E-Motor" : G.P.brenner ? "🔥 Brenner" : G.turbine ? "🔥 Turbine" : G.dampf ? "♨️ Dampf" : (G.gaenge > 1 ? G.gang + ". Gang" : "Motor");
     if (G.dampf) umin = Math.round(G.rpm / 10) * 10;
+    var feuer = fahrt.werte.feuer || fahrt.def && fahrt.def.feuer;
+    if (G.P.brenner && feuer && feuer.durchfluss) {            // Gasbrenner (Version 54): Verbrauch statt Drehzahl
+      var qMax = feuer.durchfluss, q = Math.max(0, Math.min(1, G.rpm / G.max)) * qMax;
+      zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, q, qMax, titel, String(Math.round(q)), 0, skalaSchritte(qMax), "L/min");
+      return;
+    }
     zeichneInstrument(ctx, K.b / 2 + r * 1.15, y, r, G.rpm / 1000, tsd, titel, umin.toLocaleString("de-DE"),
                       G.elektro || G.turbine || G.dampf ? 0 : 0.9 * G.max / 1000 / tsd, skalaSchritte(tsd), "U/min");
   }

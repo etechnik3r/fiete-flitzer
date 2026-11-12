@@ -684,7 +684,10 @@ FF.CONFIG = {
       tankSekunden: 21, luftsteuerung: 4.4, cwA: 0.85, abtrieb: 0,
       // Version 52 abgeschwächt (war wie eine Rakete): Schub 10 → 7 m/s², Schluss bei 12 statt 16 m/s;
       // in der Luft nur noch luft·Schub, und der Schub bleibt auch voll aufgerüstet unter g
-      feuer: { schub: 7, eck: 0.6, vmax: 12, anlauf: 0.12, luft: 0.35 },
+      feuer: { schub: 7, eck: 0.6, vmax: 12, anlauf: 0.12, luft: 0.35,
+               // Anzeige (Version 54): Gasdurchfluss des Brenners [L/min Propangas] bei voller Flamme
+               // statt Drehzahl – ein Brenner dreht nicht. 60 L/min ≈ 100 kW (Propan ≈ 93 MJ/m³)
+               durchfluss: 60 },
       upgradeNamen: {
         motor:  { name: "Feuerrohr", icon: "🔥", text: "Größeres Feuerrohr – noch mehr Wumms" },
         reifen: { name: "Eisenreifen", icon: "🛞", text: "Griffigere Eisenreifen" }
@@ -1689,8 +1692,11 @@ FF.CONFIG = {
         wolken: "rgba(255,255,255,0.9)"
       },
       sonne: "sonne", sonnenDeko: "brille", wolkenStil: "wenige",
+      // Version 54: Wolken sinken etwa doppelt so schnell (war sinkStart 0.15, sinkMax [0.4 … 1.0],
+      // sinkBeschl [0.12 … 0.36], heben 0.6) – vorher kam man fast ohne Eile durch. Profi-Roboter
+      // mit Upgrades „auto“: alle 4 Level im Ziel, aber mit Hoppla; ohne Upgrades keins
       wolken: { vRef: 9, autoLaenge: 3, festHilfe: 3, anteil: [0.75, 0.85, 0.95, 1.05], schanzen: [0.2, 0.3, 0.38, 0.45], fall: [1.2, 3.0],
-                laenge: [18, 34], sinkStart: 0.15, sinkMax: [0.4, 0.6, 0.8, 1.0], sinkBeschl: [0.12, 0.2, 0.28, 0.36], heben: 0.6 },
+                laenge: [18, 34], sinkStart: 0.35, sinkMax: [0.9, 1.3, 1.6, 1.9], sinkBeschl: [0.3, 0.45, 0.55, 0.65], heben: 0.8 },
       tipp: ["☁️ Wolken sinken, wenn du drauf bist – immer weiter! Mit Schwung über die Lücken springen.", "Schnell weiter, die Wolke sinkt!"],
       deko: ["🎈:0.9:2.6", "🕊️:0.7:3.2", "⭐:0.5:3.6", "🎈:0.8:3.4", "🌈:2.2:0.0", "🦋:0.5:1.6"],
       kulisse: ["wolkenberg", "wolkenberg"],
@@ -1820,6 +1826,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "54", titel: "Schnellere Wolken, ruhiger Igel", punkte: [
+      "☁️ Wolkeninseln: Die Wolken sinken jetzt viel schneller – trödeln geht nicht mehr!",
+      "🦔 Der Igel kreiselt nicht mehr an der Start-Ampel und bei kleinen Hüpfern – er rollt sich nur bei echten Sprüngen ein",
+      "🔥 Feuerkutsche: Die Brenner-Anzeige zeigt jetzt den Gasverbrauch in Litern pro Minute statt einer Drehzahl" ] },
     { version: "53", titel: "Pistenraupe", punkte: [
       "🎿 Neues Fahrzeug Pistenraupe für 2.500 Münzen: mit Kettenfahrwerk, Schlitten und Skiern auf der Pritsche",
       "❄️ Auf Schnee, Eis und Sand rutscht die Raupe kaum, Matsch und Pfützen bremsen sie fast nicht – dafür ist sie gemütlich (höchstens 45 km/h) und in der Luft träge" ] },

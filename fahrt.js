@@ -1015,7 +1015,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     });
     FF.Physik.anhaengerTempo(fz);
     K.z = P.z;
-    st.radKontakte = fz.raeder.length; st.tempo = K.v; st.vorwaerts = K.v; st.leistung = 0;
+    st.radKontakte = fz.raeder.length; st.luftZeit = 0; st.tempo = K.v; st.vorwaerts = K.v; st.leistung = 0;
     st.drehzahl = nA ? dz / nA : 0; st.huellKontakt = st.dachKontakt = st.kopfKontakt = false;
     if (C.x > this.strecke) this.strecke = C.x;
     if (!fertig) return;
