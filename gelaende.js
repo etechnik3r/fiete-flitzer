@@ -140,6 +140,119 @@ var FF = globalThis.FF = globalThis.FF || {};
     return P;
   }
 
+  /* ---------- Chemiewelt (Version 55): Kolben mit dünnen Glasrohren ----------
+     Ein Glasgefäß steht auf dem Laborboden. Links führt ein dünnes Glasrohr vom Boden unten
+     seitlich hinein (Einlass), rechts eins wieder hinaus (Auslass, genau gespiegelt). Man kann
+     nicht drüberspringen: Wer an die Rohröffnung kommt, wird immer hineingezogen (fahrt.js
+     zwangBis). Drinnen fährt man durch die Flüssigkeit wie unter Wasser (physik.js beckenBei),
+     oben hält die Glaswand (glasDeckeBei) das Auto im Gefäß.
+     Formen (B.form), alle symmetrisch um xc, Höhen v relativ zum Laborboden b, Glas g dick:
+       rund     Stehkolben: Kugel mit flachem Boden, enger Hals
+       dreieck  Erlenmeyerkolben: flacher Boden, schräge Wände, Hals
+       flasche  Standflasche: senkrechte Wände, runde Schultern, Hals
+     Kolben.boden(B, u) = innerer Boden, Kolben.decke(B, u) = Glas oben innen, Kolben.kontur(B, d)
+     = Umriss (d = 0 außen, d = g innen) als Liste [u, v] – auch für grafik-welt.js. */
+  var ROHR_DUENN = 0.55;             // dünne Rohre: Radius und Auto 0,55-mal so groß wie in der Röhrenwelt
+  var Kolben = {
+    boden: function (B, u) {
+      if (B.form === "rund") { var Ri = B.Rk - B.g; return Math.max(B.g, B.vc - Math.sqrt(Math.max(0, Ri * Ri - u * u))); }
+      return B.g;
+    },
+    decke: function (B, u) {
+      var au = Math.abs(u), nb = B.nB - B.g;
+      if (au < nb) return B.nTop;
+      if (B.form === "rund") { var Ri = B.Rk - B.g; return B.vc + Math.sqrt(Math.max(0, Ri * Ri - u * u)); }
+      if (B.form === "dreieck") { var wbi = B.wB - 1.15 * B.g; return B.g + (B.Hk - B.g) * Math.max(0, wbi - au) / (wbi - nb); }
+      var wfi = B.wF - B.g, q = Math.min(1, (au - nb) / (wfi - nb));
+      return B.hK + B.hS * Math.sqrt(Math.max(0, 1 - q * q));
+    },
+    kontur: function (B, d) {
+      var P = [], k, n = B.nB - d;
+      function eck(p0, p1, p2, N) {                    // Ecke p1 rund (quadratische Kurve), ohne p0/p2
+        for (var i = 1; i < N; i++) { var t = i / N, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t; P.push([a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]]); }
+      }
+      function zu(p, q, t) { return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]; }
+      P.push([-n, B.nTop]);
+      if (B.form === "rund") {
+        var R = B.Rk - d, w0 = Math.asin(Math.min(0.99, n / R));
+        for (k = 0; k <= 64; k++) { var w = Math.PI / 2 + w0 + (2 * Math.PI - 2 * w0) * k / 64; P.push([R * Math.cos(w), Math.max(d, B.vc + R * Math.sin(w))]); }
+      } else if (B.form === "dreieck") {
+        var wb = B.wB - 1.15 * d, sL = [-n, B.Hk], uL = [-wb, d], uR = [wb, d], sR = [n, B.Hk];
+        var sh = Math.min(0.12, 0.6 / B.Hk), ec = Math.min(0.12, 0.9 / Math.hypot(wb - n, B.Hk));
+        P.push([-n, B.Hk + 0.5]); eck([-n, B.Hk + 0.5], sL, zu(sL, uL, sh), 6);
+        P.push(zu(sL, uL, sh)); P.push(zu(sL, uL, 1 - ec)); eck(zu(sL, uL, 1 - ec), uL, zu(uL, uR, 0.06), 6);
+        P.push(zu(uL, uR, 0.06)); P.push(zu(uL, uR, 0.94)); eck(zu(uL, uR, 0.94), uR, zu(uR, sR, ec), 6);
+        P.push(zu(uR, sR, ec)); P.push(zu(uR, sR, 1 - sh)); eck(zu(uR, sR, 1 - sh), sR, [n, B.Hk + 0.5], 6); P.push([n, B.Hk + 0.5]);
+      } else {
+        var wf = B.wF - d, re = 0.8;
+        for (k = 0; k <= 10; k++) { var t1 = Math.PI / 2 * k / 10; P.push([-n - (wf - n) * Math.sin(t1), B.hK + B.hS * Math.cos(t1)]); }
+        P.push([-wf, d + re]); eck([-wf, d + re], [-wf, d], [-wf + re, d], 5); P.push([-wf + re, d]);
+        P.push([wf - re, d]); eck([wf - re, d], [wf, d], [wf, d + re], 5); P.push([wf, d + re]);
+        for (k = 0; k <= 10; k++) { var t2 = Math.PI / 2 * k / 10; P.push([n + (wf - n) * Math.cos(t2), B.hK + B.hS * Math.sin(t2)]); }
+      }
+      P.push([n, B.nTop]);
+      return P;
+    },
+    // halbe Breite des Umrisses (d = 0 außen, d = g innen) in der Höhe v, −1 außerhalb
+    halb: function (B, v, d) {
+      var n = B.nB - d;
+      if (v < d || v > B.nTop) return -1;
+      if (B.form === "rund") { var R = B.Rk - d, q = R * R - (v - B.vc) * (v - B.vc); return q > n * n ? Math.sqrt(q) : n; }
+      if (B.form === "dreieck") { var wb = B.wB - 1.15 * d; return v >= B.Hk ? n : wb - (v - d) * (wb - n) / (B.Hk - d); }
+      var wf = B.wF - d;
+      if (v <= B.hK) return wf;
+      if (v >= B.hK + B.hS) return n;
+      var t = (v - B.hK) / B.hS; return n + (wf - n) * Math.sqrt(1 - t * t);
+    },
+    // Bodenlinie des Einlassrohrs bei u (u0 ≤ u ≤ −uE), gerade Linie zwischen den dichten Punkten
+    rohrBoden: function (B, u) {
+      var U = B.rohrU, V = B.rohrV, lo = 0, hi = U.length - 1;
+      if (u <= U[0]) return V[0];
+      if (u >= U[hi]) return V[hi];
+      while (hi - lo > 1) { var m = (lo + hi) >> 1; if (U[m] <= u) lo = m; else hi = m; }
+      var t = (u - U[lo]) / Math.max(1e-6, U[hi] - U[lo]);
+      return V[lo] + (V[hi] - V[lo]) * t;
+    },
+    // halbe Außenbreite in Bodennähe (dort kommt das Rohr an)
+    breite: function (B) { return B.form === "rund" ? B.Rk : B.form === "dreieck" ? B.wB : B.wF; }
+  };
+
+  /* Einlass-Rohr als dichte Punktliste [u, v] (absolut): 1,2 m gerade auf dem Boden, dann
+     weich (Hermite-Kurve) zum Einlass (uI, vI) im Gefäß, dort in Richtung aI des inneren
+     Bodens, noch 0,3 m weiter. Der Auslass ist dieselbe Linie gespiegelt und rückwärts –
+     so passt er bei symmetrischen Gefäßen von selbst. */
+  function kolbenRohrDicht(B) {
+    var L = [], u0 = B.u0, k, n = 160;
+    for (k = 0; k <= 12; k++) L.push([u0 + 1.2 * k / 12, 0]);
+    var x0 = u0 + 1.2, x1 = B.uH !== undefined ? B.uH : B.uI, y1 = B.vI, d = Math.hypot(x1 - x0, y1), kt = 0.8 * d;
+    var t0x = kt, t0y = 0, t1x = kt * Math.cos(B.aI), t1y = kt * Math.sin(B.aI);
+    for (k = 1; k <= n; k++) {
+      var t = k / n, t2 = t * t, t3 = t2 * t;
+      var h00 = 2 * t3 - 3 * t2 + 1, h10 = t3 - 2 * t2 + t, h01 = -2 * t3 + 3 * t2, h11 = t3 - t2;
+      L.push([h00 * x0 + h10 * t0x + h01 * x1 + h11 * t1x, h10 * t0y + h01 * y1 + h11 * t1y]);
+    }
+    for (k = 1; k <= 20 && x1 < B.uI; k++) L.push([x1 + (B.uI - x1) * k / 20, y1]);   // flache Gefäße: auf dem Glasboden weiter
+    x1 = B.uI;
+    for (k = 1; k <= 6; k++) L.push([x1 + 0.3 * k / 6 * Math.cos(B.aI), y1 + 0.3 * k / 6 * Math.sin(B.aI)]);
+    return L;
+  }
+  /* dichte Punktliste → Fahrlinie im Format von roehrenPfad (relativ zum ersten Punkt) */
+  function pfadAusPunkten(L) {
+    var P = { x: [0], y: [0], z: [0], a: [0], s: [0], g: [0], loops: [], fuss: [] };
+    var u0 = L[0][0], v0 = L[0][1], s = 0, rest = 0, px = u0, py = v0;
+    for (var i = 1; i < L.length; i++) {
+      var ds = Math.hypot(L[i][0] - px, L[i][1] - py);
+      rest += ds; px = L[i][0]; py = L[i][1];
+      if (rest >= ROEHRE_DS || i === L.length - 1) {
+        var n = P.x.length - 1, a = Math.atan2(py - v0 - P.y[n], px - u0 - P.x[n]);
+        s += rest; rest = 0;
+        P.x.push(px - u0); P.y.push(py - v0); P.z.push(0); P.a.push(a); P.s.push(s); P.g.push(0);
+      }
+    }
+    P.a[0] = P.a[1];
+    return P;
+  }
+
   /* Prüft, ob sich zwei verschiedene Teile (Anstieg, Figur 1, Figur 2, Abstieg) der
      Röhre überdecken oder die Röhre in den Boden ragt. Innerhalb eines Loopings
      kreuzt sich die Röhre natürlich selbst – das zählt nicht. */
@@ -334,7 +447,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.wolken = [];              // {x0, x1, y, schanze, sink, last, …} – nach x sortiert
     this.dyn = [];                 // bewegliche Fahrflächen (Zirkus): Seilbrücken, Wippen, Hochseile, Klapprampen (dynSchritt)
     this.reifen = [];              // Zirkus: Feuerreifen (nur Grafik, Münzen hindurch)
-    this.hBild = null;             // Boden für die Grafik, wenn die Fahrfläche (h) davon abweicht (Brücke über der Manege)
+    this.hBild = welt.becken && welt.becken.kolben ? [] : null;   // Boden für die Grafik, wenn die Fahrfläche (h) davon abweicht (Brücke über der Manege)
     this.stufe = this.endlos ? 1 : optionen.stufe;
     if (welt.wolken) this.wolkenRnd = zufallsQuelle(this.seed * 6007 + 41);
 
@@ -573,8 +686,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.sperrzonen.push([xr - 1, xr + el.span + 2]);
       this.verdeckt.push([xr + 0.5, xr + el.span - 0.5]);
       this.roehreEnde = xr + el.span;
+    } else if (typ === "becken" && (this.welt.becken || {}).kolben) {
+      this.baueKolben(el, xs, r, p);              // Chemiewelt (Version 55): Kolben mit dünnen Glasrohren
     } else if (typ === "becken") {
-      // Chemiewelt (Version 49): Glasbehälter mit bunter Flüssigkeit. Darin fährt man wie unter
+      // Chemiewelt (Version 49–54, mit welt.becken.kolben abgeschaltet): Glasbehälter mit bunter Flüssigkeit. Darin fährt man wie unter
       // Wasser (physik.js beckenBei). Vier Arten hineinzukommen und wieder heraus:
       //   rampe    Rampe hinauf auf den Rand, hineinplumpsen; innen eine Rampe hinaus, außen hinunter
       //   schanze  Sprungschanze am Rand: weit hinein (Platsch!), langer Behälter, Rampe hinaus
@@ -815,10 +930,90 @@ var FF = globalThis.FF = globalThis.FF || {};
     return el;
   };
 
+  /* Chemiewelt (Version 55): ein Kolben (Form siehe Kolben oben) mit Einlass- und Auslassrohr.
+     Anlauf La, dann das Einlassrohr ab B.u0 links vom Gefäß, das Gefäß um xc, das Auslassrohr
+     endet rechts bei −B.u0 wieder auf dem Boden. Die Fahrfläche (h) ist innen der Glasboden mit
+     daneben die Bodenlinie der Rohre; das Bild des Laborbodens (hBild) bleibt flach darunter. */
+  Gelaende.prototype.baueKolben = function (el, xs, r, p) {
+    var BW = this.welt.becken, FLs = BW.fluessigkeiten, formen = BW.arten || ["rund", "dreieck", "flasche"];
+    var form = formen[Math.floor(r() * formen.length)], fl = FLs[Math.floor(r() * FLs.length)];
+    var g = 0.3, B = { form: form, g: g, fl: fl, nB: 1.45, kolben: true, decke: true }, Ri, d;
+    // uW: so weit reicht innen der nutzbare Boden. Das Rohr endet 3,2 m davor, damit auch lange
+    // Fahrzeuge beim Herauskommen ganz im Gefäß sind (Rundkolben: Einlass auf halbem Radius).
+    if (form === "rund") {
+      // Stehkolben: Kugel mit flachem Boden (unten abgeschnitten) – so kommt man auch ohne Anlauf zum Auslass
+      B.Rk = 5.4 + 0.7 * r() + 0.25 * p.wild; B.vc = 0.78 * B.Rk;
+      B.nTop = B.vc + Math.sqrt(B.Rk * B.Rk - B.nB * B.nB) + 2.3;
+      // Das Rohr kommt waagrecht durch die Kugelwand und endet knapp einen Meter über dem Boden:
+      // man plumpst hinein (schräg herauszukommen bohrte lange Autos in den gewölbten Boden)
+      Ri = B.Rk - g; B.uI = -0.5 * Ri; B.vI = 1.1; B.aI = 0; B.uH = -B.Rk - 0.3;
+      B.ysRel = B.vc + 0.25 * Ri; B.bodenTief = g;
+    } else if (form === "dreieck") {
+      B.wB = 8.6 + 1.2 * r() + 0.4 * p.wild; B.Hk = 7.4 + 0.8 * r(); B.nTop = B.Hk + 2.2;
+      d = B.wB - 1.15 * g; B.uW = d - 1.3; B.uI = -(B.uW - 3.2);
+      B.vI = g + 0.03; B.aI = 0; B.ysRel = 0.5 * B.Hk; B.bodenTief = g;
+    } else {
+      B.wF = 7.2 + 1.2 * r() + 0.3 * p.wild; B.hK = 5.8 + 0.8 * r(); B.hS = 1.7; B.nTop = B.hK + B.hS + 1.9;
+      B.uW = B.wF - g - 0.6; B.uI = -(B.uW - 3.2);
+      B.vI = g + 0.03; B.aI = 0; B.ysRel = 0.78 * B.hK; B.bodenTief = g;
+    }
+    B.u0 = -(Kolben.breite(B) + 4.2);                                     // Rohr beginnt 4,2 m vor dem Glas
+    if (form !== "rund") B.uH = -Kolben.breite(B) - 0.3;                  // schon vor der Wand auf Endhöhe, dann waagrecht hinein
+    el.flach = true; el.kolben = true; el.bk = B; el.art = form;
+    el.basis = this.rohRauschen(xs);
+    el.La = 14;                                   // langer, sanfter Anlauf: niemand soll kurz vor dem Rohr springen
+    el.sE = el.La - 2 * B.u0 + 1;
+    el.Lflach = el.sE + 2;
+    el.Lo = 6;
+    for (var it = 0; it < 2; it++) el.Lo = Math.max(6, Math.min(36, Math.abs(this.rohRauschen(xs + el.Lflach + el.Lo) - el.basis) / 0.19));
+    el.xe = xs + el.Lflach + el.Lo;
+    // Fahrfläche (nur Physik): innen der Glasboden bis zu den Rohrenden ±uE, davor und dahinter
+    // die Bodenlinie der Rohre – so stehen auch Anhänger beim Herauskommen auf festem Grund
+    var dicht = kolbenRohrDicht(B), ende = dicht[dicht.length - 1];
+    B.uE = -ende[0]; B.rohrU = dicht.map(function (q) { return q[0]; }); B.rohrV = dicht.map(function (q) { return q[1] - 0.02; });
+    var b = el.basis, xc = xs + el.La - B.u0;
+    B.b = b; B.xc = xc; B.xl = xc - B.uE - 1; B.xr = xc + B.uE + 1; B.ys = b + B.ysRel; B.yBoden = b + B.bodenTief;
+    B.rimL = B.rimR = b + B.nTop;
+    B.strom = fl.strom || 0; B.sprudel = fl.sprudel || 0; B.mixer = fl.mixer ? { x: xc, y: B.yBoden + 1.7, r: 1.35 } : null;
+    B.phase = r() * 100; B.drin = false;
+    this.becken.push(B);
+    // Rohre: Einlass dicht gerechnet, Auslass gespiegelt und rückwärts
+    B.hwS = Kolben.halb(B, B.ysRel, g);                                     // halbe Breite des Flüssigkeitsspiegels
+    var ein = pfadAusPunkten(dicht), aus = pfadAusPunkten(dicht.slice().reverse().map(function (q) { return [-q[0], q[1]]; }));
+    var spanE = Math.max.apply(null, ein.x), spanA = Math.max.apply(null, aus.x), farbe = Math.floor(r() * 1000);
+    this.roehren.push({ x: xc + B.u0, y0: b, pfad: ein, L: ein.s[ein.s.length - 1], span: spanE, farbe: farbe, platziert: false,
+                        schlauch: true, duenn: ROHR_DUENN, rolle: "rein", zwangBis: xc - B.uE - 1, bremsAus: 5.5, bk: B });
+    this.roehren.push({ x: xc - ende[0], y0: b + ende[1], pfad: aus, L: aus.s[aus.s.length - 1], span: spanA, farbe: farbe, platziert: false,
+                        schlauch: true, duenn: ROHR_DUENN, rolle: "raus", zwangBis: xc - B.u0, bk: B });
+    // wo das Rohr durch die Glaswand geht (Rohrmitte erreicht den Umriss): dort sitzt der Schliff (Grafik)
+    var rm = 1.85 * ROHR_DUENN, wS = 0;
+    for (var iw = 0; iw < ein.x.length; iw++) {
+      var uw = B.u0 + ein.x[iw] - Math.sin(ein.a[iw]) * rm, vw = ein.y[iw] + Math.cos(ein.a[iw]) * rm;
+      if (Math.abs(uw) <= Kolben.halb(B, vw, 0)) { wS = ein.s[iw]; break; }
+    }
+    var RE = this.roehren[this.roehren.length - 2], RA = this.roehren[this.roehren.length - 1];
+    RE.wandS = wS; RA.wandS = RA.L - wS; RE.hahnS = 0.9; RA.hahnS = RA.L - 0.9;
+    this.sperrzonen.push([xc + B.u0 - 1, xc - B.u0 + 2]);
+    this.verdeckt.push([xc + B.u0 + 0.3, xc - B.uE + 0.4]);
+    this.verdeckt.push([xc + B.uE - 0.4, xc - B.u0 - 0.3]);
+  };
+
+  /* Chemiewelt: Glas oben innen über x (Kolben), sonst Infinity – fahrt.js deckenStoss.
+     Mindestens 2,8 m über dem Boden, damit das Auto in den Ecken nicht eingeklemmt wird. */
+  Gelaende.prototype.glasDeckeBei = function (x) {
+    for (var i = 0; i < this.becken.length; i++) {
+      var B = this.becken[i];
+      if (!B.kolben || x < B.xc - B.uE || x > B.xc + B.uE) continue;
+      var u = x - B.xc;
+      return B.b + Math.max(Kolben.decke(B, u), Kolben.boden(B, u) + 2.8);
+    }
+    return Infinity;
+  };
+
   /* Beitrag eines Elements an der Stelle x (und ob dort steiles Gefälle erlaubt ist) */
   function elementBeitrag(el, x, aus) {
     var s = x - el.xs;
-    aus.steilAb = false; aus.steilAuf = false; aus.exakt = false; aus.angleich = null;
+    aus.steilAb = false; aus.steilAuf = false; aus.exakt = false; aus.angleich = null; aus.nurPhysik = false;
     if (s < 0 || x > el.xe) return 0;
     switch (el.typ) {
       case "schanze":
@@ -933,6 +1128,12 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (s < el.La) { aus.angleich = el; return 0; }   // Anlauf: gleichmäßig auf die Höhe des Behälters
         if (s > el.sE) return 0;
         aus.exakt = true;
+        if (el.kolben) {                                  // Kolben: innen Glasboden, an den Seiten senkrechte Wand
+          var Bk = el.bk, uk = x - Bk.xc, auk = Math.abs(uk);
+          if (auk <= Bk.uE) { aus.nurPhysik = true; return Kolben.boden(Bk, uk); }
+          if (auk < -Bk.u0) { aus.nurPhysik = true; return Kolben.rohrBoden(Bk, -auk); }
+          return 0;
+        }
         if (el.art === "rampe" || el.art === "schanze") {
           if (s < el.sL) {
             if (el.art === "rampe") return el.Hr * glatt(el.La, el.La + el.Lr, s);
@@ -1001,11 +1202,13 @@ var FF = globalThis.FF = globalThis.FF || {};
         var m = glatt(ef.xs + ef.Lflach, ef.xe, x);
         roh = ef.basis * (1 - m) + roh * m;
       }
-      var steilAb = false, steilAuf = false, exakt = false, angleich = null;
+      var steilAb = false, steilAuf = false, exakt = false, angleich = null, bildAbzug = 0;
       for (var i = this.elemente.length - 1; i >= 0; i--) {
         var e = this.elemente[i];
         if (e.xe < x - 1) { this.elemente.splice(i, 1); continue; }
-        roh += elementBeitrag(e, x, hilf);
+        var beitrag = elementBeitrag(e, x, hilf);
+        roh += beitrag;
+        if (hilf.nurPhysik) bildAbzug += beitrag;      // Kolben: nur die Fahrfläche, der Laborboden bleibt flach
         if (hilf.steilAb) steilAb = true;
         if (hilf.steilAuf) steilAuf = true;
         if (hilf.exakt) exakt = true;
@@ -1021,7 +1224,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (exakt) {                                     // Behälter (Chemiewelt): Profil genau so, senkrechte Wände
         this.aus = this.tp1 = this.tp2 = roh;
         this.h.push(roh);
-        if (this.hBild) this.hBild.push(roh);
+        if (this.hBild) this.hBild.push(roh - bildAbzug);
         continue;
       }
 
@@ -1345,6 +1548,18 @@ var FF = globalThis.FF = globalThis.FF || {};
     return false;
   };
 
+  /* Chemiewelt: 0 = kein Kolben bei x, 1 = Glasrohr (Ein- oder Auslass), 2 = im Kolben */
+  Gelaende.prototype.kolbenTeil = function (x) {
+    for (var i = 0; i < this.becken.length; i++) {
+      var B = this.becken[i];
+      if (!B.kolben) continue;
+      var au = Math.abs(x - B.xc);
+      if (au <= B.uE) return 2;
+      if (au < -B.u0) return 1;
+    }
+    return 0;
+  };
+
   /* Liegt x in einer Sperrzone (Grube, Looping)? */
   Gelaende.prototype.gesperrt = function (x) {
     for (var i = 0; i < this.sperrzonen.length; i++) if (x > this.sperrzonen[i][0] && x < this.sperrzonen[i][1]) return true;
@@ -1647,6 +1862,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     while (this.tankX < bis && this.tankX < ende - 10) {
       var sl = this.wolken.length && this.verdecktBis(this.tankX) ? 0 : this.steigungBei(this.tankX);   // Wolken: die Lückenwände zählen nicht
       var zaeh = this.becken.length && this.imBecken(this.tankX) ? 2 : 1;   // Chemiewelt: in der Brühe kommt man langsamer voran
+      var kt = this.becken.length ? this.kolbenTeil(this.tankX) : 0;      // Kolben: im Glasrohr kostet es nichts, in der Brühe viel
+      if (kt) { sl = 0; zaeh = kt === 1 ? 0.3 : 2.5; }
       if (this.welt.gelaende.ladebalken && this.anLadebalken(this.tankX)) zaeh = 2.5;   // Datenwelt: Warten und Bremsen vor der Brücke kostet auch
       this.tankRest -= zaeh * this.dx * Math.max(0.4, 1 + 3 * Math.max(0, sl) - 0.6 * Math.max(0, -sl)) / 1.3;
       this.tankX += this.dx;
@@ -1731,6 +1948,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       var Rr = this.roehren[i];
       if (Rr.platziert || Rr.x + Rr.span > bis - 5) continue;
       Rr.platziert = true;
+      if (Rr.duenn) {                                 // Kolben: keine Münzen im kurzen Rohr, dafür ein Bogen in der Flüssigkeit
+        var Bm = Rr.bk;
+        if (Rr.rolle === "rein") for (var km = 0; km < 5; km++) {
+          var um = Bm.uI + 1.6 + (-2 * Bm.uI - 3.2) * km / 4, vm = Kolben.boden(Bm, um) + 1.2 + 1.3 * Math.sin(Math.PI * km / 4);
+          this.neueMuenze(Bm.xc + um, Bm.b + Math.min(vm, Bm.ysRel - 0.6), km === 2 ? 10 : 5);
+        }
+        continue;
+      }
       var Pf = Rr.pfad, oben = 0, q = {};
       for (var j0 = 1; j0 < Pf.y.length; j0++) if (Pf.y[j0] > Pf.y[oben]) oben = j0;
       for (var sr = 7; sr < Rr.L - 6; sr += 6.5) {
@@ -1914,6 +2139,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   };
 
   FF.Gelaende = Gelaende;
+  FF.Kolben = Kolben;
   FF.zufallsQuelle = zufallsQuelle;
   FF.rauschen = rauschen;
 })();

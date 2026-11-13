@@ -1767,6 +1767,9 @@ FF.CONFIG = {
       level: [ { laenge: 820, seed: 3501 }, { laenge: 1080, seed: 3502 }, { laenge: 1340, seed: 3503 }, { laenge: 1600, seed: 3504 } ]
     },
     {
+      /* Chemiewelt (Version 49, umgebaut in Version 55): ein riesiges Chemielabor. Seit Version 55
+         stehen dort Kolben (rund, dreieckig, Flasche), in die man durch ein dünnes Glasrohr hineinfährt
+         und auf der anderen Seite durch ein Rohr wieder hinaus (gelaende.js baueKolben). Früher: */
       /* Chemiewelt (Version 49): ein riesiges Chemielabor. Überall stehen tiefe Glasbehälter
          (Bau-Element "becken", gelaende.js) mit bunten Flüssigkeiten. Darin fährt man wie unter
          Wasser (physik.js beckenBei): weniger Schwerkraft (schwere = Anteil, der bleibt), die
@@ -1775,7 +1778,7 @@ FF.CONFIG = {
          (sprudel [m/s²] Auftrieb nach oben). Hinein: über eine Rampe hineinplumpsen, mit der
          Sprungschanze hineinspringen, über die Kante in einen tiefen, versenkten Behälter fallen
          oder hineinrutschen; heraus über eine Rampe oder durch ein Glasrohr. */
-      id: "chemie", name: "Chemiewelt", emoji: "⚗️", hinweis: "Im Chemielabor: Platsch in die bunten Behälter – darin schwebst du wie unter Wasser!",
+      id: "chemie", name: "Chemiewelt", emoji: "⚗️", hinweis: "Im Chemielabor: Durchs Glasrohr hinein in die bunten Kolben – darin schwebst du wie unter Wasser!",
       schwerkraft: 9.81, grip: 1.0, rollwiderstand: 0.018, abprall: 0.06, luftdichte: 1.2,
       farben: {
         himmel: ["#eaf7f5", "#b6dfe6"], berge: ["#9cc9d2", "#7fb2bf"],
@@ -1784,6 +1787,7 @@ FF.CONFIG = {
       },
       sonne: "sonne",
       becken: {
+        kolben: true, arten: ["rund", "dreieck", "flasche"],   // Version 55: Rundkolben, Erlenmeyerkolben, Standflasche mit dünnen Glasrohren
         fluessigkeiten: [
           { name: "Glibber-Grün", farbe: "#5fe03a", zaeh: 5.5, schwere: 0.5, blasen: 0.5 },
           { name: "Blubber-Blau", farbe: "#3f9dff", zaeh: 3, schwere: 0.45, blasen: 1.1 },
@@ -1795,14 +1799,14 @@ FF.CONFIG = {
         ]
       },
       roehrenFarben: ["#8fdcff", "#b9a8ff", "#7ff0c8"],
-      tipp: ["⚗️ In der Chemiewelt plumpst du in bunte Behälter – darin schwebst du wie unter Wasser. Gib Gas, dann kommst du wieder raus!", "Ab ins Chemielabor!"],
+      tipp: ["⚗️ In der Chemiewelt flutschst du durch dünne Glasrohre in bunte Kolben – darin schwebst du wie unter Wasser. Auf der anderen Seite geht's durchs Rohr wieder raus!", "Ab ins Chemielabor!"],
       deko: ["@kolben:1.2", "@reagenz:0.9", "🧪:0.7", "@kolben:1.6", "🔬:1.0", "@reagenz:1.1", "@kolben:0.9", "🧫:0.5", "@kolben:2.0", "🧯:0.8", "@reagenz:0.8", "🧲:0.6"],
       beiwerk: ["@kolben:0.45", "@kolben:0.35"], kulisse: ["labor", "kolben", "labor"],
       gelaende: { amp: 3.2, welle: 44, holperAmp: 0.1, holperWelle: 7, trend: 0.008,   // v52: flacherer Laborboden – kürzere Übergänge zwischen den Behältern
                   maxAuf: 28, maxAb: 38, schanzen: 0.5, buckel: 0.4, steil: 0.3, taeler: 0.35, berg: 0.25, sprung: 0.4, wellen: 0.35, klippe: 0.25, rampe: 0.3, kuppe: 0.25, stufe: 0.3,
-                  becken: 11, wildBasis: 0.35,
-                  abstandElemente: 7 },      // Version 51: Behälter lang und häufig – mehr Flüssigkeit als Land
-      tankAbstand: 195, muenzAbstand: 22,
+                  becken: 1.6, wildBasis: 0.1,
+                  abstandElemente: 9 },      // Version 55: kürzere Kolben, dazwischen mehr Laborboden
+      tankAbstand: 160, muenzAbstand: 22,
       level: [ { laenge: 820, seed: 3601 }, { laenge: 1080, seed: 3602 }, { laenge: 1340, seed: 3603 }, { laenge: 1600, seed: 3604 } ]
     }
   ],
@@ -1826,6 +1830,10 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "55", titel: "Neue Chemiegläser", punkte: [
+      "⚗️ Chemiewelt: Statt langer Becken stehen jetzt echte Laborgläser auf dem Boden – runde Kolben, dreieckige Erlenmeyerkolben und Flaschen",
+      "🧪 Ein dünnes Glasrohr zieht dich direkt hinein in die Chemie – drüberspringen geht nicht! Drinnen schwebst du wie unter Wasser",
+      "🔁 Auf der anderen Seite saugt dich wieder ein Glasrohr hinaus auf den Laborboden – mit Glashahn, der aufgeht, wenn du kommst" ] },
     { version: "54", titel: "Schnellere Wolken, ruhiger Igel", punkte: [
       "☁️ Wolkeninseln: Die Wolken sinken jetzt viel schneller – trödeln geht nicht mehr!",
       "🦔 Der Igel kreiselt nicht mehr an der Start-Ampel und bei kleinen Hüpfern – er rollt sich nur bei echten Sprüngen ein",

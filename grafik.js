@@ -3462,7 +3462,24 @@ var FF = globalThis.FF = globalThis.FF || {};
     zeichneItems(ctx, K, gel, z, b[2], b[3], f.werte.schneeTank ? "schnee" : f.werte.wannenTank ? "wanne" : f.werte.zauberTank ? "zauber" : f.werte.akku ? "akku" : f.werte.wasserstoff ? "h2" : f.werte.puste ? "puste" : "", sz.dpr || 1);
     var geistSichtbar = sz.geist ? zeichneGeist(ctx, K, sz.geist, z) : true;
     zeichneHilfe(ctx, K, f.hilfe, f.fz.chassis, z);
-    if (f.roehre && f.roehre.z) {
+    if (gel.becken.length && gel.roehren.length) {
+      // Chemiewelt: Glashähne gehen auf, wenn das Auto kommt, und hinter ihm wieder zu
+      var chH = f.fz.chassis;
+      gel.roehren.forEach(function (Rh) {
+        if (!Rh.duenn) return;
+        var auf = (f.roehre && f.roehre.R === Rh) || (chH.x > Rh.x - 6 && chH.x < Rh.x + 1 && !f.roehre) ? 1 : 0;
+        Rh.offen = (Rh.offen || 0) + (auf - (Rh.offen || 0)) * Math.min(1, (sz.dt || 0.016) * 5);
+      });
+    }
+    var RD = f.roehre && f.roehre.R.duenn ? f.roehre : null;
+    if (RD) {
+      // dünnes Glasrohr (Chemiewelt): das Auto schrumpft beim Hineinfahren auf die Rohrgröße und
+      // wächst am Ende wieder – Bezugspunkt ist der Rohrboden, so bleiben die Räder unten
+      var uS = Math.max(0, Math.min(1, RD.s / 1.2, (RD.R.L - RD.s) / 1.2)), qD = 1 - (1 - RD.R.duenn) * uS * uS * (3 - 2 * uS);
+      var PB = gel.roehrenPunkt(RD.R, RD.s), KD = Object.create(K);
+      KD.s = K.s * qD; KD.x = PB.x - (PB.x - K.x) / qD; KD.y = PB.y - (PB.y - K.y) / qD;
+      zeichneFahrzeug(ctx, KD, f.fz, f.def, sz.aussehen, z, sz.ausdruck);
+    } else if (f.roehre && f.roehre.z) {
       // Röhre mit Kurve nach links (näher, größer) oder rechts (weiter weg, kleiner):
       // eigene Kamera mit anderem Maßstab, das Auto bleibt an derselben Stelle im Bild
       var q = 1 + 0.22 * f.roehre.z, ch = f.fz.chassis, K2 = Object.create(K);

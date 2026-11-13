@@ -302,6 +302,25 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
     versenkt, 7,5–12 m tief: über die Kante hinunter, unten entlang, kurz vor der Wand
     saugt ein **Glasrohr** das Auto nach oben – dieselbe Mechanik wie die Röhren,
     `schlauchPfad`) und `rutsche` (schräg hineinrutschen, Rampe hinaus).
+  - **Kolben mit dünnen Glasrohren** (Version 55, `welt.becken.kolben`, `baueKolben` in
+    `gelaende.js`) ersetzen die langen Behälter: Man fährt auf dem Laborboden, ein dünnes,
+    durchsichtiges Glasrohr (Radius 0,55 · Röhrenwelt, mit Glashahn und Schliff an der
+    Glaswand) führt unten seitlich direkt hinein in die Flüssigkeit; auf der anderen Seite
+    trägt ein genau gespiegeltes Rohr das Auto wieder hinaus auf den Boden. Drüberspringen
+    geht nicht: Bis zum Rohrende wird man immer eingefangen (`zwangBis`), am Auslass schon,
+    wenn die Nase an der Öffnung ist. Im Rohr schrumpft das Auto auf Rohrgröße und fährt
+    gemächlich (0,65 · Röhrentempo), in die Flüssigkeit kommt es mit höchstens 5,5 m/s.
+    Drei Formen (`Kolben.kontur/boden/decke`): **rund** (Stehkolben: Kugel mit flachem
+    Boden, Einlass ≈ 1 m über dem Boden – man plumpst hinein), **dreieck**
+    (Erlenmeyerkolben) und **flasche** (Standflasche mit runden Schultern), alle mit Hals,
+    Rand, Messstrichen, Etikett und Dampf. Innen 5–10 m Fahrt durch die Brühe. Die
+    Fahrfläche (`h`) ist innen der Glasboden und daneben die Bodenlinie der Rohre (Anhänger
+    stehen beim Herauskommen auf festem Grund), das Bild des Laborbodens (`hBild`) bleibt
+    flach. Oben hält die Glaswand (`glasDeckeBei`, `deckenStoss(true)`) das Auto im Gefäß.
+    Zwischen den Kolben mehr Laborboden (`becken: 1.6`, `abstandElemente: 9`,
+    `wildBasis: 0.1`), Anlauf 14 m eben, Kanister alle ≈ 160 m (im Glasrohr kostet es
+    kein Benzin, in der Brühe 2,5-fach). Die alten Arten unten gibt es ohne
+    `kolben: true` weiterhin.
   - **In der Flüssigkeit** (`physik.js`, `gelaende.beckenBei`): wie unter Wasser,
     stufenlos nach Eintauchtiefe – Schwerkraft nur noch `schwere` (35–50 %), zähe
     Brühe (Dichte `zaeh` für ½·ρ·cwA·v² plus lineare Dämpfung `zaeh`/10 pro Sekunde),
@@ -317,7 +336,8 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   - Kamera zoomt an Behältern heraus (0,72), der Ballon setzt im Behälter immer
     dahinter ab.
   - Robotertest (Flitzer, Normal): Profi ohne Upgrades 4/4 im Ziel, mit Upgrades
-    „auto“ 4/4.
+    „auto“ 4/4. Version 55: Profi 4/4, Loslassen 4/4, Kind 3/4, Vollgas 3/4; alle
+    23 Fahrzeuge kommen mit dem Profi in allen 4 Leveln ins Ziel.
 - **🚀 Turbo und 🦘 Sprungfeder**: zwei kleine Extras, bewusst selten, damit sie
   das Spiel nicht grundsätzlich ändern. Die runden Knöpfe sitzen links über der
   Bremse (linke Hand, die meist frei ist). Grau = noch nicht bereit, der Ring

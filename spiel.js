@@ -950,7 +950,7 @@
                                                      vy: 0.6 + Math.random() * 0.6, t: 0, dauer: 1.2 + Math.random(), r0: 0.06, r1: 0.2, schwer: -0.35, reibung: 1.2 });
           if (e.staerke > 0.35) schwebeText(e.x, e.y + 1.8, ["Platsch!", "Blubb!", "Splash!", "Plumps!"][Math.floor(Math.random() * 4)] + " ⚗️", FF.Grafik.hell(farbeE, 0.35), true);
           setzeAusdruck(e.staerke > 0.5 ? "staunen" : "freude", 1.6);
-          if (ersteMale("tipp-becken", 2)) { tipp("⚗️ Im Behälter fährst du wie unter Wasser: alles schwebt, die Brühe bremst. Gib Gas, dann kommst du wieder raus!", 5000, "Platsch! Ab in die " + (flE.name || "Brühe") + "!"); spruchBis = zeit + 3; }
+          if (ersteMale("tipp-becken", 2)) { tipp(bkE.kolben ? "⚗️ Im Glas fährst du wie unter Wasser: alles schwebt, die Brühe bremst. Fahr zum Glasrohr auf der anderen Seite!" : "⚗️ Im Behälter fährst du wie unter Wasser: alles schwebt, die Brühe bremst. Gib Gas, dann kommst du wieder raus!", 5000, "Platsch! Ab in die " + (flE.name || "Brühe") + "!"); spruchBis = zeit + 3; }
           else if (zeit > spruchBis && Math.random() < 0.5) { FF.Klang.sprich(flE.name ? flE.name + "!" : "Platsch!"); spruchBis = zeit + 3; }
           if (bkE.mixer && ersteMale("tipp-mixer", 1)) tipp("🌀 Achtung, ein Mixer! Er wirbelt dich herum.", 3500);
           else if (bkE.strom && ersteMale("tipp-strom" + (bkE.strom > 0 ? "+" : "-"), 1)) tipp(bkE.strom > 0 ? "➡️ Eine Strömung schiebt dich vorwärts!" : "⬅️ Die Strömung drückt dagegen – gib Gas!", 3500);
@@ -964,6 +964,17 @@
           break;
         case "roehre":                   // hinein in die Röhre
           FF.Klang.spiele("roehre");
+          if (e.rolle === "rein") {                       // Chemiewelt: durchs dünne Glasrohr in den Kolben
+            schwebeText(e.x + 2, e.y + 2.5, "Flutsch! 🧪", "#ffffff", true);
+            setzeAusdruck("staunen", 2);
+            if (ersteMale("tipp-glasrohr-rein", 2)) { tipp("🧪 Durch das dünne Glasrohr flutschst du direkt hinein in die Chemie!", 4500, "Flutsch! Ab ins Glas!"); spruchBis = zeit + 3; }
+            break;
+          }
+          if (e.rolle === "raus") {                       // Chemiewelt: durchs Glasrohr wieder hinaus
+            schwebeText(e.x + 1, e.y + 2.5, "Schlürf! 🧪", "#ffffff", true);
+            setzeAusdruck("freude", 2);
+            break;
+          }
           if (e.schlauch) {                               // Chemiewelt: Glasrohr aus dem Behälter
             schwebeText(e.x + 2, e.y + 4, "Schlürf! 🧪", "#ffffff", true);
             setzeAusdruck("freude", 3);

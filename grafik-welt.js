@@ -2532,6 +2532,31 @@ var FF = globalThis.FF = globalThis.FF || {};
      teil "hinten": Stützen und die getönte Rückseite; teil "vorn": Glas, Ränder, Ringe,
      Glanz. Kurven nach links (z > 0) machen die Röhre breiter, nach rechts schmaler. */
   var ROEHRE_R = 1.85;                                // Innenradius [m] – Monster-Max (2,65 m) passt hinein
+  /* Chemiewelt: am dünnen Glasrohr ein Schliff (mattierte Muffe) dort, wo es durch die Glaswand
+     geht, und ein Glashahn draußen. Der Griff steht quer (zu), solange niemand im Rohr ist, und
+     dreht sich längs (auf), wenn das Auto hindurchfährt (R.offen, von grafik.js gesetzt). */
+  function roehrenTeile(ctx, K, gel, R, RR, farbe, zeit) {
+    var s = K.s, q = {};
+    function mitte(sw) { gel.roehrenPunkt(R, sw, q); return { X: sx(K, q.x - Math.sin(q.a) * RR), Y: sy(K, q.y + Math.cos(q.a) * RR), a: q.a }; }
+    if (R.wandS) {                                                   // Schliff: kurze, dickere, mattweiße Muffe
+      var A = mitte(Math.max(0, R.wandS - 0.3)), B = mitte(Math.min(R.L, R.wandS + 0.3));
+      ctx.lineCap = "butt"; ctx.strokeStyle = "rgba(236,246,252,0.38)"; ctx.lineWidth = 2 * RR * 1.14 * s;
+      ctx.beginPath(); ctx.moveTo(A.X, A.Y); ctx.lineTo(B.X, B.Y); ctx.stroke();
+      ctx.strokeStyle = "rgba(130,175,205,0.75)"; ctx.lineWidth = Math.max(1, 0.05 * s);
+      [A, B].forEach(function (E) { var nx = -Math.sin(E.a), ny = Math.cos(E.a); ctx.beginPath(); ctx.moveTo(E.X + nx * RR * 1.14 * s, E.Y - ny * RR * 1.14 * s); ctx.lineTo(E.X - nx * RR * 1.14 * s, E.Y + ny * RR * 1.14 * s); ctx.stroke(); });
+    }
+    if (R.hahnS) {                                                   // Glashahn: Küken oben auf dem Rohr, Griff dreht sich
+      var H = mitte(R.hahnS), nx = -Math.sin(H.a), ny = Math.cos(H.a), Xo = H.X + nx * RR * s, Yo = H.Y - ny * RR * s;
+      var auf = R.offen || 0, wb = 0.32 * s;
+      ctx.fillStyle = "rgba(225,242,252,0.95)"; ctx.strokeStyle = dunkel(farbe, 0.3); ctx.lineWidth = Math.max(1, 0.05 * s);
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(Xo - wb, Yo - 0.55 * s, 2 * wb, 0.7 * s, 0.12 * s); else ctx.rect(Xo - wb, Yo - 0.55 * s, 2 * wb, 0.7 * s);
+      ctx.fill(); ctx.stroke();
+      var lg = (0.25 + 0.75 * auf) * 0.75 * s;                       // längs = auf (ganz zu sehen), quer = zu (von vorn: kurz)
+      ctx.strokeStyle = dunkel(farbe, 0.15); ctx.lineWidth = Math.max(2, 0.2 * s); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(Xo - lg, Yo - 0.6 * s); ctx.lineTo(Xo + lg, Yo - 0.6 * s); ctx.stroke();
+      ctx.fillStyle = dunkel(farbe, 0.15); ctx.beginPath(); ctx.arc(Xo, Yo - 0.6 * s, 0.14 * s, 0, Math.PI * 2); ctx.fill();
+    }
+  }
   function zeichneRoehren(ctx, K, gel, welt, teil, zeit) {
     var RS = gel.roehren, s = K.s, F = welt.roehrenFarben || ["#3fc8ff"];
     for (var i = 0; i < RS.length; i++) {
@@ -2541,15 +2566,16 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (R.y0 === null) R.y0 = gel.hoeheBei(R.x);
       }
       if (sx(K, R.bx1) < 0 || sx(K, R.bx0) > K.b) continue;
-      var farbe = F[R.farbe % F.length], n = P.x.length, schritt = 2;
+      var farbe = F[R.farbe % F.length], n = P.x.length, schritt = R.duenn ? 1 : 2;
+      var RR = ROEHRE_R * (R.duenn || 1), dn = R.duenn || 1;          // Chemiewelt: dünnes Glasrohr
       // Mittellinie und Radius auf dem Bildschirm (jeder 2. Abtastpunkt)
       var M = [];
       for (var j = 0; j < n; j += schritt) {
-        var a = P.a[j], q = 1 + 0.22 * P.z[j], r = ROEHRE_R * q;
-        M.push({ X: sx(K, R.x + P.x[j] - Math.sin(a) * ROEHRE_R), Y: sy(K, R.y0 + P.y[j] + Math.cos(a) * ROEHRE_R),
+        var a = P.a[j], q = 1 + 0.22 * P.z[j], r = RR * q;
+        M.push({ X: sx(K, R.x + P.x[j] - Math.sin(a) * RR), Y: sy(K, R.y0 + P.y[j] + Math.cos(a) * RR),
                  nx: -Math.sin(a), ny: Math.cos(a), r: r * s, z: P.z[j], fy: R.y0 + P.y[j], fx: R.x + P.x[j] });
       }
-      if (j - schritt !== n - 1) { var al = P.a[n - 1]; M.push({ X: sx(K, R.x + P.x[n - 1] - Math.sin(al) * ROEHRE_R), Y: sy(K, R.y0 + P.y[n - 1] + Math.cos(al) * ROEHRE_R), nx: -Math.sin(al), ny: Math.cos(al), r: ROEHRE_R * s, z: 0, fy: R.y0, fx: R.x + P.x[n - 1] }); }
+      if (j - schritt !== n - 1) { var al = P.a[n - 1]; M.push({ X: sx(K, R.x + P.x[n - 1] - Math.sin(al) * RR), Y: sy(K, R.y0 + P.y[n - 1] + Math.cos(al) * RR), nx: -Math.sin(al), ny: Math.cos(al), r: RR * s, z: 0, fy: R.y0, fx: R.x + P.x[n - 1] }); }
       ctx.lineJoin = "round"; ctx.lineCap = "round";
       var dicke = function (lw, faktor, farbeF, alpha) {             // Röhre als dicker Strich, stückweise mit wachsendem Radius
         ctx.strokeStyle = farbeF; ctx.globalAlpha = alpha;
@@ -2562,6 +2588,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         }
         ctx.globalAlpha = 1;
       };
+      if (teil === "hinten" && R.duenn) { dicke(0, 1, dunkel(farbe, 0.3), 0.18); continue; }   // dünnes Glasrohr: keine Stützen
       if (teil === "hinten") {
         // Stützen: alle ≈ 4 m von unten an die Röhre, wo sie höher als 1,5 m über dem Boden ist
         ctx.strokeStyle = "#e9e4ff"; ctx.lineWidth = Math.max(2, 0.16 * s); ctx.lineCap = "butt";
@@ -2573,11 +2600,11 @@ var FF = globalThis.FF = globalThis.FF || {};
         dicke(0, 1, dunkel(farbe, 0.4), 0.3);                                // getönte Rückwand
         continue;
       }
-      dicke(0, 1, hell(farbe, 0.6), 0.07);                                   // Glas vorne (fast klar: das Auto soll man gut sehen)
+      dicke(0, 1, hell(farbe, 0.6), R.duenn ? 0.12 : 0.07);                  // Glas vorne (fast klar: das Auto soll man gut sehen)
       // Ränder: zwei Linien im Abstand des Radius
       ["+", "-"].forEach(function (seite) {
         var sg = seite === "+" ? 1 : -1;
-        ctx.strokeStyle = farbe; ctx.lineWidth = Math.max(2, 0.2 * s);
+        ctx.strokeStyle = farbe; ctx.lineWidth = Math.max(2, 0.2 * s * dn);
         ctx.beginPath();
         for (var k3 = 0; k3 < M.length; k3++) {
           var p3 = M[k3], X = p3.X + sg * p3.nx * p3.r, Y = p3.Y - sg * p3.ny * p3.r;
@@ -2586,23 +2613,25 @@ var FF = globalThis.FF = globalThis.FF || {};
         ctx.stroke();
       });
       // Glanzstreifen und Ringe
-      ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1.5, 0.12 * s);
+      ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = Math.max(1.5, 0.12 * s * dn);
       ctx.beginPath();
       for (var k4 = 0; k4 < M.length; k4++) { var p4 = M[k4], Xg = p4.X + p4.nx * p4.r * 0.6, Yg = p4.Y - p4.ny * p4.r * 0.6; if (k4) ctx.lineTo(Xg, Yg); else ctx.moveTo(Xg, Yg); }
       ctx.stroke();
-      ctx.strokeStyle = farbe; ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(1.5, 0.11 * s); ctx.lineCap = "butt";
-      for (var k5 = 5; k5 < M.length - 2; k5 += 6) {
+      ctx.strokeStyle = farbe; ctx.globalAlpha = 0.5; ctx.lineWidth = Math.max(1.5, 0.11 * s * dn); ctx.lineCap = "butt";
+      for (var k5 = 5; k5 < M.length - 2 && !R.duenn; k5 += 6) {
         var p5 = M[k5];
         ctx.beginPath(); ctx.moveTo(p5.X + p5.nx * p5.r * 1.04, p5.Y - p5.ny * p5.r * 1.04); ctx.lineTo(p5.X - p5.nx * p5.r * 1.04, p5.Y + p5.ny * p5.r * 1.04); ctx.stroke();
       }
       ctx.globalAlpha = 1;
+      if (R.duenn) roehrenTeile(ctx, K, gel, R, RR, farbe, zeit);     // Schliff an der Glaswand und Glashahn
       // Ein- und Ausgang: dicker Ring mit Pfeil-Schild davor
       [M[0], M[M.length - 1]].forEach(function (p6, w) {
-        ctx.strokeStyle = dunkel(farbe, 0.25); ctx.lineWidth = Math.max(3, 0.45 * s);
+        if (R.duenn && (w === 1) === (R.rolle === "rein")) return;          // Kolben: nur die Öffnung auf dem Laborboden bekommt einen Ring
+        ctx.strokeStyle = dunkel(farbe, 0.25); ctx.lineWidth = Math.max(3, 0.45 * s * dn);
         ctx.beginPath(); ctx.ellipse(p6.X, p6.Y, 0.55 * p6.r, p6.r * 1.08, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = hell(farbe, 0.3); ctx.lineWidth = Math.max(1, 0.12 * s);
         ctx.beginPath(); ctx.ellipse(p6.X, p6.Y, 0.55 * p6.r, p6.r * 1.08, 0, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
-        if (w === 0) {                                                       // Schild „🌀“ über der Einfahrt
+        if (w === 0 && R.rolle !== "raus") {                                 // Schild „🌀“ über der Einfahrt
           var sxp = p6.X - 0.6 * s, syp = p6.Y - p6.r - 1.1 * s, pul = 1 + 0.06 * Math.sin(zeit * 5);
           ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(sxp, syp, 0.5 * s * pul, 0, Math.PI * 2); ctx.fill();
           ctx.strokeStyle = farbe; ctx.lineWidth = Math.max(2, 0.12 * s); ctx.stroke();
@@ -2656,13 +2685,122 @@ var FF = globalThis.FF = globalThis.FF || {};
     ctx.lineTo(X1 - R, YB); ctx.quadraticCurveTo(X1, YB, X1, YB - R);
     ctx.lineTo(X1, sy(K, oben.r));
   }
+  /* Chemiewelt (Version 55): Kolben (gelaende.js Kolben) – Umriss als Pfad, außen (d = 0) oder
+     innen (d = g). Die Punktlisten werden einmal je Kolben berechnet. */
+  function kolbenPfad(ctx, K, B, innen, neu) {
+    var P = innen ? (B.kI || (B.kI = FF.Kolben.kontur(B, B.g))) : (B.kA || (B.kA = FF.Kolben.kontur(B, 0)));
+    if (neu !== false) ctx.beginPath();
+    for (var i = 0; i < P.length; i++) {
+      var X = sx(K, B.xc + P[i][0]), Y = sy(K, B.b + P[i][1]);
+      if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y);
+    }
+  }
+  /* teil "mitte": klares Glas innen (heller Hintergrund, zarte Glanzstreifen), Mixer am Boden.
+     teil "glas" (nach der Flüssigkeit): dicke Glaswand mit Glanz, Hals mit Rand, Messstriche,
+     Etikett, Dampf aus dem Hals. Die Flüssigkeit selbst malt zeichneBecken wie bisher. */
+  function zeichneKolben(ctx, K, B, teil, zeit, i) {
+    var s = K.s, f = B.fl.farbe, Yb = sy(K, B.b), Yt = sy(K, B.b + B.nTop), XL = sx(K, B.xc - FF.Kolben.breite(B)), XR = sx(K, B.xc + FF.Kolben.breite(B));
+    if (teil === "mitte") {
+      ctx.save();
+      kolbenPfad(ctx, K, B, true); ctx.closePath(); ctx.clip();
+      var gr0 = ctx.createLinearGradient(0, Yt, 0, Yb);
+      gr0.addColorStop(0, "#f4fbff"); gr0.addColorStop(0.5, mische("#eaf6ff", f, 0.1)); gr0.addColorStop(1, mische("#d9ecf8", f, 0.25));
+      ctx.fillStyle = gr0; ctx.fillRect(XL, Yt, XR - XL, Yb - Yt);
+      // Rückwand: zarte Spiegelung (heller Bogen) – wirkt wie die gewölbte hintere Glaswand
+      ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 0.35 * s;
+      ctx.beginPath(); ctx.ellipse(sx(K, B.xc + 0.25 * FF.Kolben.breite(B)), sy(K, B.b + B.ysRel * 0.55), 0.45 * FF.Kolben.breite(B) * s, 0.4 * B.ysRel * s, 0, -1.2, -0.2); ctx.stroke();
+      ctx.restore();
+      var M = B.mixer;                                     // Rührfisch: Magnetrührer dreht ihn am Boden
+      if (M) {
+        var MX = sx(K, M.x), MY = sy(K, M.y), wm = zeit * 7;
+        ctx.strokeStyle = "#7d8597"; ctx.lineWidth = Math.max(2, 0.16 * s);
+        ctx.beginPath(); ctx.moveTo(MX, sy(K, B.yBoden)); ctx.lineTo(MX, MY); ctx.stroke();
+        for (var k = 0; k < 3; k++) {
+          var wk = wm + k * 2 * Math.PI / 3, c = Math.cos(wk), sn = Math.sin(wk);
+          ctx.fillStyle = sn > 0 ? "#e7ecf3" : "#aeb7c6";
+          ctx.beginPath(); ctx.ellipse(MX + c * M.r * 0.5 * s, MY, Math.abs(c) * M.r * 0.5 * s + 1, 0.22 * s, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = "#5a6275"; ctx.beginPath(); ctx.arc(MX, MY, 0.2 * s, 0, Math.PI * 2); ctx.fill();
+      }
+      return;
+    }
+    // ---- Glas (vorn, nach der Flüssigkeit) ----
+    // Glaswand: Raum zwischen Außen- und Innenumriss, durchscheinend hellblau
+    ctx.save();
+    kolbenPfad(ctx, K, B, false); ctx.closePath(); kolbenPfad(ctx, K, B, true, false); ctx.closePath();
+    ctx.fillStyle = "rgba(190,228,248,0.55)"; ctx.fill("evenodd");
+    ctx.restore();
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(95,150,190,0.9)"; ctx.lineWidth = Math.max(1, 0.05 * s);
+    kolbenPfad(ctx, K, B, false); ctx.stroke();
+    ctx.strokeStyle = "rgba(140,190,220,0.7)"; ctx.lineWidth = Math.max(1, 0.035 * s);
+    kolbenPfad(ctx, K, B, true); ctx.stroke();
+    // Glanz: ein langer weißer Lichtstreifen links an der Wölbung, ein kurzer rechts
+    var A = B.kA || (B.kA = FF.Kolben.kontur(B, 0)), n = A.length;
+    [[0.1, 0.36, 0.42, 0.9], [0.66, 0.78, 0.4, 0.5]].forEach(function (G) {
+      ctx.strokeStyle = "rgba(255,255,255," + G[3] + ")"; ctx.lineWidth = Math.max(1.5, 0.13 * s);
+      ctx.beginPath();
+      for (var j = Math.floor(G[0] * n); j <= Math.floor(G[1] * n); j++) {
+        var u = A[j][0], v = A[j][1], x = B.xc + u * (1 - G[2] / Math.max(1, Math.abs(u))), X = sx(K, x), Y = sy(K, B.b + v - 0.05);
+        if (A[j][1] > B.nTop - 0.3 || A[j][1] < 0.6) continue;
+        if (j === Math.floor(G[0] * n)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+      }
+      ctx.stroke();
+    });
+    // Rand oben am Hals: gerollter Glasrand
+    var nb = B.nB, XN0 = sx(K, B.xc - nb - 0.12), XN1 = sx(K, B.xc + nb + 0.12), YN = sy(K, B.b + B.nTop);
+    ctx.fillStyle = "#e9f6ff"; ctx.strokeStyle = "rgba(95,150,190,0.9)"; ctx.lineWidth = Math.max(1, 0.04 * s);
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(XN0, YN - 0.12 * s, XN1 - XN0, 0.3 * s, 0.15 * s); else ctx.rect(XN0, YN - 0.12 * s, XN1 - XN0, 0.3 * s);
+    ctx.fill(); ctx.stroke();
+    // Messstriche rechts innen an der Wand, ml-Zahlen wie auf echtem Laborglas
+    var fsS = Math.max(8, Math.round(0.32 * s));
+    ctx.font = "800 " + fsS + "px 'Nunito', sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.lineWidth = Math.max(1.2, 0.06 * s); ctx.lineCap = "butt";
+    var obenSk = B.form === "rund" ? B.vc + 0.5 * (B.Rk - B.g) : B.form === "dreieck" ? 0.8 * B.Hk : B.hK;
+    for (var vk = 1, nk = 1; vk < obenSk; vk += 0.5, nk++) {
+      var hw = FF.Kolben.halb(B, vk, B.g);
+      if (hw < 1.5) continue;
+      var lang = nk % 2 === 0, XK = sx(K, B.xc + hw - 0.25), YK = sy(K, B.b + vk);
+      ctx.strokeStyle = vk < B.ysRel ? "rgba(255,255,255,0.85)" : "rgba(110,150,185,0.85)";
+      ctx.beginPath(); ctx.moveTo(XK, YK); ctx.lineTo(XK - (lang ? 0.8 : 0.45) * s, YK); ctx.stroke();
+      if (lang && s > 14) { ctx.fillStyle = ctx.strokeStyle; ctx.fillText((nk / 2 * 100) + "", XK - 0.95 * s, YK); }
+    }
+    // Etikett oben im leeren Teil des Gefäßes: Name der Flüssigkeit
+    if (B.fl.name) {
+      var vE = B.form === "rund" ? B.vc + 0.55 * (B.Rk - B.g) : B.form === "dreieck" ? Math.min(B.Hk - 1.2, B.ysRel + 1.5) : Math.min(B.hK - 0.6, B.ysRel + 0.9);
+      var fs = Math.max(9, Math.round(0.42 * s)), XE = sx(K, B.xc), YE = sy(K, B.b + vE);
+      ctx.font = "800 " + fs + "px 'Nunito', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      var tx = "⚗️ " + B.fl.name, tw = ctx.measureText(tx).width + fs;
+      if (tw < 2 * FF.Kolben.halb(B, vE, B.g) * s - 0.6 * s) {
+        ctx.fillStyle = "rgba(255,255,255,0.94)"; ctx.strokeStyle = f; ctx.lineWidth = Math.max(2, 0.09 * s);
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(XE - tw / 2, YE - fs * 0.8, tw, fs * 1.6, fs * 0.3); else ctx.rect(XE - tw / 2, YE - fs * 0.8, tw, fs * 1.6);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = dunkel(f, 0.45); ctx.fillText(tx, XE, YE + 1);
+      }
+    }
+    // Dampf steigt aus dem Hals auf
+    for (var kd = 0; kd < 4; kd++) {
+      var ud = (zeit * (0.25 + 0.06 * zufall01(kd + i * 11, 71)) + zufall01(kd + i * 11, 72)) % 1;
+      var xd = B.xc + (zufall01(kd + i * 11, 73) - 0.5) * nb + Math.sin(zeit * 1.3 + kd) * 0.6 * ud;
+      ctx.globalAlpha = 0.5 * Math.sin(Math.PI * ud);
+      ctx.fillStyle = mische("#ffffff", f, 0.3);
+      ctx.beginPath(); ctx.arc(sx(K, xd), sy(K, B.b + B.nTop + 0.3 + 2.6 * ud), (0.3 + 0.6 * ud) * s, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function zeichneBecken(ctx, K, gel, welt, teil, zeit) {
     var L = gel.becken, s = K.s, sb = sichtbereich(K, gel);
     if (teil === "hinten") return;                    // (früher: Rückwand vor dem Gelände – jetzt in "mitte")
     for (var i = 0; i < L.length; i++) {
       var B = L[i];
-      if (B.xr < sb[2] - 3 || B.xl > sb[3] + 3) continue;
-      var f = B.fl.farbe, X0 = sx(K, B.xl), X1 = sx(K, B.xr), YB = sy(K, B.yBoden - 0.25);
+      if (B.kolben) {
+        var bk = FF.Kolben.breite(B);
+        if (B.xc + bk < sb[2] - 3 || B.xc - bk > sb[3] + 3) continue;
+        if (teil === "mitte") { zeichneKolben(ctx, K, B, "mitte", zeit, i); continue; }
+      } else if (B.xr < sb[2] - 3 || B.xl > sb[3] + 3) continue;
+      var xlF = B.kolben ? B.xc - B.hwS : B.xl, xrF = B.kolben ? B.xc + B.hwS : B.xr;   // Flüssigkeitsspiegel von … bis
+      var f = B.fl.farbe, X0 = sx(K, xlF), X1 = sx(K, xrF), YB = sy(K, B.yBoden - 0.25);
       var oben = beckenRand(B), YO = sy(K, Math.max(oben.l, oben.r)), dw = 0.3 * s;
       var rk = Math.min(1.1, (B.ys - B.yBoden) * 0.3);   // Radius der unteren Ecken [m]
       var schritt = Math.max(0.25, Math.min(0.5, 6 / s)), x;
@@ -2721,13 +2859,20 @@ var FF = globalThis.FF = globalThis.FF || {};
       // ---- vorn ----
       // Flüssigkeit: Oberfläche mit Wellen und Meniskus an den Wänden, unten bis zum Glasboden
       ctx.save();
-      ctx.beginPath(); beckenUmriss(ctx, K, B, oben, rk); ctx.closePath(); ctx.clip();
+      if (B.kolben) { kolbenPfad(ctx, K, B, true); YB = sy(K, B.b - 0.5); }
+      else { ctx.beginPath(); beckenUmriss(ctx, K, B, oben, rk); }
+      ctx.closePath(); ctx.clip();
       var men = 0.22 * s;
-      ctx.beginPath(); ctx.moveTo(X0, Y - men);
+      ctx.beginPath();
+      if (B.kolben) {                                       // Kolben: unten ist das Glas breiter als der Spiegel (Clip schneidet zu)
+        var bkF = FF.Kolben.breite(B) + 1;
+        ctx.moveTo(sx(K, B.xc + bkF), YB + s); ctx.lineTo(sx(K, B.xc - bkF), YB + s); ctx.lineTo(sx(K, B.xc - bkF), Y); ctx.lineTo(X0, Y - men);
+      } else ctx.moveTo(X0, Y - men);
       ctx.quadraticCurveTo(X0 + 0.15 * s, Y, X0 + 0.6 * s, Y);
-      for (x = B.xl + 0.6 + schritt; x < B.xr - 0.6; x += schritt) ctx.lineTo(sx(K, x), welle(x));
+      for (x = xlF + 0.6 + schritt; x < xrF - 0.6; x += schritt) ctx.lineTo(sx(K, x), welle(x));
       ctx.lineTo(X1 - 0.6 * s, Y); ctx.quadraticCurveTo(X1 - 0.15 * s, Y, X1, Y - men);
-      ctx.lineTo(X1, YB + s); ctx.lineTo(X0, YB + s); ctx.closePath();
+      if (B.kolben) { ctx.lineTo(sx(K, B.xc + bkF), Y); ctx.closePath(); }
+      else { ctx.lineTo(X1, YB + s); ctx.lineTo(X0, YB + s); ctx.closePath(); }
       var gr = ctx.createLinearGradient(0, Y, 0, YB);
       gr.addColorStop(0, hell(f, 0.25)); gr.addColorStop(0.35, f); gr.addColorStop(1, dunkel(f, 0.3));
       ctx.globalAlpha = 0.58; ctx.fillStyle = gr; ctx.fill(); ctx.globalAlpha = 1;
@@ -2779,8 +2924,9 @@ var FF = globalThis.FF = globalThis.FF || {};
       // glänzende Oberfläche
       ctx.strokeStyle = hell(f, 0.6); ctx.lineWidth = Math.max(1.5, 0.08 * s); ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(X0 + dw, Y - men * 0.5);
-      for (x = B.xl + 0.6; x < B.xr - 0.6; x += schritt) { if (gel.hoeheBei(x) > B.ys) break; ctx.lineTo(sx(K, x), welle(x)); }
+      for (x = xlF + 0.6; x < xrF - 0.6; x += schritt) { if (!B.kolben && gel.hoeheBei(x) > B.ys) break; ctx.lineTo(sx(K, x), welle(x)); }
       ctx.stroke();
+      if (B.kolben) { ctx.restore(); zeichneKolben(ctx, K, B, "glas", zeit, i); continue; }
       // Messskalen auf der Vorderseite: Striche alle 0,5 m, Zahlen in ml – wie am Becherglas.
       // Lange Behälter haben mehrere, damit man auch mittendrin sieht, wo man ist.
       var fsS = Math.max(8, Math.round(0.36 * s));

@@ -577,6 +577,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.raeder.forEach(function (R) { if (R.k.vx < 0) R.k.vx = 0; });
     }
     if (this.welt.decke) this.deckenStoss();
+    else if (this.gelaende.becken.length && this.gelaende.glasDeckeBei(this.fz.chassis.x) < Infinity) this.deckenStoss(true);   // Kolben: oben ist Glas
     if (this.gelaende.trampoline.length) this.pruefeTrampolin();
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
@@ -798,13 +799,13 @@ var FF = globalThis.FF = globalThis.FF || {};
 
   /* Höhle: Wer bis an die Decke fliegt, prallt sanft nach unten ab. Geprüft
      werden alle Umrisspunkte und der Kopf (auch bei hochkant stehendem Auto). */
-  Fahrt.prototype.deckenStoss = function () {
+  Fahrt.prototype.deckenStoss = function (glas) {
     var fz = this.fz, C = fz.chassis, gel = this.gelaende, ca = Math.cos(C.a), sa = Math.sin(C.a);
     var tief = -Infinity, px = 0, py = 0;
     var punkte = fz.huelle.concat([{ x: fz.kopf.x, y: fz.kopf.y + fz.kopf.r }]);
     for (var i = 0; i < punkte.length; i++) {
       var p = punkte[i], wx = C.x + ca * p.x - sa * p.y, wy = C.y + sa * p.x + ca * p.y;
-      var pen = wy - gel.deckeBei(wx) + 0.15;
+      var pen = wy - (glas ? gel.glasDeckeBei(wx) : gel.deckeBei(wx)) + 0.15;
       if (pen > tief) { tief = pen; px = wx; py = wy; }
     }
     if (tief <= 0) return;
@@ -958,17 +959,21 @@ var FF = globalThis.FF = globalThis.FF || {};
     var RS = this.gelaende.roehren, fz = this.fz, C = fz.chassis, st = fz.status, gel = this.gelaende;
     for (var i = 0; i < RS.length; i++) {
       var R = RS[i];
-      if (C.x < R.x - 0.3 || C.x > R.x + 3) continue;
-      if (st.vorwaerts < 0.5 || C.y - gel.hoeheBei(R.x) > 3.6) continue;
+      // Chemiewelt (Kolben): bis zwangBis wird man immer eingefangen, auch von hoch oben – drüberspringen geht nicht
+      // Auslass im Kolben: sobald die Nase an der Öffnung ist (sonst stieße sie an die Stufe davor)
+      var vor = 0.3;
+      if (R.rolle === "raus") { vor = 0.8; for (var hp = 0; hp < fz.huelle.length; hp++) vor = Math.max(vor, fz.huelle[hp].x * Math.cos(C.a) + 0.8); }
+      if (C.x < R.x - vor || C.x > (R.zwangBis || R.x + 3)) continue;
+      if (st.vorwaerts < 0.5 || (!R.zwangBis && C.y - gel.hoeheBei(R.x) > 3.6)) continue;
       var hc = 0;                                   // Abstand Schwerpunkt ↔ Unterkante der Räder (Räder ausgefedert)
       fz.raeder.forEach(function (Rd) { hc = Math.max(hc, Rd.r + Rd.L0 - Rd.cy); });
-      this.roehre = { R: R, s: Math.max(0, C.x - R.x), v: Math.max(8, st.vorwaerts), hc: hc, t: 0, loopI: 0,
+      this.roehre = { R: R, s: Math.max(0, Math.min(R.zwangBis ? 0.6 : Infinity, C.x - R.x)), v: Math.max(R.duenn ? 6 : 8, st.vorwaerts), hc: hc, t: 0, loopI: 0,
                       dx: 0, dy: 0, da: 0, z: 0, aVorher: null };
       var P0 = gel.roehrenPunkt(R, this.roehre.s), K = this.roehre;
       K.dx = C.x - (P0.x - Math.sin(P0.a) * hc); K.dy = C.y - (P0.y + Math.cos(P0.a) * hc); K.da = normWinkel(C.a - P0.a);
       while (K.loopI < R.pfad.loops.length && R.pfad.loops[K.loopI] <= K.s) K.loopI++;
       this.luftZeit = 0; this.luftDrehung = 0; this.flug = null;
-      this.melde("roehre", { x: R.x, y: gel.hoeheBei(R.x), schlauch: !!R.schlauch });
+      this.melde("roehre", { x: R.x, y: R.y0 !== null ? R.y0 : gel.hoeheBei(R.x), schlauch: !!R.schlauch, rolle: R.rolle || "" });
       return;
     }
   };
@@ -981,8 +986,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     K.t += h;
     var P = gel.roehrenPunkt(R, K.s);
     var vZiel = (eingabe.gas ? 16 : 13) + (this.boostZeit > 0 ? 5 : 0) + (this.miniZeit > 0 ? 3 : 0);
+    if (R.duenn) vZiel *= 0.65;                     // dünnes Glasrohr (Chemiewelt): gemächlicher, man soll das Hineinflutschen sehen
     K.v += (-this.welt.schwerkraft * Math.sin(P.a) * 0.45 + (vZiel - K.v) * 0.9) * h;
-    K.v = Math.max(7, Math.min(24, K.v));
+    K.v = Math.max(R.duenn ? 5 : 7, Math.min(24, K.v));
     if (this.boostZeit > 0) this.boostZeit = Math.max(0, this.boostZeit - h);
     if (this.miniZeit > 0) this.miniZeit = Math.max(0, this.miniZeit - h);
     if (this.federSperre > 0) this.federSperre = Math.max(0, this.federSperre - h);
@@ -996,7 +1002,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.melde("roehrenLoop", { bonus: b, x: C.x, y: C.y });
     }
     var fertig = K.s >= R.L;
-    if (fertig) K.s = R.L;
+    if (fertig) { K.s = R.L; if (R.bremsAus) K.v = Math.min(K.v, R.bremsAus); }   // in die Flüssigkeit: nicht quer hindurchschießen
     P = gel.roehrenPunkt(R, K.s);
     var Pv = gel.roehrenPunkt(R, Math.max(0, K.s - 0.5));
     var kr = (P.a - Pv.a) / Math.max(0.01, Math.min(0.5, K.s));     // Krümmung [rad/m]
