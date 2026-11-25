@@ -523,6 +523,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       crr = Math.min(crr, KL.rollMax);
     }
     var band = gel.baender && gel.baender.length > 0;
+    var eis = gel.eisfelder && gel.eisfelder.length > 0;          // Weihnachtswelt: Glatteis
     for (i = 0; i < nR; i++) {
       R = RR[i]; k = R.k; ko = R.kontakt;
       ko.warAktiv = ko.aktiv;
@@ -533,7 +534,8 @@ var FF = globalThis.FF = globalThis.FF || {};
         ko.rollMax = crr * R.r;
         ko.vBand = band ? gel.bandBei(k.x) : 0;
         vorbereiteKontakt(k, ko, h, abprall, T.werte.kufen ? kufenMu(T, gel, welt, k, R, ko)
-          : T.werte.schweben ? (T.schwebeMu !== undefined ? T.schwebeMu : T.werte.schweben.mu) + (T.kufenBremse || 0) * T.werte.schweben.bremsMu : grip, P);
+          : T.werte.schweben ? (T.schwebeMu !== undefined ? T.schwebeMu : T.werte.schweben.mu) + (T.kufenBremse || 0) * T.werte.schweben.bremsMu
+          : eis ? grip * (KL ? Math.max(0.75, gel.eisBei(k.x)) : gel.eisBei(k.x)) : grip, P);   // Raupenketten rutschen auf Eis kaum
       } else { ko.jn = ko.jt = ko.jr = 0; }
     }
     var muH = P.huellReibung * welt.grip;

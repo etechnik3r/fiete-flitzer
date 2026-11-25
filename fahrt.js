@@ -185,6 +185,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.boostLadung = 0; this.boostZeit = 0;
     this.federLadung = 0; this.federZeit = 0; this.federSperre = 0;
     this.imWasser = false; this.letztesPlatsch = -9;
+    this.aufEis = 0;               // Weihnachtswelt: Zeitpunkt, zu dem zuletzt ein Rad auf Glatteis war (0 = nicht auf Eis)
     this.imBecken = null;          // Chemiewelt: Behälter, in dessen Flüssigkeit das Auto gerade steckt
     this.windZone = 0; this.letzterWind = -99;
     this.roehre = null;            // Röhrenwelt: gerade in einer Röhre unterwegs {R, s, v, …}
@@ -582,6 +583,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (this.welt.wind) this.pruefeWind();
     if (this.gelaende.baender.length) this.pruefeBand();
     if (this.gelaende.objekte.length) this.pruefeObjekte();
+    if (this.gelaende.eisfelder.length) this.pruefeEis();
     if (this.gelaende.tore.length) this.pruefeTore();
     if (this.gelaende.katapulte.length && this.zustand === "fahrt") {          // in die Katapult-Schale gefahren?
       var KA = this.gelaende.katapulte;
@@ -1094,7 +1096,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   /* Objekte auf der Strecke: Wer hindurchfährt (nicht drüberfliegt), zerbricht sie.
      Glas zerspringt (das Auto verliert 7 % Tempo), kleine Bausteine fliegen weg (3 %),
      eine Baustein-Säule hält das Auto fast an (70 % Tempo weg) und zerfällt. */
-  var OBJEKT_BREMSE = { glas: 0.93, stein: 0.97, saeule: 0.3 };
+  var OBJEKT_BREMSE = { glas: 0.93, stein: 0.97, saeule: 0.3, lebkuchen: 0.55 };
   Fahrt.prototype.pruefeObjekte = function () {
     var O = this.gelaende.objekte, fz = this.fz, C = fz.chassis, L = this.werte.groesse.laenge * 0.5;
     if (this.zustand !== "fahrt" && this.zustand !== "ziel") return;
@@ -1110,6 +1112,16 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (C.vx > 0) { var dv = C.vx * (f - 1); C.vx += dv; fz.raeder.forEach(function (R) { R.k.vx += dv; R.k.w *= f; }); }
       this.melde("objekt", { art: o.art, x: o.x, y: o.y, b: o.b, h: o.h, v: o.v, tempo: Math.abs(C.vx) });
     }
+  };
+
+  /* Glatteis: Meldung beim Auffahren (Tipp, Klang), ohne Rad am Eis keine Meldung; nach 3 s ohne Eis wieder scharf */
+  Fahrt.prototype.pruefeEis = function () {
+    if (this.zustand !== "fahrt") return;
+    var f = this.gelaende.eisBei(this.fz.chassis.x), amBoden = this.fz.status.radKontakte > 0;
+    if (f < 0.6 && amBoden) {
+      if (!this.aufEis) this.melde("eis", { x: this.fz.chassis.x, faktor: f });
+      this.aufEis = this.zeit;
+    } else if (this.aufEis && this.zeit - this.aufEis > 3) this.aufEis = 0;
   };
 
   /* Förderband: Meldung beim Auffahren (Richtung und Tempo zeigt spiel.js) */

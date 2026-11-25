@@ -60,6 +60,7 @@ server.listen(0, "127.0.0.1", async function () {
       if (g.trampoline.length) kandidaten.push(g.trampoline[0].x0 - 6);
       if (g.baender.length) kandidaten.push(g.baender[0].x0 - 3);
       if (g.schwebezonen.length) kandidaten.push(g.schwebezonen[0].x0 + 4);
+      if (g.eisfelder.length) kandidaten.push(g.eisfelder[0].x0 - 7);                // Weihnachtswelt: kurz vor dem Glatteis
       if (g.objekte.length) { var o = g.objekte.filter(function (o) { return o.art === "saeule"; })[0] || g.objekte[1] || g.objekte[0]; kandidaten.push(o.x - 7); }
       if (g.spuk.length) kandidaten.push(g.spuk[1] ? g.spuk[1].x - 9 : g.spuk[0].x - 9);
       if (g.pfuetzen.length) kandidaten.push(g.pfuetzen[1] ? g.pfuetzen[1].x0 - 3 : g.pfuetzen[0].x0 - 3);

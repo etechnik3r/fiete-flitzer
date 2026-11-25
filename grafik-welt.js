@@ -176,6 +176,26 @@ var FF = globalThis.FF = globalThis.FF || {};
   }
   /* Sonnen mit eigener Form (welt.sonnenArt) */
   var SONNEN = {
+    weihnacht: function (ctx, x, y, r, zeit) {          // Weihnachtswelt: freundlicher Vollmond mit Weihnachtsmann-Mütze
+      var gl = ctx.createRadialGradient(x, y, r * 0.8, x, y, r * 2.6);
+      gl.addColorStop(0, "rgba(255,244,200,0.45)"); gl.addColorStop(1, "rgba(255,244,200,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y, r * 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff3c4"; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(220,200,140,0.45)";
+      [[-0.35, -0.1, 0.2], [0.3, 0.25, 0.25], [0.1, -0.45, 0.12], [-0.2, 0.45, 0.1]].forEach(function (c) { ctx.beginPath(); ctx.arc(x + c[0] * r, y + c[1] * r, c[2] * r, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = "#3a2a4a";                                                    // Gesicht
+      ctx.beginPath(); ctx.arc(x - r * 0.28, y + r * 0.05, r * 0.07, 0, Math.PI * 2); ctx.arc(x + r * 0.28, y + r * 0.05, r * 0.07, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#3a2a4a"; ctx.lineWidth = r * 0.06; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(x, y + r * 0.15, r * 0.28, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+      ctx.fillStyle = "rgba(255,130,150,0.5)";
+      ctx.beginPath(); ctx.arc(x - r * 0.5, y + r * 0.3, r * 0.11, 0, Math.PI * 2); ctx.arc(x + r * 0.5, y + r * 0.3, r * 0.11, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(x - r * 0.1, y - r * 0.82); ctx.rotate(-0.35);       // Mütze
+      ctx.fillStyle = "#e0262f"; ctx.beginPath(); ctx.moveTo(-r * 0.85, 0); ctx.quadraticCurveTo(-r * 0.7, -r * 1.2, r * 0.55, -r * 0.85 + Math.sin(zeit * 1.5) * r * 0.05);
+      ctx.lineTo(r * 0.85, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-r * 0.95, -r * 0.14, r * 1.9, r * 0.3, r * 0.15); else ctx.rect(-r * 0.95, -r * 0.14, r * 1.9, r * 0.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(r * 0.55, -r * 0.85 + Math.sin(zeit * 1.5) * r * 0.05, r * 0.17, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    },
     baustein: function (ctx, x, y, r) {                 // eckige Sonne aus Klemmbausteinen
       var b = r * 1.7, st = r * 0.3;
       ctx.fillStyle = "rgba(255,214,80,0.5)";
@@ -360,6 +380,59 @@ var FF = globalThis.FF = globalThis.FF || {};
      Stadt, Kräne, Gipfel, Vulkane, Dschungel, Dinos, Riesenräder … – fest an
      Positionen der Ebene (Zufall aus der Nummer), nur einfache Flächen. */
   var KULISSE = {
+    weihnachtstannen: { abst: 11, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Weihnachtswelt: Tannen mit schimmernden Lichterketten (bunte Lichter blinken leise)
+      var licht = [];
+      for (var i = 0; i < 4; i++) {
+        var h = s * (0.4 + 0.45 * R()), b = h * 0.3, xx = x + (i - 1.5) * s * 0.17, tiers = 3 + Math.floor(h / s * 3);
+        ctx.beginPath(); ctx.moveTo(xx - b, y + 2);
+        for (var t = 0; t < tiers; t++) { var yy = y - h * (t + 1) / tiers, bb = b * (1 - (t + 1) / tiers) * 0.95; ctx.lineTo(xx - bb - b * 0.18, yy + h / tiers * 0.35); ctx.lineTo(xx - bb * 0.4, yy + h / tiers * 0.35); }
+        ctx.lineTo(xx, y - h - s * 0.02);
+        for (t = tiers - 1; t >= 0; t--) { yy = y - h * (t + 1) / tiers; bb = b * (1 - (t + 1) / tiers) * 0.95; ctx.lineTo(xx + bb * 0.4, yy + h / tiers * 0.35); ctx.lineTo(xx + bb + b * 0.18, yy + h / tiers * 0.35); }
+        ctx.lineTo(xx + b, y + 2); ctx.closePath(); ctx.fill();
+        for (t = 0; t < 5; t++) licht.push([xx + (R() - 0.5) * b * (1 - (0.2 + 0.6 * R())) * 1.5, y - h * (0.12 + 0.75 * R()), R()]);
+      }
+      var cols = ["#ff6b6b", "#ffd86a", "#7fe0ff", "#ffa8ee", "#a8ffb4"], alt = ctx.fillStyle;
+      licht.forEach(function (l, j) {
+        ctx.globalAlpha = 0.35 + 0.65 * Math.max(0, Math.sin(zeit * (1.5 + 2 * l[2]) + j * 2.3 + k));
+        ctx.fillStyle = cols[j % cols.length]; ctx.beginPath(); ctx.arc(l[0], l[1], Math.max(1, s * 0.012), 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.globalAlpha = 1; ctx.fillStyle = alt;
+    } },
+    zuckerwelt: { abst: 20, male: function (ctx, x, y, s, R, f, zeit, k) {
+      // Weihnachtswelt: riesige Zuckerstangen und Lollis, dazu ein Lebkuchenhaus mit warmem Licht
+      var alt = ctx.fillStyle, art = Math.floor(R() * 3);
+      if (art === 0) {                                              // drei Zuckerstangen
+        ctx.strokeStyle = ctx.fillStyle; ctx.lineCap = "round";
+        for (var i = 0; i < 3; i++) {
+          var h = s * (0.4 + 0.3 * R()), r = s * 0.09, xx = x + (i - 1) * s * 0.3;
+          ctx.lineWidth = s * 0.05; ctx.beginPath(); ctx.moveTo(xx, y + 2); ctx.lineTo(xx, y - h); ctx.arc(xx + r, y - h, r, Math.PI, 0); ctx.stroke();
+          ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = s * 0.018;
+          for (var q = 0; q < 7; q++) { var yy = y - h * q / 7; ctx.beginPath(); ctx.moveTo(xx - s * 0.025, yy + s * 0.02); ctx.lineTo(xx + s * 0.025, yy - s * 0.02); ctx.stroke(); }
+          ctx.strokeStyle = ctx.fillStyle;
+        }
+      } else if (art === 1) {                                       // Lollis auf Stielen
+        for (i = 0; i < 3; i++) {
+          var hl = s * (0.35 + 0.3 * R()), rl = s * (0.09 + 0.04 * R()), xl = x + (i - 1) * s * 0.28;
+          ctx.fillRect(xl - s * 0.008, y - hl, s * 0.016, hl + 2);
+          ctx.beginPath(); ctx.arc(xl, y - hl - rl, rl, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = s * 0.012; ctx.beginPath();
+          for (var a = 0; a < 12; a += 0.2) ctx.lineTo(xl + Math.cos(a) * rl * a / 12, y - hl - rl + Math.sin(a) * rl * a / 12);
+          ctx.stroke();
+        }
+      } else {                                                      // Lebkuchenhaus mit schneebedecktem Dach und leuchtendem Fenster
+        var b = s * (0.26 + 0.08 * R()), hh = b * 0.8;
+        ctx.fillRect(x - b, y - hh, b * 2, hh + 2);
+        ctx.beginPath(); ctx.moveTo(x - b * 1.2, y - hh); ctx.lineTo(x, y - hh - b * 0.8); ctx.lineTo(x + b * 1.2, y - hh); ctx.closePath(); ctx.fill();
+        ctx.fillRect(x + b * 0.45, y - hh - b * 0.95, b * 0.25, b * 0.5);
+        ctx.fillStyle = f.fenster || "#ffd66a"; ctx.globalAlpha = 0.75 + 0.2 * Math.sin(zeit * 2.2 + k * 3);
+        ctx.fillRect(x - b * 0.65, y - hh * 0.8, b * 0.5, b * 0.5); ctx.fillRect(x + b * 0.2, y - hh * 0.8, b * 0.45, b * 0.45);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.beginPath(); ctx.moveTo(x - b * 1.2, y - hh); ctx.lineTo(x, y - hh - b * 0.8); ctx.lineTo(x + b * 1.2, y - hh); ctx.lineTo(x + b * 1.0, y - hh); ctx.lineTo(x, y - hh - b * 0.62); ctx.lineTo(x - b * 1.0, y - hh); ctx.fill();
+      }
+      ctx.fillStyle = alt; ctx.strokeStyle = alt;
+    } },
     wald: { abst: 14, male: function (ctx, x, y, s, R) {
       for (var i = 0; i < 5; i++) { var r = s * (0.12 + 0.1 * R()); ctx.beginPath(); ctx.arc(x + (i - 2) * s * 0.2, y - s * (0.12 + 0.2 * R()), r, 0, Math.PI * 2); ctx.fill(); }
     } },
@@ -1608,6 +1681,23 @@ var FF = globalThis.FF = globalThis.FF || {};
         X = sx(K, x0 + i * dx); Y = sy(K, h[i] - 0.35);
         ctx.beginPath(); ctx.arc(X, Y + 0.25 * K.s, 0.3 * K.s, 1.25 * Math.PI, 1.75 * Math.PI); ctx.stroke();
       }
+    } else if (stil === "weihnacht") {
+      // Lebkuchenboden: Zuckerguss-Tropfen hängen von der Schneekante, darunter Mandeln und Bonbons
+      ctx.fillStyle = "#ffffff";
+      for (i = i0 - (i0 % 3); i <= i1; i += 3) {
+        var gz = FF.rauschen(i * 0.9, 41) * 0.5 + 0.5, td = (0.25 + gz * 0.55) * K.s, tb = (0.17 + 0.1 * gz) * K.s;
+        X = sx(K, x0 + i * dx); Y = sy(K, h[i]);
+        ctx.beginPath(); ctx.moveTo(X - tb, Y - 0.02 * K.s); ctx.quadraticCurveTo(X - tb * 0.9, Y + td * 0.7, X, Y + td); ctx.quadraticCurveTo(X + tb * 0.9, Y + td * 0.7, X + tb, Y - 0.02 * K.s); ctx.fill();
+      }
+      var BON = ["#e8312f", "#2fa84f", "#ffd23f", "#ff8fc0", "#4fa8ff"];
+      for (var bn = i0 - (i0 % 11); bn <= i1; bn += 11) {
+        var hb = FF.rauschen(bn * 0.77, 23) * 0.5 + 0.5;
+        if (hb < 0.35) continue;
+        X = sx(K, x0 + bn * dx); Y = sy(K, h[bn] - 1.1 - hb * 2.2);
+        ctx.fillStyle = BON[Math.floor(hb * 131) % BON.length];
+        ctx.beginPath(); ctx.arc(X, Y, (0.17 + 0.1 * hb) * K.s, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.arc(X - 0.05 * K.s, Y - 0.05 * K.s, 0.05 * K.s, 0, Math.PI * 2); ctx.fill();
+      }
     } else if (stil === "chemie") {
       // Laborfliesen: Fugen parallel zur Oberfläche und senkrecht alle 1,5 m, ab und zu ein Klecks
       ctx.strokeStyle = "rgba(120,150,170,0.35)"; ctx.lineWidth = Math.max(1, 0.04 * K.s);
@@ -2273,6 +2363,30 @@ var FF = globalThis.FF = globalThis.FF || {};
       } else if (o.art === "stein") {
         var lagen = Math.round(o.h / 0.38);
         for (var k = 0; k < lagen; k++) baustein(ctx, X - b / 2 + (k % 2) * 0.1 * s, Y - k * 0.38 * s, b - 0.1 * s, 0.38 * s, STEIN_FARBEN[(o.v + k) % 7], s);
+      } else if (o.art === "lebkuchen") {                         // Lebkuchenhaus mit Zuckerguss, Dachschnee, Bonbons und Fenstern
+        var hw = h * 0.58, ys = Y - hw, FARBE = o.v % 2 ? "#c07d3e" : "#b36f34";
+        ctx.fillStyle = FARBE; ctx.fillRect(X - b / 2, ys, b, hw);
+        ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.fillRect(X - b / 2, Y - hw * 0.12, b, hw * 0.12);
+        ctx.fillStyle = "#d8dffb"; ctx.fillRect(X - b / 2 - 0.05 * s, ys - 0.02 * s, b + 0.1 * s, 0.1 * s);
+        ctx.fillStyle = "#7a4220";                                                       // Dach
+        ctx.beginPath(); ctx.moveTo(X - b * 0.58, ys + 0.04 * s); ctx.lineTo(X, Y - h); ctx.lineTo(X + b * 0.58, ys + 0.04 * s); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#ffffff";                                                       // Dachschnee mit Tropfkante
+        ctx.beginPath(); ctx.moveTo(X - b * 0.6, ys + 0.06 * s); ctx.lineTo(X, Y - h - 0.05 * s); ctx.lineTo(X + b * 0.6, ys + 0.06 * s);
+        var tz = 7; for (var tk = tz; tk >= 0; tk--) ctx.lineTo(X - b * 0.6 + (b * 1.2) * tk / tz, ys + 0.06 * s + (tk % 2 ? 0.16 : 0.03) * s);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(X + b * 0.22, Y - h - 0.05 * s, 0.22 * s, 0.4 * s);               // Schornstein mit Schneehaube
+        ctx.fillStyle = "#b24d3a"; ctx.fillRect(X + b * 0.24, Y - h + 0.1 * s, 0.18 * s, 0.4 * s);
+        ctx.fillStyle = "#fff1a8"; ctx.fillRect(X - b * 0.36, ys + hw * 0.22, b * 0.2, hw * 0.3);                  // Fenster mit Zuckerrahmen
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(1.5, 0.05 * s); ctx.strokeRect(X - b * 0.36, ys + hw * 0.22, b * 0.2, hw * 0.3);
+        ctx.fillStyle = "#fff1a8"; ctx.fillRect(X + b * 0.16, ys + hw * 0.22, b * 0.2, hw * 0.3); ctx.strokeRect(X + b * 0.16, ys + hw * 0.22, b * 0.2, hw * 0.3);
+        ctx.fillStyle = "#5a2f17"; ctx.fillRect(X - b * 0.09, ys + hw * 0.42, b * 0.18, hw * 0.58);                 // Tür mit Bonbon-Klinke
+        ctx.fillStyle = "#ff4d6d"; ctx.beginPath(); ctx.arc(X + b * 0.045, ys + hw * 0.75, 0.05 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(1.5, 0.06 * s); ctx.lineCap = "round";               // Zuckerguss-Zickzack am Rand
+        ctx.beginPath(); ctx.moveTo(X - b / 2 + 0.06 * s, Y - 0.07 * s);
+        for (tk = 1; tk <= 10; tk++) ctx.lineTo(X - b / 2 + 0.06 * s + (b - 0.12 * s) * tk / 10, Y - (tk % 2 ? 0.17 : 0.07) * s);
+        ctx.stroke();
+        var BN = ["#e8312f", "#2fa84f", "#ffd23f", "#4fa8ff"];                                                       // Bonbons am Dach
+        for (tk = 0; tk < 5; tk++) { ctx.fillStyle = BN[(o.v + tk) % 4]; ctx.beginPath(); ctx.arc(X + (tk - 2) * b * 0.15, ys - 0.06 * s - (2 - Math.abs(tk - 2)) * h * 0.08, 0.06 * s, 0, Math.PI * 2); ctx.fill(); }
       } else {                                                    // Säule aus Bausteinen
         var n = Math.round(o.h / 0.45);
         for (k = 0; k < n; k++) baustein(ctx, X - b / 2 + ((k % 2) - 0.5) * 0.08 * s, Y - k * 0.45 * s, b, 0.45 * s, STEIN_FARBEN[(o.v + k * 3) % 6], s);
@@ -2992,7 +3106,129 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
   }
 
+
+  /* ❄️ Glatteis (Weihnachtswelt): blanke, bläuliche Eisfläche auf dem Boden mit Glanzstreifen, Eiskristallen am Rand
+     und einem Warnschild davor. Die Fläche liegt in der Bodenoberfläche (ein dünnes Band darunter). */
+  function zeichneEis(ctx, K, gel, x0, x1, zeit) {
+    var E = gel.eisfelder, s = K.s;
+    for (var i = 0; i < E.length; i++) {
+      var e = E[i];
+      if (e.x1 < x0 - 4 || e.x0 > x1 + 4) continue;
+      var n = Math.max(4, Math.round((e.x1 - e.x0) / 0.6)), xs = [], k;
+      for (k = 0; k <= n; k++) xs.push(e.x0 + (e.x1 - e.x0) * k / n);
+      var gr = ctx.createLinearGradient(0, 0, 0, s * 0.5);
+      ctx.save();
+      ctx.beginPath();
+      for (k = 0; k <= n; k++) ctx.lineTo(sx(K, xs[k]), sy(K, gel.hoeheBei(xs[k])) - 0.03 * s);
+      for (k = n; k >= 0; k--) ctx.lineTo(sx(K, xs[k]), sy(K, gel.hoeheBei(xs[k])) + (0.45 + 0.12 * Math.sin(k * 1.7 + e.x0)) * s);
+      ctx.closePath();
+      var yTop = sy(K, gel.hoeheBei((e.x0 + e.x1) / 2));
+      gr = ctx.createLinearGradient(0, yTop - 0.2 * s, 0, yTop + 0.5 * s);
+      gr.addColorStop(0, "rgba(185,232,255,1)"); gr.addColorStop(1, "rgba(60,145,225,0.95)");
+      ctx.fillStyle = gr; ctx.fill();
+      ctx.clip();                                                                      // Glanzstreifen wandern über das Eis
+      ctx.strokeStyle = "rgba(255,255,255,0.65)"; ctx.lineWidth = Math.max(1.5, 0.12 * s);
+      var lauf = (zeit * 0.35) % 1, breite = e.x1 - e.x0;
+      for (k = 0; k < 4; k++) {
+        var gx = e.x0 + ((lauf + k / 4) % 1) * (breite + 2) - 1;
+        ctx.beginPath(); ctx.moveTo(sx(K, gx), yTop - 0.6 * s); ctx.lineTo(sx(K, gx) - 0.5 * s, yTop + 0.6 * s); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(1.5, 0.07 * s); ctx.lineCap = "round";   // glänzende Oberkante
+      ctx.beginPath();
+      for (k = 0; k <= n; k++) ctx.lineTo(sx(K, xs[k]), sy(K, gel.hoeheBei(xs[k])) - 0.03 * s);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.95)";                                                      // funkelnde Kristalle
+      for (k = 1; k < n; k += 2) {
+        var tw = Math.max(0, Math.sin(zeit * 3 + k * 1.9 + e.x0));
+        if (tw < 0.5) continue;
+        var kx = sx(K, xs[k]), ky = sy(K, gel.hoeheBei(xs[k])) - (0.18 + 0.22 * ((k * 7) % 3) / 2) * s, kr = (0.05 + 0.08 * tw) * s;
+        ctx.beginPath(); ctx.moveTo(kx - kr * 1.8, ky); ctx.lineTo(kx, ky - kr); ctx.lineTo(kx + kr * 1.8, ky); ctx.lineTo(kx, ky + kr); ctx.closePath(); ctx.fill();
+      }
+      // Warnschild vor dem Eis: Dreieck mit Schneeflocke
+      var Xs = sx(K, e.x0 - 3.2), Ys = sy(K, gel.hoeheBei(e.x0 - 3.2));
+      ctx.fillStyle = "#6b4a2b"; ctx.fillRect(Xs - 0.04 * s, Ys - 1.5 * s, 0.08 * s, 1.5 * s + 2);
+      ctx.fillStyle = "#e8312f"; ctx.beginPath(); ctx.moveTo(Xs, Ys - 2.2 * s); ctx.lineTo(Xs + 0.62 * s, Ys - 1.1 * s); ctx.lineTo(Xs - 0.62 * s, Ys - 1.1 * s); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(Xs, Ys - 2.0 * s); ctx.lineTo(Xs + 0.5 * s, Ys - 1.18 * s); ctx.lineTo(Xs - 0.5 * s, Ys - 1.18 * s); ctx.closePath(); ctx.fill();
+      ctx.font = Math.round(0.5 * s) + "px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#3b82c4";
+      ctx.fillText("❄", Xs, Ys - 1.42 * s);
+    }
+  }
+
+  /* 🎅 Weihnachtshimmel: ein paar funkelnde Sterne und – alle SANTA_ZYKLUS Sekunden – der Weihnachtsmann mit Schlitten
+     und drei Rentieren (das vorderste mit leuchtender roter Nase), das langsam über den Himmel zieht und eine
+     Funkenspur hinterlässt. Fahrtrichtung wechselt von Durchgang zu Durchgang. Alles nur aus der Zeit berechnet. */
+  var SANTA_ZYKLUS = 40, SANTA_DAUER = 16, SANTA_START = 8;
+  function santaPhase(zeit) {                       // { n: Durchgang, p: 0…1 während des Flugs, sonst −1 }
+    var t = zeit - SANTA_START, n = Math.floor(t / SANTA_ZYKLUS), r = t - n * SANTA_ZYKLUS;
+    return { n: n, p: t >= 0 && r < SANTA_DAUER ? r / SANTA_DAUER : -1 };
+  }
+  function rentier(ctx, u, zeit, ph, nase) {
+    ctx.save();
+    ctx.strokeStyle = "#5a3820"; ctx.lineCap = "round"; ctx.lineWidth = u * 0.13;                    // Beine im Galopp
+    [[-0.5, 0], [-0.25, 1.6], [0.35, 0.8], [0.6, 2.4]].forEach(function (b) {
+      var w = Math.sin(zeit * 7 + ph + b[1]);
+      ctx.beginPath(); ctx.moveTo(b[0] * u, u * 0.2); ctx.lineTo(b[0] * u + w * u * 0.45, u * 0.75 - Math.abs(w) * u * 0.12); ctx.stroke();
+    });
+    ctx.fillStyle = "#8d5b36"; ctx.beginPath(); ctx.ellipse(0, 0, u * 0.78, u * 0.4, 0, 0, Math.PI * 2); ctx.fill();   // Körper
+    ctx.fillStyle = "#f3dfc0"; ctx.beginPath(); ctx.ellipse(u * 0.1, u * 0.18, u * 0.45, u * 0.15, 0, 0, Math.PI * 2); ctx.fill();   // heller Bauch
+    ctx.strokeStyle = "#8d5b36"; ctx.lineWidth = u * 0.28; ctx.beginPath(); ctx.moveTo(u * 0.5, -u * 0.1); ctx.lineTo(u * 0.85, -u * 0.5); ctx.stroke();   // Hals
+    ctx.fillStyle = "#8d5b36"; ctx.beginPath(); ctx.ellipse(u * 1.02, -u * 0.58, u * 0.3, u * 0.22, 0.3, 0, Math.PI * 2); ctx.fill();   // Kopf
+    ctx.strokeStyle = "#4a3020"; ctx.lineWidth = u * 0.06;                                                   // Geweih
+    ctx.beginPath(); ctx.moveTo(u * 0.95, -u * 0.72); ctx.lineTo(u * 0.82, -u * 1.25); ctx.moveTo(u * 0.88, -u * 0.98); ctx.lineTo(u * 1.1, -u * 1.1);
+    ctx.moveTo(u * 0.85, -u * 1.12); ctx.lineTo(u * 0.65, -u * 1.2); ctx.stroke();
+    ctx.fillStyle = "#1a1020"; ctx.beginPath(); ctx.arc(u * 1.0, -u * 0.64, u * 0.04, 0, Math.PI * 2); ctx.fill();   // Auge
+    if (nase) {                                                                                              // Rudolf: leuchtende Nase
+      var gl = ctx.createRadialGradient(u * 1.3, -u * 0.55, 0, u * 1.3, -u * 0.55, u * 0.9);
+      gl.addColorStop(0, "rgba(255,70,70,0.75)"); gl.addColorStop(1, "rgba(255,70,70,0)");
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(u * 1.3, -u * 0.55, u * 0.9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ff3030"; ctx.beginPath(); ctx.arc(u * 1.3, -u * 0.55, u * 0.12, 0, Math.PI * 2); ctx.fill();
+    } else { ctx.fillStyle = "#2a1c14"; ctx.beginPath(); ctx.arc(u * 1.3, -u * 0.55, u * 0.07, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  }
+  function zeichneWeihnachtshimmel(ctx, K, welt, zeit) {
+    var B = K.b, H = K.h, i;
+    for (i = 0; i < 46; i++) {                                                  // Sterne (weit weg, kaum Parallaxe)
+      var sxp = (((i * 197 + 31) % 1000) / 1000 * (B + 40) - himmelVersatz(K, 0.015) % (B + 40) + (B + 40) * 2) % (B + 40) - 20;
+      var syp = (((i * 71 + 13) % 1000) / 1000) * H * 0.42, glanz = 0.35 + 0.55 * Math.abs(Math.sin(zeit * (0.8 + (i % 5) * 0.3) + i));
+      ctx.fillStyle = "rgba(255,255,240," + glanz + ")"; ctx.fillRect(sxp, syp, 1.5 + (i % 3) * 0.5, 1.5 + (i % 3) * 0.5);
+    }
+    var P = santaPhase(zeit);
+    if (P.p < 0) return;
+    var u = H * 0.056, dir = P.n % 2 ? -1 : 1, lenZug = u * 15;
+    var px = -lenZug + (B + 2 * lenZug) * P.p, X = dir > 0 ? px : B - px;
+    var Y = H * (0.14 + 0.05 * Math.sin(P.p * Math.PI * 3 + P.n)), neig = Math.cos(P.p * Math.PI * 3 + P.n) * 0.07;
+    // Funkenspur (liegt hinter dem Schlitten, also entgegen der Flugrichtung)
+    for (i = 0; i < 26; i++) {
+      var d = i * u * 0.75, tw = Math.max(0, Math.sin(zeit * 9 + i * 1.7)), fade = 1 - i / 26;
+      var fx = X - dir * (u * 4 + d), fy = Y + Math.sin(i * 0.8 + zeit * 3) * u * 0.5 + d * 0.05;
+      ctx.fillStyle = (i % 2 ? "rgba(255,235,140," : "rgba(255,255,255,") + (0.2 + 0.7 * tw) * fade + ")";
+      ctx.beginPath(); ctx.arc(fx, fy, u * (0.05 + 0.08 * tw) * (0.5 + fade), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.save(); ctx.translate(X, Y); ctx.scale(dir, 1); ctx.rotate(neig);
+    // Leinen
+    ctx.strokeStyle = "#e8d49a"; ctx.lineWidth = Math.max(1, u * 0.04);
+    ctx.beginPath(); ctx.moveTo(u * 1.5, u * 0.1); ctx.lineTo(u * 4.3, -u * 0.05); ctx.lineTo(u * 6.9, -u * 0.05); ctx.lineTo(u * 9.5, -u * 0.05); ctx.stroke();
+    [[9.4, true], [6.8, false], [4.2, false]].forEach(function (r, j) { ctx.save(); ctx.translate(u * r[0], -u * 0.1); rentier(ctx, u, zeit, j * 1.3, r[1]); ctx.restore(); });
+    // Schlitten
+    ctx.fillStyle = "#c92a2a"; ctx.beginPath(); ctx.moveTo(-u * 1.4, -u * 0.2); ctx.lineTo(u * 1.6, -u * 0.3); ctx.quadraticCurveTo(u * 1.5, u * 0.7, u * 0.7, u * 0.8);
+    ctx.lineTo(-u * 1.0, u * 0.8); ctx.quadraticCurveTo(-u * 1.6, u * 0.6, -u * 1.4, -u * 0.2); ctx.fill();
+    ctx.strokeStyle = "#f2c94c"; ctx.lineWidth = u * 0.1; ctx.lineCap = "round";                           // goldene Kufe und Verzierung
+    ctx.beginPath(); ctx.moveTo(-u * 1.3, u * 1.0); ctx.lineTo(u * 1.0, u * 1.0); ctx.quadraticCurveTo(u * 1.9, u * 1.0, u * 1.8, u * 0.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-u * 0.9, u * 0.8); ctx.lineTo(-u * 0.9, u * 1.0); ctx.moveTo(u * 0.7, u * 0.8); ctx.lineTo(u * 0.7, u * 1.0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-u * 1.2, u * 0.25); ctx.quadraticCurveTo(0, u * 0.45, u * 1.4, u * 0.15); ctx.stroke();
+    ctx.fillStyle = "#8d5b36"; ctx.beginPath(); ctx.ellipse(-u * 1.1, -u * 0.5, u * 0.65, u * 0.55, 0, 0, Math.PI * 2); ctx.fill();   // Geschenkesack
+    ctx.fillStyle = "#ff6fa8"; ctx.fillRect(-u * 1.5, -u * 1.15, u * 0.45, u * 0.4); ctx.fillStyle = "#4fc3ff"; ctx.fillRect(-u * 1.05, -u * 1.25, u * 0.4, u * 0.4);
+    ctx.fillStyle = "#e8b27a"; ctx.beginPath(); ctx.arc(u * 0.45, -u * 0.55, u * 0.3, 0, Math.PI * 2); ctx.fill();   // Santa: Kopf, Bart, Mütze
+    ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(u * 0.62, -u * 0.38, u * 0.28, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = "#d93030"; ctx.beginPath(); ctx.moveTo(u * 0.15, -u * 0.7); ctx.quadraticCurveTo(u * 0.25, -u * 1.5, u * 0.95, -u * 1.0 + Math.sin(zeit * 6) * u * 0.05); ctx.lineTo(u * 0.78, -u * 0.7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(u * 0.13, -u * 0.74, u * 0.7, u * 0.12); ctx.beginPath(); ctx.arc(u * 0.98, -u * 1.0 + Math.sin(zeit * 6) * u * 0.05, u * 0.11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#d93030"; ctx.fillRect(u * 0.1, -u * 0.3, u * 0.7, u * 0.5);                          // Mantel
+    ctx.restore();
+  }
+
   FF.GrafikWelt = {
+    zeichneEis: zeichneEis, zeichneWeihnachtshimmel: zeichneWeihnachtshimmel, santaPhase: santaPhase,
     zeichnePortale: zeichnePortale,
     zeichneSchneeDecke: zeichneSchneeDecke, zeichneZirkus: zeichneZirkus, zeichneZelt: zeichneZelt, zeichneReifen: zeichneReifen,
     zeichneScheunen: zeichneScheunen, zeichneRoehren: zeichneRoehren, ROEHRE_R: ROEHRE_R,

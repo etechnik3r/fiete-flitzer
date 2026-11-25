@@ -38,7 +38,7 @@ var THEMA = {
   mars: ["mond", "kettenwagen"], station: ["eauto", "renner"], glas: ["renner", "flitzer"], bausteine: ["traktor", "monster"],
   gebirge: ["traktor", "kettenwagen"], geister: ["sofa", "bus"], katapult: ["flitzer", "seifenkiste"], bauernhof: ["traktor", "moped"],
   obstgarten: ["scooter", "skateboard"], roehren: ["skateboard", "renner"], kopfueber: ["renner", "flitzer"], helden: ["flitzer", "renner"],
-  schleim: ["badewanne", "monster"], wolken: ["flugzeug", "teppich"], zirkus: ["moped", "scooter"], daten: ["eauto", "renner"],
+  schleim: ["badewanne", "monster"], wolken: ["flugzeug", "teppich"], zirkus: ["moped", "scooter"], daten: ["eauto", "renner"], weihnacht: ["schlitten", "raupe"],
   chemie: ["badewanne", "wasserstoff"]
 };
 

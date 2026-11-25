@@ -3429,6 +3429,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (welt.zelt) W.zeichneZelt(ctx, K, welt, z, gel, sz.himmelPerCss);          // Zirkus: im Zelt statt unter freiem Himmel
     else {
       W.zeichneHimmel(ctx, K, welt, z, sz.himmelPerCss);
+      if (welt.weihnachtsmann) W.zeichneWeihnachtshimmel(ctx, K, welt, z);       // Sterne, Weihnachtsmann mit Rentieren
       W.zeichneWolken(ctx, K, welt, z);
       sz.wetter.zeichne(ctx, K, sz.dt, z, true);
       W.zeichneBerge(ctx, K, welt, z, gel);
@@ -3448,6 +3449,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (gel.trampoline.length) W.zeichneTrampoline(ctx, K, gel, f.zeit);
     if (gel.baender.length) W.zeichneBaender(ctx, K, gel, z);
     if (gel.schwebezonen.length) W.zeichneSchwebezonen(ctx, K, gel, z);
+    if (gel.eisfelder.length) W.zeichneEis(ctx, K, gel, b[2], b[3], z);
     if (gel.objekte.length) W.zeichneObjekte(ctx, K, gel, b[2], b[3]);
     if (gel.spuk.length) W.zeichneSpuk(ctx, K, gel, f.fz.chassis.x, z);
     if (gel.katapulte.length) W.zeichneKatapulte(ctx, K, gel, f.zeit);

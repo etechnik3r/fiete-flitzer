@@ -1048,6 +1048,20 @@ var FF = globalThis.FF = globalThis.FF || {};
         rauschen(0, 0.5, 0.25, 900);
         for (var ei = 0; ei < 7; ei++) ton(500 + ((ei * 173) % 600), ei * 0.05, 0.04, "square", 0.05);
         break;
+      case "knusper":                  // Lebkuchenhaus kracht: Knuspern, Brechen, ein paar Klicks
+        rauschen(0, 0.5, 0.2, 2600); rauschen(0.05, 0.35, 0.12, 5200);
+        for (var ki = 0; ki < 6; ki++) ton(380 + ((ki * 137) % 500), ki * 0.045, 0.04, "square", 0.045);
+        ton(120, 0, 0.18, "sine", 0.2, 60);
+        break;
+      case "eis":                      // Glatteis: hohes, glasiges Schlittern
+        rauschen(0, 0.4, 0.14, 6500); ton(2300, 0, 0.35, "sine", 0.04, 3200); ton(3100, 0.05, 0.25, "triangle", 0.025, 2400);
+        break;
+      case "schellen":                 // Schlittenglöckchen: viele helle, kurze Töne im schnellen Wechsel
+        for (var sg = 0; sg < 14; sg++) {
+          var fg = [2093, 2637, 3136, 2349, 3520][sg % 5] * (1 + ((sg * 37) % 7) * 0.004);
+          ton(fg, sg * 0.075, 0.22, "sine", 0.045 * (1 - sg / 18)); ton(fg * 2.41, sg * 0.075, 0.1, "sine", 0.02 * (1 - sg / 18));
+        }
+        break;
       case "matsch":                   // durch Matsch: dumpfes Schmatzen und Blubbern
         rauschen(0, 0.3 + 0.2 * (wert || 0.5), 0.14 + 0.18 * (wert || 0.5), 420);
         ton(140, 0.02, 0.16, "sine", 0.16, 70); ton(220, 0.12, 0.1, "sine", 0.08, 120); ton(180, 0.22, 0.08, "sine", 0.06, 110);

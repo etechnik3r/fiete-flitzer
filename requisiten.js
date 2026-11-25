@@ -982,6 +982,90 @@
       g.fillStyle = f2; g.beginPath(); g.arc(0, -u * 0.95, u * 0.1, 0, Math.PI * 2); g.fill();
       g.fillStyle = "rgba(255,255,255,0.6)"; g.beginPath(); g.arc(-u * 0.03, -u * 0.98, u * 0.035, 0, Math.PI * 2); g.fill();
     } },
+    // Weihnachtswelt (Version 56): Zuckerstange, geschmückter Tannenbaum, Geschenk, Lebkuchenmännchen
+    zuckerstange: { breite: 0.55, sinken: 0, male: function (g, u, R) {
+      var b = u * 0.1, h = u * 0.7, r = u * 0.2, schief = (R() - 0.5) * 0.12;
+      g.rotate(schief);
+      var farbe = R() < 0.75 ? "#e8312f" : "#2fa84f";
+      g.lineCap = "butt";
+      var pfad = function () { g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -h); g.arc(-r, -h, r, 0, -Math.PI, true); g.lineTo(-2 * r, -h + u * 0.07); };
+      pfad(); g.strokeStyle = "#ffffff"; g.lineWidth = b * 2; g.lineCap = "round"; g.stroke();            // weißer Grund
+      // farbige Streifen schräg über den Stab, am Bogen quer zur Biegung
+      g.strokeStyle = farbe; g.lineWidth = b * 0.95; g.lineCap = "butt";
+      for (var i = 0; i < 9; i++) {                                                // Streifen als kurze Querstriche
+        var y = -u * 0.03 - i * u * 0.075;
+        if (y < -h) break;
+        g.beginPath(); g.moveTo(-b, y + u * 0.045); g.lineTo(b, y - u * 0.045); g.stroke();
+      }
+      for (var k = 0; k < 6; k++) {                                                // Bogen: Streifen radial
+        var w = (k + 0.5) * Math.PI / 6, px = -r + r * Math.cos(w), py = -h - r * Math.sin(w);
+        g.beginPath(); g.moveTo(px - Math.cos(w) * b, py + Math.sin(w) * b); g.lineTo(px + Math.cos(w) * b, py - Math.sin(w) * b); g.stroke();
+      }
+      g.strokeStyle = "rgba(255,255,255,0.7)"; g.lineWidth = b * 0.35; g.lineCap = "round";
+      g.beginPath(); g.moveTo(b * 0.35, -u * 0.05); g.lineTo(b * 0.35, -h + u * 0.05); g.stroke();       // Glanz
+      g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02);
+      g.beginPath(); g.moveTo(-b, 0); g.lineTo(-b, -h); g.stroke(); g.beginPath(); g.moveTo(b, 0); g.lineTo(b, -h); g.stroke();
+    } },
+    weihnachtsbaum: { breite: 0.8, sinken: 0, male: function (g, u, R) {
+      var gr = "#1f7a3f", b = u * 0.4, n = 4, farben = ["#ff4d5a", "#ffd23f", "#4fc3ff", "#ff9ad5", "#ffffff"];
+      g.fillStyle = "#6b4226"; g.fillRect(-u * 0.05, -u * 0.12, u * 0.1, u * 0.12);                         // Stamm
+      for (var i = 0; i < n; i++) {                                                                       // Etagen von unten nach oben
+        var y0 = -u * 0.1 - i * u * 0.2, bb = b * (1 - i * 0.2), hh = u * 0.34;
+        var gv = g.createLinearGradient(-bb, 0, bb, 0); gv.addColorStop(0, hell(gr, 0.1)); gv.addColorStop(1, dunkel(gr, 0.3));
+        g.fillStyle = gv; g.beginPath(); g.moveTo(-bb, y0); g.lineTo(0, y0 - hh); g.lineTo(bb, y0); g.closePath(); g.fill();
+        g.fillStyle = "rgba(255,255,255,0.9)";                                                            // Schnee auf den Ästen
+        g.beginPath(); g.moveTo(-bb * 0.45, y0 - hh * 0.55); g.lineTo(0, y0 - hh); g.lineTo(bb * 0.45, y0 - hh * 0.55);
+        g.quadraticCurveTo(bb * 0.2, y0 - hh * 0.46, 0, y0 - hh * 0.55); g.quadraticCurveTo(-bb * 0.2, y0 - hh * 0.46, -bb * 0.45, y0 - hh * 0.55); g.fill();
+      }
+      for (i = 0; i < 9; i++) {                                                                           // Kugeln
+        var t = R(), ky = -u * (0.18 + 0.62 * t), kb = b * (1 - t * 0.9) * 0.8, kx = (R() * 2 - 1) * kb;
+        g.fillStyle = farben[Math.floor(R() * 5)]; g.beginPath(); g.arc(kx, ky, u * 0.032, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "rgba(255,255,255,0.7)"; g.beginPath(); g.arc(kx - u * 0.01, ky - u * 0.01, u * 0.01, 0, Math.PI * 2); g.fill();
+      }
+      g.strokeStyle = "#ffe27a"; g.lineWidth = Math.max(1, u * 0.012);                                    // Lichterkette im Zickzack
+      g.beginPath(); g.moveTo(-b * 0.7, -u * 0.2); g.quadraticCurveTo(0, -u * 0.12, b * 0.5, -u * 0.34); g.quadraticCurveTo(-b * 0.1, -u * 0.3, -b * 0.4, -u * 0.5); g.stroke();
+      var st = u * 0.98;                                                                                  // Stern
+      g.fillStyle = "#ffd23f"; g.beginPath();
+      for (i = 0; i < 10; i++) { var rr = i % 2 ? u * 0.035 : u * 0.085, w = -Math.PI / 2 + i * Math.PI / 5; g.lineTo(Math.cos(w) * rr, -st + u * 0.07 + Math.sin(w) * rr); }
+      g.closePath(); g.fill(); g.strokeStyle = "#e09b00"; g.lineWidth = Math.max(1, u * 0.012); g.stroke();
+    } },
+    geschenk: { breite: 0.9, sinken: 0, male: function (g, u, R) {
+      var f = ["#e8453c", "#3f8cff", "#2fb36a", "#ffb12c", "#a05cff"][Math.floor(R() * 5)], band = R() < 0.5 ? "#ffd23f" : "#ffffff";
+      var kasten = function (x, y, b, h) {
+        var gv = g.createLinearGradient(x, 0, x + b, 0); gv.addColorStop(0, hell(f, 0.2)); gv.addColorStop(1, dunkel(f, 0.2));
+        g.fillStyle = gv; g.fillRect(x, y, b, h);
+        g.fillStyle = band; g.fillRect(x + b * 0.43, y, b * 0.14, h); g.fillRect(x, y + h * 0.4, b, h * 0.14);
+        g.strokeStyle = KONTUR; g.lineWidth = Math.max(1, u * 0.02); g.strokeRect(x, y, b, h);
+        g.fillStyle = band; g.strokeStyle = dunkel(band, 0.3);                                            // Schleife
+        [-1, 1].forEach(function (d) { g.beginPath(); g.ellipse(x + b / 2 + d * b * 0.13, y - h * 0.08, b * 0.14, h * 0.1, d * -0.4, 0, Math.PI * 2); g.fill(); g.stroke(); });
+        g.beginPath(); g.arc(x + b / 2, y - h * 0.02, h * 0.05, 0, Math.PI * 2); g.fill();
+      };
+      kasten(-u * 0.32, -u * 0.4, u * 0.5, u * 0.4);
+      f = ["#ffd23f", "#ff7ab8", "#4fc3ff", "#8fe08a"][Math.floor(R() * 4)]; band = band === "#ffffff" ? "#e8453c" : "#ffffff";
+      kasten(u * 0.14, -u * 0.26, u * 0.32, u * 0.26);
+    } },
+    lebkuchenmann: { breite: 0.6, sinken: 0, male: function (g, u, R) {
+      var f = "#b9763a", zg = "#ffffff", winkt = R() < 0.6;
+      g.fillStyle = f; g.strokeStyle = dunkel(f, 0.35); g.lineWidth = Math.max(1, u * 0.025); g.lineJoin = "round";
+      g.beginPath(); g.arc(0, -u * 0.8, u * 0.14, 0, Math.PI * 2); g.fill(); g.stroke();                  // Kopf
+      g.beginPath();                                                                                      // Körper mit Armen und Beinen
+      g.moveTo(-u * 0.1, -u * 0.67); g.lineTo(-u * 0.34, -u * 0.62); g.quadraticCurveTo(-u * 0.4, -u * 0.55, -u * 0.34, -u * 0.5); g.lineTo(-u * 0.12, -u * 0.5);
+      g.lineTo(-u * 0.2, -u * 0.04); g.quadraticCurveTo(-u * 0.18, 0, -u * 0.1, 0); g.lineTo(0, -u * 0.22); g.lineTo(u * 0.1, 0);
+      g.quadraticCurveTo(u * 0.18, 0, u * 0.2, -u * 0.04); g.lineTo(u * 0.12, -u * 0.5);
+      if (winkt) { g.lineTo(u * 0.3, -u * 0.66); g.quadraticCurveTo(u * 0.4, -u * 0.74, u * 0.36, -u * 0.8); g.lineTo(u * 0.27, -u * 0.74); g.lineTo(u * 0.1, -u * 0.67); }
+      else { g.lineTo(u * 0.34, -u * 0.5); g.quadraticCurveTo(u * 0.4, -u * 0.55, u * 0.34, -u * 0.62); g.lineTo(u * 0.1, -u * 0.67); }
+      g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = zg; g.lineWidth = u * 0.03; g.lineCap = "round";                                  // Zuckerguss-Rand an Armen und Beinen
+      g.beginPath(); g.moveTo(-u * 0.34, -u * 0.52); g.lineTo(-u * 0.15, -u * 0.52); g.moveTo(u * 0.34, -u * 0.52); g.lineTo(u * 0.15, -u * 0.52); g.stroke();
+      g.beginPath(); g.moveTo(-u * 0.16, -u * 0.1); g.lineTo(-u * 0.09, -u * 0.1); g.moveTo(u * 0.16, -u * 0.1); g.lineTo(u * 0.09, -u * 0.1); g.stroke();
+      g.fillStyle = "#3a2a22";                                                                            // Gesicht
+      g.beginPath(); g.arc(-u * 0.05, -u * 0.82, u * 0.015, 0, Math.PI * 2); g.arc(u * 0.05, -u * 0.82, u * 0.015, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#3a2a22"; g.lineWidth = u * 0.015; g.beginPath(); g.arc(0, -u * 0.8, u * 0.06, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke();
+      [["#e8453c", -0.62], ["#2fb36a", -0.55], ["#ffd23f", -0.48]].forEach(function (k) {                // Knöpfe
+        g.fillStyle = k[0]; g.beginPath(); g.arc(0, u * k[1], u * 0.03, 0, Math.PI * 2); g.fill();
+      });
+      g.fillStyle = "#e8453c"; g.beginPath(); g.moveTo(-u * 0.1, -u * 0.67); g.lineTo(0, -u * 0.64); g.lineTo(u * 0.1, -u * 0.67); g.lineTo(0, -u * 0.7); g.closePath(); g.fill();   // Fliege
+    } },
     // Datenwelt (Version 41): Mikrochip, freundlicher Roboter, Server-Schrank, Bildschirm
     // Chemiewelt (Version 49): Erlenmeyerkolben mit bunter, blubbernder Flüssigkeit, Reagenzglas-Ständer
     kolben: { breite: 0.9, sinken: 0, male: function (g, u, R) {

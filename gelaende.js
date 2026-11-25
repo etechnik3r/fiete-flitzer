@@ -340,6 +340,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var C = FF.CONFIG;
     this.welt = welt;
     this.endlos = !!optionen.endlos;
+    this.stufe = this.endlos ? 1 : optionen.stufe;
     this.ziel = this.endlos ? Infinity : optionen.laenge;
 
     var st = C.levelStufen[this.endlos ? 1 : optionen.stufe];
@@ -407,6 +408,8 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.schwebezonen = [];        // Schwebe-Säulen {x0, x1, f} – dort wirkt nur f · Schwerkraft (physik.js)
     this.objekte = [];             // Dinge auf der Strecke, die man umfährt (welt.objekte): Glas, Bausteine, Säulen
     this.objektX = 35;             // bis hierhin sind Objekte verteilt
+    this.eisfelder = [];           // Glatteis (welt.eis) {x0, x1}: dort haben die Reifen nur noch einen Bruchteil des Grips (physik.js)
+    this.eisX = 40;                // bis hierhin ist Glatteis verteilt
     this.zellen = [];              // Telefonzellen (welt.held.zelle) {x, benutzt}: Heldenumhang
     this.katzen = [];              // Kätzchen zum Retten (welt.held.katze) {x, y, weg}
     this.zelleX = 45; this.katzeX = 30;
@@ -1651,6 +1654,15 @@ var FF = globalThis.FF = globalThis.FF || {};
     return 0;
   };
 
+  /* Glatteis: Reibungsfaktor der Reifen bei x (1 = normal, kleiner = rutschig; 2 m weicher Rand) */
+  Gelaende.prototype.eisBei = function (x) {
+    var E = this.eisfelder, f = this.welt.eis ? this.welt.eis.faktor : 1;
+    for (var i = 0; i < E.length; i++) {
+      if (x >= E[i].x0 - 1 && x <= E[i].x1 + 1) return 1 - (1 - f) * Math.min(1, (x - E[i].x0 + 1) / 2, (E[i].x1 + 1 - x) / 2);
+    }
+    return 1;
+  };
+
   /* Schwerkraft-Faktor bei x (Schwebe-Säulen: f, mit 3 m weichem Rand; sonst 1) */
   Gelaende.prototype.schwereBei = function (x) {
     var Z = this.schwebezonen;
@@ -1935,12 +1947,35 @@ var FF = globalThis.FF = globalThis.FF || {};
       var saeule = OB.saeule && ho2 < OB.saeule;
       this.objektX += OB.abstand * (0.55 + 0.9 * ho) * (saeule ? 1.6 : 1);
       var flach = Math.abs(this.steigungBei(xo - 1)) < 0.3 && Math.abs(this.steigungBei(xo + 1)) < 0.3;
-      if (!flach || this.gesperrt(xo) || this.wasserBei(xo) > -Infinity || this.nahAnTank(xo, 5)) continue;
+      if (!flach || this.gesperrt(xo) || this.wasserBei(xo) > -Infinity || this.nahAnTank(xo, 5) || this.eisBei(xo) < 1) continue;
       var art = saeule ? "saeule" : OB.art, ob = { x: xo, y: this.hoeheBei(xo), art: art, kaputt: false, v: Math.floor(ho2 * 1000) };
       if (art === "glas") { ob.form = ["block", "kugel", "turm"][Math.floor(ho * 3)]; ob.b = 0.9 + 0.6 * ho2; ob.h = ob.form === "turm" ? 1.8 + ho : 0.9 + 0.6 * ho; }
       else if (art === "stein") { ob.b = 0.7 + 0.5 * ho2; ob.h = 0.38 * (1 + Math.floor(ho * 3)); }
+      else if (art === "lebkuchen") { ob.b = 2.5 + 0.7 * ho2; ob.h = 1.7 + 0.4 * ho; ob.v = Math.floor(ho2 * 1000); }   // Lebkuchenhaus
       else { ob.b = 1.3; ob.h = 3.6 + 1.6 * ho; }                    // Säule
       this.objekte.push(ob);
+    }
+
+    // Glatteis (welt.eis): eigener Zufall aus der Position, nur auf ebenem Boden ohne Pfütze, Tank oder Objekt,
+    // nie vor dem ersten Hindernis (vonLevel: Level 1 ist noch ohne Eis)
+    var EI = welt.eis;
+    while (EI && this.eisX < bis - 45 && this.eisX < ende - 40) {
+      var xe = this.eisX, he = hash01(Math.round(xe * 7), this.seed + 91), he2 = hash01(Math.round(xe * 7), this.seed + 92);
+      this.eisX += EI.abstand * (0.6 + 0.8 * he) * [2.2, 1.2, 0.75, 0.5][this.stufe];   // Level 1: seltener, Level 4: öfter (später ist der Boden selten flach genug)
+      if (this.stufe < (EI.vonLevel || 0)) continue;
+      var le = EI.laenge[0] + (EI.laenge[1] - EI.laenge[0]) * he2, ok = false;
+      // vom Wunschplatz aus bis 70 m weiter nach einem ebenen Stück suchen (Steigung ≤ 18 %, nie bei Pfütze, Tank, Objekt)
+      for (var vs = 0; vs <= 70 && !ok; vs += 2) {
+        var xa = xe + vs; ok = true;
+        for (var xq = xa - 3; xq <= xa + le + 3 && ok; xq += 1.5) {
+          if (Math.abs(this.steigungBei(xq)) > 0.18 || this.gesperrt(xq) || this.wasserBei(xq) > -Infinity || this.nahAnTank(xq, 3)) ok = false;
+        }
+        for (var oe = 0; oe < this.objekte.length && ok; oe++) if (this.objekte[oe].x > xa - 4 && this.objekte[oe].x < xa + le + 4) ok = false;
+        if (ok) { xe = xa; }
+      }
+      if (!ok) continue;
+      this.eisfelder.push({ x0: xe, x1: xe + le, x: xe });
+      this.eisX = Math.max(this.eisX, xe + le + 14);
     }
 
     // Röhren: Münzen entlang der Fahrlinie (man fährt sicher hindurch), am höchsten Punkt ein Stern
@@ -2125,7 +2160,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (i > 0) liste.splice(0, i);
     }
     filter(this.muenzen); filter(this.tanks); filter(this.raketen); filter(this.deko); filter(this.schilder);
-    filter(this.objekte); filter(this.spuk); filter(this.obst); filter(this.tore); filter(this.zellen); filter(this.katzen);
+    filter(this.objekte); filter(this.eisfelder); filter(this.spuk); filter(this.obst); filter(this.tore); filter(this.zellen); filter(this.katzen);
     while (this.scheunen.length && this.scheunen[0].x1 < xHinten) this.scheunen.shift();
     while (this.wolken.length > 3 && this.wolken[1].x1 < xHinten - 60) this.wolken.shift();
     while (this.dyn.length && this.dyn[0].b < xHinten) this.dyn.shift();

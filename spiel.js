@@ -437,13 +437,14 @@
           var px = R.k.x - ko.nx * R.r, py = R.k.y - ko.ny * R.r;
           var richtung = R.k.w < 0 ? -1 : 1;
           partikel.neu({ art: "staub", x: px, y: py + 0.1, vx: richtung * (1 + Math.random() * 2) + ch.vx * 0.2, vy: 0.8 + Math.random(),
-                         t: 0, dauer: 0.6 + Math.random() * 0.4, r0: 0.12, r1: 0.45, farbe: welt.farben.punkte, alpha: 0.7, reibung: 2 });
+                         t: 0, dauer: 0.6 + Math.random() * 0.4, r0: 0.12, r1: 0.45, farbe: fahrt.gelaende.eisfelder.length && fahrt.gelaende.eisBei(px) < 0.6 ? "#eaf7ff" : welt.farben.punkte, alpha: 0.7, reibung: 2 });
         }
       });
     }
     if (fahrt.werte.kufen) schneeKanone(dt);
     if (fahrt.werte.wanne) wannenWasser(dt);
     if (fahrt.werte.zauber) teppichGlitzer(dt);
+    if (fahrt.welt.weihnachtsmann) santaGlocken();
     if (fahrt.getriebe.dampf) dampfWolken(dt);
     if (fahrt.werte.wasserstoff) wasserAuspuff(dt);
     if (fahrt.welt.schleimtropfen || fahrt.fz.flecken) schleimTropfen(dt);
@@ -554,6 +555,17 @@
       }
     }
   }
+  /* Weihnachtswelt: Wenn der Weihnachtsmann am Himmel erscheint, klingeln die Schlittenglöckchen (Flug siehe grafik-welt.js santaPhase) */
+  var santaAn = false;
+  function santaGlocken() {
+    var P = FF.GrafikWelt.santaPhase(zeit), an = P.p >= 0 && P.p < 0.9;
+    if (an && !santaAn) {
+      FF.Klang.spiele("schellen");
+      if (ersteMale("tipp-santa", 2)) { tipp("🎅 Schau nach oben: Der Weihnachtsmann fliegt vorbei!", 4000, "Ho ho ho! Schau nach oben, der Weihnachtsmann!"); spruchBis = zeit + 3; }
+    }
+    santaAn = an;
+  }
+
   /* Fliegender Teppich: Zauberstaub rieselt unter dem Teppich heraus (mehr beim Gasgeben) und
      ein Lufthauch kräuselt den Boden darunter */
   var glitzerTakt = 0, GLITZER = ["#fff3a8", "#ffd23f", "#ffffff", "#c9a6ff", "#9fe0ff"];
@@ -1020,6 +1032,15 @@
               vx: vo * (0.3 + Math.random() * 0.6) + (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, t: 0, dauer: 0.9 + Math.random() * 0.4,
               r0: 0.12 + Math.random() * 0.14, schwer: 1, reibung: 0.3, w: Math.random() * 6, dreh: (Math.random() - 0.5) * 16 });
             if (ersteMale("tipp-glas", 1)) schwebeText(e.x, e.y + 2, "Klirr! 💎", "#cdf4ff", true);
+          } else if (e.art === "lebkuchen") {              // Weihnachtswelt: Lebkuchenhaus kracht auseinander
+            var LK = ["#b36f34", "#c07d3e", "#7a4220", "#ffffff", "#e8312f", "#2fa84f", "#ff8fc0", "#ffd23f", "#ffffff"];
+            FF.Klang.spiele("knusper");
+            for (var lk = 0; lk < 22; lk++) partikel.neu({ art: "klotz", x: e.x + (Math.random() - 0.5) * e.b, y: e.y + Math.random() * e.h,
+              vx: vo * (0.3 + Math.random() * 0.5) + (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 6, t: 0, dauer: 1.3,
+              r0: 0.2 + Math.random() * 0.4, farbe: LK[(e.v + lk * 5) % LK.length], schwer: 1, reibung: 0.25, w: Math.random() * 6, dreh: (Math.random() - 0.5) * 14 });
+            schwebeText(e.x, e.y + e.h + 0.6, "Knusper! 🍪", "#ffe0a8", true);
+            funkeln(e.x, e.y + e.h * 0.6, "#ffffff", 8);
+            if (ersteMale("tipp-lebkuchen", 2)) { tipp("🍪 Lebkuchenhäuser bremsen dich ordentlich ab – spring drüber oder nimm Schwung!", 4500, "Knusper! Ein Lebkuchenhaus!"); spruchBis = zeit + 3; }
           } else {
             var saeule = e.art === "saeule", nk = saeule ? 16 : Math.max(2, Math.round(e.h / 0.38) + 1);
             FF.Klang.spiele(saeule ? "einsturz" : "klack");
@@ -1031,6 +1052,11 @@
               if (ersteMale("tipp-saeule", 2)) { tipp("🧱 Baustein-Säulen bremsen dich fast ganz ab – spring drüber oder nimm Anlauf!", 4500, "Krawumm!"); spruchBis = zeit + 3; }
             }
           }
+          break;
+        case "eis":                      // Weihnachtswelt: auf Glatteis gefahren
+          FF.Klang.spiele("eis");
+          schwebeText(e.x, e.y + 2, "Glatteis! 🧊", "#cdeeff", true);
+          if (ersteMale("tipp-eis", 3)) { tipp("🧊 Glatteis! Hier greifen die Reifen kaum – nicht bremsen und kein wildes Gas, einfach durchrutschen!", 4500, "Glatteis! Nicht bremsen!"); spruchBis = zeit + 3; }
           break;
         case "katapultBereit":           // im Katapult eingefangen
           FF.Klang.spiele("spannen");
@@ -2656,7 +2682,9 @@
     if (g.band && !w.schleimbach && !w.datenstrom) m.push("⏩ Förderbänder");
     if (g.schwebe) m.push("✨ Schwebe-Säulen");
     if (g.katapult) m.push("🎯 Katapulte");
-    if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : "🧱 Bausteine fliegen");
+    if (w.objekte) m.push(w.objekte.art === "glas" ? "💎 Glas zerspringt" : w.objekte.art === "lebkuchen" ? "🍪 Lebkuchenhäuser" : "🧱 Bausteine fliegen");
+    if (w.eis) m.push("🧊 Glatteis");
+    if (w.weihnachtsmann) m.push("🎅 Weihnachtsmann");
     if (w.objekte && w.objekte.saeule) m.push("🏛️ Säulen");
     if (w.wasser && w.wasser.schlamm) { m.splice(m.indexOf("💧 Pfützen"), 1, w.wasser.schleim ? "🫠 klebriger Schleim" : "🐷 Matsch"); }
     if (g.scheune) m.push("🛖 Scheunen mit Stroh");

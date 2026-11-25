@@ -70,7 +70,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
 
 ## 🧩 Spielidee
 
-- **36 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
+- **37 Welten × 4 Level** mit wachsender Länge, dazu je Welt ein
   **Endlos-Modus ♾️** („Wie weit kommst du?“, alle 500 m ein Bonus):
   🌼 Blumenwiese · 🏜️ Sandwüste · 🚧 Baustelle · ❄️ Schneeberge ·
   🌙 Mondlandschaft · 🍭 Bonbon-Land · 🌴 Dschungel · 🦕 Urzeit · 🌋 Vulkaninsel ·
@@ -78,7 +78,7 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
   🌧️ Pfützenland · 🌻 Riesengarten · 🍂 Herbststurm · 🐠 Meeresgrund · 🦉 Nachtwald ·
   🧸 Spielzeugfabrik · 🪐 Roter Planet · 🛸 Raumstation · 🔷 Glaswelt ·
   🧱 Klemmbaustein-Land · ⛰️ Gebirge · 👻 Geisterwelt · 🏰 Katapultwelt ·
-  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt · ☁️ Wolkeninseln · 🎪 Zirkus · 💾 Datenwelt · ⚗️ Chemiewelt.
+  🐷 Bauernhof · 🍎 Obstplantage · 🌀 Röhrenwelt · 🙃 Kopfüberwelt · 🦸 Superheldenwelt · 🟢 Schleimwelt · ☁️ Wolkeninseln · 🎪 Zirkus · 💾 Datenwelt · ⚗️ Chemiewelt · 🎄 Weihnachtswelt.
   Level 4 ist ein freiwilliges **🔥 Profi-Level**: Die nächste Welt öffnet
   sich schon nach Level 3, und dort führt der große Knopf in die neue Welt.
   Das Profi-Level gibt es als zweiten Knopf.
@@ -282,6 +282,24 @@ oben links ohne Kasten und lassen sich in den Einstellungen ausschalten.
       Firewall. Andere Fahrweise: mit dem passenden Tempo zielen (`vRing`, ≈ 13 m/s).
     - Robotertest (Flitzer, Upgrades „auto“): Profi 4/4 (Tank 67–78 %), Loslassen 4/4,
       Kind 2/4, Vollgas 2/4 (vorher 1/4 und 1/4).
+- **🎄 Weihnachtswelt** (Version 56, Welt 37, Seeds 3701–3704): Lebkuchenboden mit
+  weißem Zuckerguss-Schnee (Tropfen an der Kante, Bonbons im Boden), Dämmerhimmel mit Sternen, Mond
+  mit Weihnachtsmütze (`SONNEN.weihnacht`), Schneefall, Kulisse aus Tannen mit blinkenden
+  Lichterketten und Zuckerstangen, Lollis und Lebkuchenhäusern (`weihnachtstannen`, `zuckerwelt`).
+  Deko: **Zuckerstangen**, **geschmückte Tannenbäume**, **Geschenke**, **Lebkuchenmännchen**, Schneemänner.
+  - **🧊 Glatteis** (`welt.eis`, `gelaende.eisfelder`, `gelaende.eisBei`): Eisflecken (12–22 m) auf ebenem
+    Boden (Steigung ≤ 18 %, nie bei Pfütze, Tank oder Objekt; gesucht wird bis 70 m weiter nach einem passenden Stück), vor jedem ein Warnschild. Auf dem Eis haben die
+    Reifen nur noch 22 % ihres Grips (`physik.js`, pro Rad; 2 m weicher Rand). Gas dreht durch, Bremsen
+    greift kaum. Gleiter (Teppich, Luftkissen) und Kufen (Schlitten) merken es nicht, Raupenketten
+    behalten mindestens 75 %. Der Wunschabstand sinkt mit dem Level (×2,2 / 1,2 / 0,75 / 0,5), weil der Boden später seltener flach genug ist: je Level etwa 3–5 Flecken.
+    Das ist das erste Gelände mit **örtlich begrenztem Grip**: Alle anderen Welten haben einen festen
+    Weltgrip. Das Ereignis `eis` (`fahrt.pruefeEis`) löst Tipp, Klang und Schwebetext aus.
+  - **🍪 Lebkuchenhäuser** (`welt.objekte.art "lebkuchen"`): wie Glas und Bausteine zum Hindurchfahren,
+    aber mit 45 % Tempoverlust (`OBJEKT_BREMSE`). Sie zerfallen in 22 Brocken (Lebkuchen, Zuckerguss, Bonbons).
+  - **🎅 Weihnachtsmann** (`welt.weihnachtsmann`): alle 40 s (erster Flug nach 8 s) zieht er 16 s lang mit
+    Schlitten und drei Rentieren über den Himmel, Rudolf vorn mit leuchtender Nase, dazu eine Funkenspur;
+    die Richtung wechselt. Der Flug wird nur aus der Zeit berechnet (`santaPhase`), die Glöckchen
+    klingeln beim Auftauchen (`klang.js` `schellen`).
 - **⚗️ Chemiewelt** (Version 50): ein riesiges Chemielabor mit Fliesenboden (bunte
   Kleckse), Laborregalen und Glaskolben als Kulisse (`labor`, `kolben`), Deko:
   **Erlenmeyerkolben** (`@kolben`, bunte Flüssigkeit, Korken oder Dampf) und

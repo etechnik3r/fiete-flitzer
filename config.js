@@ -1220,8 +1220,11 @@ FF.CONFIG = {
          nacht    Dunkelheit (dunkel 0..1): Scheinwerfer, Laternen, Glühwürmchen
          gelaende.trampolin  Hüpfpilze: wer drauffährt, fliegt hoch
          gelaende.band       Förderbänder (Spielzeugfabrik)
-         objekte  Dinge auf der Strecke, die man umfährt: { art: "glas"|"stein", abstand [m],
+         objekte  Dinge auf der Strecke, die man umfährt: { art: "glas"|"stein"|"lebkuchen", abstand [m],
                   saeule: Anteil Baustein-Säulen }; glas: Boden halb durchsichtig
+         eis      Glatteis (Weihnachtswelt, Version 56): Flecken auf ebenem Boden, auf denen die Reifen
+                  nur noch faktor · Grip haben: { abstand [m], laenge: [min, max] [m], faktor, vonLevel }
+         weihnachtsmann  true: Der Weihnachtsmann fliegt mit Rentieren im Hintergrund vorbei
          tipp     [Text, vorgelesener Satz] beim Start eines Levels
        --------------------------------------------------------------------- */
     {
@@ -1808,6 +1811,37 @@ FF.CONFIG = {
                   abstandElemente: 9 },      // Version 55: kürzere Kolben, dazwischen mehr Laborboden
       tankAbstand: 160, muenzAbstand: 22,
       level: [ { laenge: 820, seed: 3601 }, { laenge: 1080, seed: 3602 }, { laenge: 1340, seed: 3603 }, { laenge: 1600, seed: 3604 } ]
+    },
+    {
+      /* Weihnachtswelt (Version 56): ein Weihnachtsmärchen auf Lebkuchenboden mit Zuckerguss-Schnee.
+         Besonders:
+           • Glatteis (welt.eis, gelaende.eisfelder): blanke Eisflecken auf ebenem Boden. Dort haben die
+             Reifen nur noch einen Bruchteil des Grips: Gas dreht durch, Bremsen greift kaum, am Hang
+             rutscht man. Wer vorher Schwung holt und auf dem Eis nichts mehr anfasst, kommt am besten
+             hinüber. Gleiten (Teppich, Luftkissen) und Kufen (Schlitten) merken nichts.
+           • Lebkuchenhäuser (welt.objekte.art "lebkuchen"): Man fährt hindurch, sie bremsen ordentlich
+             (45 % Tempo weg) und zerfallen in Lebkuchen, Zuckerguss und Gummibärchen.
+           • Der Weihnachtsmann fliegt mit dem Rentierschlitten im Hintergrund vorbei (alle ~40 s).
+           • Zuckerstangen, geschmückte Tannen, Geschenke, Lebkuchenmännchen, Schneefall. */
+      id: "weihnacht", name: "Weihnachtswelt", emoji: "🎄", hinweis: "Zuckerstangen, Glatteis und Lebkuchenhäuser – und oben fliegt der Weihnachtsmann vorbei!",
+      schwerkraft: 9.81, grip: 0.92, rollwiderstand: 0.022, abprall: 0.05, luftdichte: 1.25,
+      farben: {
+        himmel: ["#1c2a68", "#9aa6ea"], berge: ["#7480c4", "#5a66aa"],
+        boden: ["#9a6038", "#68401f"], oberflaeche: "#ffffff", kante: "#ffe6ef", punkte: "#d9a066",
+        fenster: "#ffd66a", wolken: "rgba(235,238,255,0.7)"
+      },
+      sonne: "sonne", sonnenArt: "weihnacht", wetter: "schnee", wolkenStil: "wenige",
+      weihnachtsmann: true,
+      objekte: { art: "lebkuchen", abstand: 52 },
+      eis: { abstand: 44, laenge: [12, 22], faktor: 0.22, vonLevel: 0 },
+      tipp: ["🎄 Vorsicht, Glatteis! Auf den blauen Eisflecken rutschst du – nimm vorher Schwung und fass nichts an. Durch Lebkuchenhäuser kannst du hindurchkrachen!", "Frohe Weihnachten! Achtung, Glatteis!"],
+      deko: ["@weihnachtsbaum:3.0", "@zuckerstange:1.7", "@geschenk:0.7", "@weihnachtsbaum:2.2", "@lebkuchenmann:1.3", "@zuckerstange:2.2", "⛄:1.4", "@geschenk:0.9", "@weihnachtsbaum:3.6", "@zuckerstange:1.3", "@lebkuchenmann:1.1", "@zuckerstange:2.6"],
+      beiwerk: ["@geschenk:0.4", "@zuckerstange:0.8"], kulisse: ["weihnachtstannen", "zuckerwelt", "weihnachtstannen"],
+      gelaende: { amp: 7.0, welle: 42, holperAmp: 0.14, holperWelle: 7, trend: 0.02,
+                  maxAuf: 26, maxAb: 36, schanzen: 0.7, buckel: 0.8, steil: 0.6, taeler: 0.8, berg: 0.6, sprung: 0.6, wellen: 0.7, klippe: 0.3, rampe: 0.5, kuppe: 0.4, stufe: 0.5, wildBasis: 0.25,
+                  abstandElemente: 28 },
+      tankAbstand: 230, muenzAbstand: 22,
+      level: [ { laenge: 800, seed: 3701 }, { laenge: 1060, seed: 3702 }, { laenge: 1320, seed: 3703 }, { laenge: 1580, seed: 3704 } ]
     }
   ],
 
@@ -1830,6 +1864,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "56", titel: "Die Weihnachtswelt", punkte: [
+      "🎄 Neue Welt Weihnachtswelt: Lebkuchenboden mit Zuckerguss, Zuckerstangen, geschmückte Tannen, Geschenke und Lebkuchenmännchen, es schneit",
+      "🧊 Glatteis: auf den blauen Eisflecken greifen die Reifen kaum – nicht bremsen, nicht wild Gas geben, einfach durchrutschen",
+      "🍪 Lebkuchenhäuser: du fährst mitten hindurch, sie bremsen dich ordentlich und fallen in Lebkuchen, Zuckerguss und Bonbons auseinander",
+      "🎅 Ab und zu fliegt der Weihnachtsmann mit Schlitten und Rentieren (Rudolf vorne mit roter Nase) über den Himmel, dazu klingeln die Glöckchen" ] },
     { version: "55", titel: "Neue Chemiegläser", punkte: [
       "⚗️ Chemiewelt: Statt langer Becken stehen jetzt echte Laborgläser auf dem Boden – runde Kolben, dreieckige Erlenmeyerkolben und Flaschen",
       "🧪 Ein dünnes Glasrohr zieht dich direkt hinein in die Chemie – drüberspringen geht nicht! Drinnen schwebst du wie unter Wasser",
