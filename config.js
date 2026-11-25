@@ -788,6 +788,102 @@ FF.CONFIG = {
       klang: { art: "verbrenner", zylinder: 6, takte: 4, leerlauf: 700, max: 2300, gaenge: 3, abkling: 6, ungleich: 0.2,
                rohr: 0.012, rueck: 0.5, koerper: 85, hell: 0.7, diesel: 0.85, unruhe: 9, traegheit: 6, lautstaerke: 1.05, abrollen: 1.5 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
+    },
+    {
+      /* Pogo-Stab (Version 57): Das Kind steht auf den Fußrasten eines Pogo-Stabs und hüpft
+         die ganze Zeit. Es gibt nur EINEN Berührpunkt (die Spitze, ein winziges Rad am Ende
+         einer langen, weichen Feder: federung.weg ist der Federweg des Stabs). Die Feder federt
+         wirklich (Eigenfrequenz, kaum Dämpfung); damit es nie zum Stehen kommt, gibt das Kind
+         beim Abheben jedes Mal einen Schubs (fahrt.js pogoSchritt, werte.pogo):
+           • hop    Absprunggeschwindigkeit [m/s] ohne Pedal / mit Gas / mit Bremse (Hüpfhöhe v²/2g);
+                    steile Hänge voraus (steigungBei) geben bis zu hangZuschlag mehr
+           • schub  so viel [m/s] kommt mit Gas pro Hüpfer in Fahrtrichtung dazu (bis motor.vmax)
+           • brems  so viel [m/s] nimmt die Bremse pro Hüpfer weg; ohne Pedal rollt das Kind
+                    auf der Stelle aus (reibung)
+           • neigung Schräglage [rad] nach vorn (Gas) bzw. hinten (Bremse)
+         Der Stab richtet sich in der Luft selbst zum Gelände aus: keine Saltos (und kein
+         „Hoppla“ vom Kippen). Langsam (vmax 6 m/s = 22 km/h), dafür hüpft er durch Pfützen,
+         Matsch und Schleim, ohne langsamer zu werden (matschFest 0,05). Kind-Kraft: Puste. */
+      id: "pogo", name: "Pogo-Stab", emoji: "🤸", preis: 3500, preisBasis: 140,
+      text: "Hüpf, hüpf, hüpf! Der Pogo-Stab ist nicht besonders schnell, aber er hüpft durch Pfützen und Matsch, ohne langsamer zu werden. Dein Kind hat Puste statt Benzin.",
+      masse: 55, groesse: { laenge: 0.7, hoehe: 1.5 },
+      raeder: [ { x: 0, y: -0.45, r: 0.12, masse: 2, antrieb: true } ],
+      federung: { ruhe: 0.75, weg: 0.55, frequenz: 1.35, daempfung: 0.07 },
+      motor: { drehmoment: 6, vmax: 6 }, bremse: 40, grip: 1.1,
+      tankSekunden: 65, luftsteuerung: 3.0, cwA: 0.5, abtrieb: 0, matschFest: 0.05,
+      leerlauf: 0, freilauf: true, puste: { erholung: 0.5 },
+      pogo: { hop: [3.4, 4.4, 3.0], schub: 1.9, brems: 2.2, reibung: 0.8, neigung: 0.28, hangZuschlag: 3.5 },
+      upgradeNamen: {
+        motor:    { name: "Sprungfeder", icon: "🌀", text: "Stärkere Feder – höher und schneller hüpfen" },
+        reifen:   { name: "Gummifuß",    icon: "🦶", text: "Der Gummifuß hält besser am Hang" },
+        federung: { name: "Federstab",   icon: "🪀", text: "Weichere Feder – sanfter landen" }
+      },
+      huelle: [[-0.24, -0.5], [0.24, -0.5], [0.24, -0.38], [-0.24, -0.38]],
+      dach: [],
+      kopf: { x: 0.04, y: 0.78, r: 0.28 },
+      farbe: "gelb", form: "pogo",
+      klang: { art: "elektro", surren: 1400, avasTon: 392, max: 5000, lautstaerke: 0.9, abrollen: 0.5 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
+    },
+    {
+      /* Einrad (Version 57): Das Kind sitzt oben auf dem Sattel und tritt in die Pedale. EIN
+         großes Rad (r = 0,5 m) und sonst nichts: Das Kind balanciert selbst (balance, wie beim
+         Scooter, aber nicht so gut) und wackelt dabei sichtbar. Nicht besonders schnell
+         (30 km/h) und nicht besonders kräftig (steile Hänge sind Arbeit), dafür steigt das große
+         Rad über Stufen und Kanten und das Einrad ist in der Luft sehr wendig. Kind-Kraft: Puste. */
+      id: "einrad", name: "Einrad", emoji: "🤹", preis: 2500, preisBasis: 130,
+      text: "Ein Einrad! Du sitzt oben und trittst selbst in die Pedale. Nicht besonders schnell und nicht besonders kräftig, aber das große Rad steigt über Kanten. Dein Kind hat Puste statt Benzin.",
+      masse: 62, groesse: { laenge: 0.8, hoehe: 1.6 },
+      raeder: [ { x: 0, y: -0.78, r: 0.5, masse: 5, antrieb: true } ],
+      federung: { ruhe: 0.1, weg: 0.09, frequenz: 3.0, daempfung: 0.6 },
+      motor: { drehmoment: 125, vmax: 8.5, eck: 0.8 }, bremse: 170, grip: 1.05,
+      tankSekunden: 36, luftsteuerung: 6.0, cwA: 0.45, abtrieb: 0,
+      balance: 0.9, leerlauf: 0, freilauf: true, puste: { erholung: 0.45 },
+      upgradeNamen: {
+        motor:    { name: "Waden",    icon: "🦵", text: "Kräftigere Waden – mehr Kraft in den Pedalen" },
+        reifen:   { name: "Profil",   icon: "🛞", text: "Mehr Profil – hält besser am Hang" },
+        federung: { name: "Sattelstütze", icon: "🪑", text: "Gefederter Sattel – sanfter landen" }
+      },
+      huelle: [[-0.22, -0.34], [0.22, -0.34], [0.22, -0.18], [-0.22, -0.18]],
+      dach: [],
+      kopf: { x: 0.0, y: 0.7, r: 0.28 },
+      farbe: "rot", form: "einrad",
+      klang: { art: "elektro", surren: 1800, avasTon: 523, max: 8000, lautstaerke: 0.9, abrollen: 0.8 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse"]
+    },
+    {
+      /* Lauf-Mech (Version 57): ein Laufroboter mit zwei langen Beinen, das Kind sitzt in der
+         Kanzel. Gelaufen wird wirklich: Die Beine werden nur gezeichnet (grafik.js, Form „mech“,
+         Zwei-Gelenk-Beine mit Gelenk-Berechnung), und zwar nach dem zurückgelegten Weg: Ein
+         Fuß setzt auf, bleibt dort am Boden stehen, während der Roboter darüber hinwegschreitet
+         (Schrittlänge lauf.schritt), schwingt dann vor und setzt wieder auf – auch am Hang und
+         über Kanten (Fuß-Höhe = Gelände). Die Physik trägt der Mech auf zwei gefederten
+         Stützpunkten (unsichtbare „Füße“ mit langem Federweg = die Beine): Er steigt über
+         Stufen und Brocken, ist schwer und steht fest. Jeder Schritt stampft (Ereignis „schritt“).
+         Dafür gemächlich (vmax 5,5 m/s = 20 km/h) und träge in der Luft. Akku statt Benzin. */
+      id: "mech", name: "Lauf-Mech", emoji: "🤖", preis: 15000, preisBasis: 330,
+      text: "Ein echter Laufroboter! Er stapft auf zwei Beinen über Stufen und Brocken und steht felsenfest. Dafür ist er gemütlich unterwegs und in der Luft schwerfällig.",
+      masse: 520, groesse: { laenge: 2.0, hoehe: 1.8 },
+      raeder: [
+        { x: -0.55, y: -0.35, r: 0.3, masse: 25, antrieb: true },
+        { x:  0.55, y: -0.35, r: 0.3, masse: 25, antrieb: true }
+      ],
+      federung: { ruhe: 0.95, weg: 0.55, frequenz: 1.7, daempfung: 0.65 },
+      motor: { drehmoment: 1400, vmax: 5.5, eck: 0.7 }, bremse: 2400, grip: 1.15,
+      tankSekunden: 60, luftsteuerung: 2.4, cwA: 0.9, abtrieb: 0, matschFest: 0.4,
+      akku: true, leerlauf: 0.05, balance: 1.5,       // balance: die Beine halten den Körper ruhig (sonst Wheelie beim Anfahren)
+      lauf: { schritt: 3.6, huefte: [0, -0.5], oberschenkel: 0.85, unterschenkel: 0.85, hub: 0.4 },
+      upgradeNamen: {
+        motor:    { name: "Servos",   icon: "🔩", text: "Stärkere Servos – schneller und kräftiger laufen" },
+        reifen:   { name: "Fußplatten", icon: "🦶", text: "Griffigere Fußplatten" },
+        federung: { name: "Kniegelenke", icon: "🦿", text: "Weichere Kniegelenke – sanfter landen" }
+      },
+      huelle: [[-0.75, -0.5], [0.75, -0.5], [0.85, -0.1], [0.7, 0.4], [-0.6, 0.45], [-0.85, 0.0]],
+      dach: [[-0.3, 1.05], [0.3, 1.05]],
+      kopf: { x: 0.12, y: 0.62, r: 0.28 },
+      farbe: "blau", form: "mech",
+      klang: { art: "elektro", surren: 900, avasTon: 294, max: 12000, lautstaerke: 0.95, abrollen: 0.3 },
+      upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
     }
   ],
 
@@ -1864,6 +1960,11 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "57", titel: "Pogo-Stab, Einrad und Lauf-Mech", punkte: [
+      "🤸 Neues Fahrzeug Pogo-Stab für 3.500 Münzen: Dein Kind hüpft die ganze Zeit. Nicht besonders schnell, aber durch Pfützen, Matsch und Schleim hüpft es, ohne langsamer zu werden",
+      "🤹 Neues Fahrzeug Einrad für 2.500 Münzen: Dein Kind sitzt oben und tritt selbst in die Pedale, balanciert und wackelt. Nicht besonders schnell, aber das große Rad steigt über Kanten",
+      "🤖 Neues Fahrzeug Lauf-Mech für 15.000 Münzen: ein Laufroboter, der wirklich auf zwei Beinen läuft, mit Knie, Fußplatten und stampfenden Schritten. Er steigt über Stufen und steht felsenfest, ist aber gemütlich unterwegs",
+      "💨 Die drei haben Puste (Pogo, Einrad) bzw. einen Akku (Mech) statt Benzin" ] },
     { version: "56", titel: "Die Weihnachtswelt", punkte: [
       "🎄 Neue Welt Weihnachtswelt: Lebkuchenboden mit Zuckerguss, Zuckerstangen, geschmückte Tannen, Geschenke und Lebkuchenmännchen, es schneit",
       "🧊 Glatteis: auf den blauen Eisflecken greifen die Reifen kaum – nicht bremsen, nicht wild Gas geben, einfach durchrutschen",

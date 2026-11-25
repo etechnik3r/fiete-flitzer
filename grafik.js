@@ -1180,6 +1180,157 @@ var FF = globalThis.FF = globalThis.FF || {};
       return { hinten: function () {}, beine: beine, vorne: vorne, pose: pose, fahrerKoerper: [-0.17, 0.18, 0.34, 0.42], arme: arm };
     },
 
+    /* Pogo-Stab: Das Kind steht auf den Fußrasten und hält den Lenker. Unter den Rasten die lange Feder
+       (sie wird sichtbar zusammengedrückt, die Länge folgt der Aufhängung R.lokalY), ganz unten ein
+       Gummifuß. Beim Hüpfen zeigt der Stab leicht nach vorn (die Physik lehnt ihn nach Gas). */
+    pogo: function (ctx, a, z, fz) {
+      var o = outfitVon(a), c = basisFarbe(a), R = fz && fz.raeder && fz.raeder[0], y1 = R && R.lokalY !== undefined ? R.lokalY : -1.2, x1 = R && R.lokalX !== undefined ? R.lokalX : 0, rr = R ? R.r : 0.12;
+      var yFeder0 = -0.52, yFeder1 = y1 + rr * 0.6 + 0.15;            // Feder: von unter den Rasten bis zum Stab-Ende
+      var hinten = function () {
+        var anz = o.seiten || o.anzug;
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        [[-0.02, -0.19, 0.2], [0.04, 0.12, 0.2]].forEach(function (b) {  // Beine: gebeugt, Schuhe auf den Rasten
+          ctx.strokeStyle = b[2] === 0.2 && b[0] < 0 ? dunkel(anz, 0.25) : anz; ctx.lineWidth = 0.13;
+          ctx.beginPath(); ctx.moveTo(b[0], -0.04); ctx.lineTo(b[1] + 0.06, -0.24); ctx.lineTo(b[1], -0.44); ctx.stroke();
+          ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, b[1] - 0.1, -0.5, 0.26, 0.08, 0.03); ctx.fill();
+        });
+      };
+      var vorne = function () {
+        // Fußrasten (Querstange)
+        ctx.fillStyle = "#4a5470"; rundRechteck(ctx, -0.28, -0.53, 0.56, 0.05, 0.02); ctx.fill();
+        // lange Feder zwischen Hülse und Fußende (nach dem Zusammendrücken kürzer, die Windungen rücken enger)
+        var L = Math.max(0.05, yFeder0 - yFeder1), n = 9, bw = 0.12;
+        ctx.strokeStyle = "#8d96ad"; ctx.lineWidth = 0.055; ctx.lineJoin = "round"; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(x1 * 0 + 0, yFeder0);
+        for (var i = 1; i < n; i++) ctx.lineTo((i % 2 ? bw : -bw), yFeder0 - L * i / n);
+        ctx.lineTo(x1, yFeder1); ctx.stroke();
+        ctx.strokeStyle = "#c92a2a"; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(0, yFeder0);
+        for (i = 1; i < n; i++) ctx.lineTo((i % 2 ? bw : -bw) * 0.9, yFeder0 - L * i / n);
+        ctx.lineTo(x1, yFeder1); ctx.stroke();
+        // Hülse oben (lackiert) und Rohr zum Lenker
+        var rohr = function () { rundRechteck(ctx, -0.06, -0.56, 0.12, 0.74, 0.04); };
+        karosserie(ctx, a, z, rohr, -0.06, 0.06, -0.56, 0.18);
+        // Fuß-Stab unten und Gummifuß
+        ctx.fillStyle = "#c9cfdb"; ctx.fillRect(x1 - 0.025, y1 + rr * 0.3, 0.05, Math.max(0.05, yFeder1 - (y1 + rr * 0.3) + 0.02));
+        ctx.fillStyle = "#2b2f3a"; ctx.beginPath(); ctx.arc(x1, y1, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.beginPath(); ctx.arc(x1 - rr * 0.3, y1 + rr * 0.3, rr * 0.25, 0, Math.PI * 2); ctx.fill();
+        // Lenker (T-Stange) mit Griffen
+        ctx.strokeStyle = farbeVon(c); ctx.lineWidth = 0.06;
+        ctx.beginPath(); ctx.moveTo(-0.02, 0.18); ctx.lineTo(0.3, 0.2); ctx.stroke();
+        ctx.strokeStyle = "#2b2f3a"; ctx.lineWidth = 0.09;
+        ctx.beginPath(); ctx.moveTo(0.22, 0.2); ctx.lineTo(0.34, 0.2); ctx.stroke();
+      };
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, -0.02, 0.34, 0.5], arme: [0.04, 0.4, 0.27, 0.21], ohneFedern: true, ohneRaeder: true };
+    },
+
+    /* Einrad: ein großes Rad mit Gabel und Sattel, Kurbeln und Pedale drehen mit dem Rad. Das Kind sitzt
+       oben, die Beine treten wirklich (Zwei-Gelenk-Beine mit Knie nach vorn zu den Pedalen) und die Arme
+       rudern leicht zum Balancieren – je schiefer das Einrad, desto wilder. */
+    einrad: function (ctx, a, z, fz) {
+      var o = outfitVon(a), c = basisFarbe(a), R = fz && fz.raeder && fz.raeder[0];
+      var hx = R && R.lokalX !== undefined ? R.lokalX : 0, hy = R && R.lokalY !== undefined ? R.lokalY : -0.88;
+      var th = R ? R.k.a - R.chassisWinkel : 0, rc = 0.2;
+      var hueft = { x: -0.04, y: -0.2 }, sattel = { x: -0.04, y: -0.3 };
+      var pedal = function (k) { var w = th + k * Math.PI; return { x: hx + Math.cos(w) * rc, y: hy + Math.sin(w) * rc }; };
+      var bein = function (P, farbe) {
+        var L1 = 0.5, L2 = 0.5, dx = P.x - hueft.x, dy = P.y - hueft.y, d = Math.min(Math.hypot(dx, dy), L1 + L2 - 0.004);
+        var ang = Math.atan2(dy, dx), cosA = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), A = Math.acos(Math.max(-1, Math.min(1, cosA)));
+        var kx = hueft.x + Math.cos(ang + A) * L1, ky = hueft.y + Math.sin(ang + A) * L1;       // Knie vorn (Winkel + A: nach vorn bei Fuß unten)
+        if (kx < hueft.x) { kx = hueft.x + Math.cos(ang - A) * L1; ky = hueft.y + Math.sin(ang - A) * L1; }
+        ctx.strokeStyle = farbe; ctx.lineWidth = 0.14; ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(hueft.x, hueft.y); ctx.lineTo(kx, ky); ctx.lineTo(P.x, P.y); ctx.stroke();
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, P.x - 0.09, P.y - 0.07, 0.24, 0.08, 0.03); ctx.fill();
+      };
+      var hinten = function () {
+        // Rad mit Reifen (zeichneRad), Gabel und Kurbel der fernen Seite
+        if (R) zeichneRad(ctx, R, hx, hy, "normal");
+        var P2 = pedal(1);
+        ctx.strokeStyle = "#8d96ad"; ctx.lineWidth = 0.06; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(P2.x, P2.y); ctx.stroke();
+        bein(P2, dunkel(o.seiten || o.anzug, 0.28));
+      };
+      var beine = function () {
+        // Gabel und Sattelstütze (lackiert), Kurbel und Bein der nahen Seite
+        ctx.strokeStyle = farbeVon(c); ctx.lineWidth = 0.1; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(sattel.x, sattel.y - 0.06); ctx.stroke();
+        var P1 = pedal(0);
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.065;
+        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(P1.x, P1.y); ctx.stroke();
+        ctx.fillStyle = "#4a5470"; ctx.beginPath(); ctx.arc(hx, hy, 0.08, 0, Math.PI * 2); ctx.fill();
+        bein(P1, o.seiten || o.anzug);
+      };
+      var vorne = function () {
+        ctx.fillStyle = "#2b2f3a"; rundRechteck(ctx, -0.28, sattel.y - 0.04, 0.4, 0.1, 0.05); ctx.fill();               // Sattel
+        ctx.fillStyle = "rgba(255,255,255,0.25)"; ctx.fillRect(-0.24, sattel.y + 0.03, 0.3, 0.015);
+      };
+      // Arme: rudern mit dem Gleichgewicht (Auslenkung nach Neigung des Einrads und Zeit)
+      var sch = Math.min(1, Math.abs(fz ? fz.chassis.a : 0) * 3 + 0.25), w = Math.sin(z * 6.5) * 0.14 * sch;
+      return { hinten: hinten, beine: beine, vorne: vorne, fahrerKoerper: [-0.17, -0.12, 0.34, 0.5],
+               arme: [0.0, 0.34, 0.3 + w, 0.18 + 0.14 * Math.cos(z * 6.5) * sch], ohneFedern: true, ohneRaeder: true };
+    },
+
+    /* Lauf-Mech: runde Kanzel mit Glaskuppel auf einem Rumpf, darunter zwei lange Beine mit Hüfte, Knie
+       und Fußplatte. Die Fußpunkte kommen aus der Physik (fz.mech.fuesse, Weltkoordinaten, siehe fahrt.js
+       mechSchritt) – die Beine werden daraus berechnet, mit Knie nach vorn. */
+    mech: function (ctx, a, z, fz) {
+      var o = outfitVon(a), c = basisFarbe(a);
+      var L1 = 0.85, L2 = 0.85, H = [{ x: 0.14, y: -0.42 }, { x: -0.14, y: -0.42 }];
+      var F = [];
+      for (var i = 0; i < 2; i++) {
+        if (fz && fz.mech) F.push(fz.mech.fuesse[i]);
+        else { var R = fz && fz.raeder && fz.raeder[i]; F.push(R && R.lokalY !== undefined ? { lx: (i ? -0.4 : 0.4), ly: R.lokalY - R.r + 0.1, lw: 0 } : { lx: 0, ly: -1.5, lw: 0 }); }
+      }
+      var bein = function (i, hell) {
+        var Hh = H[i], f = F[i], fx = f.lx, fy = f.ly + 0.0, dx = fx - Hh.x, dy = fy - Hh.y, d = Math.hypot(dx, dy);
+        var dm = Math.min(Math.max(d, Math.abs(L1 - L2) + 0.02), L1 + L2 - 0.004), ang = Math.atan2(dy, dx);
+        var A = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + dm * dm - L2 * L2) / (2 * L1 * dm))));
+        var kx = Hh.x + Math.cos(ang + A) * L1, ky = Hh.y + Math.sin(ang + A) * L1;
+        if (kx < Hh.x - 0.02) { kx = Hh.x + Math.cos(ang - A) * L1; ky = Hh.y + Math.sin(ang - A) * L1; }          // Knie immer nach vorn
+        if (d > L1 + L2 - 0.004) { fx = Hh.x + dx / d * (L1 + L2 - 0.004); fy = Hh.y + dy / d * (L1 + L2 - 0.004); }
+        var met = hell ? "#c3cbdc" : "#8a93a8", dk = hell ? "#5d6782" : "#434b62";
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.strokeStyle = dk; ctx.lineWidth = 0.23; ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo(kx, ky); ctx.stroke();      // Oberschenkel (außen dunkel, innen hell)
+        ctx.strokeStyle = met; ctx.lineWidth = 0.16; ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo(kx, ky); ctx.stroke();
+        ctx.strokeStyle = dk; ctx.lineWidth = 0.18; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy + 0.1); ctx.stroke();       // Unterschenkel
+        ctx.strokeStyle = met; ctx.lineWidth = 0.11; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy + 0.1); ctx.stroke();
+        ctx.fillStyle = farbeVon(c); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025;                                                   // Kniescheibe und Hüftgelenk
+        ctx.beginPath(); ctx.arc(kx, ky, 0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = dk; ctx.beginPath(); ctx.arc(kx, ky, 0.045, 0, Math.PI * 2); ctx.fill();
+        // Fußplatte: lang, am Boden, folgt dem Gelände (f.lw)
+        ctx.save(); ctx.translate(fx, fy); ctx.rotate(f.lw || 0);
+        ctx.fillStyle = dk; ctx.beginPath(); ctx.moveTo(-0.3, 0.07); ctx.lineTo(0.42, 0.07); ctx.lineTo(0.5, -0.02); ctx.lineTo(0.42, -0.1); ctx.lineTo(-0.3, -0.1); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = met; ctx.fillRect(-0.24, 0.0, 0.62, 0.05);
+        ctx.fillStyle = "#2b2f3a"; ctx.fillRect(-0.3, -0.12, 0.8, 0.04);
+        ctx.restore();
+      };
+      var hinten = function () { bein(1, false); bein(0, true); };
+      var kuppel = function () { ctx.beginPath(); ctx.ellipse(0.12, 0.44, 0.52, 0.62, 0, 0, Math.PI * 2); };
+      var rumpf = function () {
+        ctx.beginPath(); ctx.moveTo(-0.72, -0.5); ctx.lineTo(0.72, -0.5); ctx.quadraticCurveTo(0.88, -0.5, 0.88, -0.32); ctx.lineTo(0.88, 0.02);
+        ctx.quadraticCurveTo(0.88, 0.22, 0.68, 0.24); ctx.lineTo(-0.62, 0.24); ctx.quadraticCurveTo(-0.9, 0.24, -0.9, 0.0); ctx.lineTo(-0.9, -0.32); ctx.quadraticCurveTo(-0.9, -0.5, -0.72, -0.5); ctx.closePath();
+      };
+      var vorne = function () {
+        karosserie(ctx, a, z, rumpf, -0.9, 0.88, -0.5, 0.24);
+        // Platten, Nieten, Lüftungsschlitze und Scheinwerfer
+        ctx.strokeStyle = "rgba(20,30,60,0.35)"; ctx.lineWidth = 0.02;
+        ctx.beginPath(); ctx.moveTo(-0.3, -0.5); ctx.lineTo(-0.3, 0.24); ctx.moveTo(0.4, -0.5); ctx.lineTo(0.4, 0.24); ctx.stroke();
+        ctx.fillStyle = "rgba(20,30,60,0.5)"; for (var k = 0; k < 4; k++) ctx.fillRect(-0.78, -0.4 + k * 0.1, 0.34, 0.04);
+        ctx.fillStyle = "#c9cfdb"; [[-0.82, 0.16], [-0.82, -0.44], [0.8, 0.16], [0.8, -0.44]].forEach(function (n) { ctx.beginPath(); ctx.arc(n[0], n[1], 0.03, 0, Math.PI * 2); ctx.fill(); });
+        scheinwerfer(ctx, 0.88, -0.1, 0.07);
+        ruecklicht(ctx, -0.92, -0.18, 0.04, 0.12);
+        // Kuppel-Rahmen (der Fahrer wird davor gezeichnet und nur durch die Scheibe gezeigt)
+        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.05; kuppel(); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.ellipse(0.12, 0.44, 0.46, 0.56, 0, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
+        // Antenne mit blinkender Lampe
+        ctx.strokeStyle = "#8a93a8"; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(-0.28, 0.9); ctx.lineTo(-0.4, 1.28); ctx.stroke();
+        ctx.fillStyle = Math.sin(z * 5) > 0 ? "#ff5a5a" : "#7a2222"; ctx.beginPath(); ctx.arc(-0.4, 1.3, 0.05, 0, Math.PI * 2); ctx.fill();
+      };
+      // Scheibe = Innenraum der Kuppel (Polygon für den Zuschnitt)
+      var scheibe = []; for (i = 0; i < 24; i++) { var w = i / 24 * Math.PI * 2; scheibe.push([0.12 + Math.cos(w) * 0.46, 0.44 + Math.sin(w) * 0.56]); }
+      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, 0.0, 0.34, 0.42], arme: [0.05, 0.36, 0.32, 0.2],
+               fahrerNachVorne: true, scheibe: scheibe, ohneFedern: true, ohneRaeder: true, beifahrer: { x: -0.5, y: 0.45 } };
+    },
+
     skateboard: function (ctx, a, z, fz) {
       // Das Kind steht auf dem Brett: Beine (Anzugfarbe) und Schuhe, Arme zum Balancieren
       var o = outfitVon(a);
@@ -2690,6 +2841,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       R.lokalX = ca * dx + sa * dy;
       R.lokalY = -sa * dx + ca * dy;
       R.chassisWinkel = C.a;
+    });
+    if (fz.mech) fz.mech.fuesse.forEach(function (Fu) {   // Lauf-Mech: Füße in Karosserie-Koordinaten (Winkel zum Gelände mit)
+      var dx = Fu.x - C.x, dy = Fu.y - C.y;
+      Fu.lx = ca * dx + sa * dy; Fu.ly = -sa * dx + ca * dy; Fu.lw = (Fu.w || 0) - C.a;
     });
     (fz.glieder || []).forEach(function (G) {          // Glieder (Kettenwagen) in Karosserie-Koordinaten
       var dx = G.k.x - C.x, dy = G.k.y - C.y;

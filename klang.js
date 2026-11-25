@@ -1048,6 +1048,13 @@ var FF = globalThis.FF = globalThis.FF || {};
         rauschen(0, 0.5, 0.25, 900);
         for (var ei = 0; ei < 7; ei++) ton(500 + ((ei * 173) % 600), ei * 0.05, 0.04, "square", 0.05);
         break;
+      case "pogoHop":                  // Pogo-Stab springt ab: Feder entspannt sich mit kurzem „Boing“
+        ton(180, 0, 0.16, "sine", 0.12 * (0.5 + (wert || 0.5)), 520); ton(330, 0.02, 0.1, "triangle", 0.05, 760);
+        break;
+      case "stampf":                   // Lauf-Mech setzt einen Fuß auf: dumpfer Tritt und Metallklang
+        rauschen(0, 0.2, 0.1 + 0.08 * (wert || 0.5), 380);
+        ton(75, 0, 0.14, "sine", 0.22, 45); ton(420, 0.01, 0.06, "square", 0.025, 300); ton(210, 0.03, 0.08, "triangle", 0.03);
+        break;
       case "knusper":                  // Lebkuchenhaus kracht: Knuspern, Brechen, ein paar Klicks
         rauschen(0, 0.5, 0.2, 2600); rauschen(0.05, 0.35, 0.12, 5200);
         for (var ki = 0; ki < 6; ki++) ton(380 + ((ki * 137) % 500), ki * 0.045, 0.04, "square", 0.045);

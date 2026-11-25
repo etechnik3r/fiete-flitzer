@@ -81,6 +81,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       w.luftkissen.vmax *= 1 + U.motorTempo * m;
       w.schweben.mu += w.schweben.stoff * re;
     }
+    if (w.pogo) {                                                           // Pogo-Stab: Motor-Upgrade = stärkere Sprungfeder
+      for (var hi = 0; hi < 3; hi++) w.pogo.hop[hi] *= 1 + 0.5 * U.motorTempo * m;
+      w.pogo.schub *= 1 + 0.6 * U.motorDrehmoment * m;
+    }
     if (w.propeller) {                                                      // Schlitten: Motor-Upgrade = stärkerer Propeller
       w.propeller.schub *= 1 + 0.6 * U.motorDrehmoment * m;
       w.propeller.vmax *= 1 + U.motorTempo * m;
@@ -570,8 +574,10 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (w.wanne) this.wanneSchritt(h);
     if (w.zauber) this.teppichSchritt(h);
     if (w.luftkissen) this.luftkissenSchritt(h);
+    if (w.pogo) this.pogoSchritt(h);
     if (this.gelaende.dyn.length) { var self = this; this.gelaende.dynSchritt(h, fz, function (t, d) { self.melde(t, d); }); }
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
+    if (w.lauf) this.mechSchritt();
     if (this.welt.wolken) this.wolkenPruefen(h);
     if (C.x < S.rueckGrenzeWand && C.vx < 0) {               // unsichtbare Wand am Weltanfang (auch im Flug)
       C.vx = 0;
@@ -626,7 +632,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (this.tank <= 0) { this.tank = 0; }
     }
     // Puste (Seifenkiste): Wer ohne Gas rollt, verschnauft – die Puste kommt langsam zurück
-    if (w.puste && this.zustand === "fahrt" && this.tank > 0 && this.gas < 0.05 && st.vorwaerts > 2) {
+    if (w.puste && this.zustand === "fahrt" && this.tank > 0 && this.gas < 0.05 && (st.vorwaerts > 2 || w.pogo)) {
       var vorP = this.tank;
       this.tank = Math.min(1, this.tank + w.puste.erholung / w.tankSekunden * h);
       this.geladen += this.tank - vorP;
@@ -727,6 +733,27 @@ var FF = globalThis.FF = globalThis.FF || {};
     var fz = this.fz, C = fz.chassis, st = fz.status, w = this.werte, J = C.J;
     var M = 0;
     var inDerLuft = st.radKontakte === 0 && !st.huellKontakt && !st.kopfKontakt && !st.anhaengerBoden;
+    if (w.pogo) {
+      // Pogo-Stab: das Kind hält den Stab selbst gerade – am Boden zum Hang, in der Luft zur Landestelle
+      // (etwas weiter vorn). Gas lehnt nach vorn, Bremse nach hinten. Keine Saltos.
+      var PG = w.pogo, hang = Math.atan(this.gelaende.steigungBei(C.x + (inDerLuft ? Math.max(0, Math.min(2.5, C.vx * 0.35)) : 0)));
+      var soll = hang - PG.neigung * this.gas * (this.tank > 0 ? 1 : 0) + PG.neigung * 0.8 * this.bremse;
+      var dA = normWinkel(C.a - soll);
+      // am Boden steht der Stab auf der Spitze wie ein umgekehrtes Pendel (Trägheit m·L² um die Spitze statt J)
+      var Lp = -(fz.raeder[0].ankerY - fz.raeder[0].L0), Jp = inDerLuft ? J : J + C.m * Lp * Lp;
+      M = Math.max(-Jp * 22, Math.min(Jp * 22, (-dA * 38 - C.w * 7) * Jp));
+      fz.zusatzMoment = this.zustand === "fahrt" ? M : 0;
+      return;
+    }
+    if (w.balance && fz.raeder.length === 1 && !inDerLuft) {
+      // Einrad: EIN Rad, das Kind ist ein umgekehrtes Pendel (Trägheit m·L² um die Radachse) und hält sich selbst aufrecht
+      // – etwas lockerer als der Scooter (kp 22 statt festem Anschlag), darum wackelt es sichtbar
+      var Le = -(fz.raeder[0].ankerY - fz.raeder[0].L0), Je = J + C.m * Le * Le;
+      var dE = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
+      M = Math.max(-Je * 14, Math.min(Je * 14, (-dE * 24 * w.balance - C.w * 4.5) * Je));
+      fz.zusatzMoment = this.zustand === "fahrt" ? M : 0;
+      return;
+    }
     if (this.zustand === "fahrt" && inDerLuft) {
       // Gas und Bremse zugleich: Gas hat Vorrang (wie am Boden). Früher (bis Version 35)
       // hoben sich beide auf (steuer = 0), und Stabilisator bzw. Luft-Kreisel hielten das
@@ -777,6 +804,72 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.zusatzAlpha = M / J; M = 0;
     }
     fz.zusatzMoment = M;
+  };
+
+  /* Pogo-Stab (Version 57): Der Stab federt von selbst (weiche Feder mit langem Federweg, physik.js).
+     Beim Abheben gibt das Kind einen Schubs, damit er immer weiterhüpft:
+       – senkrecht zum Hang (W.hop[0..2] ohne Pedal / Gas / Bremse), bei steilem Hang voraus mehr
+       – in Fahrtrichtung: Gas gibt schub [m/s] pro Hüpfer bis motor.vmax, Bremse nimmt brems weg
+         (rückwärts hüpfen, wenn man steht und bremst), ohne Pedal reibt es auf der Stelle aus
+     Ohne Puste (Tank leer) bleibt nur ein kleines Hüpfen auf der Stelle. */
+  Fahrt.prototype.pogoSchritt = function (h) {
+    var W = this.werte.pogo, fz = this.fz, C = fz.chassis, st = fz.status, boden = st.radKontakte > 0, w = this.werte;
+    if (boden) this.pogoStand = (this.pogoStand || 0) + h; else if (this.pogoWarBoden) this.pogoStand = this.pogoStand || 0;
+    // Schubs: wenn die Feder nach der Landung durchgefedert hat (pogoStand ≥ 0,28 s) oder beim Abheben, höchstens einmal je Hüpfer
+    var abgehoben = this.pogoWarBoden && !boden;
+    if (this.zustand === "fahrt" && !this.pogoGeschubst && (abgehoben || (boden && this.pogoStand >= 0.28))) {
+      this.pogoGeschubst = true;
+      var muede = this.tank <= 0, gas = muede ? 0 : this.gas, br = this.bremse;
+      var v = W.hop[gas > 0.3 ? 1 : br > 0.3 ? 2 : 0], sl = this.gelaende.steigungBei(C.x + 1.5);
+      v += W.hangZuschlag * Math.max(0, Math.min(1, sl / 0.5)) * (muede ? 0 : 1);
+      var ts = Math.atan(this.gelaende.steigungBei(C.x)), tx = Math.cos(ts), ty = Math.sin(ts);
+      var ux = -ty, uy = tx, vu = C.vx * ux + C.vy * uy;           // senkrecht zum Hang (die Neigung des Stabs ist nur fürs Auge)
+      var dv = Math.max(0, v - vu);
+      var vt = C.vx * tx + C.vy * ty, dt2 = 0;
+      var bergauf = Math.max(0, Math.min(4, 2 * v * Math.tan(ts)));                       // gleicht aus, was der Hang im Flug wieder abzieht
+      if (gas > 0.3) dt2 = Math.max(0, Math.min(W.schub + bergauf, w.motor.vmax - vt));
+      else if (br > 0.3) {
+        if (vt > 0.8) dt2 = -Math.min(W.brems, vt);
+        else dt2 = -Math.max(0, Math.min(W.schub * 0.6, w.motor.vmax * 0.4 + vt));          // stehen: rückwärts hüpfen
+      } else dt2 = -Math.max(-W.reibung, Math.min(W.reibung, vt));   // ausrollen
+      if (vt > w.motor.vmax * 1.15) dt2 = Math.min(dt2, w.motor.vmax * 1.15 - vt);            // bergab: mit den Beinen abfedern
+      var dvx = ux * dv + tx * dt2, dvy = uy * dv + ty * dt2;
+      C.vx += dvx; C.vy += dvy;
+      fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; });
+      this.melde("hop", { x: C.x, y: C.y, staerke: Math.min(1, v / 6) });
+    }
+    if (!boden) { if (this.pogoLuft === undefined) this.pogoLuft = 0; this.pogoLuft += h; if (this.pogoLuft > 0.12) { this.pogoStand = 0; this.pogoGeschubst = false; } }
+    else this.pogoLuft = 0;
+    this.pogoWarBoden = boden;
+  };
+
+  /* Lauf-Mech (Version 57): Beine laufen nach dem zurückgelegten Weg. Zwei Füße, um eine halbe Schrittperiode
+     versetzt: Standphase (Fuß bleibt am Boden stehen, der Körper schreitet darüber hinweg), Schwungphase
+     (Fuß hebt ab, schwingt vor, setzt wieder auf). Fußhöhe = Gelände. Ergebnis: fz.mech = { fuesse:
+     [{ x, y, luft }, …] (Weltkoordinaten), schritt } – die Grafik berechnet die Gelenke. Jeder Aufsetzer
+     meldet „schritt“ (Stampfen, Staub). */
+  Fahrt.prototype.mechSchritt = function () {
+    var L = this.werte.lauf, fz = this.fz, C = fz.chassis, gel = this.gelaende, st = fz.status;
+    var M = fz.mech || (fz.mech = { fuesse: [{ x: C.x, y: 0, luft: 0 }, { x: C.x, y: 0, luft: 0 }], zaehler: Math.floor(2 * C.x / L.schritt) });
+    var q = C.x / L.schritt, boden = st.radKontakte > 0;
+    for (var i = 0; i < 2; i++) {
+      var u = q + 0.5 * i; u -= Math.floor(u);
+      var rel, hub = 0;
+      if (u < 0.5) rel = L.schritt * (0.25 - u);                               // Standphase: Fuß bleibt stehen
+      else { var s = (u - 0.5) * 2; rel = L.schritt * (-0.25 + 0.5 * s); hub = L.hub * Math.sin(Math.PI * s); }
+      var fx = C.x + rel, fy = gel.hoeheBei(fx) + 0.1 + hub * (boden ? 1 : 0.5);
+      var sw = u >= 0.5 ? (u - 0.5) * 2 : -1;                                  // Schwungphase 0…1 (sonst −1)
+      M.fuesse[i].x = fx; M.fuesse[i].y = fy; M.fuesse[i].luft = boden ? 0 : 1;
+      M.fuesse[i].w = Math.atan(gel.steigungBei(fx)) + (sw >= 0 ? -0.5 * Math.sin(2 * Math.PI * sw) : 0);   // Fußplatte folgt dem Hang, beim Schwung erst Spitze runter, dann hoch
+    }
+    var n = Math.floor(2 * q);
+    if (n !== M.zaehler) {
+      if (this.zustand === "fahrt" && boden && Math.abs(C.vx) > 0.3) {
+        var fu = M.fuesse[(n % 2 + 2) % 2 === 0 ? 0 : 1];
+        this.melde("schritt", { x: fu.x, y: fu.y, tempo: Math.abs(C.vx) });
+      }
+      M.zaehler = n;
+    }
   };
 
   /* Wolkeninseln: Die Wolke unter dem Auto sinkt (gelaende.wolkenSchritt). Wer in eine Lücke
