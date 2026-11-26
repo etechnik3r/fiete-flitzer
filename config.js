@@ -871,11 +871,11 @@ FF.CONFIG = {
         { x: -0.85, y: -0.55, r: 0.4, masse: 40, antrieb: true },
         { x:  0.85, y: -0.55, r: 0.4, masse: 40, antrieb: true }
       ],
-      federung: { ruhe: 1.4, weg: 0.8, frequenz: 1.8, daempfung: 0.65 },
+      federung: { ruhe: 1.4, weg: 0.8, frequenz: 1.8, daempfung: 0.9 },
       motor: { drehmoment: 3200, vmax: 11.5, eck: 0.6 }, bremse: 4200, grip: 1.15,
-      tankSekunden: 30, luftsteuerung: 2.2, cwA: 1.4, abtrieb: 0, matschFest: 0.4,
+      tankSekunden: 38, luftsteuerung: 2.2, cwA: 1.4, abtrieb: 0, matschFest: 0.4,
       akku: true, leerlauf: 0.05, balance: 1.6,       // balance: die Beine halten den Körper ruhig (sonst Wheelie beim Anfahren)
-      lauf: { schritt: 6.0, huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.65, vorlage: 0.1 },
+      lauf: { schritt: 6.0, huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.65, hopMax: 1.2, zug: 16 },
       upgradeNamen: {
         motor:    { name: "Servos",   icon: "🔩", text: "Stärkere Servos – schneller und kräftiger laufen" },
         reifen:   { name: "Fußplatten", icon: "🦶", text: "Griffigere Fußplatten" },
@@ -1963,6 +1963,8 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "60", titel: "Mech bleibt am Boden", punkte: [
+      "🤖 Der Lauf-Mech hebt nicht mehr bei jeder Kuppe und jedem Brocken ab: Die Beine halten Bodenkontakt und federn Unebenheiten ab. Große Schanzen bei hohem Tempo fliegt er trotzdem" ] },
     { version: "59", titel: "Einrad klettert besser", punkte: [
       "🤹 Das Einrad hat fast doppelt so viel Kraft und mehr Grip, damit kommt es auch steile Berge hinauf",
       "🤹 In der Luft streckt sich das Kind zur Landestelle aus und kippt nicht mehr so leicht. Gas hebt die Nase, Bremse senkt sie, aber es dreht sich nicht mehr von allein im Kreis" ] },

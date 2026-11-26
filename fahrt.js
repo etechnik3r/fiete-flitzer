@@ -575,6 +575,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (w.zauber) this.teppichSchritt(h);
     if (w.luftkissen) this.luftkissenSchritt(h);
     if (w.pogo) this.pogoSchritt(h);
+    if (w.lauf) this.mechHaftung(h);
     if (this.gelaende.dyn.length) { var self = this; this.gelaende.dynSchritt(h, fz, function (t, d) { self.melde(t, d); }); }
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (w.lauf) this.mechSchritt();
@@ -857,6 +858,23 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (!boden) { if (this.pogoLuft === undefined) this.pogoLuft = 0; this.pogoLuft += h; if (this.pogoLuft > 0.12) { this.pogoStand = 0; this.pogoGeschubst = false; } }
     else this.pogoLuft = 0;
     this.pogoWarBoden = boden;
+  };
+
+  /* Lauf-Mech: Die Beine halten Bodenkontakt. Der Roboter darf Kuppen und Brocken nicht wie ein Auto als Schanze
+     benutzen: Am Boden wird die Aufwärtsgeschwindigkeit auf das begrenzt, was der Hang verlangt (+ lauf.hopMax),
+     und in den ersten 0,45 s nach dem Verlust des Kontakts drücken die Beine ihn mit zusätzlicher Beschleunigung
+     (lauf.zug m/s²) nach unten – echte Sprünge (große Schanzen, hohes Tempo) bleiben möglich. */
+  Fahrt.prototype.mechHaftung = function (h) {
+    var L = this.werte.lauf, fz = this.fz, C = fz.chassis, boden = fz.status.radKontakte > 0;
+    if (this.zustand !== "fahrt") return;
+    if (boden) {
+      this.mechLuft = 0;
+      var sl = this.gelaende.steigungBei(C.x), lim = C.vx * sl + L.hopMax;
+      if (isFinite(lim) && Math.abs(sl) < 0.45 && C.vy > lim) { var d = C.vy - lim; C.vy -= d; fz.raeder.forEach(function (R) { R.k.vy -= d; }); }
+    } else {
+      this.mechLuft = (this.mechLuft || 0) + h;
+      if (this.mechLuft < 0.45) { var dv = L.zug * h; C.vy -= dv; fz.raeder.forEach(function (R) { R.k.vy -= dv; }); }
+    }
   };
 
   /* Lauf-Mech (Version 57): Beine laufen nach dem zurückgelegten Weg. Zwei Füße, um eine halbe Schrittperiode
