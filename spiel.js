@@ -1057,7 +1057,7 @@
           FF.Klang.spiele("pogoHop", e.staerke);
           break;
         case "schritt":                  // Lauf-Mech: ein Fuß setzt auf (Stampfen und Staub)
-          FF.Klang.spiele("stampf", Math.min(1, e.tempo / 5.5));
+          FF.Klang.spiele("stampf", Math.min(1, e.tempo / 11.5));
           for (var sk = 0; sk < 3; sk++) partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 0.5, y: e.y, vx: (Math.random() - 0.5) * 2.5, vy: 0.4 + Math.random() * 0.9,
             t: 0, dauer: 0.55, r0: 0.1, r1: 0.4, farbe: fahrt.welt.farben.punkte, alpha: 0.6, reibung: 2 });
           break;

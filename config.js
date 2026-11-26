@@ -839,6 +839,9 @@ FF.CONFIG = {
       motor: { drehmoment: 125, vmax: 8.5, eck: 0.8 }, bremse: 170, grip: 1.05,
       tankSekunden: 36, luftsteuerung: 6.0, cwA: 0.45, abtrieb: 0,
       balance: 0.9, leerlauf: 0, freilauf: true, puste: { erholung: 0.45 },
+      // Segway-Prinzip (fahrt.js): Gas = nach vorn lehnen (vor [rad] bei Vollgas), erst die Vorlage lässt das Rad
+      // anziehen (Drehmoment · Vorlage/voll, mindestens anlauf); Bremse = nach hinten lehnen (zurueck [rad])
+      segway: { vor: 0.3, zurueck: 0.22, voll: 0.14, anlauf: 0.15 },
       upgradeNamen: {
         motor:    { name: "Waden",    icon: "🦵", text: "Kräftigere Waden – mehr Kraft in den Pedalen" },
         reifen:   { name: "Profil",   icon: "🛞", text: "Mehr Profil – hält besser am Hang" },
@@ -856,31 +859,31 @@ FF.CONFIG = {
          Kanzel. Gelaufen wird wirklich: Die Beine werden nur gezeichnet (grafik.js, Form „mech“,
          Zwei-Gelenk-Beine mit Gelenk-Berechnung), und zwar nach dem zurückgelegten Weg: Ein
          Fuß setzt auf, bleibt dort am Boden stehen, während der Roboter darüber hinwegschreitet
-         (Schrittlänge lauf.schritt), schwingt dann vor und setzt wieder auf – auch am Hang und
+         (Schrittlänge lauf.schritt, Version 58: 6 m, fast doppelt so groß und 11,5 m/s statt 5,5), schwingt dann vor und setzt wieder auf – auch am Hang und
          über Kanten (Fuß-Höhe = Gelände). Die Physik trägt der Mech auf zwei gefederten
          Stützpunkten (unsichtbare „Füße“ mit langem Federweg = die Beine): Er steigt über
          Stufen und Brocken, ist schwer und steht fest. Jeder Schritt stampft (Ereignis „schritt“).
          Dafür gemächlich (vmax 5,5 m/s = 20 km/h) und träge in der Luft. Akku statt Benzin. */
       id: "mech", name: "Lauf-Mech", emoji: "🤖", preis: 15000, preisBasis: 330,
-      text: "Ein echter Laufroboter! Er stapft auf zwei Beinen über Stufen und Brocken und steht felsenfest. Dafür ist er gemütlich unterwegs und in der Luft schwerfällig.",
-      masse: 520, groesse: { laenge: 2.0, hoehe: 1.8 },
+      text: "Ein riesiger Laufroboter! Er stapft auf zwei hydraulischen Beinen über Stufen und Brocken, steht felsenfest und ist dabei richtig flott. Dafür ist er in der Luft schwerfällig.",
+      masse: 900, groesse: { laenge: 3.0, hoehe: 2.7 },
       raeder: [
-        { x: -0.55, y: -0.35, r: 0.3, masse: 25, antrieb: true },
-        { x:  0.55, y: -0.35, r: 0.3, masse: 25, antrieb: true }
+        { x: -0.85, y: -0.55, r: 0.4, masse: 40, antrieb: true },
+        { x:  0.85, y: -0.55, r: 0.4, masse: 40, antrieb: true }
       ],
-      federung: { ruhe: 0.95, weg: 0.55, frequenz: 1.7, daempfung: 0.65 },
-      motor: { drehmoment: 1400, vmax: 5.5, eck: 0.7 }, bremse: 2400, grip: 1.15,
-      tankSekunden: 60, luftsteuerung: 2.4, cwA: 0.9, abtrieb: 0, matschFest: 0.4,
-      akku: true, leerlauf: 0.05, balance: 1.5,       // balance: die Beine halten den Körper ruhig (sonst Wheelie beim Anfahren)
-      lauf: { schritt: 3.6, huefte: [0, -0.5], oberschenkel: 0.85, unterschenkel: 0.85, hub: 0.4 },
+      federung: { ruhe: 1.4, weg: 0.8, frequenz: 1.8, daempfung: 0.65 },
+      motor: { drehmoment: 3200, vmax: 11.5, eck: 0.6 }, bremse: 4200, grip: 1.15,
+      tankSekunden: 30, luftsteuerung: 2.2, cwA: 1.4, abtrieb: 0, matschFest: 0.4,
+      akku: true, leerlauf: 0.05, balance: 1.6,       // balance: die Beine halten den Körper ruhig (sonst Wheelie beim Anfahren)
+      lauf: { schritt: 6.0, huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.65, vorlage: 0.1 },
       upgradeNamen: {
         motor:    { name: "Servos",   icon: "🔩", text: "Stärkere Servos – schneller und kräftiger laufen" },
         reifen:   { name: "Fußplatten", icon: "🦶", text: "Griffigere Fußplatten" },
         federung: { name: "Kniegelenke", icon: "🦿", text: "Weichere Kniegelenke – sanfter landen" }
       },
-      huelle: [[-0.75, -0.5], [0.75, -0.5], [0.85, -0.1], [0.7, 0.4], [-0.6, 0.45], [-0.85, 0.0]],
-      dach: [[-0.3, 1.05], [0.3, 1.05]],
-      kopf: { x: 0.12, y: 0.62, r: 0.28 },
+      huelle: [[-1.2, -0.75], [1.2, -0.75], [1.4, -0.2], [1.15, 0.45], [-0.9, 0.5], [-1.4, 0.0]],
+      dach: [[-0.4, 1.4], [0.5, 1.4]],
+      kopf: { x: 0.25, y: 0.98, r: 0.28 },
       farbe: "blau", form: "mech",
       klang: { art: "elektro", surren: 900, avasTon: 294, max: 12000, lautstaerke: 0.95, abrollen: 0.3 },
       upgrades: ["motor", "reifen", "federung", "tank", "kreisel", "bremse", "leichtbau"]
@@ -1960,6 +1963,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "58", titel: "Schneller Mech, Einrad wie ein Segway", punkte: [
+      "🤖 Der Lauf-Mech ist fast doppelt so groß und mehr als doppelt so schnell (41 km/h): kantiger Panzerrumpf mit Warnstreifen, Lüftungsgittern, Auspuff und drehender Radarschüssel, hydraulische Beine mit Kolben und Zahnrad-Knie, ein Greifarm schwingt beim Laufen mit",
+      "🤹 Das Einrad fährt jetzt wie ein Segway: Zum Beschleunigen lehnt sich das Kind nach vorn, erst dadurch zieht das Rad los. Zum Bremsen lehnt es sich zurück. Es kippt nie flach" ] },
     { version: "57", titel: "Pogo-Stab, Einrad und Lauf-Mech", punkte: [
       "🤸 Neues Fahrzeug Pogo-Stab für 3.500 Münzen: Dein Kind hüpft die ganze Zeit. Nicht besonders schnell, aber durch Pfützen, Matsch und Schleim hüpft es, ohne langsamer zu werden",
       "🤹 Neues Fahrzeug Einrad für 2.500 Münzen: Dein Kind sitzt oben und tritt selbst in die Pedale, balanciert und wackelt. Nicht besonders schnell, aber das große Rad steigt über Kanten",

@@ -706,6 +706,10 @@ var FF = globalThis.FF = globalThis.FF || {};
       if (this.gas > 0.01 && motorAn) {
         R.motorZiel = -R.wMax;                               // vorwärts = Rad dreht im Uhrzeigersinn
         R.motorMax = R.antrieb ? Tkurve * this.gas / nA : 0;
+        if (w.segway && R.antrieb) {                         // Einrad (Segway-Prinzip): das Rad zieht nur, wenn das Kind vorn liegt
+          var vorlage = -normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
+          R.motorMax *= Math.max(w.segway.anlauf, Math.min(1, vorlage / w.segway.voll));
+        }
       } else if (bremsen) {
         R.motorZiel = 0;
         R.motorMax = w.bremse * bremsKraft / nAlle;
@@ -749,8 +753,12 @@ var FF = globalThis.FF = globalThis.FF || {};
       // Einrad: EIN Rad, das Kind ist ein umgekehrtes Pendel (Trägheit m·L² um die Radachse) und hält sich selbst aufrecht
       // – etwas lockerer als der Scooter (kp 22 statt festem Anschlag), darum wackelt es sichtbar
       var Le = -(fz.raeder[0].ankerY - fz.raeder[0].L0), Je = J + C.m * Le * Le;
-      var dE = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
-      M = Math.max(-Je * 14, Math.min(Je * 14, (-dE * 24 * w.balance - C.w * 4.5) * Je));
+      // Segway-Prinzip: Wer Gas gibt, LEHNT sich nach vorn (Soll-Winkel), erst dadurch zieht das Rad los
+      // (setzeAntrieb: das Drehmoment wächst mit der Vorlage). Bremse = nach hinten lehnen.
+      var SG = w.segway, hang0 = Math.atan(this.gelaende.steigungBei(C.x));
+      var lehne = SG ? (-SG.vor * this.gas * (this.tank > 0 ? 1 : 0) * (1 - 0.6 * Math.max(0, Math.min(1, st.vorwaerts / w.motor.vmax))) + SG.zurueck * this.bremse) : 0;   // bei Reisetempo reicht eine leichte Vorlage
+      var dE = normWinkel(C.a - (hang0 + lehne));
+      M = Math.max(-Je * 20, Math.min(Je * 20, (-dE * 40 * w.balance - C.w * 7) * Je));
       fz.zusatzMoment = this.zustand === "fahrt" ? M : 0;
       return;
     }
@@ -782,7 +790,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {
       // Stabilisator (Leicht) bzw. Gleichgewichtssinn (Skateboard: das Kind balanciert)
-      var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)));
+      var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)) + (w.lauf ? 0.1 * this.gas : 0));   // Mech: beim Laufen leicht nach vorn gebeugt
       // Beim Skateboard lehnt sich das Kind kräftig vor: früher und stärker (bis 28 rad/s²),
       // so bleibt das Brett bergauf auch mit Gas meist unten – nur steil muss man kurz lupfen
       var balanciert = w.balance && !w.stabilisator;

@@ -1269,66 +1269,120 @@ var FF = globalThis.FF = globalThis.FF || {};
                arme: [0.0, 0.34, 0.3 + w, 0.18 + 0.14 * Math.cos(z * 6.5) * sch], ohneFedern: true, ohneRaeder: true };
     },
 
-    /* Lauf-Mech: runde Kanzel mit Glaskuppel auf einem Rumpf, darunter zwei lange Beine mit Hüfte, Knie
-       und Fußplatte. Die Fußpunkte kommen aus der Physik (fz.mech.fuesse, Weltkoordinaten, siehe fahrt.js
-       mechSchritt) – die Beine werden daraus berechnet, mit Knie nach vorn. */
+    /* Lauf-Mech (Version 58, technischer und größer): kantiger Panzerrumpf mit Warnstreifen, Lüftungsgittern und
+       Auspuffrohren, Glaskuppel mit Rahmen, drehende Radarschüssel, schwingender Greifarm. Die Beine sind
+       hydraulisch: Panzerplatte außen, Kolbenstange (Chrom) daneben, Knie mit Zahnrad. Die Fußpunkte kommen aus
+       der Physik (fz.mech.fuesse, siehe fahrt.js mechSchritt); die Gelenke werden hier berechnet (Knie nach vorn). */
     mech: function (ctx, a, z, fz) {
-      var o = outfitVon(a), c = basisFarbe(a);
-      var L1 = 0.85, L2 = 0.85, H = [{ x: 0.14, y: -0.42 }, { x: -0.14, y: -0.42 }];
+      var c = basisFarbe(a), L1 = 1.25, L2 = 1.25, H = [{ x: 0.25, y: -0.72 }, { x: -0.25, y: -0.72 }];
       var F = [];
       for (var i = 0; i < 2; i++) {
         if (fz && fz.mech) F.push(fz.mech.fuesse[i]);
-        else { var R = fz && fz.raeder && fz.raeder[i]; F.push(R && R.lokalY !== undefined ? { lx: (i ? -0.4 : 0.4), ly: R.lokalY - R.r + 0.1, lw: 0 } : { lx: 0, ly: -1.5, lw: 0 }); }
+        else { var R = fz && fz.raeder && fz.raeder[i]; F.push(R && R.lokalY !== undefined ? { lx: (i ? -0.7 : 0.7), ly: R.lokalY - R.r + 0.1, lw: 0 } : { lx: 0, ly: -2.3, lw: 0 }); }
       }
-      var bein = function (i, hell) {
-        var Hh = H[i], f = F[i], fx = f.lx, fy = f.ly + 0.0, dx = fx - Hh.x, dy = fy - Hh.y, d = Math.hypot(dx, dy);
+      var laufQ = fz && fz.mech ? fz.chassis.x / 6.0 * Math.PI * 2 : 0;
+      var kolben = function (x0, y0, x1, y1, d) {                     // Hydraulikzylinder: Zylinder + Chromstange, parallel zur Strecke
+        var dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * d, ny = dx / l * d;
+        ctx.strokeStyle = "#2f3650"; ctx.lineWidth = 0.1; ctx.lineCap = "butt";
+        ctx.beginPath(); ctx.moveTo(x0 + nx, y0 + ny); ctx.lineTo(x0 + nx + dx * 0.55, y0 + ny + dy * 0.55); ctx.stroke();
+        ctx.strokeStyle = "#e6ecf7"; ctx.lineWidth = 0.05;
+        ctx.beginPath(); ctx.moveTo(x0 + nx + dx * 0.5, y0 + ny + dy * 0.5); ctx.lineTo(x1 + nx, y1 + ny); ctx.stroke();
+        ctx.fillStyle = "#c9cfdb"; ctx.beginPath(); ctx.arc(x0 + nx, y0 + ny, 0.06, 0, Math.PI * 2); ctx.arc(x1 + nx, y1 + ny, 0.06, 0, Math.PI * 2); ctx.fill();
+      };
+      var platte = function (x0, y0, x1, y1, b, farbe) {               // Panzerplatte als Balken mit Kontur
+        var dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * b / 2, ny = dx / l * b / 2;
+        ctx.fillStyle = farbe; ctx.strokeStyle = TINTE; ctx.lineWidth = 0.035; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(x0 + nx, y0 + ny); ctx.lineTo(x1 + nx * 0.8, y1 + ny * 0.8); ctx.lineTo(x1 - nx * 0.8, y1 - ny * 0.8); ctx.lineTo(x0 - nx, y0 - ny); ctx.closePath(); ctx.fill(); ctx.stroke();
+      };
+      var bein = function (i, fern) {
+        var Hh = H[i], f = F[i], fx = f.lx, fy = f.ly, dx = fx - Hh.x, dy = fy - Hh.y, d = Math.hypot(dx, dy);
         var dm = Math.min(Math.max(d, Math.abs(L1 - L2) + 0.02), L1 + L2 - 0.004), ang = Math.atan2(dy, dx);
         var A = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + dm * dm - L2 * L2) / (2 * L1 * dm))));
         var kx = Hh.x + Math.cos(ang + A) * L1, ky = Hh.y + Math.sin(ang + A) * L1;
         if (kx < Hh.x - 0.02) { kx = Hh.x + Math.cos(ang - A) * L1; ky = Hh.y + Math.sin(ang - A) * L1; }          // Knie immer nach vorn
         if (d > L1 + L2 - 0.004) { fx = Hh.x + dx / d * (L1 + L2 - 0.004); fy = Hh.y + dy / d * (L1 + L2 - 0.004); }
-        var met = hell ? "#c3cbdc" : "#8a93a8", dk = hell ? "#5d6782" : "#434b62";
-        ctx.lineCap = "round"; ctx.lineJoin = "round";
-        ctx.strokeStyle = dk; ctx.lineWidth = 0.23; ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo(kx, ky); ctx.stroke();      // Oberschenkel (außen dunkel, innen hell)
-        ctx.strokeStyle = met; ctx.lineWidth = 0.16; ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo(kx, ky); ctx.stroke();
-        ctx.strokeStyle = dk; ctx.lineWidth = 0.18; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy + 0.1); ctx.stroke();       // Unterschenkel
-        ctx.strokeStyle = met; ctx.lineWidth = 0.11; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy + 0.1); ctx.stroke();
-        ctx.fillStyle = farbeVon(c); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.025;                                                   // Kniescheibe und Hüftgelenk
-        ctx.beginPath(); ctx.arc(kx, ky, 0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = dk; ctx.beginPath(); ctx.arc(kx, ky, 0.045, 0, Math.PI * 2); ctx.fill();
-        // Fußplatte: lang, am Boden, folgt dem Gelände (f.lw)
+        var met = fern ? "#6c7590" : "#a6aec4", pl = fern ? dunkel(farbeVon(c), 0.4) : farbeVon(c);
+        kolben(Hh.x, Hh.y, kx, ky, 0.17); kolben(kx, ky, fx, fy + 0.15, -0.14);
+        ctx.lineCap = "round";
+        ctx.strokeStyle = fern ? "#3a415a" : "#4a5470"; ctx.lineWidth = 0.34; ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo(kx, ky); ctx.stroke();       // Oberschenkel-Kern
+        platte(Hh.x - 0.05, Hh.y - 0.05, kx, ky, 0.3, pl);
+        ctx.strokeStyle = fern ? "#3a415a" : "#4a5470"; ctx.lineWidth = 0.26; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy + 0.15); ctx.stroke();    // Unterschenkel-Kern
+        platte(kx, ky, fx, fy + 0.2, 0.24, met);
+        // Knie: Gelenkscheibe mit rotierendem Zahnrad (Drehung folgt dem Laufweg)
+        ctx.fillStyle = fern ? "#434b62" : "#5d6782"; ctx.strokeStyle = TINTE; ctx.lineWidth = 0.035;
+        ctx.beginPath(); ctx.arc(kx, ky, 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#e0b24a"; ctx.beginPath();
+        for (var g = 0; g < 16; g++) { var w = laufQ * (i ? -1 : 1) * 1.4 + g * Math.PI / 8, rr = g % 2 ? 0.1 : 0.14; ctx.lineTo(kx + Math.cos(w) * rr, ky + Math.sin(w) * rr); }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#2f3650"; ctx.beginPath(); ctx.arc(kx, ky, 0.04, 0, Math.PI * 2); ctx.fill();
+        // Hüftgelenk
+        ctx.fillStyle = "#434b62"; ctx.beginPath(); ctx.arc(Hh.x, Hh.y, 0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // Knöchel und zweizehiger Fuß mit Gummisohle, folgt dem Gelände (f.lw)
         ctx.save(); ctx.translate(fx, fy); ctx.rotate(f.lw || 0);
-        ctx.fillStyle = dk; ctx.beginPath(); ctx.moveTo(-0.3, 0.07); ctx.lineTo(0.42, 0.07); ctx.lineTo(0.5, -0.02); ctx.lineTo(0.42, -0.1); ctx.lineTo(-0.3, -0.1); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = met; ctx.fillRect(-0.24, 0.0, 0.62, 0.05);
-        ctx.fillStyle = "#2b2f3a"; ctx.fillRect(-0.3, -0.12, 0.8, 0.04);
+        ctx.fillStyle = "#5d6782"; ctx.beginPath(); ctx.arc(0, 0.2, 0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = fern ? "#434b62" : "#6b7590";
+        ctx.beginPath(); ctx.moveTo(-0.5, 0.05); ctx.lineTo(-0.35, 0.18); ctx.lineTo(0.3, 0.18); ctx.lineTo(0.72, 0.0); ctx.lineTo(0.78, -0.1); ctx.lineTo(-0.5, -0.1); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#1f2433"; ctx.fillRect(-0.5, -0.16, 1.28, 0.08);
+        ctx.fillStyle = "#e0b24a"; ctx.fillRect(-0.3, 0.02, 0.1, 0.06); ctx.fillRect(-0.1, 0.02, 0.1, 0.06);           // Warnmarkierung am Fuß
         ctx.restore();
       };
-      var hinten = function () { bein(1, false); bein(0, true); };
-      var kuppel = function () { ctx.beginPath(); ctx.ellipse(0.12, 0.44, 0.52, 0.62, 0, 0, Math.PI * 2); };
-      var rumpf = function () {
-        ctx.beginPath(); ctx.moveTo(-0.72, -0.5); ctx.lineTo(0.72, -0.5); ctx.quadraticCurveTo(0.88, -0.5, 0.88, -0.32); ctx.lineTo(0.88, 0.02);
-        ctx.quadraticCurveTo(0.88, 0.22, 0.68, 0.24); ctx.lineTo(-0.62, 0.24); ctx.quadraticCurveTo(-0.9, 0.24, -0.9, 0.0); ctx.lineTo(-0.9, -0.32); ctx.quadraticCurveTo(-0.9, -0.5, -0.72, -0.5); ctx.closePath();
+      var hinten = function () {
+        // Auspuffrohre mit Dampfwölkchen (hinten oben) und Radarschüssel auf Stiel
+        ctx.fillStyle = "#4a5470"; ctx.fillRect(-1.12, 0.1, 0.12, 0.5); ctx.fillRect(-0.94, 0.1, 0.1, 0.4);
+        ctx.fillStyle = "rgba(235,240,255,0.5)";
+        for (var p = 0; p < 3; p++) { var t = (z * 0.8 + p / 3) % 1; ctx.globalAlpha = 0.5 * (1 - t); ctx.beginPath(); ctx.arc(-1.08 - t * 0.25, 0.66 + t * 0.9, 0.07 + 0.12 * t, 0, Math.PI * 2); ctx.fill(); }
+        ctx.globalAlpha = 1;
+        bein(1, true);
+        // Greifarm der fernen Seite
+        ctx.strokeStyle = "#434b62"; ctx.lineWidth = 0.16; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(0.6, -0.1); ctx.lineTo(1.0 + 0.25 * Math.sin(laufQ + Math.PI), -0.55); ctx.stroke();
       };
+      var rumpf = function () {                                        // kantiger Panzerrumpf mit abgeschrägten Ecken
+        ctx.beginPath(); ctx.moveTo(-1.15, -0.75); ctx.lineTo(1.1, -0.75); ctx.lineTo(1.38, -0.5); ctx.lineTo(1.38, 0.02); ctx.lineTo(1.12, 0.38);
+        ctx.lineTo(-0.8, 0.5); ctx.lineTo(-1.25, 0.28); ctx.lineTo(-1.4, -0.12); ctx.lineTo(-1.4, -0.5); ctx.closePath();
+      };
+      var kuppel = function () { ctx.beginPath(); ctx.ellipse(0.25, 0.7, 0.6, 0.74, 0, 0, Math.PI * 2); };
       var vorne = function () {
-        karosserie(ctx, a, z, rumpf, -0.9, 0.88, -0.5, 0.24);
-        // Platten, Nieten, Lüftungsschlitze und Scheinwerfer
-        ctx.strokeStyle = "rgba(20,30,60,0.35)"; ctx.lineWidth = 0.02;
-        ctx.beginPath(); ctx.moveTo(-0.3, -0.5); ctx.lineTo(-0.3, 0.24); ctx.moveTo(0.4, -0.5); ctx.lineTo(0.4, 0.24); ctx.stroke();
-        ctx.fillStyle = "rgba(20,30,60,0.5)"; for (var k = 0; k < 4; k++) ctx.fillRect(-0.78, -0.4 + k * 0.1, 0.34, 0.04);
-        ctx.fillStyle = "#c9cfdb"; [[-0.82, 0.16], [-0.82, -0.44], [0.8, 0.16], [0.8, -0.44]].forEach(function (n) { ctx.beginPath(); ctx.arc(n[0], n[1], 0.03, 0, Math.PI * 2); ctx.fill(); });
-        scheinwerfer(ctx, 0.88, -0.1, 0.07);
-        ruecklicht(ctx, -0.92, -0.18, 0.04, 0.12);
-        // Kuppel-Rahmen (der Fahrer wird davor gezeichnet und nur durch die Scheibe gezeigt)
-        ctx.strokeStyle = TINTE; ctx.lineWidth = 0.05; kuppel(); ctx.stroke();
-        ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.ellipse(0.12, 0.44, 0.46, 0.56, 0, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
-        // Antenne mit blinkender Lampe
-        ctx.strokeStyle = "#8a93a8"; ctx.lineWidth = 0.03; ctx.beginPath(); ctx.moveTo(-0.28, 0.9); ctx.lineTo(-0.4, 1.28); ctx.stroke();
-        ctx.fillStyle = Math.sin(z * 5) > 0 ? "#ff5a5a" : "#7a2222"; ctx.beginPath(); ctx.arc(-0.4, 1.3, 0.05, 0, Math.PI * 2); ctx.fill();
+        // Radar (dreht sich)
+        ctx.strokeStyle = "#8d96ad"; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(-0.55, 0.45); ctx.lineTo(-0.55, 1.2); ctx.stroke();
+        ctx.save(); ctx.translate(-0.55, 1.2); var dr = Math.cos(z * 2.4);
+        ctx.fillStyle = "#c9cfdb"; ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03;
+        ctx.beginPath(); ctx.ellipse(0, 0.04, Math.abs(dr) * 0.32 + 0.03, 0.14, 0, 0, Math.PI); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#ff5a5a"; ctx.beginPath(); ctx.arc(dr * 0.2, 0.2, 0.04, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        // Rumpf
+        karosserie(ctx, a, z, rumpf, -1.4, 1.38, -0.75, 0.5);
+        ctx.save(); rumpf(); ctx.clip();
+        ctx.fillStyle = "#ffd23f";                                      // Warnstreifen unten
+        for (var k = -7; k < 8; k++) { ctx.beginPath(); ctx.moveTo(k * 0.2, -0.75); ctx.lineTo(k * 0.2 + 0.1, -0.75); ctx.lineTo(k * 0.2 + 0.2, -0.6); ctx.lineTo(k * 0.2 + 0.1, -0.6); ctx.fill(); }
+        ctx.strokeStyle = "rgba(20,30,60,0.38)"; ctx.lineWidth = 0.03;  // Panelfugen
+        ctx.beginPath(); ctx.moveTo(-0.5, -0.6); ctx.lineTo(-0.5, 0.5); ctx.moveTo(0.85, -0.6); ctx.lineTo(0.85, 0.4); ctx.moveTo(-1.4, -0.2); ctx.lineTo(1.4, -0.2); ctx.stroke();
+        ctx.fillStyle = "rgba(20,30,60,0.55)"; for (k = 0; k < 6; k++) ctx.fillRect(-1.3, -0.5 + k * 0.1, 0.62, 0.05);   // Lüftungsgitter
+        ctx.restore();
+        ctx.fillStyle = "#c9cfdb"; [[-1.28, 0.2], [-1.28, -0.62], [1.28, -0.4], [0.7, 0.32], [-0.4, 0.4]].forEach(function (n) { ctx.beginPath(); ctx.arc(n[0], n[1], 0.04, 0, Math.PI * 2); ctx.fill(); });
+        ctx.fillStyle = "#101626"; ctx.fillRect(0.95, -0.45, 0.35, 0.34);                                        // Display / Gesicht des Roboters
+        ctx.fillStyle = Math.sin(z * 3) > -0.8 ? "#46f0ff" : "#1b6b78"; ctx.fillRect(1.02, -0.36, 0.08, 0.16); ctx.fillRect(1.16, -0.36, 0.08, 0.16);
+        scheinwerfer(ctx, 1.38, -0.22, 0.09);
+        ruecklicht(ctx, -1.42, -0.3, 0.05, 0.16);
+        // Greifarm (nah): schwingt gegenläufig zu den Beinen, mit Zange
+        var sw = Math.sin(laufQ), ax = 0.55, ay = -0.05, hx = ax + 0.55 + 0.25 * sw, hy = ay - 0.5 - 0.1 * Math.cos(laufQ);
+        ctx.strokeStyle = "#4a5470"; ctx.lineWidth = 0.2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.strokeStyle = "#e6ecf7"; ctx.lineWidth = 0.05; ctx.beginPath(); ctx.moveTo(ax - 0.07, ay + 0.05); ctx.lineTo(hx - 0.07, hy + 0.04); ctx.stroke();
+        ctx.fillStyle = farbeVon(c); ctx.beginPath(); ctx.arc(ax, ay, 0.17, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = TINTE; ctx.lineWidth = 0.03; ctx.stroke();
+        ctx.strokeStyle = "#c9cfdb"; ctx.lineWidth = 0.07;                                                         // Zange
+        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 0.2, hy - 0.12); ctx.moveTo(hx, hy); ctx.lineTo(hx + 0.2, hy + 0.1); ctx.stroke();
+        // Kuppel: Glas, Rahmen, Streben (der Fahrer wird davor gezeichnet und nur durch die Scheibe gezeigt)
+        ctx.fillStyle = "rgba(170,225,255,0.16)"; kuppel(); ctx.fill();
+        ctx.strokeStyle = "#2f3650"; ctx.lineWidth = 0.07; kuppel(); ctx.stroke();
+        ctx.lineWidth = 0.04; ctx.beginPath(); ctx.moveTo(0.25, 1.44); ctx.lineTo(0.25, 0.0); ctx.moveTo(-0.3, 0.9); ctx.quadraticCurveTo(0.25, 1.1, 0.8, 0.9); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.6)"; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.ellipse(0.25, 0.7, 0.52, 0.66, 0, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
+        // Antennen mit blinkender Lampe
+        ctx.strokeStyle = "#8d96ad"; ctx.lineWidth = 0.035; ctx.beginPath(); ctx.moveTo(0.55, 1.35); ctx.lineTo(0.7, 1.8); ctx.stroke();
+        ctx.fillStyle = Math.sin(z * 5) > 0 ? "#ff5a5a" : "#7a2222"; ctx.beginPath(); ctx.arc(0.7, 1.82, 0.06, 0, Math.PI * 2); ctx.fill();
       };
-      // Scheibe = Innenraum der Kuppel (Polygon für den Zuschnitt)
-      var scheibe = []; for (i = 0; i < 24; i++) { var w = i / 24 * Math.PI * 2; scheibe.push([0.12 + Math.cos(w) * 0.46, 0.44 + Math.sin(w) * 0.56]); }
-      return { hinten: hinten, vorne: vorne, fahrerKoerper: [-0.17, 0.0, 0.34, 0.42], arme: [0.05, 0.36, 0.32, 0.2],
-               fahrerNachVorne: true, scheibe: scheibe, ohneFedern: true, ohneRaeder: true, beifahrer: { x: -0.5, y: 0.45 } };
+      var hintenGanz = function () { hinten(); bein(0, false); };
+      var scheibe = []; for (i = 0; i < 28; i++) { var w = i / 28 * Math.PI * 2; scheibe.push([0.25 + Math.cos(w) * 0.54, 0.7 + Math.sin(w) * 0.68]); }
+      return { hinten: hintenGanz, vorne: vorne, fahrerKoerper: [-0.05, 0.3, 0.34, 0.42], arme: [0.12, 0.62, 0.55, 0.38],
+               fahrerNachVorne: true, scheibe: scheibe, ohneFedern: true, ohneRaeder: true, beifahrer: { x: -0.35, y: 0.7 } };
     },
 
     skateboard: function (ctx, a, z, fz) {
