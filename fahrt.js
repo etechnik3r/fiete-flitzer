@@ -749,6 +749,14 @@ var FF = globalThis.FF = globalThis.FF || {};
       fz.zusatzMoment = this.zustand === "fahrt" ? M : 0;
       return;
     }
+    if (w.segway && inDerLuft && this.zustand === "fahrt") {
+      // Einrad in der Luft: das Kind streckt sich zur Landestelle aus (Soll = Hangwinkel dort), Gas/Bremse verstellen
+      // den Soll-Winkel um bis zu ±0,5 rad (Nase hoch/runter) – wie ein Kreisel, aber ohne Saltos von allein
+      var hangL = Math.atan(this.gelaende.steigungBei(C.x + Math.max(0, Math.min(3, C.vx * 0.4))));
+      var sollL = hangL + 0.5 * (this.gas - this.bremse) * (this.tank > 0 ? 1 : 0.4);
+      fz.zusatzMoment = Math.max(-J * 16, Math.min(J * 16, (-normWinkel(C.a - sollL) * 16 - C.w * 3.5) * J));
+      return;
+    }
     if (w.balance && fz.raeder.length === 1 && !inDerLuft) {
       // Einrad: EIN Rad, das Kind ist ein umgekehrtes Pendel (Trägheit m·L² um die Radachse) und hält sich selbst aufrecht
       // – etwas lockerer als der Scooter (kp 22 statt festem Anschlag), darum wackelt es sichtbar

@@ -836,7 +836,7 @@ FF.CONFIG = {
       masse: 62, groesse: { laenge: 0.8, hoehe: 1.6 },
       raeder: [ { x: 0, y: -0.78, r: 0.5, masse: 5, antrieb: true } ],
       federung: { ruhe: 0.1, weg: 0.09, frequenz: 3.0, daempfung: 0.6 },
-      motor: { drehmoment: 125, vmax: 8.5, eck: 0.8 }, bremse: 170, grip: 1.05,
+      motor: { drehmoment: 230, vmax: 8.5, eck: 0.8 }, bremse: 200, grip: 1.2,
       tankSekunden: 36, luftsteuerung: 6.0, cwA: 0.45, abtrieb: 0,
       balance: 0.9, leerlauf: 0, freilauf: true, puste: { erholung: 0.45 },
       // Segway-Prinzip (fahrt.js): Gas = nach vorn lehnen (vor [rad] bei Vollgas), erst die Vorlage lässt das Rad
@@ -1963,6 +1963,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "59", titel: "Einrad klettert besser", punkte: [
+      "🤹 Das Einrad hat fast doppelt so viel Kraft und mehr Grip, damit kommt es auch steile Berge hinauf",
+      "🤹 In der Luft streckt sich das Kind zur Landestelle aus und kippt nicht mehr so leicht. Gas hebt die Nase, Bremse senkt sie, aber es dreht sich nicht mehr von allein im Kreis" ] },
     { version: "58", titel: "Schneller Mech, Einrad wie ein Segway", punkte: [
       "🤖 Der Lauf-Mech ist fast doppelt so groß und mehr als doppelt so schnell (41 km/h): kantiger Panzerrumpf mit Warnstreifen, Lüftungsgittern, Auspuff und drehender Radarschüssel, hydraulische Beine mit Kolben und Zahnrad-Knie, ein Greifarm schwingt beim Laufen mit",
       "🤹 Das Einrad fährt jetzt wie ein Segway: Zum Beschleunigen lehnt sich das Kind nach vorn, erst dadurch zieht das Rad los. Zum Bremsen lehnt es sich zurück. Es kippt nie flach" ] },
