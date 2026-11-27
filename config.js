@@ -1969,6 +1969,8 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "62", titel: "Mech-Beine im Sprung", punkte: [
+      "🤖 Im Sprung streckt der Mech die Beine ruhig nach vorn, bereit zur weichen Landung, statt zu zappeln. Beim Anfahren rutschen die Füße sichtbar nach hinten weg" ] },
     { version: "61", titel: "Mech rutscht und springt", punkte: [
       "🤖 Der Lauf-Mech bremst jetzt richtig: Er rammt die Füße in den Boden und rutscht mit Staubwolke aus, statt nur langsamer zu werden. Beim Anfahren rutschen die schweren Füße erst ein bisschen durch",
       "🦘 Neue Fähigkeit nur für den Mech: Gas und Bremse gleichzeitig drücken – dann geht er kurz in die Knie und springt hoch und nach vorn. Ein Zeichen zwischen den Pedalen zeigt, wann er wieder springen kann" ] },

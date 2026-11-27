@@ -1065,7 +1065,6 @@
           if (e.neu) FF.Klang.spiele("rutsch");
           for (var rk = 0; rk < 2; rk++) partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 0.6, y: e.y, vx: 1 + Math.random() * 2.5, vy: 0.3 + Math.random() * 0.9,
             t: 0, dauer: 0.6, r0: 0.12, r1: 0.5, farbe: fahrt.welt.farben.punkte, alpha: 0.65, reibung: 2 });
-          if (ersteMale("tipp-mech-rutsch", 1)) { schwebeText(e.x, e.y + 2, "Rutsch! 💨", "#ffd23f", true); }
           break;
         case "anfahren":                 // Lauf-Mech: die schweren Füße rutschen beim Anfahren durch
           if (e.tempo < 1.5 || Math.random() < 0.35) FF.Klang.spiele("stampf", 0.3);
