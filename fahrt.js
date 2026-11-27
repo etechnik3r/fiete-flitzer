@@ -954,17 +954,25 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (M.q === undefined || Math.abs(C.x - M.xAlt) > 3) M.q = C.x / L.schritt;           // Start / Wiederaufsetzen: Phase neu
     else M.q += (C.x - M.xAlt) / L.schritt + M.anlauf * L.durchdreh * h;
     M.xAlt = C.x;
-    var q = M.q;
+    // Stehen: ohne Gas und Tempo nimmt der Mech beide Füße nebeneinander auf den Boden (kein Fuß in der Luft)
+    var steht = this.zustand !== "ende" && boden && this.gas < 0.05 && Math.abs(v) < 0.6 && !(M.rutsch > 0.05) && !lb;
+    M.steh = Math.max(0, Math.min(1, (M.steh || 0) + (steht ? 4 : -6) * h));
+    if (M.steh >= 1) {                                                          // im Stand die Phase auf „beide Füße am Boden“ legen
+      M.q = Math.floor(M.q) + L.standPhase; M.zaehler = Math.floor(2 * M.q);
+    }
+    var q = M.q, sa0 = L.standanteil, halb = sa0 * L.schritt / 2;               // halb: so weit reicht der Fuß vor und zurück
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     for (var i = 0; i < 2; i++) {
       var u = q + 0.5 * i; u -= Math.floor(u);
-      var rel, hub = 0, sw = u >= 0.5 ? (u - 0.5) * 2 : -1;                   // Schwungphase 0…1 (sonst −1)
-      if (u < 0.5) rel = L.schritt * (0.25 - u);                               // Standphase: Fuß bleibt stehen
-      else { rel = L.schritt * (-0.25 + 0.5 * sw); hub = L.hub * Math.sin(Math.PI * sw); }
+      var rel, hub = 0, sw = -1;                                               // sw: Schwungphase 0…1 (sonst −1)
+      if (u < sa0) rel = halb * (1 - 2 * u / sa0);                             // Standphase: Fuß bleibt stehen, der Körper schreitet darüber (vorn → hinten)
+      else { sw = (u - sa0) / (1 - sa0); rel = -halb + 2 * halb * (0.6 * sw + 0.2 - 0.2 * Math.cos(Math.PI * sw)); hub = L.hub * Math.sin(Math.PI * sw); }   // Schwung: weich beschleunigen und bremsen
       var rs = M.rutsch || 0;
-      if (rs > 0) { rel += rs * ((i ? 0.7 : 1.5) - rel); hub *= 1 - rs; }        // Rutschen: beide Füße stehen vorn im Boden
+      if (rs > 0) { rel += rs * ((i ? 0.4 : 1.05) - rel); hub *= 1 - rs; }      // Rutschen: beide Füße stehen vorn im Boden
+      var stb = M.steh || 0;
+      if (stb > 0) { rel += stb * ((i ? -0.38 : 0.38) - rel); hub *= 1 - stb; }   // Stehen: unter den Hüften
       var fx = C.x + rel, fy = gel.hoeheBei(fx) + 0.1 + hub * (boden ? 1 : 0.5);
-      var fw = Math.atan(gel.steigungBei(fx)) + (sw >= 0 ? -0.5 * Math.sin(2 * Math.PI * sw) : 0);   // Fußplatte folgt dem Hang, beim Schwung erst Spitze runter, dann hoch
+      var fw = Math.atan(gel.steigungBei(fx)) + (sw >= 0 ? -0.3 * Math.sin(2 * Math.PI * sw) : 0);   // Fußplatte folgt dem Hang, beim Schwung leicht gekippt
       if (lb > 0) {                                                            // Luft-Haltung in Körper-Koordinaten (Hüfte bei y = −0,72)
         var lx = (i ? 0.75 : 1.2) + 0.15 * nah, ly = -2.05 - 0.3 * nah;
         var ex = C.x + ca * lx - sa * ly, ey = C.y + sa * lx + ca * ly;
@@ -974,7 +982,9 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     var n = Math.floor(2 * q);
     if (n !== M.zaehler) {
-      if (this.zustand === "fahrt" && boden && (Math.abs(C.vx) > 0.3 || M.anlauf > 0.3) && !(M.rutsch > 0.3)) {
+      M.stampfT = (M.stampfT || 0);
+      if (this.zustand === "fahrt" && boden && (Math.abs(C.vx) > 0.3 || M.anlauf > 0.3) && !(M.rutsch > 0.3) && this.zeit - M.stampfT > 0.17) {
+        M.stampfT = this.zeit;
         var fu = M.fuesse[(n % 2 + 2) % 2 === 0 ? 0 : 1];
         this.melde("schritt", { x: fu.x, y: fu.y, tempo: Math.abs(C.vx) });
       }

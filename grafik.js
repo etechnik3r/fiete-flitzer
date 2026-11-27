@@ -1280,7 +1280,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         if (fz && fz.mech) F.push(fz.mech.fuesse[i]);
         else { var R = fz && fz.raeder && fz.raeder[i]; F.push(R && R.lokalY !== undefined ? { lx: (i ? -0.7 : 0.7), ly: R.lokalY - R.r + 0.1, lw: 0 } : { lx: 0, ly: -2.3, lw: 0 }); }
       }
-      var laufQ = fz && fz.mech ? fz.chassis.x / 6.0 * Math.PI * 2 : 0;
+      var laufQ = fz && fz.mech && fz.mech.q !== undefined ? fz.mech.q * Math.PI * 2 : 0;
       var kolben = function (x0, y0, x1, y1, d) {                     // Hydraulikzylinder: Zylinder + Chromstange, parallel zur Strecke
         var dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * d, ny = dx / l * d;
         ctx.strokeStyle = "#2f3650"; ctx.lineWidth = 0.1; ctx.lineCap = "butt";

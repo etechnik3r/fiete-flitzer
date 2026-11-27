@@ -877,10 +877,11 @@ FF.CONFIG = {
       motor: { drehmoment: 3200, vmax: 11.5, eck: 0.6 }, bremse: 4200, grip: 1.15,
       tankSekunden: 38, luftsteuerung: 2.2, cwA: 1.4, abtrieb: 0, matschFest: 0.4,
       akku: true, leerlauf: 0.05, balance: 1.6,       // balance: die Beine halten den Körper ruhig (sonst Wheelie beim Anfahren)
-      lauf: { schritt: 6.0, huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.65, hopMax: 1.2, zug: 16,
+      lauf: { schritt: 4.4, standanteil: 0.55, standPhase: 0.08,   // Version 64: kürzere, roboterhafte Schritte; 55 % der Zeit steht ein Fuß, dazwischen beide am Boden
+               huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.5, hopMax: 1.2, zug: 16,
               /* Version 61: Bremse = Füße in den Boden rammen und rutschen (rutsch m/s²), Anfahren rutscht durch (unter
                  anlaufTempo m/s greifen die Füße nur zu anlaufGrip), Gas + Bremse = Sprung (sprungV hoch, sprungVor nach vorn) */
-              rutsch: 7.5, durchdreh: 1.2, anlaufGrip: 0.4, anlaufTempo: 4.5,
+              rutsch: 7.5, durchdreh: 1.8, anlaufGrip: 0.4, anlaufTempo: 4.5,
               sprungV: 8.5, sprungVor: 3.15, sprungLadung: 0.2, sprungPause: 1.6, sprungKosten: 0.03 },
       upgradeNamen: {
         motor:    { name: "Servos",   icon: "🔩", text: "Stärkere Servos – schneller und kräftiger laufen" },
@@ -1969,6 +1970,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "64", titel: "Mech läuft wie ein Roboter", punkte: [
+      "🤖 Der Lauf-Mech macht kürzere, steifere Roboter-Schritte statt weit ausgreifender. Zwischen den Schritten stehen kurz beide Füße am Boden",
+      "🤖 Wenn er stehen bleibt, stellt er beide Füße nebeneinander auf den Boden und steht nicht mehr auf einem Bein" ] },
     { version: "63", titel: "Mech: Füße drehen durch", punkte: [
       "🤖 Beim Anfahren drehen die Füße jetzt wirklich durch: Sie schrubben schnell nach hinten über den Boden, während der Mech nur langsam in Fahrt kommt",
       "🤖 Die Bremse wirkt sofort, und danach bleibt der Mech einfach stehen, statt rückwärts zu laufen. Fußbewegungen sind runder, ohne plötzliche Sprünge",
