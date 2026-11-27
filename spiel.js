@@ -1061,6 +1061,28 @@
           for (var sk = 0; sk < 3; sk++) partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 0.5, y: e.y, vx: (Math.random() - 0.5) * 2.5, vy: 0.4 + Math.random() * 0.9,
             t: 0, dauer: 0.55, r0: 0.1, r1: 0.4, farbe: fahrt.welt.farben.punkte, alpha: 0.6, reibung: 2 });
           break;
+        case "rutsch":                   // Lauf-Mech bremst: Füße rutschen über den Boden
+          if (e.neu) FF.Klang.spiele("rutsch");
+          for (var rk = 0; rk < 2; rk++) partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 0.6, y: e.y, vx: 1 + Math.random() * 2.5, vy: 0.3 + Math.random() * 0.9,
+            t: 0, dauer: 0.6, r0: 0.12, r1: 0.5, farbe: fahrt.welt.farben.punkte, alpha: 0.65, reibung: 2 });
+          if (ersteMale("tipp-mech-rutsch", 1)) { schwebeText(e.x, e.y + 2, "Rutsch! 💨", "#ffd23f", true); }
+          break;
+        case "anfahren":                 // Lauf-Mech: die schweren Füße rutschen beim Anfahren durch
+          if (e.tempo < 1.5 || Math.random() < 0.35) FF.Klang.spiele("stampf", 0.3);
+          partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 0.6, y: e.y, vx: -1 - Math.random() * 2, vy: 0.3 + Math.random() * 0.7,
+            t: 0, dauer: 0.5, r0: 0.1, r1: 0.4, farbe: fahrt.welt.farben.punkte, alpha: 0.55, reibung: 2 });
+          break;
+        case "sprung":                   // Lauf-Mech springt: Staubring unter den Füßen, Hydraulik-Zischen
+          FF.Klang.spiele("mechSprung");
+          schwebeText(e.x, e.y + 3, "Hui! 🦘", "#ffd23f", true);
+          for (var sj = 0; sj < 9; sj++) partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 1.6, y: e.y, vx: (sj - 4) * 0.9, vy: 0.5 + Math.random() * 1.2,
+            t: 0, dauer: 0.7, r0: 0.15, r1: 0.6, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 2 });
+          break;
+        case "mechLandung":              // Lauf-Mech landet nach dem Sprung: dicker Stampfer
+          FF.Klang.spiele("stampf", 1); FF.Klang.spiele("stampf", 1);
+          for (var sl = 0; sl < 8; sl++) partikel.neu({ art: "staub", x: e.x + (Math.random() - 0.5) * 1.6, y: e.y, vx: (sl - 3.5) * 1.1, vy: 0.4 + Math.random() * 1.0,
+            t: 0, dauer: 0.7, r0: 0.15, r1: 0.6, farbe: fahrt.welt.farben.punkte, alpha: 0.7, reibung: 2 });
+          break;
         case "eis":                      // Weihnachtswelt: auf Glatteis gefahren
           FF.Klang.spiele("eis");
           schwebeText(e.x, e.y + 2, "Glatteis! 🧊", "#cdeeff", true);
@@ -1378,7 +1400,9 @@
           FF.Klang.sprich("Los!");
           $("ampel-titel").style.visibility = "hidden";
           $("hochkant-hinweis").hidden = true;
-          if (tippSchlange.length) tippZeigen.apply(null, tippSchlange.shift());
+          if (fahrt && fahrt.werte.lauf && S.einstellungen.tipps && ersteMale("tipp-mech-sprung", 4)) {
+            tippZeigen("🦘 Der Mech kann springen: Gas und Bremse gleichzeitig drücken!", 5000, "Gas und Bremse zusammen, dann springt der Mech!"); spruchBis = zeit + 3;
+          } else if (tippSchlange.length) tippZeigen.apply(null, tippSchlange.shift());
         }
       }
     }
@@ -1395,6 +1419,14 @@
       $("hud-tank-fuellung").style.width = t + "%";
       $("hud-tank").classList.toggle("knapp", fahrt.tank < C.regeln.tankWarnung);
       hudCache.t = t;
+    }
+    var mm = fahrt.werte.lauf && fahrt.fz.mech, sh = $("sprung-hinweis");       // Lauf-Mech: Sprung-Anzeige
+    if (sh.hidden === !!mm) sh.hidden = !mm;
+    if (mm) {
+      var sb = mm.sprungBereit === undefined ? 1 : mm.sprungBereit, sd = mm.ladung > 0;
+      sh.style.setProperty("--ladung", sb);
+      sh.classList.toggle("bereit", sb >= 1 && !sd);
+      sh.classList.toggle("druck", sd);
     }
     var es = fahrt.extraStand();
     var schluessel = es.boost + "|" + Math.round(es.boostAn * 40) + "|" + es.federSalti + "|" + es.boostBereit + "|" + es.federBereit + "|" + Math.ceil(es.federSperre);

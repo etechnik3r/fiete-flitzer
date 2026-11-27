@@ -863,9 +863,11 @@ FF.CONFIG = {
          über Kanten (Fuß-Höhe = Gelände). Die Physik trägt der Mech auf zwei gefederten
          Stützpunkten (unsichtbare „Füße“ mit langem Federweg = die Beine): Er steigt über
          Stufen und Brocken, ist schwer und steht fest. Jeder Schritt stampft (Ereignis „schritt“).
-         Dafür gemächlich (vmax 5,5 m/s = 20 km/h) und träge in der Luft. Akku statt Benzin. */
+         Dafür gemächlich (vmax 5,5 m/s = 20 km/h) und träge in der Luft. Akku statt Benzin.
+         Version 61: Bremse rammt die Füße in den Boden (er rutscht mit Staub aus), Anfahren rutscht durch, und Gas + Bremse
+         zusammen = Sprung (nur der Mech, siehe fahrt.js mechRutschSprung). */
       id: "mech", name: "Lauf-Mech", emoji: "🤖", preis: 15000, preisBasis: 330,
-      text: "Ein riesiger Laufroboter! Er stapft auf zwei hydraulischen Beinen über Stufen und Brocken, steht felsenfest und ist dabei richtig flott. Dafür ist er in der Luft schwerfällig.",
+      text: "Ein riesiger Laufroboter! Er stapft auf zwei hydraulischen Beinen über Stufen und Brocken, steht felsenfest und ist dabei richtig flott. Dafür ist er in der Luft schwerfällig. Sein Geheimnis: Gas und Bremse zusammen drücken – dann springt er! 🦘",
       masse: 900, groesse: { laenge: 3.0, hoehe: 2.7 },
       raeder: [
         { x: -0.85, y: -0.55, r: 0.4, masse: 40, antrieb: true },
@@ -875,7 +877,11 @@ FF.CONFIG = {
       motor: { drehmoment: 3200, vmax: 11.5, eck: 0.6 }, bremse: 4200, grip: 1.15,
       tankSekunden: 38, luftsteuerung: 2.2, cwA: 1.4, abtrieb: 0, matschFest: 0.4,
       akku: true, leerlauf: 0.05, balance: 1.6,       // balance: die Beine halten den Körper ruhig (sonst Wheelie beim Anfahren)
-      lauf: { schritt: 6.0, huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.65, hopMax: 1.2, zug: 16 },
+      lauf: { schritt: 6.0, huefte: [0, -0.7], oberschenkel: 1.25, unterschenkel: 1.25, hub: 0.65, hopMax: 1.2, zug: 16,
+              /* Version 61: Bremse = Füße in den Boden rammen und rutschen (rutsch m/s²), Anfahren rutscht durch (unter
+                 anlaufTempo m/s greifen die Füße nur zu anlaufGrip), Gas + Bremse = Sprung (sprungV hoch, sprungVor nach vorn) */
+              rutsch: 7.5, anlaufGrip: 0.4, anlaufTempo: 4.5,
+              sprungV: 8.5, sprungVor: 4.5, sprungLadung: 0.2, sprungPause: 1.6, sprungKosten: 0.03 },
       upgradeNamen: {
         motor:    { name: "Servos",   icon: "🔩", text: "Stärkere Servos – schneller und kräftiger laufen" },
         reifen:   { name: "Fußplatten", icon: "🦶", text: "Griffigere Fußplatten" },
@@ -1963,6 +1969,9 @@ FF.CONFIG = {
   /* Was ist neu? (Hilfe-Seite). Neueste Version oben; die Nummer ist dieselbe wie
      VERSION in sw.js und ?v= in index.html. */
   neuigkeiten: [
+    { version: "61", titel: "Mech rutscht und springt", punkte: [
+      "🤖 Der Lauf-Mech bremst jetzt richtig: Er rammt die Füße in den Boden und rutscht mit Staubwolke aus, statt nur langsamer zu werden. Beim Anfahren rutschen die schweren Füße erst ein bisschen durch",
+      "🦘 Neue Fähigkeit nur für den Mech: Gas und Bremse gleichzeitig drücken – dann geht er kurz in die Knie und springt hoch und nach vorn. Ein Zeichen zwischen den Pedalen zeigt, wann er wieder springen kann" ] },
     { version: "60", titel: "Mech bleibt am Boden", punkte: [
       "🤖 Der Lauf-Mech hebt nicht mehr bei jeder Kuppe und jedem Brocken ab: Die Beine halten Bodenkontakt und federn Unebenheiten ab. Große Schanzen bei hohem Tempo fliegt er trotzdem" ] },
     { version: "59", titel: "Einrad klettert besser", punkte: [

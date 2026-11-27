@@ -1055,6 +1055,12 @@ var FF = globalThis.FF = globalThis.FF || {};
         rauschen(0, 0.2, 0.1 + 0.08 * (wert || 0.5), 380);
         ton(75, 0, 0.14, "sine", 0.22, 45); ton(420, 0.01, 0.06, "square", 0.025, 300); ton(210, 0.03, 0.08, "triangle", 0.03);
         break;
+      case "rutsch":                   // Lauf-Mech bremst: Metallfüße schleifen über den Boden
+        rauschen(0, 0.7, 0.16, 1400); rauschen(0.05, 0.6, 0.1, 3200); ton(95, 0, 0.5, "sawtooth", 0.05, 55);
+        break;
+      case "mechSprung":               // Lauf-Mech springt: Hydraulik zischt, Servos heulen auf
+        rauschen(0, 0.35, 0.2, 5200); ton(140, 0, 0.3, "sawtooth", 0.07, 520); ton(70, 0, 0.18, "sine", 0.25, 40); ton(880, 0.05, 0.2, "triangle", 0.03, 1500);
+        break;
       case "knusper":                  // Lebkuchenhaus kracht: Knuspern, Brechen, ein paar Klicks
         rauschen(0, 0.5, 0.2, 2600); rauschen(0.05, 0.35, 0.12, 5200);
         for (var ki = 0; ki < 6; ki++) ton(380 + ((ki * 137) % 500), ki * 0.045, 0.04, "square", 0.045);

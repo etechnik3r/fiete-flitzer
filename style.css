@@ -248,6 +248,31 @@ button { font: inherit; color: inherit; }
 /* Der Bremse-Pfeil sitzt rechts neben dem Pedal – darüber liegen die Zusatz-Knöpfe */
 .pedale.luft .pedal-bremse::before { top: 10px; left: calc(100% + 34px); }
 
+/* Sprung-Anzeige des Lauf-Mechs, mittig zwischen den Pedalen: rote + grüne Taste = 🦘. --ladung (0…1) füllt den Rand. */
+.sprung-hinweis {
+  --ladung: 1;
+  position: fixed; z-index: 11; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px 6px 10px; border-radius: 999px;
+  background: conic-gradient(from 0deg, #ffd23f calc(var(--ladung) * 360deg), rgba(255, 255, 255, 0.45) 0) border-box;
+  border: 4px solid transparent;
+  box-shadow: var(--sh-card);
+  pointer-events: none;
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(0.9rem, 2.8vw, 1.1rem); color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  isolation: isolate;
+}
+.sprung-hinweis::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 999px; background: rgba(40, 50, 80, 0.78); }
+.sprung-tasten { display: flex; align-items: center; gap: 3px; font-size: 1rem; }
+.sprung-tasten i { display: block; width: 14px; height: 18px; border-radius: 5px 5px 7px 7px; }
+.sprung-rot { background: var(--rot); } .sprung-gruen { background: var(--cta); }
+.sprung-icon { font-size: 1.5rem; line-height: 1; filter: grayscale(1); opacity: 0.6; transition: filter 0.2s, opacity 0.2s; }
+.sprung-hinweis.bereit .sprung-icon { filter: none; opacity: 1; animation: sprungWippen 0.9s ease-in-out infinite; }
+.sprung-hinweis.druck .sprung-icon { filter: none; opacity: 1; animation: none; transform: scaleY(0.7) translateY(4px); }
+@keyframes sprungWippen { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .sprung-hinweis.bereit .sprung-icon { animation: none; } }
+
 /* Zusatz-Knöpfe 🚀 🦘 links über der Bremse. --ladung (0…1) füllt den Ring. */
 .extras {
   position: fixed; z-index: 11;

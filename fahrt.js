@@ -575,7 +575,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     if (w.zauber) this.teppichSchritt(h);
     if (w.luftkissen) this.luftkissenSchritt(h);
     if (w.pogo) this.pogoSchritt(h);
-    if (w.lauf) this.mechHaftung(h);
+    if (w.lauf) { this.mechRutschSprung(h); this.mechHaftung(h); }
     if (this.gelaende.dyn.length) { var self = this; this.gelaende.dynSchritt(h, fz, function (t, d) { self.melde(t, d); }); }
     FF.Physik.schritt(fz, this.gelaende, this.welt, h);
     if (w.lauf) this.mechSchritt();
@@ -704,6 +704,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       var rel = Math.abs(R.k.w - (R.mk || R.tr || C).w);   // relativ zum Motorträger
       var wEck = this.eck * R.wMax;
       var Tkurve = rel <= wEck ? Tmax : Tmax * wEck / rel;   // konstantes Moment, dann konstante Leistung
+      if (w.lauf) Tkurve *= w.lauf.anlaufGrip + (1 - w.lauf.anlaufGrip) * Math.max(0, Math.min(1, fz.status.vorwaerts / w.lauf.anlaufTempo));   // Mech: die schweren Füße rutschen beim Anfahren durch
       if (this.gas > 0.01 && motorAn) {
         R.motorZiel = -R.wMax;                               // vorwärts = Rad dreht im Uhrzeigersinn
         R.motorMax = R.antrieb ? Tkurve * this.gas / nA : 0;
@@ -713,7 +714,7 @@ var FF = globalThis.FF = globalThis.FF || {};
         }
       } else if (bremsen) {
         R.motorZiel = 0;
-        R.motorMax = w.bremse * bremsKraft / nAlle;
+        R.motorMax = w.bremse * bremsKraft / nAlle * (w.lauf ? 0.25 : 1);   // Mech: die Füße rutschen (mechRutschSprung), die Räder bremsen nur wenig
       } else if (this.rueckwaerts && motorAn) {
         R.motorZiel = R.wMax * S.rueckwaertsTempo;
         R.motorMax = R.antrieb ? Tkurve * S.rueckwaertsKraft * (w.rueckMal || 1) * this.bremse / nA : 0;
@@ -799,7 +800,7 @@ var FF = globalThis.FF = globalThis.FF || {};
       }
     } else if ((w.stabilisator || w.balance) && st.radKontakte > 0) {
       // Stabilisator (Leicht) bzw. Gleichgewichtssinn (Skateboard: das Kind balanciert)
-      var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)) + (w.lauf ? 0.1 * this.gas : 0));   // Mech: beim Laufen leicht nach vorn gebeugt
+      var d = normWinkel(C.a - Math.atan(this.gelaende.steigungBei(C.x)) + (w.lauf ? 0.1 * this.gas - 0.16 * (fz.mech ? fz.mech.rutsch : 0) : 0));   // Mech: beim Laufen leicht nach vorn gebeugt, beim Rutschen zurückgelehnt
       // Beim Skateboard lehnt sich das Kind kräftig vor: früher und stärker (bis 28 rad/s²),
       // so bleibt das Brett bergauf auch mit Gas meist unten – nur steil muss man kurz lupfen
       var balanciert = w.balance && !w.stabilisator;
@@ -860,6 +861,59 @@ var FF = globalThis.FF = globalThis.FF || {};
     this.pogoWarBoden = boden;
   };
 
+  /* Lauf-Mech (Version 61): drei Dinge, die nur der Mech kann.
+     1) Bremse (ohne Gas, bei Tempo): Die Füße werden in den Boden gerammt, der Mech rutscht mit lauf.rutsch m/s²
+        aus (Staub, Schleifgeräusch); die Füße stehen dabei vorn, der Körper lehnt sich zurück (fz.mech.rutsch 0…1).
+     2) Anfahren: unter lauf.anlaufTempo greifen die Füße nur zu lauf.anlaufGrip (setzeAntrieb), dazu Staub.
+     3) Gas + Bremse zusammen am Boden: kurz in die Knie (lauf.sprungLadung s), dann Sprung nach oben und vorn
+        (sprungV, sprungVor), kostet etwas Akku; danach lauf.sprungPause s Pause. fz.mech.sprungBereit (0…1) und
+        .ladung (0…1) für die Anzeige. Ereignisse „rutsch“, „anfahren“, „sprung“, „mechLandung“. */
+  Fahrt.prototype.mechRutschSprung = function (h) {
+    var L = this.werte.lauf, fz = this.fz, C = fz.chassis, st = fz.status, boden = st.radKontakte > 0, fahrt = this.zustand === "fahrt";
+    var M = fz.mech || (fz.mech = { fuesse: [{ x: C.x, y: 0, luft: 0 }, { x: C.x, y: 0, luft: 0 }], zaehler: Math.floor(2 * C.x / L.schritt) });
+    var v = st.vorwaerts, ts = Math.atan(this.gelaende.steigungBei(C.x)), tx = Math.cos(ts), ty = Math.sin(ts);
+    var schieben = function (dvx, dvy) { C.vx += dvx; C.vy += dvy; fz.raeder.forEach(function (R) { R.k.vx += dvx; R.k.vy += dvy; }); };
+    this.mechSprungWarte = Math.max(0, (this.mechSprungWarte || 0) - h);
+    this.mechSprungZeit = Math.max(0, (this.mechSprungZeit || 0) - h);
+    // 3) Sprung
+    var beide = fahrt && this.gas > 0.5 && this.bremse > 0.5 && this.tank > 0;
+    if (beide && boden && this.mechSprungWarte <= 0) {
+      this.mechLadung = (this.mechLadung || 0) + h;
+      if (this.mechLadung >= L.sprungLadung) {
+        this.mechLadung = 0; this.mechSprungWarte = L.sprungPause; this.mechSprungZeit = 0.5; this.mechImSprung = true;
+        C.w = 0; schieben(L.sprungVor, L.sprungV);
+        this.tank = Math.max(0, this.tank - L.sprungKosten);
+        this.melde("sprung", { x: C.x, y: C.y - 1.2 });
+      }
+    } else this.mechLadung = Math.max(0, (this.mechLadung || 0) - 2 * h);
+    if (this.mechImSprung && !boden) C.w += (-6 * normWinkel(C.a) - 3 * C.w) * h;      // im Sprung hält der Mech sich von selbst aufrecht
+    if (this.mechImSprung && !boden && C.vy < -3.5 && C.y - this.gelaende.hoeheBei(C.x) < 3.4) {   // Landung: die Beine federn den Fall ab
+      var dvL = Math.min(-3.5 - C.vy, 45 * h); schieben(0, dvL);
+    }
+    if (this.mechImSprung && boden && this.mechSprungZeit <= 0) {
+      this.mechImSprung = false;
+      this.melde("mechLandung", { x: C.x, y: C.y - 1.2, tempo: Math.abs(C.vy) });
+    }
+    // 1) Rutschen beim Bremsen
+    var rutscht = fahrt && boden && this.gas < 0.05 && this.bremse > 0.05 && v > 0.8 && this.mechSprungZeit <= 0;
+    if (rutscht) {
+      var dv = Math.min(v, L.rutsch * Math.min(1, 0.4 + this.bremse) * h);
+      schieben(-tx * dv, -ty * dv);
+      this.mechStaub = (this.mechStaub || 0) - h;
+      if (this.mechStaub <= 0) { this.mechStaub = 0.07; this.melde("rutsch", { x: C.x + 1.2, y: C.y - 1.35, tempo: v, neu: !this.mechRutschte }); }
+      this.mechRutschte = true;
+    } else if (v < 0.8 || !this.bremse) this.mechRutschte = false;
+    M.rutsch = Math.max(0, Math.min(1, (M.rutsch || 0) + (rutscht ? 8 : -4) * h));
+    // 2) Durchrutschen beim Anfahren: Staub hinter den Füßen
+    if (fahrt && boden && this.gas > 0.5 && this.tank > 0 && v < L.anlaufTempo) {
+      this.mechAnStaub = (this.mechAnStaub || 0) - h;
+      if (this.mechAnStaub <= 0) { this.mechAnStaub = 0.1; this.melde("anfahren", { x: C.x - 1.0, y: C.y - 1.35, tempo: v }); }
+    }
+    M.sprungBereit = this.mechSprungWarte > 0 ? 1 - this.mechSprungWarte / L.sprungPause : 1;
+    M.ladung = Math.min(1, (this.mechLadung || 0) / L.sprungLadung);
+    M.sprung = this.mechImSprung ? 1 : 0;
+  };
+
   /* Lauf-Mech: Die Beine halten Bodenkontakt. Der Roboter darf Kuppen und Brocken nicht wie ein Auto als Schanze
      benutzen: Am Boden wird die Aufwärtsgeschwindigkeit auf das begrenzt, was der Hang verlangt (+ lauf.hopMax),
      und in den ersten 0,45 s nach dem Verlust des Kontakts drücken die Beine ihn mit zusätzlicher Beschleunigung
@@ -867,6 +921,7 @@ var FF = globalThis.FF = globalThis.FF || {};
   Fahrt.prototype.mechHaftung = function (h) {
     var L = this.werte.lauf, fz = this.fz, C = fz.chassis, boden = fz.status.radKontakte > 0;
     if (this.zustand !== "fahrt") return;
+    if (this.mechSprungZeit > 0) { this.mechLuft = 1; return; }          // beim Sprung nicht festhalten
     if (boden) {
       this.mechLuft = 0;
       var sl = this.gelaende.steigungBei(C.x), lim = C.vx * sl + L.hopMax;
@@ -891,14 +946,16 @@ var FF = globalThis.FF = globalThis.FF || {};
       var rel, hub = 0;
       if (u < 0.5) rel = L.schritt * (0.25 - u);                               // Standphase: Fuß bleibt stehen
       else { var s = (u - 0.5) * 2; rel = L.schritt * (-0.25 + 0.5 * s); hub = L.hub * Math.sin(Math.PI * s); }
-      var fx = C.x + rel, fy = gel.hoeheBei(fx) + 0.1 + hub * (boden ? 1 : 0.5);
+      var rs = M.rutsch || 0;
+      if (rs > 0) { rel += rs * ((i ? 0.7 : 1.5) - rel); hub *= 1 - rs; }        // Rutschen: beide Füße stehen vorn im Boden
+      var fx = C.x + rel, fy = gel.hoeheBei(fx) + 0.1 + hub * (boden ? 1 : 0.5) + (M.sprung && !boden ? 0.55 : 0);   // im Sprung angezogen
       var sw = u >= 0.5 ? (u - 0.5) * 2 : -1;                                  // Schwungphase 0…1 (sonst −1)
       M.fuesse[i].x = fx; M.fuesse[i].y = fy; M.fuesse[i].luft = boden ? 0 : 1;
       M.fuesse[i].w = Math.atan(gel.steigungBei(fx)) + (sw >= 0 ? -0.5 * Math.sin(2 * Math.PI * sw) : 0);   // Fußplatte folgt dem Hang, beim Schwung erst Spitze runter, dann hoch
     }
     var n = Math.floor(2 * q);
     if (n !== M.zaehler) {
-      if (this.zustand === "fahrt" && boden && Math.abs(C.vx) > 0.3) {
+      if (this.zustand === "fahrt" && boden && Math.abs(C.vx) > 0.3 && !(M.rutsch > 0.3)) {
         var fu = M.fuesse[(n % 2 + 2) % 2 === 0 ? 0 : 1];
         this.melde("schritt", { x: fu.x, y: fu.y, tempo: Math.abs(C.vx) });
       }
