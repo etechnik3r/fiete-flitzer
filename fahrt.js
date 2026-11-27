@@ -686,7 +686,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     var gRel = Math.min(1, this.welt.schwerkraft / 9.81);
     var nA = this.nAntrieb, nAlle = fz.raeder.length, Tmax = w.motor.drehmoment * (0.4 + 0.6 * gRel);
     this.rueckwaerts = false;
-    var bremsen = this.bremse > 0.01 && (halten || !motorAn || fz.status.vorwaerts > S.rueckwaertsSchwelle);
+    var bremsen = this.bremse > 0.01 && (halten || !motorAn || fz.status.vorwaerts > S.rueckwaertsSchwelle || !!w.lauf);   // Mech: nie rückwärts, Bremse hält ihn im Stand
     if (!bremsen && this.bremse > 0.01 && this.gas <= 0.01) this.rueckwaerts = true;
 
     // Weltanfang: hinter dem Start ist nach gut einem Bildschirm Schluss. Kein Rückwärtsgang
@@ -895,15 +895,15 @@ var FF = globalThis.FF = globalThis.FF || {};
       this.melde("mechLandung", { x: C.x, y: C.y - 1.2, tempo: Math.abs(C.vy) });
     }
     // 1) Rutschen beim Bremsen
-    var rutscht = fahrt && boden && this.gas < 0.05 && this.bremse > 0.05 && v > 0.8 && this.mechSprungZeit <= 0;
+    var vt = C.vx * tx + C.vy * ty, rutscht = fahrt && boden && this.gas < 0.05 && this.bremse > 0.05 && Math.abs(vt) > 0.5 && this.mechSprungZeit <= 0;
     if (rutscht) {
-      var dv = Math.min(v, L.rutsch * Math.min(1, 0.4 + this.bremse) * h);
+      var dv = Math.min(Math.abs(vt), L.rutsch * h) * (vt > 0 ? 1 : -1);        // volle Verzögerung sofort
       schieben(-tx * dv, -ty * dv);
       this.mechStaub = (this.mechStaub || 0) - h;
       if (this.mechStaub <= 0) { this.mechStaub = 0.07; this.melde("rutsch", { x: C.x + 1.2, y: C.y - 1.35, tempo: v, neu: !this.mechRutschte }); }
       this.mechRutschte = true;
-    } else if (v < 0.8 || !this.bremse) this.mechRutschte = false;
-    M.rutsch = Math.max(0, Math.min(1, (M.rutsch || 0) + (rutscht ? 8 : -4) * h));
+    } else if (Math.abs(vt) < 0.5 || !this.bremse) this.mechRutschte = false;
+    M.rutsch = Math.max(0, Math.min(1, (M.rutsch || 0) + (rutscht ? 9 : -2.5) * h));
     // 2) Durchrutschen beim Anfahren: Staub hinter den Füßen
     if (fahrt && boden && this.gas > 0.5 && this.tank > 0 && v < L.anlaufTempo) {
       this.mechAnStaub = (this.mechAnStaub || 0) - h;
@@ -940,21 +940,27 @@ var FF = globalThis.FF = globalThis.FF || {};
   Fahrt.prototype.mechSchritt = function () {
     var L = this.werte.lauf, fz = this.fz, C = fz.chassis, gel = this.gelaende, st = fz.status;
     var M = fz.mech || (fz.mech = { fuesse: [{ x: C.x, y: 0, luft: 0 }, { x: C.x, y: 0, luft: 0 }], zaehler: Math.floor(2 * C.x / L.schritt) });
-    var q = C.x / L.schritt, boden = st.radKontakte > 0, v = st.vorwaerts;
+    var boden = st.radKontakte > 0, v = st.vorwaerts;
     // Sprung: Beine nicht mehr nach dem Weg, sondern fest am Körper – leicht angewinkelt nach vorn gestreckt, zur weichen Landung bereit
     var hoeheUeber = C.y - gel.hoeheBei(C.x), nah = Math.max(0, Math.min(1, (3.4 - hoeheUeber) / 1.4));
     var jetztLuft = M.sprung && !boden;
-    M.luftBlend = Math.max(0, Math.min(1, (M.luftBlend || 0) + (jetztLuft ? 7 : -9) * FF.CONFIG.physik.schrittweite));
+    M.luftBlend = Math.max(0, Math.min(1, (M.luftBlend || 0) + (jetztLuft ? 5 : -6) * FF.CONFIG.physik.schrittweite));
     var lb = M.luftBlend;
-    // Anfahren: die Füße rutschen im Stand nach hinten weg (0…1, je langsamer, desto mehr)
+    // Anfahren: die Füße drehen durch (0…1, je langsamer, desto mehr). Die Schrittphase läuft dann schneller als der Weg –
+    // die aufgesetzten Füße schrubben also nach hinten über den Boden, während der Körper nur langsam vorankommt.
     var an = this.zustand === "fahrt" && boden && this.gas > 0.3 && this.tank > 0 ? Math.max(0, 1 - v / L.anlaufTempo) : 0;
-    M.anlauf = (M.anlauf || 0) + (an - (M.anlauf || 0)) * 0.15;
+    M.anlauf = (M.anlauf || 0) + (an - (M.anlauf || 0)) * 0.04;
+    var h = FF.CONFIG.physik.schrittweite;
+    if (M.q === undefined || Math.abs(C.x - M.xAlt) > 3) M.q = C.x / L.schritt;           // Start / Wiederaufsetzen: Phase neu
+    else M.q += (C.x - M.xAlt) / L.schritt + M.anlauf * L.durchdreh * h;
+    M.xAlt = C.x;
+    var q = M.q;
     var ca = Math.cos(C.a), sa = Math.sin(C.a);
     for (var i = 0; i < 2; i++) {
       var u = q + 0.5 * i; u -= Math.floor(u);
       var rel, hub = 0, sw = u >= 0.5 ? (u - 0.5) * 2 : -1;                   // Schwungphase 0…1 (sonst −1)
-      if (u < 0.5) rel = L.schritt * (0.25 - u) - M.anlauf * 1.1 * (u / 0.5);   // Standphase: Fuß bleibt stehen (beim Anfahren rutscht er zurück)
-      else { rel = L.schritt * (-0.25 + 0.5 * sw) - M.anlauf * 1.1 * (1 - sw); hub = L.hub * Math.sin(Math.PI * sw); }
+      if (u < 0.5) rel = L.schritt * (0.25 - u);                               // Standphase: Fuß bleibt stehen
+      else { rel = L.schritt * (-0.25 + 0.5 * sw); hub = L.hub * Math.sin(Math.PI * sw); }
       var rs = M.rutsch || 0;
       if (rs > 0) { rel += rs * ((i ? 0.7 : 1.5) - rel); hub *= 1 - rs; }        // Rutschen: beide Füße stehen vorn im Boden
       var fx = C.x + rel, fy = gel.hoeheBei(fx) + 0.1 + hub * (boden ? 1 : 0.5);
@@ -968,7 +974,7 @@ var FF = globalThis.FF = globalThis.FF || {};
     }
     var n = Math.floor(2 * q);
     if (n !== M.zaehler) {
-      if (this.zustand === "fahrt" && boden && Math.abs(C.vx) > 0.3 && !(M.rutsch > 0.3)) {
+      if (this.zustand === "fahrt" && boden && (Math.abs(C.vx) > 0.3 || M.anlauf > 0.3) && !(M.rutsch > 0.3)) {
         var fu = M.fuesse[(n % 2 + 2) % 2 === 0 ? 0 : 1];
         this.melde("schritt", { x: fu.x, y: fu.y, tempo: Math.abs(C.vx) });
       }
