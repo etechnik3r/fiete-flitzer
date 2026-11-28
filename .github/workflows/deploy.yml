@@ -11,6 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Versionsnummer für den Cache setzen
+        run: |
+          # Nur in der Arbeitskopie des Runners (nicht im Repo): Jeder Deploy
+          # bekommt eine neue, aufsteigende Version aus Datum und Uhrzeit.
+          # So holen die Handys die neuen Dateien, ohne dass jemand von Hand
+          # zählen muss.
+          N=$(date -u +%Y%m%d%H%M)
+          sed -i -E "s/^var VERSION = \"v[0-9]+\";/var VERSION = \"v$N\";/; s/\?v=[0-9]+/?v=$N/g" sw.js
+          sed -i -E "s/\?v=[0-9]+/?v=$N/g" index.html
+          grep -n 'VERSION =' sw.js
+          echo "Versionszähler: $(grep -c "?v=$N" sw.js) Stellen in sw.js, $(grep -c "?v=$N" index.html) in index.html"
+
       - name: Hochladen per FTPS (curl)
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
