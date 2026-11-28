@@ -14,6 +14,26 @@ jobs:
       - name: lftp installieren
         run: sudo apt-get update && sudo apt-get install -y lftp
 
+      - name: Diagnose der Zugangsdaten (ohne Werte)
+        continue-on-error: true
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          echo "Längen: Server=${#FTP_SERVER} Benutzer=${#FTP_USERNAME} Passwort=${#FTP_PASSWORD}"
+          for n in FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
+            v="${!n}"
+            if [[ "$v" =~ ^[[:space:]] || "$v" =~ [[:space:]]$ ]]; then
+              echo "$n: Leerzeichen oder Zeilenumbruch am Rand!"
+            else
+              echo "$n: Rand sauber"
+            fi
+          done
+          [[ "$FTP_SERVER" == *"/"* ]] && echo "Server enthält einen Schrägstrich!"
+          [[ "$FTP_PASSWORD" =~ [^A-Za-z0-9] ]] && echo "Passwort enthält Sonderzeichen" || echo "Passwort nur Buchstaben und Ziffern"
+          curl --ssl-reqd -sS --list-only --user "$FTP_USERNAME:$FTP_PASSWORD" "ftp://$FTP_SERVER/" | head -5 && echo "curl-Login OK"
+
       - name: Hochladen per FTPS (lftp)
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
