@@ -33,15 +33,10 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_ZIELPFAD: ${{ vars.FTP_ZIELPFAD }}
         run: |
-          # Zielordner auf dem Server. Standard: Unterordner des Hauptzugangs.
-          # Für einen auf den Ordner beschränkten FTP-Nutzer in GitHub unter
-          # Settings > Secrets and variables > Actions > Variables die Variable
-          # FTP_ZIELPFAD mit dem Wert "/" anlegen.
-          P="${FTP_ZIELPFAD:-/fiete-flitzer.goericke.org}"
-          ZIEL="ftp://$FTP_SERVER${P%/}"
-          echo "Zielpfad auf dem Server: ${P}"
+          # Zielordner auf dem Server: Unterordner des Hauptzugangs, in KAS als
+          # Ziel der Subdomain eingetragen.
+          ZIEL="ftp://$FTP_SERVER/fiete-flitzer.goericke.org"
 
           # Alle Dateien des Spiels, ohne Entwicklungsdateien.
           # index.html und sw.js zuletzt, damit nie eine neue Startseite
